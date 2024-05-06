@@ -1,0 +1,69 @@
+defmodule Deployex.Storage.Local do
+  @moduledoc """
+    Storage adapter used for handling local files
+  """
+
+  @behaviour Deployex.Storage.Adapter
+
+  alias Deployex.{Configuration, State, Upgrade}
+
+  require Logger
+
+  ### ==========================================================================
+  ### CWC Callbacks
+  ### ==========================================================================
+
+  @doc """
+  Retrieve current version
+  """
+  @impl true
+  @spec get_current_version_map() :: Deployex.Storage.version_map() | nil
+  def get_current_version_map do
+    monitored_app = Configuration.monitored_app()
+
+    file_path = "/tmp/#{monitored_app}/versions/#{monitored_app}/#{env()}/current.json"
+
+    case File.read(file_path) do
+      {:ok, data} ->
+        Jason.decode!(data)
+
+      {:error, reason} ->
+        Logger.error("Invalid version map at: #{file_path} reason: #{reason}")
+        nil
+    end
+  end
+
+  @doc """
+  Download and unpack the application
+  """
+  @impl true
+  @spec download_and_unpack(binary()) ::
+          {:error, :invalid_from_version} | {:ok, :full_deployment | :hot_upgrade}
+  def download_and_unpack(version) do
+    monitored_app = Configuration.monitored_app()
+
+    storage_path =
+      "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
+
+    download_path = "/tmp/#{monitored_app}/" <> storage_path
+
+    State.clear_new()
+
+    {"", 0} =
+      System.cmd("tar", [
+        "-x",
+        "-f",
+        download_path,
+        "-C",
+        Configuration.new_path()
+      ])
+
+    Upgrade.check(download_path, State.current_version(), version)
+  end
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+
+  defp env, do: Application.get_env(:deployex, :env)
+end
