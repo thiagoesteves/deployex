@@ -1,0 +1,88 @@
+name: Releases
+
+on:
+  push:
+    tags:
+      - "*"
+
+env:
+  MIX_ENV: prod
+  SHELL: /usr/bin/bash
+
+jobs:
+  buildUbuntu2004:
+    runs-on: ubuntu-20.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Elixir dependencies
+        run: mix do deps.get, compile --warnings-as-errors
+
+      - name: Compile and Generate a Release
+        run: mix release
+
+      - name: Rename Artifact
+        run: mv _build/prod/*.tar.gz deployex-ubuntu-20.04.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployex-ubuntu-20.04.tar.gz
+          path: .
+
+  buildUbuntu2204:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Elixir dependencies
+        run: mix do deps.get, compile --warnings-as-errors
+
+      - name: Compile and Generate a Release
+        run: mix release
+
+      - name: Rename Artifact
+        run: mv _build/prod/*.tar.gz deployex-ubuntu-22.04.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployex-ubuntu-22.04.tar.gz
+          path: .
+
+  build3:
+    name: Publish artifacts to the release
+    needs: [buildUbuntu2004, buildUbuntu2204]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+     - name: Download ubuntu-20.04 artefact
+       uses: actions/download-artifact@v4
+       with:
+         name: deployex-ubuntu-20.04.tar.gz
+         path: .
+
+     - name: Download ubuntu-22.04 artefact
+       uses: actions/download-artifact@v4
+       with:
+         name: deployex-ubuntu-22.04.tar.gz
+         path: .
+
+     - name: Release the files
+       uses: ncipollo/release-action@v1
+       with:
+         artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz"
+         bodyFile: "changelog.md"

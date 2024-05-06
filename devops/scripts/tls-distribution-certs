@@ -1,0 +1,64 @@
+#!/usr/bin/env elixir
+# Generate certificates
+#
+# Original code from https://github.com/rlipscombe/elixir-certs/blob/main/certs.exs)
+
+Mix.install([
+  {:x509, "~> 0.8.8"}
+])
+
+defmodule Script do
+  def run do
+    # Where we put certs.
+    certdir = "."
+
+    ## Generate a "snake oil" CA Certificate
+    subject = "/C=BR/ST=Sao Paulo/L=Sao Paulo/O=calori.com.br/CN=calori.com.br inet_tls CA"
+    ca_key = X509.PrivateKey.new_ec(:secp256r1)
+    ca_crt = X509.Certificate.self_signed(ca_key, subject, template: :root_ca)
+
+    out_crt = Path.join(certdir, "ca.crt")
+
+    File.write!(out_crt, X509.Certificate.to_pem(ca_crt))
+
+
+    ## Generate a signed client/server certificate
+    import X509.Certificate.Extension
+
+    subject = "/C=BR/ST=Sao Paulo/L=Sao Paulo/O=calori.com.br/CN=deployex"
+
+    [commonName] =
+    X509.RDNSequence.new(subject)
+    |> X509.RDNSequence.get_attr(:commonName)
+
+    template = %X509.Certificate.Template{
+    # 1 year, plus a 30 days grace period
+    validity: 365 + 30,
+    hash: :sha256,
+    extensions: [
+        basic_constraints: basic_constraints(false),
+        key_usage: key_usage([:digitalSignature, :keyEncipherment]),
+        ext_key_usage: ext_key_usage([:serverAuth, :clientAuth]),
+        subject_key_identifier: true,
+        authority_key_identifier: true,
+        subject_alt_name: subject_alt_name([commonName])
+    ]
+    }
+
+    key = X509.PrivateKey.new_ec(:secp256r1)
+    pub = X509.PublicKey.derive(key)
+
+    crt =
+    X509.Certificate.new(pub, subject, ca_crt, ca_key, template: template)
+
+    out_key = Path.join(certdir, "#{commonName}.key")
+    out_crt = Path.join(certdir, "#{commonName}.crt")
+
+    File.write!(out_key, X509.PrivateKey.to_pem(key))
+
+    File.write!(out_crt, X509.Certificate.to_pem(crt))
+
+  end
+end
+
+Script.run()
