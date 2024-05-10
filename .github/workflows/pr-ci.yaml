@@ -6,6 +6,7 @@ on:
 
 env:
   MIX_ENV: test
+  SHELL: /usr/bin/bash
 
 jobs:
   setup:
