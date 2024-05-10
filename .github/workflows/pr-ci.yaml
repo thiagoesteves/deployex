@@ -1,0 +1,124 @@
+name: Deployex CI
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  MIX_ENV: test
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            _build
+            deps
+          key: |
+            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
+          restore-keys: |
+            calori-
+
+      - name: Install Elixir dependencies
+        run: mix do deps.get, compile --warnings-as-errors
+
+  test:
+    name: Test
+    needs: setup
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            _build
+            deps
+          key: |
+            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
+          restore-keys: |
+            calori-
+
+      - name: Run tests
+        run: mix test
+
+  analysis:
+    name: Static Analysis
+    needs: setup
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            _build
+            deps
+            apps/site_web/assets/node_modules
+          key: |
+            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-${{ hashFiles('apps/site_web/assets/yarn.lock') }}-2024-05-10
+          restore-keys: |
+            calori-
+
+      - name: Install Elixir dependencies
+        run: mix do deps.get, compile --warnings-as-errors
+
+      - name: Credo
+        run: mix credo --strict
+
+      - name: Mix Audit
+        run: mix deps.audit
+
+      # NOTE: This will be enabled when deployex becomes a phoenix app
+      # - name: Mix Sobelow
+      #   run: mix sobelow --exit --threshold medium --skip -i Config.HTTPS
+
+      - name: Formatted
+        run: mix format --check-formatted
+
+      - name: Restore PLT cache
+        uses: actions/cache@v3
+        id: plt_cache
+        with:
+          key: plt-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}-${{ hashFiles('**/*.ex') }}
+          restore-keys: |
+            plt-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}-${{ hashFiles('**/*.ex') }}
+            plt-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}-
+            plt-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+            plt-${{ steps.beam.outputs.otp-version }}-
+          path: priv/plts
+
+      - name: Create PLTs
+        if: steps.plt_cache.outputs.cache-hit != 'true' || github.run_attempt != '1'
+        run: mix dialyzer --plt
+
+      - name: Run Dialyzer
+        run: mix dialyzer --format github
