@@ -28,9 +28,9 @@ jobs:
             _build
             deps
           key: |
-            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
+            deployex-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
           restore-keys: |
-            calori-
+            deployex-
 
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
@@ -56,9 +56,9 @@ jobs:
             _build
             deps
           key: |
-            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
+            deployex-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
           restore-keys: |
-            calori-
+            deployex-
 
       - name: Run tests
         run: mix test
@@ -85,9 +85,9 @@ jobs:
             deps
             apps/site_web/assets/node_modules
           key: |
-            calori-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-${{ hashFiles('apps/site_web/assets/yarn.lock') }}-2024-05-10
+            deployex-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-${{ hashFiles('apps/site_web/assets/yarn.lock') }}-2024-05-10
           restore-keys: |
-            calori-
+            deployex-
 
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
