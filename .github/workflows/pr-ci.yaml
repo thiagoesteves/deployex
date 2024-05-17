@@ -98,9 +98,8 @@ jobs:
       - name: Mix Audit
         run: mix deps.audit
 
-      # NOTE: This will be enabled when deployex becomes a phoenix app
-      # - name: Mix Sobelow
-      #   run: mix sobelow --exit --threshold medium --skip -i Config.HTTPS
+      - name: Mix Sobelow
+        run: mix sobelow --exit --threshold medium --skip -i Config.HTTPS
 
       - name: Formatted
         run: mix format --check-formatted

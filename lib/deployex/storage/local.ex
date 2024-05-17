@@ -5,7 +5,7 @@ defmodule Deployex.Storage.Local do
 
   @behaviour Deployex.Storage.Adapter
 
-  alias Deployex.{Configuration, State, Upgrade}
+  alias Deployex.{AppStatus, Configuration, Upgrade}
 
   require Logger
 
@@ -47,7 +47,7 @@ defmodule Deployex.Storage.Local do
 
     download_path = "/tmp/#{monitored_app}/" <> storage_path
 
-    State.clear_new()
+    AppStatus.clear_new()
 
     {"", 0} =
       System.cmd("tar", [
@@ -58,7 +58,7 @@ defmodule Deployex.Storage.Local do
         Configuration.new_path()
       ])
 
-    Upgrade.check(download_path, State.current_version(), version)
+    Upgrade.check(download_path, AppStatus.current_version(), version)
   end
 
   ### ==========================================================================

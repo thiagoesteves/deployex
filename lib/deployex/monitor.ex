@@ -5,7 +5,7 @@ defmodule Deployex.Monitor do
   use GenServer
   require Logger
 
-  alias Deployex.{Configuration, State}
+  alias Deployex.{AppStatus, Configuration}
 
   # Since we are running from another release, the deployer RELEASE_* vars need to be unset"
   @unset_release_vars " unset $(env | grep RELEASE | awk -F'=' '{print $1}') ; "
@@ -24,13 +24,13 @@ defmodule Deployex.Monitor do
   def init(_arg) do
     Process.flag(:trap_exit, true)
 
-    state = start_service(State.current_version(), %{current_pid: nil})
+    state = start_service(AppStatus.current_version(), %{current_pid: nil})
     {:ok, state}
   end
 
   @impl true
   def handle_call(:start_service, _from, state) do
-    state = start_service(State.current_version(), state)
+    state = start_service(AppStatus.current_version(), state)
     {:reply, :ok, state}
   end
 
@@ -69,7 +69,7 @@ defmodule Deployex.Monitor do
     state =
       if current_pid == pid do
         Logger.error("Unexpected exit message received from pid: #{inspect(pid)} being restarted")
-        start_service(State.current_version(), state)
+        start_service(AppStatus.current_version(), state)
       else
         Logger.warning(
           "Application with pid: #{inspect(pid)} - state: #{inspect(state)} being stopped by reason: #{inspect(reason)}"
