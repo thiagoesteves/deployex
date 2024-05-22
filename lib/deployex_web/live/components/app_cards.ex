@@ -94,7 +94,7 @@ defmodule DeployexWeb.Components.AppCards do
   end
 
   defp app_background(true, _status) do
-    "bg-gradient-to-r from-cyan-500 to-blue-500"
+    "bg-gradient-to-r from-cyan-400 to-blue-400"
   end
 
   defp app_background(_supervisor, :running) do
@@ -108,13 +108,17 @@ defmodule DeployexWeb.Components.AppCards do
   defp version(assigns) do
     ~H"""
     <%= cond do %>
-      <% @status == :running -> %>
+      <% @status == :running and @version != nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-green-400 to-green-600">
           <%= @version %>
         </div>
-      <% @status == :deploying -> %>
+      <% @status == :deploying and @version != nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-yellow-400 to-yellow-600">
           <%= @version %> [deploying]
+        </div>
+      <% @version == nil -> %>
+        <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse">
+          version not set
         </div>
       <% true -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600">

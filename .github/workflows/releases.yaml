@@ -25,6 +25,9 @@ jobs:
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
 
+      - name: Assets Deploy
+        run: mix assets.deploy
+
       - name: Compile and Generate a Release
         run: mix release
 

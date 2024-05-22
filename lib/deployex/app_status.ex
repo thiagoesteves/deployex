@@ -21,7 +21,8 @@ defmodule Deployex.AppStatus do
     :status
   ]
 
-  @update_interval_ms 1_000
+  @update_apps_interval_ms 1_000
+  @update_otp_distribution_interval_ms 5_000
   @apps_data_updated_topic "apps_data_updated"
 
   ### ==========================================================================
@@ -36,13 +37,15 @@ defmodule Deployex.AppStatus do
   def init(_attrs) do
     Process.flag(:trap_exit, true)
 
-    :timer.send_interval(@update_interval_ms, :update_apps)
+    :timer.send_interval(@update_apps_interval_ms, :update_apps)
+    :timer.send_interval(@update_otp_distribution_interval_ms, :update_otp)
 
     {:ok, []}
   end
 
   @impl true
   def handle_info(:update_apps, state) do
+    # update apps
     new_state = [
       update_deployex_app(),
       update_monitored_app()
@@ -57,6 +60,12 @@ defmodule Deployex.AppStatus do
     end
 
     {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_info(:update_otp, state) do
+    if current_version() != nil and Node.list() == [], do: Deployex.Upgrade.connect()
+    {:noreply, state}
   end
 
   ### ==========================================================================
@@ -136,9 +145,7 @@ defmodule Deployex.AppStatus do
   end
 
   defp prev_version do
-    previous_version_path()
-    |> version_map()
-    |> Map.get("version")
+    version_map(previous_version_path())["version"]
   end
 
   defp update_deployex_app do
