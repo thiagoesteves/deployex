@@ -25,6 +25,9 @@ jobs:
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
 
+      - name: Assets Deploy
+        run: mix assets.deploy
+
       - name: Compile and Generate a Release
         run: mix release
 
@@ -85,4 +88,4 @@ jobs:
        uses: ncipollo/release-action@v1
        with:
          artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz"
-         bodyFile: "changelog.md"
+         bodyFile: "CHANGELOG.md"

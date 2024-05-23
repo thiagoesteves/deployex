@@ -5,7 +5,7 @@ defmodule Deployex.Storage.S3 do
 
   @behaviour Deployex.Storage.Adapter
 
-  alias Deployex.{Configuration, State, Upgrade}
+  alias Deployex.{AppStatus, Configuration, Upgrade}
 
   require Logger
 
@@ -47,7 +47,7 @@ defmodule Deployex.Storage.S3 do
       |> ExAws.S3.download_file(s3_path, download_path)
       |> ExAws.request()
 
-    State.clear_new()
+    AppStatus.clear_new()
 
     {"", 0} =
       System.cmd("tar", [
@@ -58,7 +58,7 @@ defmodule Deployex.Storage.S3 do
         Configuration.new_path()
       ])
 
-    Upgrade.check(download_path, State.current_version(), version)
+    Upgrade.check(download_path, AppStatus.current_version(), version)
   after
     Briefly.cleanup()
   end

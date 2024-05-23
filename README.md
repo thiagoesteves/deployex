@@ -12,9 +12,11 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
+- [X] Convert project to a Phoenix app and add a dashboard view status
+- [ ] Phoenix Aapp: Add log view tab
+- [ ] Phoenix Aapp: Add iex CLI tab
 - [ ] Execute migrations before full deployment
 - [ ] OTP Distribution monitoring for health checks
-- [ ] Convert project to a Phoenix app and add a dashboard view status
 - [ ] Full deployment rollback functionality
 
 ## Getting Started
@@ -24,28 +26,38 @@ The Deployex project is still very new and requires the addition of numerous fea
 You can kickstart the setup with the following commands:
 ```bash
 mix deps.get
-iex --sname deployex -S mix
-11:13:09.507 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  No version set, not able to start_service
+iex --sname deployex -S mix phx.server
+[info] No version set, not able to start_service
+[info] Running DeployexWeb.Endpoint with Bandit 1.5.2 at 127.0.0.1:5001 (http)
+[info] Access DeployexWeb.Endpoint at http://localhost:5001
+[watch] build finished, watching for changes...
 Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
 Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
-11:13:14.518 [error] module=Deployex.Storage.Local function=get_current_version_map/0 pid=<0.229.0>  Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
-iex(deployex@hostname)1> 
+
+Rebuilding...
+
+Done in 166ms.
+[error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-The error message is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture:
 
-### How Deployex handles application Version/Release
+![Running with no monitored apps](/docs/deployex_server.png)
 
-The Deployex app expects a `current.json` file to be present, which contains version and hash information. This file is crucial for deployment and hot upgrades.
+*__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
+
+### How Deployex handles monitored application Version/Release
+
+The Deployex app expects a `current.json` file to be available, which contains version and hash information. This file is mandatory for full deployment and hot upgrades.
 
 #### Version file (current.json) 
 
 Expected location in the storage folder:
 ```bash
-# production
-{s3}/versions/{monitored_app}/{env}/current.json
-# local test
+# production path
+s3://{monitored_app}-{env}-distribution/versions/{monitored_app}/{env}/current.json
+# local test path
 /tmp/{monitored_app}/versions/{monitored_app}/{env}/current.json
 ```
 
@@ -63,13 +75,31 @@ Once the file is captured, the deployment will start if no app is running or if 
 
 Expected location in the storage folder:
 ```bash
-# production
-{s3}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
-# local test
+# production path
+s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
+# local test path
 /tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
 
-### Running Deployex and Monitored app locally
+## Environment Variables
+
+This Phoenix application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production:
+
+| ENV NAME   |      EXAMPLE      |  SOURCE |  DESCRIPTION |
+|----------|-------------|------:|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
+| __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | Monitored app name |
+| __DEPLOYEX_STORAGE_ADAPTER__ | s3 | system ENV | storage adapter type |
+| __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | cloud env name |
+| __DEPLOYEX_PHX_SERVER__ | true | system ENV | enable/disable server |
+| __DEPLOYEX_PHX_HOST__ | example.com | system ENV | The hostname for your application |
+| __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | The port on which the application will run |
+| __AWS_REGION__ | us-east2 | system ENV | the aws region |
+
+For local testing, these variables are not expected or set to default values.
+
+## Running Deployex and Monitored app locally
 
 For local testing, the root path used is `/tmp/{monitored_app}`. Follow these steps:
 
@@ -82,7 +112,7 @@ mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 
 Go to the application you want to deploy/monitor and create a release. In this example, we create a brand new application using phx.new and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
-#### Creating an Elixir phoenix app (default name is `myphoenixapp`)
+### Creating an Elixir phoenix app (default name is `myphoenixapp`)
 
 ```bash
 mix local.hex
@@ -91,7 +121,7 @@ mix phx.new myphoenixapp --no-ecto
 cd myphoenixapp
 ```
 
-#### Add env.sh.eex file in the release folder to configure the OTP distribution
+### Add env.sh.eex file in the release folder to configure the OTP distribution
 
 ```bash
 vi rel/env.sh.eex
@@ -105,12 +135,12 @@ export RELEASE_NODE=<%= @release.name %>
 # save the file :wq
 ```
 
-#### The next steps are needed only for Hot upgrades
-Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library ONLY if the application will need hotupgrades
+### The next steps are needed ONLY for Hot upgrades
+Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
 ```elixir
 def deps do
   [
-    {:jellyfish, "~> 0.1.1"}
+    {:jellyfish, "~> 0.1.2"}
   ]
 end
 ```
@@ -145,7 +175,7 @@ live_reload: [
 ]
 ```
 
-#### Generate a release
+### Generate a release
 Then you can compile and generate a release
 ```bash
 mix deps.get
@@ -165,7 +195,7 @@ cp _build/prod/myphoenixapp-0.1.0.tar.gz /tmp/myphoenixapp/dist/myphoenixapp
 echo "{\"version\":\"0.1.0\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versions/myphoenixapp/local/current.json
 ```
 
-#### Running Deployex and deploy the app
+### Running Deployex and deploy the app
 
 Move back to the deployex project and run the command line with the required ENV vars. 
 
@@ -173,11 +203,10 @@ Move back to the deployex project and run the command line with the required ENV
 ```bash
 export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
 export PHX_SERVER=true
-iex --sname deployex -S mix
-11:18:26.375 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  No version set, not able to start_service
-Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
+iex --sname deployex -S mix phx.server
 
-Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
+...
+
 11:18:31.380 [info] module=Deployex.Deployment function=run_check/1 pid=<0.229.0>  Update is needed from <no current set> to 0.1.0.
 11:18:31.592 [warning] module=Deployex.Upgrade function=check/3 pid=<0.229.0>  HOT UPGRADE version NOT DETECTED, full deployment required, result: {:error, :no_match_versions}
 11:18:31.592 [info] module=Deployex.Monitor function=handle_call/3 pid=<0.230.0>  Requested to stop but application is not running.
@@ -193,11 +222,11 @@ iex(deployex@hostname)1> Node.set_cookie :cookie
 true
 ```
 
-You should then visit the applciation and check it is running [localhost:4000](http://localhost:4000/)
+You should then visit the application and check it is running [localhost:5001](http://localhost:5001/)
 
-#### Updating the application
+### Updating the application
 
-##### Full deployment
+#### Full deployment
 
 In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of Deployex throughout this process. Navigate to the `myphoenixapp` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
 
@@ -235,9 +264,9 @@ echo "{\"version\":\"0.1.1\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versi
 11:22:04.950 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   - Running, monitoring pid = #PID<0.249.0>, OS process id = 9289.
 ```
 
-##### Hot-upgrades
+#### Hot-upgrades
 
-For this scenario, the project must first be compiled to the current version and subsequently compiled for the version it's expected to update to. The current.json file deployed includes the git hash representing the current application version. In this local testing phase, it suffices to compile for the previous version, such as `0.1.1`, and the subsequent version, like `0.1.2`, so the necessary files will be automatically populated.
+For this scenario, the project must first be compiled to the current version and subsequently compiled for the version it's expected to update to. The `current.json` file deployed includes the git hash representing the current application version. In this local testing phase, it suffices to compile for the previous version, such as `0.1.1`, and the subsequent version, like `0.1.2`, so the necessary files will be automatically populated.
 
 1. Since the application is already compiled for `0.1.1`, change the `mix.exs` to `0.1.2`, apply any other changes if you want to test and execute the command:
 ```bash
@@ -273,9 +302,9 @@ You can then check that deployex had executed a hot upgrade in the application:
 14:18:20.927 [info] module=Deployex.Upgrade function=run/2 pid=<0.235.0>  Release upgrade executed with success from 0.1.1 to 0.1.2
 ```
 
-#### Enhancing OTP Distribution Security with mTLS
+### Enhancing OTP Distribution Security with mTLS
 
-In order to improve security, mutal TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
+In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 
 1. Generate the necessary certificates:
 ```bash
@@ -320,7 +349,7 @@ EOF
 
 4. To enable `mTLS` for deployex, set the appropriate Erlang options before running the application in the terminal:
 ```bash
-ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf" iex --sname deployex -S mix 
+ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
 5. Ensure that `myphoenixapp` also utilizes the same options and certificate by updating `rel/env.sh.eex`:
@@ -336,9 +365,31 @@ After making these changes, remove any previous `myphoenixapp` releases that do 
 
 *__ATTENTION: Ensure that the cookie is properly set__*
 
-### How Deployex handles services
+## Throubleshooting
 
-#### Full deployment
+### Accessing monitored app logs
+
+```bash
+export monitored_app_name=myphoenixapp
+# production
+tail -f /var/log/${monitored_app_name}-stdout.log 
+# local test
+tail -f /tmp/${monitored_app_name}/${monitored_app_name}-stdout.log
+```
+
+### Connecting to the monitored app CLI
+
+```bash
+export monitored_app_name=calori
+# production
+/var/lib/deployex/service/${monitored_app_name}/current/bin/${monitored_app_name} remote
+# local test
+/tmp/deployex/varlib/service/${monitored_app_name}/current/bin/${monitored_app_name} remote
+```
+
+## How Deployex handles services
+
+### Full deployment
 
 Deployex operates by monitoring applications and versions using folders and files, treating the monitored app as a service. The deployment process involves several steps to ensure smooth transitions:
 
@@ -359,19 +410,19 @@ By following this process, Deployex facilitates deployments, ensuring that appli
 
 For the test environment:
 ```bash
-/tmp/deployex/varlib/service/{monitored_app}/old/{app_bin}
-/tmp/deployex/varlib/service/{monitored_app}/new/{app_bin}
-/tmp/deployex/varlib/service/{monitored_app}/current/{app_bin}
+/tmp/deployex/varlib/service/{monitored_app}/old/{monitored_app}
+/tmp/deployex/varlib/service/{monitored_app}/new/{monitored_app}
+/tmp/deployex/varlib/service/{monitored_app}/current/{monitored_app}
 ```
 
 For production environment:
 ```bash
-/var/lib/deployex/service/{monitored_app}/old/{app_bin}
-/var/lib/deployex/service/{monitored_app}/new/{app_bin}
-/var/lib/deployex/service/{monitored_app}/current/{app_bin}
+/var/lib/deployex/service/{monitored_app}/old/{monitored_app}
+/var/lib/deployex/service/{monitored_app}/new/{monitored_app}
+/var/lib/deployex/service/{monitored_app}/current/{monitored_app}
 ```
 
-#### Hot-upgrades
+### Hot-upgrades
 
 For this scenario, there will be no moving files/folders since the target is to keep the current service folder updated. The sequence is:
 
