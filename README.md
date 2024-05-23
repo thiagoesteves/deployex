@@ -41,23 +41,23 @@ Done in 166ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5000`](http://localhost:5001) from your browser. You shold see as per the picture:
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture:
 
 ![Running with no monitored apps](/docs/deployex_server.png)
 
 *__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 
-### How Deployex handles application Version/Release
+### How Deployex handles monitored application Version/Release
 
-The Deployex app expects a `current.json` file to be present, which contains version and hash information. This file is mandatory for deployment and hot upgrades.
+The Deployex app expects a `current.json` file to be available, which contains version and hash information. This file is mandatory for full deployment and hot upgrades.
 
 #### Version file (current.json) 
 
 Expected location in the storage folder:
 ```bash
-# production
-{s3}/versions/{monitored_app}/{env}/current.json
-# local test
+# production path
+s3://{monitored_app}-{env}-distribution/versions/{monitored_app}/{env}/current.json
+# local test path
 /tmp/{monitored_app}/versions/{monitored_app}/{env}/current.json
 ```
 
@@ -75,26 +75,27 @@ Once the file is captured, the deployment will start if no app is running or if 
 
 Expected location in the storage folder:
 ```bash
-# production
-{s3}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
-# local test
+# production path
+s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
+# local test path
 /tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
 
-## Expected configuration for production release
+## Environment Variables
 
-The following ENV vars are expected to be defined for production:
-```bash
-DEPLOYEX_SECRET_KEY_BASE=xxxxxxx <--- This secret is expected from AWS secrets
-DEPLOYEX_ERLANG_COOKIE=xxxxxx <--- This secret is expected from AWS secrets
-DEPLOYEX_MONITORED_APP_NAME=myphoenixapp
-DEPLOYEX_STORAGE_ADAPTER=s3
-DEPLOYEX_CLOUD_ENVIRONMENT=prod
-DEPLOYEX_PHX_SERVER=true
-DEPLOYEX_PHX_HOST=example.com
-DEPLOYEX_PHX_PORT=5001
-AWS_REGION=us-east2
-```
+This Phoenix application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production:
+
+| ENV NAME   |      EXAMPLE      |  SOURCE |  DESCRIPTION |
+|----------|-------------|------:|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
+| __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | Monitored app name |
+| __DEPLOYEX_STORAGE_ADAPTER__ | s3 | system ENV | storage adapter type |
+| __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | cloud env name |
+| __DEPLOYEX_PHX_SERVER__ | true | system ENV | enable/disable server |
+| __DEPLOYEX_PHX_HOST__ | example.com | system ENV | The hostname for your application |
+| __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | The port on which the application will run |
+| __AWS_REGION__ | us-east2 | system ENV | the aws region |
 
 For local testing, these variables are not expected or set to default values.
 
@@ -134,8 +135,8 @@ export RELEASE_NODE=<%= @release.name %>
 # save the file :wq
 ```
 
-### The next steps are needed only for Hot upgrades
-Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library ONLY if the application will need hotupgrades
+### The next steps are needed ONLY for Hot upgrades
+Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
 ```elixir
 def deps do
   [
@@ -379,7 +380,7 @@ tail -f /tmp/${monitored_app_name}/${monitored_app_name}-stdout.log
 ### Connecting to the monitored app CLI
 
 ```bash
-export monitored_app_name=myphoenixapp
+export monitored_app_name=calori
 # production
 /var/lib/deployex/service/${monitored_app_name}/current/bin/${monitored_app_name} remote
 # local test
