@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1-rc1 (2024-05-24)
+
+## Backwards incompatible changes for 0.2.0
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Changed `env.sh.eex` to use environment variables for RELEASE_COOKIE and only set the default value if the ENV VAR is not present. 
+ This will allow the remote connection to be able to capture the RELEASE_COOKIE from the environment
+
+
 ## 0.2.0 🚀 (2024-05-23)
 
 This release marks a transformation of the application, transitioning it into a Phoenix LiveView app featuring a dashboard providing real-time status updates on the current deployment.
