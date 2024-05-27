@@ -12,7 +12,7 @@ defmodule Deployex.Configuration do
   """
   @spec init() :: :ok
   def init do
-    [new_path(), current_path(), old_path()]
+    [new_path(), current_path(), previous_path()]
     |> Enum.each(&File.mkdir_p!/1)
   end
 
@@ -49,8 +49,8 @@ defmodule Deployex.Configuration do
   @doc """
   Path to move the previous app files
   """
-  @spec old_path() :: binary()
-  def old_path, do: Path.join(service_path(), "old")
+  @spec previous_path() :: binary()
+  def previous_path, do: Path.join(service_path(), "previous")
 
   ### ==========================================================================
   ### Private functions

@@ -399,10 +399,10 @@ Deployex operates by monitoring applications and versions using folders and file
  Deployex will check the release file received and if it is a full deployment, goes to the step 3 .
 3. *__Stop the Current Application:__*
 The currently running application instance is stopped to prepare for the new deployment.
-4. *__Delete the Old Service Folder:__*
- The `old` service folder, containing the previous version of the application, is deleted to make space for the new version.
+4. *__Delete the Previous Service Folder:__*
+ The `previous` service folder, containing the previous version of the application, is deleted to make space for the new version.
 5. *__Move the Current Service:__*
- The `current` service folder, representing the current version of the application, is moved to the `old` service folder. Simultaneously, the `new` service folder is moved to become the new `current` service folder.
+ The `current` service folder, representing the current version of the application, is moved to the `previous` service folder. Simultaneously, the `new` service folder is moved to become the new `current` service folder.
 6. *__Start the Application:__*
  Finally, the application is started using the version now residing in the `current` service folder, ensuring that the latest version is active and operational.
 
@@ -410,14 +410,14 @@ By following this process, Deployex facilitates deployments, ensuring that appli
 
 For the test environment:
 ```bash
-/tmp/deployex/varlib/service/{monitored_app}/old/{monitored_app}
+/tmp/deployex/varlib/service/{monitored_app}/previous/{monitored_app}
 /tmp/deployex/varlib/service/{monitored_app}/new/{monitored_app}
 /tmp/deployex/varlib/service/{monitored_app}/current/{monitored_app}
 ```
 
 For production environment:
 ```bash
-/var/lib/deployex/service/{monitored_app}/old/{monitored_app}
+/var/lib/deployex/service/{monitored_app}/previous/{monitored_app}
 /var/lib/deployex/service/{monitored_app}/new/{monitored_app}
 /var/lib/deployex/service/{monitored_app}/current/{monitored_app}
 ```
