@@ -115,8 +115,8 @@ defmodule Deployex.AppStatus do
 
   @spec update() :: :ok
   def update do
-    File.rm_rf(Configuration.old_path())
-    File.rename(Configuration.current_path(), Configuration.old_path())
+    File.rm_rf(Configuration.previous_path())
+    File.rename(Configuration.current_path(), Configuration.previous_path())
     File.rename(Configuration.new_path(), Configuration.current_path())
     :ok
   end

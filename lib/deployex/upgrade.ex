@@ -84,7 +84,7 @@ defmodule Deployex.Upgrade do
     original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
     # Read the build time config from build.config
     {:ok, [sys_config]} = :file.consult(sys_config_path)
-    # In this step, it will run the runtime.exs and Config Providers for the old version
+    # In this step, it will run the runtime.exs and Config Providers for the current version
     sys_config =
       sys_config
       |> Keyword.get(:elixir)
