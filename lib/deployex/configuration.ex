@@ -8,12 +8,19 @@ defmodule Deployex.Configuration do
   ### ==========================================================================
 
   @doc """
-  Ensure all directories are created
+  Ensure all directories are initialised
   """
-  @spec init() :: :ok
-  def init do
-    [new_path(), current_path(), previous_path()]
-    |> Enum.each(&File.mkdir_p!/1)
+  @spec init(list()) :: :ok
+  def init(instances) do
+    instances
+    |> Enum.each(fn instance ->
+      # Create the service folders
+      [new_path(instance), current_path(instance), previous_path(instance)]
+      |> Enum.each(&File.mkdir_p!/1)
+
+      # Create version folders
+       File.mkdir_p!(Path.join([base_path(), "version", "#{instance}"]))
+    end)
   end
 
   @doc """
@@ -25,8 +32,14 @@ defmodule Deployex.Configuration do
   @doc """
   Return the app name that will be monitored
   """
-  @spec log_path() :: binary()
+  @spec log_path :: binary()
   def log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
+
+  @doc """
+  Return the sname of the application with the correct instance suffix
+  """
+  @spec sname(integer()) :: String.t()
+  def sname(instance), do: "#{monitored_app()}-#{instance}"
 
   @doc """
   Base path for the state and service data
@@ -37,20 +50,20 @@ defmodule Deployex.Configuration do
   @doc """
   Path for retrieving the new app data
   """
-  @spec new_path() :: binary()
-  def new_path, do: Path.join(service_path(), "new")
+  @spec new_path(integer()) :: binary()
+  def new_path(instance), do: Path.join([service_path(), "#{instance}", "new"])
 
   @doc """
   Path where the app will be running from
   """
-  @spec current_path() :: binary()
-  def current_path, do: Path.join(service_path(), "current")
+  @spec current_path(integer()) :: binary()
+  def current_path(instance), do: Path.join([service_path(), "#{instance}", "current"])
 
   @doc """
   Path to move the previous app files
   """
-  @spec previous_path() :: binary()
-  def previous_path, do: Path.join(service_path(), "previous")
+  @spec previous_path(integer()) :: binary()
+  def previous_path(instance), do: Path.join([service_path(), "#{instance}", "previous"])
 
   ### ==========================================================================
   ### Private functions

@@ -37,9 +37,9 @@ defmodule Deployex.Storage.Local do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(binary()) ::
+  @spec download_and_unpack(integer(), binary()) ::
           {:error, :invalid_from_version} | {:ok, :full_deployment | :hot_upgrade}
-  def download_and_unpack(version) do
+  def download_and_unpack(instance, version) do
     monitored_app = Configuration.monitored_app()
 
     storage_path =
@@ -47,18 +47,12 @@ defmodule Deployex.Storage.Local do
 
     download_path = "/tmp/#{monitored_app}/" <> storage_path
 
-    AppStatus.clear_new()
+    AppStatus.clear_new(instance)
+    new_path = Configuration.new_path(instance)
 
-    {"", 0} =
-      System.cmd("tar", [
-        "-x",
-        "-f",
-        download_path,
-        "-C",
-        Configuration.new_path()
-      ])
+    {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(download_path, AppStatus.current_version(), version)
+    Upgrade.check(instance, download_path, AppStatus.current_version(instance), version)
   end
 
   ### ==========================================================================

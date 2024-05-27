@@ -21,7 +21,8 @@ config :deployex,
   env: "local",
   monitored_app_name: monitored_app_name,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  base_path: "/tmp/deployex/varlib"
+  base_path: "/tmp/deployex/varlib",
+  replicas: 2
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,

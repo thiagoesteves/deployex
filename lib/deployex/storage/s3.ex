@@ -34,8 +34,9 @@ defmodule Deployex.Storage.S3 do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(binary()) :: {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def download_and_unpack(version) do
+  @spec download_and_unpack(integer(), binary()) ::
+          {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
+  def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
     monitored_app = Configuration.monitored_app()
@@ -47,18 +48,12 @@ defmodule Deployex.Storage.S3 do
       |> ExAws.S3.download_file(s3_path, download_path)
       |> ExAws.request()
 
-    AppStatus.clear_new()
+    AppStatus.clear_new(instance)
+    new_path = Configuration.new_path(instance)
 
-    {"", 0} =
-      System.cmd("tar", [
-        "-x",
-        "-f",
-        download_path,
-        "-C",
-        Configuration.new_path()
-      ])
+    {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(download_path, AppStatus.current_version(), version)
+    Upgrade.check(instance, download_path, AppStatus.current_version(instance), version)
   after
     Briefly.cleanup()
   end
