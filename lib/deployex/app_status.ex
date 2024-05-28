@@ -5,11 +5,13 @@ defmodule Deployex.AppStatus do
 
   use GenServer
   alias Deployex.Configuration
+  alias Deployex.Monitor
   alias Deployex.Storage
 
   require Logger
 
   defstruct name: nil,
+            instance: 0,
             version: nil,
             otp: nil,
             tls: :not_supported,
@@ -20,7 +22,7 @@ defmodule Deployex.AppStatus do
 
   @update_apps_interval_ms 1_000
   @update_otp_distribution_interval_ms 5_000
-  @apps_data_updated_topic "apps_data_updated"
+  @apps_data_updated_topic "monitoring_app_updated"
 
   ### ==========================================================================
   ### Callback functions
@@ -42,18 +44,21 @@ defmodule Deployex.AppStatus do
 
   @impl true
   def handle_info(:update_apps, %{instances: instances, monitoring: monitoring} = state) do
-    # update apps
-    new_monitoring =
-      [update_deployex_app()] ++
-        Enum.map(1..instances, fn instance ->
-          update_monitored_app(instance)
-        end)
+    deployex = update_deployex_app()
+
+    monitoring_apps =
+      Enum.to_list(1..instances)
+      |> Enum.map(fn instance ->
+        update_monitored_app(instance)
+      end)
+
+    new_monitoring = [deployex] ++ monitoring_apps
 
     if new_monitoring != monitoring do
       Phoenix.PubSub.broadcast(
         Deployex.PubSub,
-        "apps_data_updated",
-        {:update_apps_data, new_monitoring}
+        @apps_data_updated_topic,
+        {:monitoring_app_updated, new_monitoring}
       )
     end
 
@@ -97,8 +102,6 @@ defmodule Deployex.AppStatus do
         Logger.warning("No previous version set")
 
       version ->
-        IO.puts("here")
-
         instance
         |> previous_version_path()
         |> File.write!(version |> Jason.encode!())
@@ -108,8 +111,6 @@ defmodule Deployex.AppStatus do
       version
       |> Map.put(:deployment, deployment)
       |> Jason.encode!()
-
-    IO.puts("save")
 
     instance
     |> current_version_path()
@@ -200,6 +201,7 @@ defmodule Deployex.AppStatus do
   defp update_monitored_app(instance) do
     %Deployex.AppStatus{
       name: Application.get_env(:deployex, :monitored_app_name),
+      instance: instance,
       version: current_version(instance),
       otp: check_otp(),
       tls: check_tls(),
@@ -223,12 +225,9 @@ defmodule Deployex.AppStatus do
   end
 
   defp check_deployment(instance) do
-    storage = Storage.get_current_version_map()
-
-    if storage["version"] == current_version(instance) do
-      :running
-    else
-      :deploying
+    case Monitor.status(instance) do
+      {:ok, status} -> status
+      _ -> nil
     end
   end
 end

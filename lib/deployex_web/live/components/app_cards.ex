@@ -2,12 +2,12 @@ defmodule DeployexWeb.Components.AppCards do
   @moduledoc false
   use Phoenix.Component
 
-  attr :apps_data, :list, required: true
+  attr :monitoring_apps_data, :list, required: true
 
   def content(assigns) do
     ~H"""
     <div class="grid grid-cols-3  items-center p-30">
-      <%= for app <- @apps_data do %>
+      <%= for app <- @monitoring_apps_data do %>
         <button
           id={"button-#{app.name}"}
           class={[app_background(app.supervisor, app.status), "rounded-lg border border-black mt-2"]}
@@ -112,9 +112,9 @@ defmodule DeployexWeb.Components.AppCards do
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-green-400 to-green-600">
           <%= @version %>
         </div>
-      <% @status == :deploying and @version != nil -> %>
+      <% @status == :starting and @version != nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-yellow-400 to-yellow-600">
-          <%= @version %> [deploying]
+          <%= @version %> [starting]
         </div>
       <% @version == nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse">
