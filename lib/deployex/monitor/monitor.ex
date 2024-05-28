@@ -23,6 +23,8 @@ defmodule Deployex.Monitor do
   def init(instance: instance) do
     Process.flag(:trap_exit, true)
 
+    Logger.metadata(instance: instance)
+
     current_version = AppStatus.current_version(instance)
 
     state =
@@ -146,12 +148,16 @@ defmodule Deployex.Monitor do
 
   # NOTE: Since we are running from another release, the deployer RELEASE_* vars need to be unset"
   defp pre_commands(instance) do
-    "unset $(env | grep RELEASE | awk -F'=' '{print $1}') ; export RELEASE_NODE_SUFFIX=-#{instance}; "
+    phx_port = phx_start_port() + (instance - 1)
+
+    "unset $(env | grep RELEASE | awk -F'=' '{print $1}') ; export RELEASE_NODE_SUFFIX=-#{instance}; export PORT=#{phx_port} ;"
   end
 
   defp executable_path(instance) do
     Path.join([Configuration.current_path(instance), "bin", Configuration.monitored_app()])
   end
+
+  defp phx_start_port, do: Application.get_env(:deployex, :phx_start_port)
 
   defp stdout_path,
     do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-stdout.log"

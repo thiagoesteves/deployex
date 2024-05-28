@@ -8,7 +8,7 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Storage, Upgrade}
+  alias Deployex.{AppStatus, Monitor, Storage, Upgrade}
 
   @wait_time_from_stop_ms 500
 
@@ -22,6 +22,8 @@ defmodule Deployex.Deployment do
 
   @impl true
   def init(instance: instance) do
+    Logger.metadata(instance: instance)
+
     Logger.info("Initialising Deployment for instance: #{instance}")
     schedule_new_deployment()
     {:ok, %{instance: instance}}
@@ -66,7 +68,7 @@ defmodule Deployex.Deployment do
 
   defp full_deployment(instance, storage) do
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      Deployex.Monitor.stop_service(instance)
+      Monitor.stop_service(instance)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
@@ -76,7 +78,7 @@ defmodule Deployex.Deployment do
 
       AppStatus.set_current_version_map(instance, storage, :full_deployment)
 
-      :ok = Deployex.Monitor.start_service(instance)
+      :ok = Monitor.start_service(instance)
     end)
   end
 

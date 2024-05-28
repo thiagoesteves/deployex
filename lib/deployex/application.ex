@@ -7,11 +7,12 @@ defmodule Deployex.Application do
 
   @impl true
   def start(_type, _args) do
-
     Deployex.Configuration.init(replicas_list())
 
     children =
       [
+        Deployex.Deployment.Supervisor,
+        Deployex.Monitor.Supervisor,
         DeployexWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
@@ -20,20 +21,23 @@ defmodule Deployex.Application do
         # Start a worker by calling: Deployex.Worker.start_link(arg)
         # {Deployex.Worker, arg},
         # Start to serve requests, typically the last entry
-        DeployexWeb.Endpoint
-      ] ++
-        Enum.map(replicas_list(), fn instance ->
-          {Deployex.Monitor, instance: instance}
-        end) ++
-        Enum.map(replicas_list(), fn instance ->
-          {Deployex.Deployment, instance: instance}
-        end) ++
-        [{Deployex.AppStatus, instances: replicas()}]
+        DeployexWeb.Endpoint,
+        {Deployex.AppStatus, instances: replicas()}
+      ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Deployex.Supervisor]
-    Supervisor.start_link(children, opts)
+    response = Supervisor.start_link(children, opts)
+
+    # Initialise instances
+    replicas_list()
+    |> Enum.each(&Deployex.Monitor.Supervisor.new(instance: &1))
+
+    replicas_list()
+    |> Enum.each(&Deployex.Deployment.Supervisor.new(instance: &1))
+
+    response
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -45,5 +49,5 @@ defmodule Deployex.Application do
   end
 
   defp replicas, do: Application.get_env(:deployex, :replicas)
-  defp replicas_list, do: 1..replicas()
+  defp replicas_list, do: Enum.to_list(1..replicas())
 end

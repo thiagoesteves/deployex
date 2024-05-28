@@ -19,8 +19,10 @@ defmodule Deployex.Configuration do
       |> Enum.each(&File.mkdir_p!/1)
 
       # Create version folders
-       File.mkdir_p!(Path.join([base_path(), "version", "#{instance}"]))
+      File.mkdir_p!(Path.join([base_path(), "version", "#{instance}"]))
     end)
+
+    :ok
   end
 
   @doc """
