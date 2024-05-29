@@ -11,9 +11,10 @@ defmodule Deployex.Application do
 
     children =
       [
-        Deployex.Deployment.Supervisor,
         Deployex.Monitor.Supervisor,
         DeployexWeb.Telemetry,
+        {Deployex.Deployment, instances: replicas()},
+        {Deployex.AppStatus, instances: replicas()},
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         # Start the Finch HTTP client for sending emails
@@ -21,8 +22,7 @@ defmodule Deployex.Application do
         # Start a worker by calling: Deployex.Worker.start_link(arg)
         # {Deployex.Worker, arg},
         # Start to serve requests, typically the last entry
-        DeployexWeb.Endpoint,
-        {Deployex.AppStatus, instances: replicas()}
+        DeployexWeb.Endpoint
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -33,9 +33,6 @@ defmodule Deployex.Application do
     # Initialise instances
     replicas_list()
     |> Enum.each(&Deployex.Monitor.Supervisor.new(instance: &1))
-
-    replicas_list()
-    |> Enum.each(&Deployex.Deployment.Supervisor.new(instance: &1))
 
     response
   end

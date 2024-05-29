@@ -12,30 +12,56 @@ defmodule Deployex.Deployment do
 
   @wait_time_from_stop_ms 500
 
+  defstruct instances: 1,
+            current: 1
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
 
   def start_link(arg) do
-    GenServer.start_link(__MODULE__, arg)
+    GenServer.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   @impl true
-  def init(instance: instance) do
-    Logger.metadata(instance: instance)
-
-    Logger.info("Initialising Deployment for instance: #{instance}")
+  def init(instances: instances) do
+    Logger.info("Initialising Deployment")
     schedule_new_deployment()
-    {:ok, %{instance: instance}}
+    {:ok, %__MODULE__{instances: instances}}
   end
 
   @impl true
   def handle_info(:schedule, state) do
     schedule_new_deployment()
 
-    state = check_deployment(state)
+    check_deployment(state.current)
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast(
+        {:application_running, instance},
+        %__MODULE__{instances: instances, current: current} = state
+      )
+      when current == instance do
+    schedule_new_deployment()
+
+    new_current =
+      if current == instances, do: 1, else: current + 1
+
+    check_deployment(state.current)
+
+    {:noreply, %{state | current: new_current}}
+  end
+
+  ### ==========================================================================
+  ### Public API
+  ### ==========================================================================
+
+  @spec notify_application_running(integer()) :: :ok
+  def notify_application_running(instance) do
+    GenServer.cast(__MODULE__, {:application_running, instance})
   end
 
   ### ==========================================================================
@@ -45,7 +71,7 @@ defmodule Deployex.Deployment do
   defp schedule_new_deployment,
     do: Process.send_after(self(), :schedule, @deployment_schedule_interval_ms)
 
-  defp check_deployment(%{instance: instance} = state) do
+  defp check_deployment(instance) do
     storage = Storage.get_current_version_map()
     current_app_version = AppStatus.current_version(instance) || "<no current set>"
 
@@ -61,9 +87,9 @@ defmodule Deployex.Deployment do
         {:ok, :hot_upgrade} ->
           hot_upgrade(instance, storage)
       end
-    else
-      state
     end
+
+    :ok
   end
 
   defp full_deployment(instance, storage) do
@@ -88,6 +114,7 @@ defmodule Deployex.Deployment do
 
       if :ok == Upgrade.run(instance, from_version, storage["version"]) do
         AppStatus.set_current_version_map(instance, storage, :hot_upgrade)
+        notify_application_running(instance)
       end
     end)
 

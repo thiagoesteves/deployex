@@ -25,7 +25,9 @@ if config_env() == :prod do
   config :deployex,
     env: System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT"),
     monitored_app_name: System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME"),
-    monitored_app_log_path: "/var/log"
+    monitored_app_log_path: "/var/log",
+    phx_start_port: String.to_integer(System.get_env("DEPLOYEX_MONITORED_APP_PORT") || "4000"),
+    replicas: String.to_integer(System.get_env("DEPLOYEX_MONITORED_REPLICAS") || "2")
 
   config :ex_aws,
     region: System.fetch_env!("AWS_REGION")

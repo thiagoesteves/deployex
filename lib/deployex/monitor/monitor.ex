@@ -5,7 +5,7 @@ defmodule Deployex.Monitor do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Configuration}
+  alias Deployex.{AppStatus, Configuration, Deployment}
 
   defstruct current_pid: nil,
             instance: 0,
@@ -46,17 +46,21 @@ defmodule Deployex.Monitor do
     {:reply, :ok, state}
   end
 
-  def handle_call(:start_service, _from, %{current_pid: current_pid} = state) do
+  def handle_call(:start_service, _from, %__MODULE__{current_pid: current_pid} = state) do
     {:reply, {:error, current_pid, :already_started}, state}
   end
 
-  def handle_call(:stop_service, _from, %{current_pid: current_pid, instance: instance} = state)
+  def handle_call(
+        :stop_service,
+        _from,
+        %__MODULE__{current_pid: current_pid, instance: instance} = state
+      )
       when is_nil(current_pid) do
     Logger.info("Requested instance: #{instance} to stop but application is not running.")
     {:reply, :ok, state}
   end
 
-  def handle_call(:stop_service, _from, %{current_pid: current_pid} = state)
+  def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
       when is_nil(current_pid) do
     {:reply, :ok, state}
   end
@@ -65,7 +69,11 @@ defmodule Deployex.Monitor do
     {:reply, {:ok, state.status}, state}
   end
 
-  def handle_call(:stop_service, _from, %{current_pid: current_pid, instance: instance} = state) do
+  def handle_call(
+        :stop_service,
+        _from,
+        %__MODULE__{current_pid: current_pid, instance: instance} = state
+      ) do
     Logger.info(
       "Requested instance: #{instance} to stop application pid: #{inspect(current_pid)}"
     )
@@ -76,7 +84,7 @@ defmodule Deployex.Monitor do
     # NOTE: The next command is needed for Systems that have a different PID for the "/bin/app start" script
     #       and the bin/beam.smp process
     :exec.run(
-      "kill -9 $(ps -ax | grep \"#{Configuration.monitored_app()}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+      "kill -9 $(ps -ax | grep \"#{Configuration.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
       [:sync, :stdout, :stderr]
     )
 
@@ -84,9 +92,13 @@ defmodule Deployex.Monitor do
   end
 
   @impl true
-  def handle_info({:check_running, pid}, %{current_pid: current_pid} = state)
+  def handle_info(
+        {:check_running, pid},
+        %__MODULE__{current_pid: current_pid, instance: instance} = state
+      )
       when pid == current_pid do
-    Logger.info("App instance: #{state.instance} running")
+    Logger.info("Application instance: #{instance} is running")
+    Deployment.notify_application_running(instance)
     {:noreply, %{state | status: :running}}
   end
 
@@ -96,7 +108,7 @@ defmodule Deployex.Monitor do
 
   def handle_info(
         {:EXIT, pid, reason},
-        %{current_pid: current_pid, instance: instance, restarts: restarts} = state
+        %__MODULE__{current_pid: current_pid, instance: instance, restarts: restarts} = state
       ) do
     state =
       if current_pid == pid do
@@ -112,7 +124,7 @@ defmodule Deployex.Monitor do
           "Application instance: #{instance} with pid: #{inspect(pid)} being stopped by reason: #{inspect(reason)}"
         )
 
-        %__MODULE__{instance: instance}
+        state
       end
 
     {:noreply, state}
@@ -159,11 +171,14 @@ defmodule Deployex.Monitor do
 
         {:ok, pid, os_pid} =
           :exec.run_link(pre_commands(instance) <> executable <> " start", [
-            {:stdout, stdout_path()},
-            {:stderr, stderr_path()}
+            {:stdout, stdout_path(instance)},
+            {:stderr, stderr_path(instance)}
           ])
 
-        Logger.info(" - Running, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}.")
+        Logger.info(
+          " - Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
+        )
+
         %{state | current_pid: pid, status: :starting}
       else
         Logger.error("Version set but no #{executable}")
@@ -182,7 +197,11 @@ defmodule Deployex.Monitor do
   defp pre_commands(instance) do
     phx_port = phx_start_port() + (instance - 1)
 
-    "unset $(env | grep RELEASE | awk -F'=' '{print $1}') ; export RELEASE_NODE_SUFFIX=-#{instance}; export PORT=#{phx_port} ;"
+    """
+    unset $(env | grep RELEASE | awk -F'=' '{print $1}')
+    export RELEASE_NODE_SUFFIX=-#{instance}
+    export PORT=#{phx_port}
+    """
   end
 
   defp executable_path(instance) do
@@ -191,9 +210,9 @@ defmodule Deployex.Monitor do
 
   defp phx_start_port, do: Application.get_env(:deployex, :phx_start_port)
 
-  defp stdout_path,
-    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-stdout.log"
+  defp stdout_path(instance),
+    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-#{instance}-stdout.log"
 
-  defp stderr_path,
-    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-stderr.log"
+  defp stderr_path(instance),
+    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-#{instance}-stderr.log"
 end
