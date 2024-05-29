@@ -39,6 +39,10 @@ defmodule Deployex.Monitor do
   end
 
   @impl true
+  def handle_call(:state, _from, state) do
+    {:reply, {:ok, state}, state}
+  end
+
   def handle_call(:start_service, _from, %{instance: instance, current_pid: current_pid})
       when is_nil(current_pid) do
     current_version = AppStatus.current_version(instance)
@@ -67,10 +71,6 @@ defmodule Deployex.Monitor do
     {:reply, :ok, state}
   end
 
-  def handle_call(:state, _from, state) do
-    {:reply, {:ok, state}, state}
-  end
-
   def handle_call(
         :stop_service,
         _from,
@@ -90,7 +90,7 @@ defmodule Deployex.Monitor do
       [:sync, :stdout, :stderr]
     )
 
-    {:reply, :ok, %{state | current_pid: nil}}
+    {:reply, :ok, %{state | current_pid: nil, restarts: 0}}
   end
 
   @impl true
@@ -136,19 +136,20 @@ defmodule Deployex.Monitor do
   ### Public functions
   ### ==========================================================================
 
-  @spec start_service(integer()) :: :ok | {:error, pid(), :already_started}
+  @spec start_service(integer()) ::
+          :ok | {:error, pid(), :already_started} | {:error, :rescued}
   def start_service(instance) do
-    GenServer.call(global_name(instance), :start_service)
+    call_gen_server(instance, :start_service)
   end
 
-  @spec stop_service(integer()) :: :ok
+  @spec stop_service(integer()) :: :ok | {:error, :rescued}
   def stop_service(instance) do
-    GenServer.call(global_name(instance), :stop_service)
+    call_gen_server(instance, :stop_service)
   end
 
-  @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, any()}
+  @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, :rescued}
   def state(instance) do
-    GenServer.call(global_name(instance), :state)
+    call_gen_server(instance, :state)
   end
 
   ### ==========================================================================
@@ -156,6 +157,13 @@ defmodule Deployex.Monitor do
   ### ==========================================================================
   defp global_name(instance: instance), do: {:global, %{instance: instance}}
   defp global_name(instance), do: {:global, %{instance: instance}}
+
+  defp call_gen_server(instance, message) do
+    GenServer.call(global_name(instance), message)
+  rescue
+    _ ->
+      {:error, :rescued}
+  end
 
   defp run_service(state, nil) do
     Logger.info("No version set, not able to run_service")

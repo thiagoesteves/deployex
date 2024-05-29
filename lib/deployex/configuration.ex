@@ -47,7 +47,8 @@ defmodule Deployex.Configuration do
   @spec stdout_path(integer()) :: binary()
   def stdout_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
-    "#{log_path}/#{monitored_app()}-#{instance}-stdout.log"
+    monitored_app = monitored_app()
+    "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stdout.log"
   end
 
   @doc """
@@ -56,7 +57,8 @@ defmodule Deployex.Configuration do
   @spec stderr_path(integer()) :: binary()
   def stderr_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
-    "#{log_path}/#{monitored_app()}-#{instance}-stderr.log"
+    monitored_app = monitored_app()
+    "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stderr.log"
   end
 
   @doc """

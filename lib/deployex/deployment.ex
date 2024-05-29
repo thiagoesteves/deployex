@@ -47,14 +47,18 @@ defmodule Deployex.Deployment do
         %__MODULE__{instances: instances, current: current} = state
       )
       when current == instance do
-    schedule_new_deployment()
-
     new_current =
       if current == instances, do: 1, else: current + 1
 
-    check_deployment(state.current)
-
     {:noreply, %{state | current: new_current}}
+  end
+
+  def handle_cast({:application_running, instance}, state) do
+    Logger.error(
+      "Received an instance: #{instance} running that doesn't match the expected one: #{state.current}"
+    )
+
+    {:noreply, state}
   end
 
   ### ==========================================================================
