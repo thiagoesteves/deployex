@@ -1,6 +1,8 @@
 defmodule Deployex.Deployment do
   @moduledoc """
-  GenServer to trigger the deployment when it is required.
+  GenServer to trigger the deployment when a new version is available in the current.json
+  file. It also executes the deployment in sequence, avoiding a new deployment if the
+  previous was not completed yet.
   """
 
   @deployment_schedule_interval_ms 5_000
@@ -25,7 +27,7 @@ defmodule Deployex.Deployment do
 
   @impl true
   def init(instances: instances) do
-    Logger.info("Initialising Deployment")
+    Logger.info("Initialising deployment server")
     schedule_new_deployment()
     {:ok, %__MODULE__{instances: instances}}
   end

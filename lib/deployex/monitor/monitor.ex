@@ -25,6 +25,8 @@ defmodule Deployex.Monitor do
   def init(instance: instance) do
     Process.flag(:trap_exit, true)
 
+    Logger.info("Initialising monitor server for instance: #{instance}")
+
     Logger.metadata(instance: instance)
 
     current_version = AppStatus.current_version(instance)
@@ -65,8 +67,8 @@ defmodule Deployex.Monitor do
     {:reply, :ok, state}
   end
 
-  def handle_call(:status, _from, state) do
-    {:reply, {:ok, state.status}, state}
+  def handle_call(:state, _from, state) do
+    {:reply, {:ok, state}, state}
   end
 
   def handle_call(
@@ -144,9 +146,9 @@ defmodule Deployex.Monitor do
     GenServer.call(global_name(instance), :stop_service)
   end
 
-  @spec status(integer()) :: {:ok, atom()} | {:error, any()}
-  def status(instance) do
-    GenServer.call(global_name(instance), :status)
+  @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, any()}
+  def state(instance) do
+    GenServer.call(global_name(instance), :state)
   end
 
   ### ==========================================================================
@@ -171,8 +173,8 @@ defmodule Deployex.Monitor do
 
         {:ok, pid, os_pid} =
           :exec.run_link(pre_commands(instance) <> executable <> " start", [
-            {:stdout, stdout_path(instance)},
-            {:stderr, stderr_path(instance)}
+            {:stdout, Configuration.stdout_path(instance)},
+            {:stderr, Configuration.stderr_path(instance)}
           ])
 
         Logger.info(
@@ -193,9 +195,12 @@ defmodule Deployex.Monitor do
     state
   end
 
-  # NOTE: Since we are running from another release, the deployer RELEASE_* vars need to be unset"
+  # NOTE: These are commands that need to run prior starting the application
+  #       - Unset env vars from the deployex release to not mix with the monitored app release
+  #       - Export suffix to add different snames to the apps
+  #       - Export phoenix listening port taht needs to be one per app
   defp pre_commands(instance) do
-    phx_port = phx_start_port() + (instance - 1)
+    phx_port = Configuration.phx_start_port() + (instance - 1)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
@@ -207,12 +212,4 @@ defmodule Deployex.Monitor do
   defp executable_path(instance) do
     Path.join([Configuration.current_path(instance), "bin", Configuration.monitored_app()])
   end
-
-  defp phx_start_port, do: Application.get_env(:deployex, :phx_start_port)
-
-  defp stdout_path(instance),
-    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-#{instance}-stdout.log"
-
-  defp stderr_path(instance),
-    do: "#{Configuration.log_path()}/#{Configuration.monitored_app()}-#{instance}-stderr.log"
 end

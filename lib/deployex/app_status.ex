@@ -18,7 +18,8 @@ defmodule Deployex.AppStatus do
             last_deployment: nil,
             prev_version: nil,
             supervisor: false,
-            status: nil
+            status: nil,
+            restarts: 0
 
   @update_apps_interval_ms 1_000
   @update_otp_distribution_interval_ms 5_000
@@ -190,7 +191,7 @@ defmodule Deployex.AppStatus do
       name: "deployex",
       version: Application.spec(:deployex, :vsn) |> to_string,
       last_deployment: nil,
-      otp: check_otp(),
+      otp: check_deployex(),
       tls: check_tls(),
       prev_version: nil,
       supervisor: true,
@@ -203,17 +204,25 @@ defmodule Deployex.AppStatus do
       name: Application.get_env(:deployex, :monitored_app_name),
       instance: instance,
       version: current_version(instance),
-      otp: check_otp(),
+      otp: check_otp(instance),
       tls: check_tls(),
       last_deployment: current_deployment(instance),
       prev_version: prev_version(instance),
       supervisor: false,
-      status: check_deployment(instance)
+      status: check_deployment(instance),
+      restarts: check_restarts(instance)
     }
   end
 
-  defp check_otp do
+  defp check_deployex do
     if Node.list() != [], do: :connected, else: :not_connected
+  end
+
+  defp check_otp(instance) do
+    case Deployex.Upgrade.connect(instance) do
+      {:ok, _} -> :connected
+      _ -> :not_connected
+    end
   end
 
   defp check_tls do
@@ -225,8 +234,15 @@ defmodule Deployex.AppStatus do
   end
 
   defp check_deployment(instance) do
-    case Monitor.status(instance) do
-      {:ok, status} -> status
+    case Monitor.state(instance) do
+      {:ok, state} -> state.status
+      _ -> nil
+    end
+  end
+
+  defp check_restarts(instance) do
+    case Monitor.state(instance) do
+      {:ok, state} -> state.restarts
       _ -> nil
     end
   end
