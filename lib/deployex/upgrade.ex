@@ -9,7 +9,7 @@ defmodule Deployex.Upgrade do
 
   2. During deployment, the release app-new-version.tar.gz is copied to a directory named
      after the version under the current/releases folder, for example:
-     /var/lib/deployex/service/myapp/current/releases/{new-version}/app-new-version.tar.gz
+     /var/lib/deployex/service/myapp/current/{instance}/releases/{new-version}/app-new-version.tar.gz
 
   3. A sequence of commands is executed by this module to create the relup file and install
      the release. Note that only upgrades are permitted in this project, and in the event of
@@ -45,28 +45,30 @@ defmodule Deployex.Upgrade do
   ### Public APIS
   ### ==========================================================================
 
-  @spec run(binary() | charlist() | nil, binary() | charlist() | nil) :: :ok | {:error, any()}
-  def run(from_version, to_version) when is_nil(from_version) or is_nil(to_version),
+  @spec run(integer(), binary() | charlist() | nil, binary() | charlist() | nil) ::
+          :ok | {:error, any()}
+  def run(_instance, from_version, to_version) when is_nil(from_version) or is_nil(to_version),
     do: {:error, :invalid_version}
 
-  def run(from_version, to_version) when is_binary(from_version) or is_binary(to_version) do
-    run(from_version |> to_charlist, to_version |> to_charlist)
+  def run(instance, from_version, to_version)
+      when is_binary(from_version) or is_binary(to_version) do
+    run(instance, from_version |> to_charlist, to_version |> to_charlist)
   end
 
-  def run(from_version, to_version) do
-    with {:ok, node} <- connect(),
+  def run(instance, from_version, to_version) do
+    with {:ok, node} <- connect(instance),
          :ok <- unpack_release(node, to_version),
          :ok <- make_relup(node, from_version, to_version),
          :ok <- check_install_release(node, to_version),
-         :ok <- update_sys_config_from_installed_version(node, to_version),
+         :ok <- update_sys_config_from_installed_version(instance, node, to_version),
          :ok <- install_release(node, to_version),
          :ok <- permfy(node, to_version),
-         :ok <- return_original_sys_config(to_version) do
-      Logger.info("Release upgrade executed with success from #{from_version} to #{to_version}")
+         :ok <- return_original_sys_config(instance, to_version) do
+      Logger.info(
+        "Release upgrade executed with success at instance: #{instance} from: #{from_version} to: #{to_version}"
+      )
+
       :ok
-    else
-      result ->
-        result
     end
   end
 
@@ -77,9 +79,10 @@ defmodule Deployex.Upgrade do
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
 
-  @spec update_sys_config_from_installed_version(atom(), charlist()) :: :ok | {:error, any()}
-  def update_sys_config_from_installed_version(node, to_version) do
-    rel_vsn_dir = "#{Configuration.current_path()}/releases/#{to_version}"
+  @spec update_sys_config_from_installed_version(integer(), atom(), charlist()) ::
+          :ok | {:error, any()}
+  def update_sys_config_from_installed_version(instance, node, to_version) do
+    rel_vsn_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
     sys_config_path = Path.join(rel_vsn_dir, "sys.config")
     original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
     # Read the build time config from build.config
@@ -108,32 +111,34 @@ defmodule Deployex.Upgrade do
     end
   end
 
-  @spec return_original_sys_config(charlist()) :: :ok | {:error, atom()}
-  def return_original_sys_config(to_version) do
-    rel_vsn_dir = "#{Configuration.current_path()}/releases/#{to_version}"
+  @spec return_original_sys_config(integer(), charlist()) :: :ok | {:error, atom()}
+  def return_original_sys_config(instance, to_version) do
+    rel_vsn_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
     sys_config_path = Path.join(rel_vsn_dir, "sys.config")
     original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
 
     File.rename(original_sys_config_file, sys_config_path)
   end
 
-  @spec check(binary(), binary() | charlist() | nil, binary() | charlist()) ::
+  @spec check(integer(), binary(), binary() | charlist() | nil, binary() | charlist()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(download_path, from_version, to_version)
+  def check(instance, download_path, from_version, to_version)
       when is_binary(from_version) or is_binary(to_version) do
-    check(download_path, from_version |> to_charlist, to_version |> to_charlist)
+    check(instance, download_path, from_version |> to_charlist, to_version |> to_charlist)
   end
 
-  def check(download_path, from_version, to_version) do
+  def check(instance, download_path, from_version, to_version) do
     monitored_app = Configuration.monitored_app()
 
     with [file_path] <-
-           Path.wildcard("#{Configuration.new_path()}/lib/#{monitored_app}-*/ebin/*.appup"),
+           Path.wildcard(
+             "#{Configuration.new_path(instance)}/lib/#{monitored_app}-*/ebin/*.appup"
+           ),
          :ok <- check_app_up(file_path, from_version, to_version) do
       Logger.warning("HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}")
 
       # Copy binary to the release folder under the version directory
-      dest_dir = "#{Configuration.current_path()}/releases/#{to_version}"
+      dest_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
 
       File.rm_rf(dest_dir)
 
@@ -267,17 +272,21 @@ defmodule Deployex.Upgrade do
   @spec root_dir(atom()) :: any()
   def root_dir(node), do: :rpc.call(node, :code, :root_dir, [])
 
-  @spec connect() :: {:error, :not_connecting} | {:ok, atom()}
-  def connect do
+  @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
+  def connect(instance) do
     {:ok, hostname} = :inet.gethostname()
-    node = :"#{Configuration.monitored_app()}@#{hostname}"
+    app_sname = Configuration.sname(instance)
+    node = :"#{app_sname}@#{hostname}"
 
     case Node.connect(node) do
       true ->
         {:ok, node}
 
-      false ->
-        Logger.error("Error while trying to connect with node: #{inspect(node)}")
+      reason ->
+        Logger.error(
+          "Error while trying to connect with node: #{inspect(node)} reason: #{inspect(reason)}"
+        )
+
         {:error, :not_connecting}
     end
   end

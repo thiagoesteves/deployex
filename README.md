@@ -12,7 +12,6 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
-- [X] Convert project to a Phoenix app and add a dashboard view status
 - [ ] Phoenix Aapp: Add log view tab
 - [ ] Phoenix Aapp: Add iex CLI tab
 - [ ] Execute migrations before full deployment
@@ -83,19 +82,21 @@ s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{ve
 
 ## Environment Variables
 
-This Phoenix application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production:
+Deployex application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
 
-| ENV NAME   |      EXAMPLE      |  SOURCE |  DESCRIPTION |
-|----------|-------------|------:|------|
-| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
-| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
-| __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | Monitored app name |
-| __DEPLOYEX_STORAGE_ADAPTER__ | s3 | system ENV | storage adapter type |
-| __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | cloud env name |
-| __DEPLOYEX_PHX_SERVER__ | true | system ENV | enable/disable server |
-| __DEPLOYEX_PHX_HOST__ | example.com | system ENV | The hostname for your application |
-| __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | The port on which the application will run |
-| __AWS_REGION__ | us-east2 | system ENV | the aws region |
+| ENV NAME   |      EXAMPLE      |  SOURCE |  DEFAULT | DESCRIPTION |
+|----------|-------------|------:|------|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | -/- | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | -/- | erlang cookie |
+| __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
+| __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
+| __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
+| __DEPLOYEX_PHX_HOST__ | example.com | system ENV | -/- | The hostname for your application |
+| __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
+| __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
+| __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
+| __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the aws region |
+| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 2 | the aws region |
 
 For local testing, these variables are not expected or set to default values.
 
@@ -128,9 +129,12 @@ vi rel/env.sh.eex
 # Add the following lines:
 
 #!/bin/sh
-export RELEASE_COOKIE="cookie"
+# Set a default Erlang cookie value if not provided by ENV VAR.
+# This default is temporary; update it using AWS secrets and config provider.
+[ -z ${RELEASE_COOKIE} ] && export RELEASE_COOKIE="cookie"
 export RELEASE_DISTRIBUTION=sname
-export RELEASE_NODE=<%= @release.name %>
+[ -z ${RELEASE_NODE_SUFFIX} ] && export RELEASE_NODE_SUFFIX=""
+export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 
 # save the file :wq
 ```

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0-rc1 ()
+
+## Backwards incompatible changes for 0.2.1-rc1
+ * This version requires new environment variables to be defined. Please ensure the following environment variables are set.
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Modified the application to be able to handle multiple instances for the monitored app
+
 ## 0.2.1-rc1 (2024-05-24)
 
 ## Backwards incompatible changes for 0.2.0
@@ -11,7 +22,6 @@
 ### Enhancements
  * Changed `env.sh.eex` to use environment variables for RELEASE_COOKIE and only set the default value if the ENV VAR is not present. 
  This will allow the remote connection to be able to capture the RELEASE_COOKIE from the environment
-
 
 ## 0.2.0 🚀 (2024-05-23)
 

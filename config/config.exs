@@ -21,7 +21,9 @@ config :deployex,
   env: "local",
   monitored_app_name: monitored_app_name,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  base_path: "/tmp/deployex/varlib"
+  base_path: "/tmp/deployex/varlib",
+  phx_start_port: 4000,
+  replicas: 3
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,
@@ -71,7 +73,7 @@ config :phoenix, :json_library, Jason
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time [$level] $metadata $message\n",
-  metadata: [:request_i, :module, :function, :pid]
+  metadata: [:instance, :module, :function, :pid]
 
 # AWS Configuration
 config :ex_aws,

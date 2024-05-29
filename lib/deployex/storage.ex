@@ -24,7 +24,7 @@ defmodule Deployex.Storage do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(String.t()) ::
+  @spec download_and_unpack(integer(), String.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def download_and_unpack(version), do: default().download_and_unpack(version)
+  def download_and_unpack(instance, version), do: default().download_and_unpack(instance, version)
 end

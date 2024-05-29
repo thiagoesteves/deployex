@@ -16,7 +16,7 @@ import Config
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
-if System.get_env("DEPLOYEX_PHX_SERVER") do
+if System.get_env("DEPLOYEX_PHX_SERVER", "true") do
   config :deployex, DeployexWeb.Endpoint, server: true
 end
 
@@ -25,7 +25,9 @@ if config_env() == :prod do
   config :deployex,
     env: System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT"),
     monitored_app_name: System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME"),
-    monitored_app_log_path: "/var/log"
+    monitored_app_log_path: "/var/log",
+    phx_start_port: String.to_integer(System.get_env("DEPLOYEX_MONITORED_APP_PORT") || "4000"),
+    replicas: String.to_integer(System.get_env("DEPLOYEX_MONITORED_REPLICAS") || "2")
 
   config :ex_aws,
     region: System.fetch_env!("AWS_REGION")
@@ -45,6 +47,15 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0},
       port: port
     ]
+
+  storage_adapter =
+    if System.get_env("DEPLOYEX_STORAGE_ADAPTER") == "local" do
+      Deployex.Storage.Local
+    else
+      Deployex.Storage.S3
+    end
+
+  config :deployex, Deployex.Storage, adapter: storage_adapter
 
   # ## SSL Support
   #

@@ -2,12 +2,14 @@ defmodule DeployexWeb.Components.AppCards do
   @moduledoc false
   use Phoenix.Component
 
-  attr :apps_data, :list, required: true
+  attr :monitoring_apps_data, :list, required: true
 
   def content(assigns) do
     ~H"""
-    <div class="grid grid-cols-3  items-center p-30">
-      <%= for app <- @apps_data do %>
+    <div class="grid grid-cols-3  gap-10 items-center p-30">
+      <%= for app <- @monitoring_apps_data do %>
+        <div :if={app.supervisor}></div>
+
         <button
           id={"button-#{app.name}"}
           class={[app_background(app.supervisor, app.status), "rounded-lg border border-black mt-2"]}
@@ -19,10 +21,18 @@ defmodule DeployexWeb.Components.AppCards do
 
             <h3 class="font-mono  text-xl text-black font-bold"><%= "#{app.name}" %></h3>
 
+            <p :if={app.supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+              <span class="text-xs font-bold ml-3">Instance</span>
+              <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
+                <%= app.instance %>
+              </span>
+            </p>
+
             <p class="flex  tracking-tight  pt-3   justify-between">
               <span class="text-xs font-bold ml-3">OTP-Nodes</span>
               <.ok_notok status={app.otp} />
             </p>
+
             <p :if={app.supervisor} class="flex tracking-tight pt-3  justify-between ">
               <span class=" text-xs font-bold ml-3">mTLS</span>
               <.ok_notok status={app.tls} />
@@ -31,6 +41,11 @@ defmodule DeployexWeb.Components.AppCards do
             <p :if={app.last_deployment} class="flex tracking-tight pt-3 justify-between">
               <span class="text-xs font-bold ml-3">Last deployment</span>
               <.deployment deployment={app.last_deployment} />
+            </p>
+
+            <p :if={app.supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+              <span class="text-xs font-bold ml-3">Restarts</span>
+              <.restarts restarts={app.restarts} />
             </p>
 
             <p :if={app.prev_version} class="flex tracking-tight pt-3 justify-between">
@@ -42,11 +57,7 @@ defmodule DeployexWeb.Components.AppCards do
           </div>
         </button>
 
-        <div :if={app.supervisor} class="relative py-5">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-dashed border-b border-gray-300"></div>
-          </div>
-        </div>
+        <div :if={app.supervisor}></div>
       <% end %>
     </div>
     """
@@ -79,6 +90,21 @@ defmodule DeployexWeb.Components.AppCards do
     """
   end
 
+  defp restarts(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @restarts > 0 -> %>
+        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse">
+          <%= @restarts %>
+        </span>
+      <% true -> %>
+        <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
+          <%= @restarts %>
+        </span>
+    <% end %>
+    """
+  end
+
   defp deployment(assigns) do
     ~H"""
     <%= if @deployment == "full_deployment" do %>
@@ -86,7 +112,7 @@ defmodule DeployexWeb.Components.AppCards do
         FULL
       </span>
     <% else %>
-      <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
+      <span class="bg-indigo-100 text-indigo-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-indigo-400 border border-indigo-400">
         HOT UPGRADE
       </span>
     <% end %>
@@ -112,9 +138,9 @@ defmodule DeployexWeb.Components.AppCards do
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-green-400 to-green-600">
           <%= @version %>
         </div>
-      <% @status == :deploying and @version != nil -> %>
+      <% @status == :starting and @version != nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-yellow-400 to-yellow-600">
-          <%= @version %> [deploying]
+          <%= @version %> [starting]
         </div>
       <% @version == nil -> %>
         <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse">

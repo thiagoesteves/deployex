@@ -5,66 +5,74 @@ defmodule Deployex.AppStatus do
 
   use GenServer
   alias Deployex.Configuration
+  alias Deployex.Monitor
   alias Deployex.Storage
 
   require Logger
 
-  defstruct [
-    :name,
-    :link,
-    :version,
-    :otp,
-    :tls,
-    :last_deployment,
-    :prev_version,
-    :supervisor,
-    :status
-  ]
+  defstruct name: nil,
+            instance: 0,
+            version: nil,
+            otp: nil,
+            tls: :not_supported,
+            last_deployment: nil,
+            prev_version: nil,
+            supervisor: false,
+            status: nil,
+            restarts: 0
 
   @update_apps_interval_ms 1_000
   @update_otp_distribution_interval_ms 5_000
-  @apps_data_updated_topic "apps_data_updated"
+  @apps_data_updated_topic "monitoring_app_updated"
 
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
 
-  def start_link(attrs) do
-    GenServer.start_link(__MODULE__, attrs, name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   @impl true
-  def init(_attrs) do
+  def init(instances: instances) do
     Process.flag(:trap_exit, true)
 
     :timer.send_interval(@update_apps_interval_ms, :update_apps)
     :timer.send_interval(@update_otp_distribution_interval_ms, :update_otp)
 
-    {:ok, []}
+    {:ok, %{instances: instances, monitoring: []}}
   end
 
   @impl true
-  def handle_info(:update_apps, state) do
-    # update apps
-    new_state = [
-      update_deployex_app(),
-      update_monitored_app()
-    ]
+  def handle_info(:update_apps, %{instances: instances, monitoring: monitoring} = state) do
+    deployex = update_deployex_app()
 
-    if new_state != state do
+    monitoring_apps =
+      Enum.to_list(1..instances)
+      |> Enum.map(fn instance ->
+        update_monitored_app(instance)
+      end)
+
+    new_monitoring = [deployex] ++ monitoring_apps
+
+    if new_monitoring != monitoring do
       Phoenix.PubSub.broadcast(
         Deployex.PubSub,
-        "apps_data_updated",
-        {:update_apps_data, new_state}
+        @apps_data_updated_topic,
+        {:monitoring_app_updated, new_monitoring}
       )
     end
 
-    {:noreply, new_state}
+    {:noreply, %{state | monitoring: new_monitoring}}
   end
 
   @impl true
   def handle_info(:update_otp, state) do
-    if current_version() != nil and Node.list() == [], do: Deployex.Upgrade.connect()
+    # Check if there is any version expected to be deployed
+    expected_current_version = Storage.get_current_version_map()["version"]
+
+    # Check if the nodes are connected
+    if expected_current_version != nil and Node.list() == [], do: Deployex.Upgrade.connect(1)
     {:noreply, state}
   end
 
@@ -72,14 +80,14 @@ defmodule Deployex.AppStatus do
   ### Public functions
   ### ==========================================================================
 
-  @spec current_version() :: String.t() | nil
-  def current_version do
-    version_map()["version"]
+  @spec current_version(integer()) :: String.t() | nil
+  def current_version(instance) do
+    current_version_map(instance)["version"]
   end
 
-  @spec current_deployment() :: String.t() | nil
-  def current_deployment do
-    version_map()["deployment"]
+  @spec current_deployment(integer()) :: String.t() | nil
+  def current_deployment(instance) do
+    current_version_map(instance)["deployment"]
   end
 
   @spec listener_topic() :: String.t()
@@ -87,15 +95,17 @@ defmodule Deployex.AppStatus do
     @apps_data_updated_topic
   end
 
-  @spec set_current_version_map(Deployex.Storage.version_map(), atom()) :: :ok
-  def set_current_version_map(version, deployment) when is_map(version) do
+  @spec set_current_version_map(integer(), Deployex.Storage.version_map(), atom()) :: :ok
+  def set_current_version_map(instance, version, deployment) when is_map(version) do
     # Update previous version
-    case version_map() do
+    case current_version_map(instance) do
       nil ->
         Logger.warning("No previous version set")
 
       version ->
-        File.write!(previous_version_path(), version |> Jason.encode!())
+        instance
+        |> previous_version_path()
+        |> File.write!(version |> Jason.encode!())
     end
 
     version =
@@ -103,31 +113,59 @@ defmodule Deployex.AppStatus do
       |> Map.put(:deployment, deployment)
       |> Jason.encode!()
 
-    File.write!(current_version_path(), version)
+    instance
+    |> current_version_path()
+    |> File.write!(version)
   end
 
-  @spec clear_new() :: :ok
-  def clear_new do
-    File.rm_rf(Configuration.new_path())
-    File.mkdir_p(Configuration.new_path())
+  @spec clear_new(integer()) :: :ok
+  def clear_new(instance) do
+    instance
+    |> Configuration.new_path()
+    |> File.rm_rf()
+
+    instance
+    |> Configuration.new_path()
+    |> File.mkdir_p()
+
     :ok
   end
 
-  @spec update() :: :ok
-  def update do
-    File.rm_rf(Configuration.previous_path())
-    File.rename(Configuration.current_path(), Configuration.previous_path())
-    File.rename(Configuration.new_path(), Configuration.current_path())
+  @spec update(integer()) :: :ok
+  def update(instance) do
+    # Remove previous path
+    instance
+    |> Configuration.previous_path()
+    |> File.rm_rf()
+
+    # Move current to previous and new to current
+    File.rename(Configuration.current_path(instance), Configuration.previous_path(instance))
+    File.rename(Configuration.new_path(instance), Configuration.current_path(instance))
     :ok
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp current_version_path, do: "#{Configuration.base_path()}/current.json"
-  defp previous_version_path, do: "#{Configuration.base_path()}/previous.json"
+  defp current_version_path(instance),
+    do: "#{Configuration.base_path()}/version/#{instance}/current.json"
 
-  defp version_map(path \\ current_version_path()) do
+  defp previous_version_path(instance),
+    do: "#{Configuration.base_path()}/version/#{instance}/previous.json"
+
+  defp current_version_map(instance) do
+    instance
+    |> current_version_path()
+    |> version_map()
+  end
+
+  defp previous_version_map(instance) do
+    instance
+    |> previous_version_path()
+    |> version_map()
+  end
+
+  defp version_map(path) do
     case File.read(path) do
       {:ok, data} ->
         file2json(data)
@@ -144,17 +182,16 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  defp prev_version do
-    version_map(previous_version_path())["version"]
+  defp prev_version(instance) do
+    previous_version_map(instance)["version"]
   end
 
   defp update_deployex_app do
     %Deployex.AppStatus{
       name: "deployex",
-      link: true,
       version: Application.spec(:deployex, :vsn) |> to_string,
       last_deployment: nil,
-      otp: check_otp(),
+      otp: check_deployex(),
       tls: check_tls(),
       prev_version: nil,
       supervisor: true,
@@ -162,22 +199,30 @@ defmodule Deployex.AppStatus do
     }
   end
 
-  defp update_monitored_app do
+  defp update_monitored_app(instance) do
     %Deployex.AppStatus{
       name: Application.get_env(:deployex, :monitored_app_name),
-      link: false,
-      version: current_version(),
-      otp: check_otp(),
+      instance: instance,
+      version: current_version(instance),
+      otp: check_otp(instance),
       tls: check_tls(),
-      last_deployment: current_deployment(),
-      prev_version: prev_version(),
+      last_deployment: current_deployment(instance),
+      prev_version: prev_version(instance),
       supervisor: false,
-      status: check_deployment()
+      status: check_deployment(instance),
+      restarts: check_restarts(instance)
     }
   end
 
-  defp check_otp do
+  defp check_deployex do
     if Node.list() != [], do: :connected, else: :not_connected
+  end
+
+  defp check_otp(instance) do
+    case Deployex.Upgrade.connect(instance) do
+      {:ok, _} -> :connected
+      _ -> :not_connected
+    end
   end
 
   defp check_tls do
@@ -188,13 +233,17 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  defp check_deployment do
-    storage = Storage.get_current_version_map()
+  defp check_deployment(instance) do
+    case Monitor.state(instance) do
+      {:ok, state} -> state.status
+      _ -> nil
+    end
+  end
 
-    if storage["version"] == current_version() do
-      :running
-    else
-      :deploying
+  defp check_restarts(instance) do
+    case Monitor.state(instance) do
+      {:ok, state} -> state.restarts
+      _ -> nil
     end
   end
 end
