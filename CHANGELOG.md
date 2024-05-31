@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.3.0-rc1 ()
+## 0.3.0-rc2 (2024-06-01)
+
+## Backwards incompatible changes for 0.3.0-rc2
+ * None
+
+### Bug fixes
+ * Fixing exception when clicking in the app button
+
+### Enhancements
+ * Adding try/catch for calling Monitor GenServer
+
+## 0.3.0-rc1 (2024-05-29)
 
 ## Backwards incompatible changes for 0.2.1-rc1
  * This version requires new environment variables to be defined. Please ensure the following environment variables are set.

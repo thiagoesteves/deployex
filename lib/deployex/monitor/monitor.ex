@@ -158,11 +158,15 @@ defmodule Deployex.Monitor do
   defp global_name(instance: instance), do: {:global, %{instance: instance}}
   defp global_name(instance), do: {:global, %{instance: instance}}
 
+  # NOTE: This function needs to use try/catch because reascue (suggested by credo)
+  #       doesn't handle :exit
   defp call_gen_server(instance, message) do
-    GenServer.call(global_name(instance), message)
-  rescue
-    _ ->
-      {:error, :rescued}
+    try do
+      GenServer.call(global_name(instance), message)
+    catch
+      _, _ ->
+        {:error, :rescued}
+    end
   end
 
   defp run_service(state, nil) do
