@@ -21,7 +21,8 @@ defmodule Deployex.Configuration do
       # Create version folders (If they don't exist)
       File.mkdir_p!(Path.join([base_path(), "version", "#{instance}"]))
 
-      # Create Log message files (If they don't exist)
+      # Create folder and Log message files (If they don't exist)
+      File.mkdir_p!(Path.join([log_path(), "#{monitored_app()}"]))
       File.touch(stdout_path(instance))
       File.touch(stderr_path(instance))
     end)
@@ -95,4 +96,5 @@ defmodule Deployex.Configuration do
   ### Private functions
   ### ==========================================================================
   defp service_path, do: Path.join([base_path(), "service", monitored_app()])
+  defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
 end
