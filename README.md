@@ -40,7 +40,7 @@ Done in 166ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture:
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture (If `mTLS` is supported):
 
 ![Running with no monitored apps](/docs/deployex_server.png)
 
@@ -96,7 +96,7 @@ Deployex application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
 | __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the aws region |
-| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 2 | the aws region |
+| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | the aws region |
 
 For local testing, these variables are not expected or set to default values.
 

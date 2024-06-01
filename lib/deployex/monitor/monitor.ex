@@ -9,8 +9,9 @@ defmodule Deployex.Monitor do
 
   defstruct current_pid: nil,
             instance: 0,
-            status: :init,
-            restarts: 0
+            status: :idle,
+            restarts: 0,
+            start_time: nil
 
   ### ==========================================================================
   ### Callback functions
@@ -90,7 +91,7 @@ defmodule Deployex.Monitor do
       [:sync, :stdout, :stderr]
     )
 
-    {:reply, :ok, %{state | current_pid: nil, restarts: 0}}
+    {:reply, :ok, reset_state(state)}
   end
 
   @impl true
@@ -193,11 +194,11 @@ defmodule Deployex.Monitor do
           " - Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
         )
 
-        %{state | current_pid: pid, status: :starting}
+        %{state | current_pid: pid, status: :starting, start_time: now()}
       else
         Logger.error("Version set but no #{executable}")
 
-        %{state | current_pid: nil, status: :idle, restarts: 0}
+        reset_state(state)
       end
 
     if state.current_pid do
@@ -224,4 +225,9 @@ defmodule Deployex.Monitor do
   defp executable_path(instance) do
     Path.join([Configuration.current_path(instance), "bin", Configuration.monitored_app()])
   end
+
+  defp now, do: System.os_time(:second)
+
+  defp reset_state(state),
+    do: %{state | status: :idle, current_pid: nil, restarts: 0, start_time: nil}
 end

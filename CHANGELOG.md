@@ -10,6 +10,7 @@
 
 ### Enhancements
  * Adding try/catch for calling Monitor GenServer
+ * Adding uptime feature for monitored apps.
 
 ## 0.3.0-rc1 (2024-05-29)
 

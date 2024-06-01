@@ -54,6 +54,12 @@ defmodule DeployexWeb.Components.AppCards do
                 <%= app.prev_version %>
               </span>
             </p>
+            <p :if={app.prev_version} class="flex tracking-tight pt-3 justify-between">
+              <span class="text-xs font-bold ml-3 ">uptime</span>
+              <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-blue-400 border border-blue-400">
+                <%= app.uptime %>
+              </span>
+            </p>
           </div>
         </button>
 
