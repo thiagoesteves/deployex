@@ -23,7 +23,7 @@ config :deployex,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
   base_path: "/tmp/deployex/varlib",
   phx_start_port: 4000,
-  replicas: 3
+  replicas: 1
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,

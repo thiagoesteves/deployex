@@ -19,11 +19,17 @@ defmodule Deployex.AppStatus do
             prev_version: nil,
             supervisor: false,
             status: nil,
-            restarts: 0
+            restarts: 0,
+            uptime: nil
 
   @update_apps_interval_ms 1_000
   @update_otp_distribution_interval_ms 5_000
   @apps_data_updated_topic "monitoring_app_updated"
+
+  @sec_in_minute 60
+  @sec_in_hour 3_600
+  @sec_in_day 86_400
+  @sec_in_months 2_628_000
 
   ### ==========================================================================
   ### Callback functions
@@ -195,11 +201,14 @@ defmodule Deployex.AppStatus do
       tls: check_tls(),
       prev_version: nil,
       supervisor: true,
-      status: :running
+      status: :running,
+      uptime: "-/-"
     }
   end
 
   defp update_monitored_app(instance) do
+    %{deployment: deployment, restarts: restarts, uptime: uptime} = check_monitor_data(instance)
+
     %Deployex.AppStatus{
       name: Application.get_env(:deployex, :monitored_app_name),
       instance: instance,
@@ -209,8 +218,9 @@ defmodule Deployex.AppStatus do
       last_deployment: current_deployment(instance),
       prev_version: prev_version(instance),
       supervisor: false,
-      status: check_deployment(instance),
-      restarts: check_restarts(instance)
+      status: deployment,
+      restarts: restarts,
+      uptime: uptime
     }
   end
 
@@ -233,17 +243,33 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  defp check_deployment(instance) do
+  defp check_monitor_data(instance) do
     case Monitor.state(instance) do
-      {:ok, state} -> state.status
-      _ -> nil
+      {:ok, state} ->
+        %{
+          deployment: state.status,
+          restarts: state.restarts,
+          uptime: uptime_to_string(state.start_time)
+        }
+
+      _ ->
+        %{deployment: nil, restarts: nil, uptime: "/"}
     end
   end
 
-  defp check_restarts(instance) do
-    case Monitor.state(instance) do
-      {:ok, state} -> state.restarts
-      _ -> nil
+  defp now, do: System.os_time(:second)
+
+  defp uptime_to_string(nil), do: "-/-"
+
+  defp uptime_to_string(start_time) do
+    diff = now() - start_time
+
+    case diff do
+      uptime when uptime < @sec_in_minute -> "now"
+      uptime when uptime < @sec_in_hour -> "#{trunc(uptime / @sec_in_minute)}m"
+      uptime when uptime < @sec_in_day -> "#{trunc(uptime / @sec_in_hour)}h"
+      uptime when uptime <= @sec_in_months -> "#{trunc(uptime / @sec_in_day)}d"
+      uptime -> "#{trunc(uptime / @sec_in_months)}d"
     end
   end
 end

@@ -40,7 +40,7 @@ Done in 166ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture:
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture (If `mTLS` is supported):
 
 ![Running with no monitored apps](/docs/deployex_server.png)
 
