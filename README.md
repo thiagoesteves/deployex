@@ -96,7 +96,7 @@ Deployex application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
 | __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the aws region |
-| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 2 | the aws region |
+| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | the aws region |
 
 For local testing, these variables are not expected or set to default values.
 
