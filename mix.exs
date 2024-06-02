@@ -4,7 +4,7 @@ defmodule Deployex.MixProject do
   def project do
     [
       app: :deployex,
-      version: "0.3.0-rc2",
+      version: "0.3.0-rc3",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
