@@ -138,22 +138,28 @@ defmodule DeployexWeb.Components.AppCards do
   end
 
   defp version(assigns) do
+    class = "font-mono text-sm p-2 border-b-2 border-black rounded-t-lg"
+
+    assigns =
+      assigns
+      |> assign(class: class)
+
     ~H"""
     <%= cond do %>
       <% @status == :running and @version != nil -> %>
-        <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-green-400 to-green-600">
+        <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
           <%= @version %>
         </div>
       <% @status == :starting and @version != nil -> %>
-        <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-yellow-400 to-yellow-600">
+        <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
           <%= @version %> [starting]
         </div>
       <% @version == nil -> %>
-        <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse">
+        <div class={[@class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>
           version not set
         </div>
       <% true -> %>
-        <div class="font-mono text-xs rounded-t-lg bg-gradient-to-t from-gray-400 to-gray-600">
+        <div class={[@class, "bg-gradient-to-t from-gray-400 to-gray-600"]}>
           invalid state
         </div>
     <% end %>
