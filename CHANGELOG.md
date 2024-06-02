@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0-rc2 (2024-06-02)
+
+## Backwards incompatible changes for 0.3.0-rc2
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Improved version badge and uptime status show
+ * Fixed app card click
+
 ## 0.3.0-rc2 (2024-06-01)
 
 ## Backwards incompatible changes for 0.3.0-rc2

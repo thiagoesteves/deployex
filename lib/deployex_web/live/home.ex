@@ -34,7 +34,7 @@ defmodule DeployexWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("app-card-click", %{"type" => "myphoenixapp", "value" => _value}, socket) do
+  def handle_event("app-card-click", %{"value" => _value}, socket) do
     # NOTE: In the future, clicking in the app will show logs, connect to the remote shell, etc.
     {:noreply, socket}
   end
