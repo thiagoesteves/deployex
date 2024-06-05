@@ -195,6 +195,7 @@ defmodule Deployex.AppStatus do
   defp update_deployex_app do
     %Deployex.AppStatus{
       name: "deployex",
+      instance: 0,
       version: Application.spec(:deployex, :vsn) |> to_string,
       last_deployment: nil,
       otp: check_deployex(),

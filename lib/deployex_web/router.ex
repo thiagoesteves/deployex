@@ -24,6 +24,8 @@ defmodule DeployexWeb.Router do
     live_session :default do
       live "/", HomeLive, :index
       live "/home", HomeLive, :index
+      live "/home/:instance/logs", HomeLive, :logs
+
       live "/about", ComingSoonLive, :index
     end
   end
