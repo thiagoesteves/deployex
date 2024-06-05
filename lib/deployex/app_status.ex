@@ -266,11 +266,11 @@ defmodule Deployex.AppStatus do
 
     case diff do
       uptime when uptime < 10 -> "now"
-      uptime when uptime < @sec_in_minute -> "<1m"
-      uptime when uptime < @sec_in_hour -> "#{trunc(uptime / @sec_in_minute)}m"
-      uptime when uptime < @sec_in_day -> "#{trunc(uptime / @sec_in_hour)}h"
-      uptime when uptime <= @sec_in_months -> "#{trunc(uptime / @sec_in_day)}d"
-      uptime -> "#{trunc(uptime / @sec_in_months)}d"
+      uptime when uptime < @sec_in_minute -> "<1m ago"
+      uptime when uptime < @sec_in_hour -> "#{trunc(uptime / @sec_in_minute)}m ago"
+      uptime when uptime < @sec_in_day -> "#{trunc(uptime / @sec_in_hour)}h ago"
+      uptime when uptime <= @sec_in_months -> "#{trunc(uptime / @sec_in_day)}d ago"
+      uptime -> "#{trunc(uptime / @sec_in_months)}d ago"
     end
   end
 end
