@@ -1,4 +1,4 @@
-defmodule DeployexWeb.HomeLive do
+defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
   alias Deployex.AppStatus
@@ -12,14 +12,19 @@ defmodule DeployexWeb.HomeLive do
       </div>
     </div>
 
-    <.modal :if={@live_action in [:logs]} id="app-log-modal" show on_cancel={JS.patch(~p"/home")}>
+    <.modal
+      :if={@live_action in [:logs_stdout, :logs_stderr]}
+      id="app-log-modal"
+      show
+      on_cancel={JS.patch(~p"/applications")}
+    >
       <.live_component
-        module={DeployexWeb.HomeLive.LogComponent}
+        module={DeployexWeb.ApplicationsLive.Logs}
         id={@current_app}
         title={@page_title}
         action={@live_action}
         current_log={@current_log}
-        patch={~p"/home"}
+        patch={~p"/applications"}
       />
     </.modal>
     """
@@ -54,7 +59,8 @@ defmodule DeployexWeb.HomeLive do
     |> assign(:page_title, "Listing Applications")
   end
 
-  defp apply_action(socket, :logs, %{"instance" => instance}) do
+  defp apply_action(socket, logs_type, %{"instance" => instance})
+       when logs_type in [:logs_stdout, :logs_stderr] do
     socket
     |> assign(:page_title, "Application Logs")
     |> assign(:current_app, instance)
@@ -71,7 +77,7 @@ defmodule DeployexWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("app-card-click", %{"instance" => instance, "std" => _std}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/home/#{instance}/logs")}
+  def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/logs/#{std}")}
   end
 end

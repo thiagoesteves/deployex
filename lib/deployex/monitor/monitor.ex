@@ -5,13 +5,16 @@ defmodule Deployex.Monitor do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Configuration, Deployment}
+  alias Deployex.{AppConfig, AppStatus, Deployment}
 
   defstruct current_pid: nil,
             instance: 0,
             status: :idle,
             restarts: 0,
             start_time: nil
+
+  # NOTE: Timeout to check if the application crashed for any reason
+  @timeout_to_verify_app_ready 3_000
 
   ### ==========================================================================
   ### Callback functions
@@ -87,7 +90,7 @@ defmodule Deployex.Monitor do
     # NOTE: The next command is needed for Systems that have a different PID for the "/bin/app start" script
     #       and the bin/beam.smp process
     :exec.run(
-      "kill -9 $(ps -ax | grep \"#{Configuration.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+      "kill -9 $(ps -ax | grep \"#{AppConfig.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
       [:sync, :stdout, :stderr]
     )
 
@@ -182,16 +185,16 @@ defmodule Deployex.Monitor do
 
     state =
       if File.exists?(executable) do
-        Logger.info(" - Starting #{executable}...")
+        Logger.info(" # Starting #{executable}...")
 
         {:ok, pid, os_pid} =
           :exec.run_link(pre_commands(instance) <> executable <> " start", [
-            {:stdout, Configuration.stdout_path(instance)},
-            {:stderr, Configuration.stderr_path(instance)}
+            {:stdout, AppConfig.stdout_path(instance)},
+            {:stderr, AppConfig.stderr_path(instance)}
           ])
 
         Logger.info(
-          " - Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
+          " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
         )
 
         %{state | current_pid: pid, status: :starting, start_time: now()}
@@ -202,7 +205,7 @@ defmodule Deployex.Monitor do
       end
 
     if state.current_pid do
-      Process.send_after(self(), {:check_running, state.current_pid}, 3_000)
+      Process.send_after(self(), {:check_running, state.current_pid}, @timeout_to_verify_app_ready)
     end
 
     state
@@ -213,7 +216,7 @@ defmodule Deployex.Monitor do
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
   defp pre_commands(instance) do
-    phx_port = Configuration.phx_start_port() + (instance - 1)
+    phx_port = AppConfig.phx_start_port() + (instance - 1)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
@@ -223,7 +226,7 @@ defmodule Deployex.Monitor do
   end
 
   defp executable_path(instance) do
-    Path.join([Configuration.current_path(instance), "bin", Configuration.monitored_app()])
+    Path.join([AppConfig.current_path(instance), "bin", AppConfig.monitored_app()])
   end
 
   defp now, do: System.os_time(:second)

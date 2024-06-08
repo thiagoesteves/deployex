@@ -5,7 +5,7 @@ defmodule Deployex.Storage.Local do
 
   @behaviour Deployex.Storage.Adapter
 
-  alias Deployex.{AppStatus, Configuration, Upgrade}
+  alias Deployex.{AppConfig, AppStatus, Upgrade}
 
   require Logger
 
@@ -19,7 +19,7 @@ defmodule Deployex.Storage.Local do
   @impl true
   @spec get_current_version_map() :: Deployex.Storage.version_map() | nil
   def get_current_version_map do
-    monitored_app = Configuration.monitored_app()
+    monitored_app = AppConfig.monitored_app()
 
     file_path = "/tmp/#{monitored_app}/versions/#{monitored_app}/#{env()}/current.json"
 
@@ -40,7 +40,7 @@ defmodule Deployex.Storage.Local do
   @spec download_and_unpack(integer(), binary()) ::
           {:error, :invalid_from_version} | {:ok, :full_deployment | :hot_upgrade}
   def download_and_unpack(instance, version) do
-    monitored_app = Configuration.monitored_app()
+    monitored_app = AppConfig.monitored_app()
 
     storage_path =
       "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
@@ -48,7 +48,7 @@ defmodule Deployex.Storage.Local do
     download_path = "/tmp/#{monitored_app}/" <> storage_path
 
     AppStatus.clear_new(instance)
-    new_path = Configuration.new_path(instance)
+    new_path = AppConfig.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 

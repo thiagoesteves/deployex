@@ -1,4 +1,4 @@
-defmodule DeployexWeb.HomeLive.LogComponent do
+defmodule DeployexWeb.ApplicationsLive.Logs do
   use DeployexWeb, :live_component
 
   @impl true
@@ -7,7 +7,7 @@ defmodule DeployexWeb.HomeLive.LogComponent do
     <div>
       <.header>
         <%= "#{@title} [#{@id}]" %>
-        <:subtitle><%= @log_path %>:</:subtitle>
+        <:subtitle>File: <%= @log_path %></:subtitle>
       </.header>
 
       <div
@@ -49,27 +49,17 @@ defmodule DeployexWeb.HomeLive.LogComponent do
   end
 
   defp handle_log_update(%{assigns: %{id: "0", current_log: nil}} = socket) do
-    _log_path = "/var/log/deployex.log"
-    # NOTE: Not implemented for deployex yet
-
-    # {:ok, _pid, process} = :exec.run_link("tail -f -n 10 #{log_path}", [:stdout, :monitor])
+    log_file = Application.get_env(:deployex, :log_file)
 
     socket
-    # |> assign(:log_process, 0)
-    # |> assign(:log_path, log_path)
+    |> tail_if_exists(log_file)
   end
 
-  defp handle_log_update(%{assigns: %{id: instance, current_log: nil}} = socket) do
-    log_path =
-      instance
-      |> String.to_integer()
-      |> Deployex.Configuration.stdout_path()
-
-    {:ok, _pid, process} = :exec.run_link("tail -f -n 10 #{log_path}", [:stdout, :monitor])
+  defp handle_log_update(%{assigns: %{id: instance, current_log: nil, action: action}} = socket) do
+    log_file = log_path(instance, action)
 
     socket
-    |> assign(:log_process, process)
-    |> assign(:log_path, log_path)
+    |> tail_if_exists(log_file)
   end
 
   defp handle_log_update(
@@ -104,6 +94,31 @@ defmodule DeployexWeb.HomeLive.LogComponent do
 
   defp handle_log_update(socket) do
     socket
+  end
+
+  defp log_path(instance, :logs_stdout) do
+    instance
+    |> String.to_integer()
+    |> Deployex.AppConfig.stdout_path()
+  end
+
+  defp log_path(instance, :logs_stderr) do
+    instance
+    |> String.to_integer()
+    |> Deployex.AppConfig.stderr_path()
+  end
+
+  defp tail_if_exists(socket, path) do
+    if File.exists?(path) do
+      {:ok, _pid, process} = :exec.run_link("tail -f -n 10 #{path}", [:stdout, :monitor])
+
+      socket
+      |> assign(:log_process, process)
+      |> assign(:log_path, path)
+    else
+      socket
+      |> assign(:log_path, "File not found")
+    end
   end
 
   defp log_color("debug"), do: "text-gray-700"

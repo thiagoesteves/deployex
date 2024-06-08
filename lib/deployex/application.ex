@@ -7,7 +7,7 @@ defmodule Deployex.Application do
 
   @impl true
   def start(_type, _args) do
-    Deployex.Configuration.init(replicas_list())
+    Deployex.AppConfig.init(replicas_list())
 
     children =
       [

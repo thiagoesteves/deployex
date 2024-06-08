@@ -37,7 +37,7 @@ defmodule Deployex.Upgrade do
 
   @timeout 300_000
 
-  alias Deployex.Configuration
+  alias Deployex.AppConfig
 
   require Logger
 
@@ -82,7 +82,7 @@ defmodule Deployex.Upgrade do
   @spec update_sys_config_from_installed_version(integer(), atom(), charlist()) ::
           :ok | {:error, any()}
   def update_sys_config_from_installed_version(instance, node, to_version) do
-    rel_vsn_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
+    rel_vsn_dir = "#{AppConfig.current_path(instance)}/releases/#{to_version}"
     sys_config_path = Path.join(rel_vsn_dir, "sys.config")
     original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
     # Read the build time config from build.config
@@ -113,7 +113,7 @@ defmodule Deployex.Upgrade do
 
   @spec return_original_sys_config(integer(), charlist()) :: :ok | {:error, atom()}
   def return_original_sys_config(instance, to_version) do
-    rel_vsn_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
+    rel_vsn_dir = "#{AppConfig.current_path(instance)}/releases/#{to_version}"
     sys_config_path = Path.join(rel_vsn_dir, "sys.config")
     original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
 
@@ -128,17 +128,15 @@ defmodule Deployex.Upgrade do
   end
 
   def check(instance, download_path, from_version, to_version) do
-    monitored_app = Configuration.monitored_app()
+    monitored_app = AppConfig.monitored_app()
 
     with [file_path] <-
-           Path.wildcard(
-             "#{Configuration.new_path(instance)}/lib/#{monitored_app}-*/ebin/*.appup"
-           ),
+           Path.wildcard("#{AppConfig.new_path(instance)}/lib/#{monitored_app}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do
       Logger.warning("HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}")
 
       # Copy binary to the release folder under the version directory
-      dest_dir = "#{Configuration.current_path(instance)}/releases/#{to_version}"
+      dest_dir = "#{AppConfig.current_path(instance)}/releases/#{to_version}"
 
       File.rm_rf(dest_dir)
 
@@ -176,7 +174,7 @@ defmodule Deployex.Upgrade do
 
   @spec unpack_release(atom(), charlist()) :: :ok | {:error, any()}
   def unpack_release(node, to_version) do
-    release_link = "#{to_version}/#{Configuration.monitored_app()}" |> to_charlist
+    release_link = "#{to_version}/#{AppConfig.monitored_app()}" |> to_charlist
 
     case :rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
       {:ok, version} ->
@@ -201,12 +199,12 @@ defmodule Deployex.Upgrade do
       :systools,
       :make_relup,
       [
-        root ++ ~c"/releases/#{Configuration.monitored_app()}-" ++ to_version,
-        [root ++ ~c"/releases/#{Configuration.monitored_app()}-" ++ from_version],
-        [root ++ ~c"/releases/#{Configuration.monitored_app()}-" ++ from_version],
+        root ++ ~c"/releases/#{AppConfig.monitored_app()}-" ++ to_version,
+        [root ++ ~c"/releases/#{AppConfig.monitored_app()}-" ++ from_version],
+        [root ++ ~c"/releases/#{AppConfig.monitored_app()}-" ++ from_version],
         [
           {:path,
-           [root ++ ~c"/lib/*/ebin", root ++ ~c"/releases/*/#{Configuration.monitored_app()}"]},
+           [root ++ ~c"/lib/*/ebin", root ++ ~c"/releases/*/#{AppConfig.monitored_app()}"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
       ],
@@ -275,7 +273,7 @@ defmodule Deployex.Upgrade do
   @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
   def connect(instance) do
     {:ok, hostname} = :inet.gethostname()
-    app_sname = Configuration.sname(instance)
+    app_sname = AppConfig.sname(instance)
     node = :"#{app_sname}@#{hostname}"
 
     case Node.connect(node) do

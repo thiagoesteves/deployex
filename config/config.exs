@@ -19,11 +19,12 @@ monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp
 config :deployex,
   generators: [timestamp_type: :utc_datetime],
   env: "local",
+  log_file: "/var/log/deployex.log",
+  base_path: "/tmp/deployex/varlib",
+  replicas: 5,
   monitored_app_name: monitored_app_name,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  base_path: "/tmp/deployex/varlib",
-  phx_start_port: 4000,
-  replicas: 1
+  monitored_app_phx_start_port: 4000
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,

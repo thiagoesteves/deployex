@@ -5,7 +5,7 @@ defmodule Deployex.Storage.S3 do
 
   @behaviour Deployex.Storage.Adapter
 
-  alias Deployex.{AppStatus, Configuration, Upgrade}
+  alias Deployex.{AppConfig, AppStatus, Upgrade}
 
   require Logger
 
@@ -19,7 +19,7 @@ defmodule Deployex.Storage.S3 do
   @impl true
   @spec get_current_version_map() :: Deployex.Storage.version_map() | nil
   def get_current_version_map do
-    path = "versions/#{Configuration.monitored_app()}/#{env()}/current.json"
+    path = "versions/#{AppConfig.monitored_app()}/#{env()}/current.json"
 
     bucket()
     |> ExAws.S3.get_object(path)
@@ -39,7 +39,7 @@ defmodule Deployex.Storage.S3 do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = Configuration.monitored_app()
+    monitored_app = AppConfig.monitored_app()
 
     s3_path = "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 
@@ -49,7 +49,7 @@ defmodule Deployex.Storage.S3 do
       |> ExAws.request()
 
     AppStatus.clear_new(instance)
-    new_path = Configuration.new_path(instance)
+    new_path = AppConfig.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
@@ -63,5 +63,5 @@ defmodule Deployex.Storage.S3 do
   ### ==========================================================================
 
   defp env, do: Application.get_env(:deployex, :env)
-  defp bucket, do: "#{Configuration.monitored_app()}-#{env()}-distribution"
+  defp bucket, do: "#{AppConfig.monitored_app()}-#{env()}-distribution"
 end

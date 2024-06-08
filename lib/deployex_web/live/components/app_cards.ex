@@ -61,7 +61,7 @@ defmodule DeployexWeb.Components.AppCards do
 
             <p class="flex  tracking-tight  pt-3   justify-between">
               <button
-                phx-click="app-card-click"
+                phx-click="app-log-click"
                 phx-value-instance={app.instance}
                 phx-value-std="stdout"
                 type="button"
@@ -72,7 +72,7 @@ defmodule DeployexWeb.Components.AppCards do
 
               <button
                 :if={app.supervisor == false}
-                phx-click="app-card-click"
+                phx-click="app-log-click"
                 phx-value-instance={app.instance}
                 phx-value-std="stderr"
                 type="button"

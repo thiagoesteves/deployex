@@ -1,4 +1,4 @@
-defmodule Deployex.Configuration do
+defmodule Deployex.AppConfig do
   @moduledoc """
   This module contains all paths for services and also initialize the directories
   """
@@ -40,7 +40,7 @@ defmodule Deployex.Configuration do
   Return the monitored app phoenix port
   """
   @spec phx_start_port() :: integer()
-  def phx_start_port, do: Application.get_env(:deployex, :phx_start_port)
+  def phx_start_port, do: Application.get_env(:deployex, :monitored_app_phx_start_port)
 
   @doc """
   Return the path for the stdout log file

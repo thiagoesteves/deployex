@@ -4,7 +4,7 @@ defmodule Deployex.AppStatus do
   """
 
   use GenServer
-  alias Deployex.Configuration
+  alias Deployex.AppConfig
   alias Deployex.Monitor
   alias Deployex.Storage
 
@@ -127,11 +127,11 @@ defmodule Deployex.AppStatus do
   @spec clear_new(integer()) :: :ok
   def clear_new(instance) do
     instance
-    |> Configuration.new_path()
+    |> AppConfig.new_path()
     |> File.rm_rf()
 
     instance
-    |> Configuration.new_path()
+    |> AppConfig.new_path()
     |> File.mkdir_p()
 
     :ok
@@ -141,12 +141,12 @@ defmodule Deployex.AppStatus do
   def update(instance) do
     # Remove previous path
     instance
-    |> Configuration.previous_path()
+    |> AppConfig.previous_path()
     |> File.rm_rf()
 
     # Move current to previous and new to current
-    File.rename(Configuration.current_path(instance), Configuration.previous_path(instance))
-    File.rename(Configuration.new_path(instance), Configuration.current_path(instance))
+    File.rename(AppConfig.current_path(instance), AppConfig.previous_path(instance))
+    File.rename(AppConfig.new_path(instance), AppConfig.current_path(instance))
     :ok
   end
 
@@ -154,10 +154,10 @@ defmodule Deployex.AppStatus do
   ### Private functions
   ### ==========================================================================
   defp current_version_path(instance),
-    do: "#{Configuration.base_path()}/version/#{instance}/current.json"
+    do: "#{AppConfig.base_path()}/version/#{instance}/current.json"
 
   defp previous_version_path(instance),
-    do: "#{Configuration.base_path()}/version/#{instance}/previous.json"
+    do: "#{AppConfig.base_path()}/version/#{instance}/previous.json"
 
   defp current_version_map(instance) do
     instance
