@@ -10,16 +10,14 @@ defmodule DeployexWeb.Components.AppCards do
       <%= for app <- @monitoring_apps_data do %>
         <div :if={app.supervisor}></div>
 
-        <button
+        <div
           id={"button-#{app.name}"}
           class={[app_background(app.supervisor, app.status), "rounded-lg border border-black mt-2"]}
-          phx-click="app-card-click"
-          phx-value-type={app.name}
         >
           <div class="flex flex-col rounded mb-3">
             <.version status={app.status} version={app.version} />
 
-            <h3 class="font-mono  text-xl text-black font-bold"><%= "#{app.name}" %></h3>
+            <h3 class="font-mono text-center text-xl text-black font-bold"><%= "#{app.name}" %></h3>
 
             <p :if={app.supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
               <span class="text-xs font-bold ml-3">Instance</span>
@@ -60,8 +58,31 @@ defmodule DeployexWeb.Components.AppCards do
                 <%= app.uptime %>
               </span>
             </p>
+
+            <p class="flex  tracking-tight  pt-3   justify-between">
+              <button
+                phx-click="app-log-click"
+                phx-value-instance={app.instance}
+                phx-value-std="stdout"
+                type="button"
+                class="ml-2 text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+              >
+                stdout
+              </button>
+
+              <button
+                :if={app.supervisor == false}
+                phx-click="app-log-click"
+                phx-value-instance={app.instance}
+                phx-value-std="stderr"
+                type="button"
+                class="text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+              >
+                stderr
+              </button>
+            </p>
           </div>
-        </button>
+        </div>
 
         <div :if={app.supervisor}></div>
       <% end %>
@@ -138,7 +159,7 @@ defmodule DeployexWeb.Components.AppCards do
   end
 
   defp version(assigns) do
-    class = "font-mono text-sm p-2 border-b-2 border-black rounded-t-lg"
+    class = "font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
 
     assigns =
       assigns

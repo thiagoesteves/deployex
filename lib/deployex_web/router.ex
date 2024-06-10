@@ -22,8 +22,11 @@ defmodule DeployexWeb.Router do
     pipe_through :browser
 
     live_session :default do
-      live "/", HomeLive, :index
-      live "/home", HomeLive, :index
+      live "/", ApplicationsLive, :index
+      live "/applications", ApplicationsLive, :index
+      live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
+      live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
+
       live "/about", ComingSoonLive, :index
     end
   end

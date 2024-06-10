@@ -4,7 +4,7 @@ Deployex is a lightweight tool designed for managing deployments in Elixir appli
 
 Deployex acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that Deployex is always equipped with the latest packages, ready to facilitate deployments.
 
-Deployex is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori).
+Deployex is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
 
 ![Deployment Architecture](/docs/deployex.png)
 
@@ -12,7 +12,6 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
-- [ ] Phoenix Aapp: Add log view tab
 - [ ] Phoenix Aapp: Add iex CLI tab
 - [ ] Execute migrations before full deployment
 - [ ] OTP Distribution monitoring for health checks
@@ -43,6 +42,10 @@ Done in 166ms.
 Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture (If `mTLS` is supported):
 
 ![Running with no monitored apps](/docs/deployex_server.png)
+
+you can also click in the `stdout`/`stderr` buttom to check for the monitored app logs:
+
+![Logs for monitored apps](/docs/deployex_logs.png)
 
 *__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 
@@ -215,8 +218,8 @@ iex --sname deployex -S mix phx.server
 11:18:31.592 [warning] module=Deployex.Upgrade function=check/3 pid=<0.229.0>  HOT UPGRADE version NOT DETECTED, full deployment required, result: {:error, :no_match_versions}
 11:18:31.592 [info] module=Deployex.Monitor function=handle_call/3 pid=<0.230.0>  Requested to stop but application is not running.
 11:18:32.103 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  Ensure running requested for version: 0.1.0
-11:18:32.104 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   - Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
-11:18:32.106 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   - Running, monitoring pid = #PID<0.248.0>, OS process id = 7001.
+11:18:32.104 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
+11:18:32.106 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Running, monitoring pid = #PID<0.248.0>, OS process id = 7001.
 iex(deployex@hostname)1>
 ```
 
@@ -262,10 +265,10 @@ echo "{\"version\":\"0.1.1\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versi
 11:22:04.157 [info] module=Deployex.Deployment function=run_check/1 pid=<0.229.0>  Update is needed from 0.1.0 to 0.1.1.
 11:22:04.381 [warning] module=Deployex.Upgrade function=check/3 pid=<0.229.0>  HOT UPGRADE version NOT DETECTED, full deployment required, result: []
 11:22:04.381 [info] module=Deployex.Monitor function=handle_call/3 pid=<0.230.0>  Requested to stop application pid: #PID<0.231.0>
-11:22:04.437 [warning] module=Deployex.Monitor function=handle_info/2 pid=<0.230.0>  Application with pid: #PID<0.231.0> - state: %{current_pid: nil} being stopped by reason: :normal
+11:22:04.437 [warning] module=Deployex.Monitor function=handle_info/2 pid=<0.230.0>  Application with pid: #PID<0.231.0> # State: %{current_pid: nil} being stopped by reason: :normal
 11:22:04.947 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  Ensure running requested for version: 0.1.1
-11:22:04.948 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   - Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
-11:22:04.950 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   - Running, monitoring pid = #PID<0.249.0>, OS process id = 9289.
+11:22:04.948 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
+11:22:04.950 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Running, monitoring pid = #PID<0.249.0>, OS process id = 9289.
 ```
 
 #### Hot-upgrades
