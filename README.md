@@ -12,7 +12,7 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
-- [ ] Phoenix Aapp: Add iex CLI tab
+- [ ] Phoenix App: Add iex CLI tab
 - [ ] Execute migrations before full deployment
 - [ ] OTP Distribution monitoring for health checks
 - [ ] Full deployment rollback functionality
