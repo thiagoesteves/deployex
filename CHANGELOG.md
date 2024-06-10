@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.3.0-rc2 (2024-06-02)
+## 0.3.0-rc4 (TBD)
+
+## Backwards incompatible changes for 0.3.0-rc3
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Adding stderr and stdout logs for each app from liveview (including deployex)
+
+## 0.3.0-rc3 (2024-06-02)
 
 ## Backwards incompatible changes for 0.3.0-rc2
  * None
@@ -14,7 +25,7 @@
 
 ## 0.3.0-rc2 (2024-06-01)
 
-## Backwards incompatible changes for 0.3.0-rc2
+## Backwards incompatible changes for 0.3.0-rc1
  * None
 
 ### Bug fixes

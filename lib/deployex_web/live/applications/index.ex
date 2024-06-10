@@ -72,12 +72,16 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({:stdout, _process, _message} = current_log, socket) do
+  def handle_info({std, _process, _message} = current_log, socket)
+      when std in [:stderr, :stdout] do
     {:noreply, assign(socket, :current_log, current_log)}
   end
 
   @impl true
   def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/logs/#{std}")}
+    {:noreply, push_patch(socket, to: std_ptah(instance, std))}
   end
+
+  defp std_ptah(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"
+  defp std_ptah(instance, "stdout"), do: ~p"/applications/#{instance}/logs/stdout"
 end

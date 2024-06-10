@@ -205,7 +205,11 @@ defmodule Deployex.Monitor do
       end
 
     if state.current_pid do
-      Process.send_after(self(), {:check_running, state.current_pid}, @timeout_to_verify_app_ready)
+      Process.send_after(
+        self(),
+        {:check_running, state.current_pid},
+        @timeout_to_verify_app_ready
+      )
     end
 
     state
