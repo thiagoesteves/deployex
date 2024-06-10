@@ -72,8 +72,8 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({std, _process, _message} = current_log, socket)
-      when std in [:stderr, :stdout] do
+  def handle_info({:stdout, _process, _message} = current_log, socket) do
+    # NOTE: this stdout is coming from the tail command, not from the application stderr output
     {:noreply, assign(socket, :current_log, current_log)}
   end
 
