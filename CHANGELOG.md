@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0-rc4 (TBD)
+## 0.3.0-rc4 (2024-06-10)
 
 ## Backwards incompatible changes for 0.3.0-rc3
  * None
