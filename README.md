@@ -4,7 +4,7 @@ Deployex is a lightweight tool designed for managing deployments in Elixir appli
 
 Deployex acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that Deployex is always equipped with the latest packages, ready to facilitate deployments.
 
-Deployex is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori).
+Deployex is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
 
 ![Deployment Architecture](/docs/deployex.png)
 
@@ -12,7 +12,6 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
-- [X] Phoenix Aapp: Add log view tab
 - [ ] Phoenix Aapp: Add iex CLI tab
 - [ ] Execute migrations before full deployment
 - [ ] OTP Distribution monitoring for health checks
@@ -43,6 +42,10 @@ Done in 166ms.
 Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture (If `mTLS` is supported):
 
 ![Running with no monitored apps](/docs/deployex_server.png)
+
+you can also click in the `stdout`/`stderr` buttom to check for the monitored app logs:
+
+![Logs for monitored apps](/docs/deployex_logs.png)
 
 *__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 

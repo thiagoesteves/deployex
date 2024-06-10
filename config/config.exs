@@ -21,7 +21,7 @@ config :deployex,
   env: "local",
   log_file: "/var/log/deployex.log",
   base_path: "/tmp/deployex/varlib",
-  replicas: 5,
+  replicas: 3,
   monitored_app_name: monitored_app_name,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
   monitored_app_phx_start_port: 4000
