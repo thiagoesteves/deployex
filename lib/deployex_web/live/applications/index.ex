@@ -27,6 +27,23 @@ defmodule DeployexWeb.ApplicationsLive do
         patch={~p"/applications"}
       />
     </.modal>
+
+    <.modal
+      :if={@live_action in [:terminal]}
+      id="app-terminal-modal"
+      show
+      on_cancel={JS.patch(~p"/applications")}
+    >
+      <.live_component
+        module={DeployexWeb.ApplicationsLive.Terminal}
+        id={@current_app}
+        title={@page_title}
+        action={@live_action}
+        current_log={@current_log}
+        key={@key}
+        patch={~p"/applications"}
+      />
+    </.modal>
     """
   end
 
@@ -67,13 +84,22 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:current_log, nil)
   end
 
+  defp apply_action(socket, :terminal, %{"instance" => instance}) do
+    socket
+    |> assign(:page_title, "Application Terminal")
+    |> assign(:current_app, instance)
+    |> assign(:current_log, nil)
+    |> assign(:key, nil)
+  end
+
   @impl true
   def handle_info({:monitoring_app_updated, monitoring_apps_data}, socket) do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({:stdout, _process, _message} = current_log, socket) do
-    # NOTE: this stdout is coming from the tail command, not from the application stderr output
+  def handle_info({:stdout, _process, message} = current_log, socket) do
+    # NOTE: this stdout is coming from the erl_exec command
+    IO.inspect(message)
     {:noreply, assign(socket, :current_log, current_log)}
   end
 
