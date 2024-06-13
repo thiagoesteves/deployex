@@ -1,4 +1,12 @@
 defmodule DeployexWeb.ApplicationsLive.Terminal do
+  @moduledoc """
+  This live component is handling the remote terminal for the applications.
+
+  This connection was inspired/copied/modified from the following links:
+   * https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+   * https://github.com/frerich/underthehood
+   * https://hostiledeveloper.com/2017/05/02/something-useless-terminal-in-your-browser.html
+  """
   use DeployexWeb, :live_component
 
   @impl true
@@ -7,38 +15,13 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     <div>
       <.header>
         <%= "#{@title} [#{@id}]" %>
-        <:subtitle>File: <%= @app_path %></:subtitle>
+        <:subtitle>Bin: <%= @log_path %></:subtitle>
       </.header>
-
-      <div
-        id="topics"
-        class="bg-gray-50 max-h-50 overflow-y-auto scroll-auto w-full mt-5"
-        style="height: 100vh;"
-        phx-update="stream"
-        phx-window-keydown="key_down"
-        phx-target={@myself}
-      >
-        <%= for {dom_id, text} <- @streams.text do %>
-          <p id={dom_id} class={["text-xs font-light", text.color]}>
-            <%= text.msg %>
-          </p>
-        <% end %>
+      <div :if={@log_path != "Binary not found"} phx-hook="IexTerminal" id={@id}>
+        <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>
     </div>
     """
-  end
-
-  @impl true
-  def mount(socket) do
-    socket =
-      socket
-      |> assign(:app_path, "")
-      |> assign(:line_counter, 0)
-      |> assign(:last_msg, nil)
-      |> assign(:terminal_process, nil)
-      |> stream(:text, [])
-
-    {:ok, socket}
   end
 
   @impl true
@@ -51,98 +34,65 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     {:ok, socket}
   end
 
-  defp handle_terminal_update(%{assigns: %{id: _id, current_log: nil}} = socket) do
-    command =
-      """
-      export RELEASE_NODE_SUFFIX=-1
-      /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp remote
-      """
-
-    {:ok, _pid, process} = :exec.run_link("#{command}", [:stdin, :stdout])
+  defp handle_terminal_update(%{assigns: %{id: "0", current_log: nil}} = socket) do
+    path = Application.get_env(:deployex, :bin_path)
 
     socket
-    |> assign(:terminal_process, process)
+    |> remote_if_exists(path, "")
+  end
+
+  defp handle_terminal_update(%{assigns: %{id: id, current_log: nil}} = socket) do
+    path = "#{Deployex.AppConfig.current_path(id)}/bin/#{Deployex.AppConfig.monitored_app()}"
+
+    socket
+    |> remote_if_exists(path, "-#{id}")
   end
 
   defp handle_terminal_update(
          %{
            assigns: %{
-             current_log: {_type, os_process, message},
-             line_counter: line_counter,
-             terminal_process: process
+             id: id,
+             terminal_process: process,
+             current_log: {_type, os_process, message}
            }
          } = socket
-       ) when os_process == process do
-    messages =
-      message
-      |> String.split(["\n", "\r"], trim: true)
-      |> Enum.with_index(fn element, index ->
-        color = log_color("debug")
+       )
+       when os_process == process do
+    message = String.replace(message, "\e[A", "\e[D")
 
-        %{id: line_counter + index, msg: element, color: color}
-      end)
-
-    update_line_counter = line_counter + length(messages)
+    IO.puts("Send to terminal: #{inspect(message)}")
 
     socket
-    |> assign(:line_counter, update_line_counter)
-    |> assign(:last_msg, Enum.at(messages, -1))
-    |> stream(:text, messages)
-  end
-
-  defp handle_terminal_update(socket) do
-    socket
+    |> push_event("print_#{id}", %{data: message})
   end
 
   @impl true
-  def handle_event("key_down", %{"key" => key}, socket) when key in ["Shift", "Tab", "ArrowUp"] do
+  def handle_event(
+        "key",
+        %{"key" => key},
+        %{assigns: %{terminal_process: terminal_process}} = socket
+      ) do
+    IO.puts("Pressed Key: #{inspect(key)}")
+    :exec.send(terminal_process, key)
     {:noreply, socket}
   end
 
-  def handle_event(
-        "key_down",
-        %{"key" => "Backspace"},
-        %{assigns: %{terminal_process: terminal_process, last_msg: last_msg}} = socket
-      ) do
-    :exec.send(terminal_process, "\b")
+  defp remote_if_exists(socket, path, suffix) do
+    if File.exists?(path) do
+      command =
+        """
+        export RELEASE_NODE_SUFFIX=#{suffix}
+        #{path} remote
+        """
 
-    last_msg = %{last_msg | msg: String.slice(last_msg.msg, 0..-2//1)}
+      {:ok, _pid, process} = :exec.run_link("#{command}", [:stdin, :stdout, :pty, :pty_echo])
 
-    {:noreply,
-     socket
-     |> assign(:last_msg, last_msg)
-     |> stream(:text, [last_msg])}
+      socket
+      |> assign(:terminal_process, process)
+      |> assign(:log_path, path)
+    else
+      socket
+      |> assign(:log_path, "Binary not found")
+    end
   end
-
-  def handle_event(
-        "key_down",
-        %{"key" => "Enter"},
-        %{assigns: %{terminal_process: terminal_process}} = socket
-      ) do
-    :exec.send(terminal_process, "\n")
-
-    {:noreply,
-     socket
-     |> assign(:command, "")}
-  end
-
-  def handle_event(
-        "key_down",
-        %{"key" => key},
-        %{assigns: %{terminal_process: terminal_process, last_msg: last_msg}} = socket
-      ) do
-    :exec.send(terminal_process, key)
-
-    last_msg = %{last_msg | msg: last_msg.msg <> key}
-
-    {:noreply,
-     socket
-     |> assign(:last_msg, last_msg)
-     |> stream(:text, [last_msg])}
-  end
-
-  # https://stackoverflow.com/questions/66010467/detect-key-combinations-in-phoenix-liveview-e-g-cmd-f
-  # https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-
-  defp log_color("debug"), do: "text-gray-700"
 end

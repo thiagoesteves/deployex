@@ -40,7 +40,6 @@ defmodule DeployexWeb.ApplicationsLive do
         title={@page_title}
         action={@live_action}
         current_log={@current_log}
-        key={@key}
         patch={~p"/applications"}
       />
     </.modal>
@@ -89,7 +88,6 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:page_title, "Application Terminal")
     |> assign(:current_app, instance)
     |> assign(:current_log, nil)
-    |> assign(:key, nil)
   end
 
   @impl true
