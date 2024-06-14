@@ -58,7 +58,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
          } = socket
        )
        when os_process == process do
-    #message = String.replace(message, "\e[A", "\e[D")
+    # message = String.replace(message, "\e[A", "\e[D")
 
     IO.puts("Send to terminal: #{inspect(message)}")
 
@@ -82,6 +82,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       command =
         """
         export RELEASE_NODE_SUFFIX=#{suffix}
+        export RELEASE_COOKIE=#{:cookie}
         #{path} remote
         """
 

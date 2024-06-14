@@ -32,8 +32,7 @@ hooks.IexTerminal = {
         fontSize: 12,
         cols: 100,
         rows: 20,
-        cursorBlink: true,
-        rendererType: 'dom', // default is canvas
+        cursorBlink: true
     });
       term.open(this.el.querySelector(".xtermjs_container"));
       term.onKey(key => {
