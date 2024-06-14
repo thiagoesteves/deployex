@@ -28,7 +28,13 @@ let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("
 let hooks = {}
 hooks.IexTerminal = {
   mounted() {
-      let term = new Terminal();
+      let term = new Terminal({
+        fontSize: 12,
+        cols: 100,
+        rows: 20,
+        cursorBlink: true,
+        rendererType: 'dom', // default is canvas
+    });
       term.open(this.el.querySelector(".xtermjs_container"));
       term.onKey(key => {
           this.pushEventTo(this.el, "key", key);

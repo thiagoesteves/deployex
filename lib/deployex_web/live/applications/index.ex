@@ -28,7 +28,7 @@ defmodule DeployexWeb.ApplicationsLive do
       />
     </.modal>
 
-    <.modal
+    <.terminal_modal
       :if={@live_action in [:terminal]}
       id="app-terminal-modal"
       show
@@ -42,7 +42,7 @@ defmodule DeployexWeb.ApplicationsLive do
         current_log={@current_log}
         patch={~p"/applications"}
       />
-    </.modal>
+    </.terminal_modal>
     """
   end
 
@@ -104,6 +104,10 @@ defmodule DeployexWeb.ApplicationsLive do
   @impl true
   def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
     {:noreply, push_patch(socket, to: std_ptah(instance, std))}
+  end
+
+  def handle_event("app-terminal-click", %{"instance" => instance}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/terminal")}
   end
 
   defp std_ptah(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"
