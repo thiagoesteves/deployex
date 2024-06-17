@@ -20,10 +20,10 @@ defmodule DeployexWeb.ApplicationsLive do
     >
       <.live_component
         module={DeployexWeb.ApplicationsLive.Logs}
-        id={@current_app}
+        id={@selected_instance}
         title={@page_title}
         action={@live_action}
-        current_log={@current_log}
+        process_stdout_log={@process_stdout_log}
         patch={~p"/applications"}
       />
     </.modal>
@@ -36,10 +36,10 @@ defmodule DeployexWeb.ApplicationsLive do
     >
       <.live_component
         module={DeployexWeb.ApplicationsLive.Terminal}
-        id={@current_app}
+        id={@selected_instance}
         title={@page_title}
         action={@live_action}
-        current_log={@current_log}
+        process_stdout_log={@process_stdout_log}
         patch={~p"/applications"}
       />
     </.terminal_modal>
@@ -54,8 +54,8 @@ defmodule DeployexWeb.ApplicationsLive do
 
     socket
     |> assign(:monitoring_apps_data, state.monitoring)
-    |> assign(:current_app, nil)
-    |> assign(:current_log, nil)
+    |> assign(:selected_instance, nil)
+    |> assign(:process_stdout_log, nil)
 
     {:ok, assign(socket, :monitoring_apps_data, state.monitoring)}
   end
@@ -79,15 +79,15 @@ defmodule DeployexWeb.ApplicationsLive do
        when logs_type in [:logs_stdout, :logs_stderr] do
     socket
     |> assign(:page_title, "Application Logs")
-    |> assign(:current_app, instance)
-    |> assign(:current_log, nil)
+    |> assign(:selected_instance, instance)
+    |> assign(:process_stdout_log, nil)
   end
 
   defp apply_action(socket, :terminal, %{"instance" => instance}) do
     socket
     |> assign(:page_title, "Application Terminal")
-    |> assign(:current_app, instance)
-    |> assign(:current_log, nil)
+    |> assign(:selected_instance, instance)
+    |> assign(:process_stdout_log, nil)
   end
 
   @impl true
@@ -95,10 +95,14 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({:stdout, _process, message} = current_log, socket) do
+  def handle_info({:stdout, _process, message} = process_stdout_log, socket) do
     # NOTE: this stdout is coming from the erl_exec command
     IO.inspect(message)
-    {:noreply, assign(socket, :current_log, current_log)}
+    {:noreply, assign(socket, :process_stdout_log, process_stdout_log)}
+  end
+
+  def handle_info({:cookie_updated}, socket) do
+    {:noreply, assign(socket, :cookie_updated, nil)}
   end
 
   @impl true
