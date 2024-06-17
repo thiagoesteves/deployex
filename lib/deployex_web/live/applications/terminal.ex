@@ -147,8 +147,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         :exec.run_link("#{command}", [
           :stdin,
           :stdout,
-          :pty,
-          :pty_echo
+          :pty
         ])
 
       socket
