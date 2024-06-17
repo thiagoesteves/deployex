@@ -55,7 +55,9 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     |> tail_if_exists(log_file)
   end
 
-  defp handle_log_update(%{assigns: %{id: instance, process_stdout_log: nil, action: action}} = socket) do
+  defp handle_log_update(
+         %{assigns: %{id: instance, process_stdout_log: nil, action: action}} = socket
+       ) do
     log_file = log_path(instance, action)
 
     socket

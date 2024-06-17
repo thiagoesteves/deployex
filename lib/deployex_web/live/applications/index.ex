@@ -95,9 +95,9 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({:stdout, _process, message} = process_stdout_log, socket) do
+  def handle_info({:stdout, _process, _message} = process_stdout_log, socket) do
     # NOTE: this stdout is coming from the erl_exec command
-    IO.inspect(message)
+    # IO.inspect(message)
     {:noreply, assign(socket, :process_stdout_log, process_stdout_log)}
   end
 

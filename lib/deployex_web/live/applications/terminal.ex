@@ -18,7 +18,13 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         <:subtitle>Bin: <%= @bin_path %></:subtitle>
       </.header>
 
-      <form :if={@cookie == nil} id="auth-form" method="post" phx-target={@myself} phx-submit="connect">
+      <form
+        :if={@cookie == nil}
+        id="auth-form"
+        method="post"
+        phx-target={@myself}
+        phx-submit="connect"
+      >
         <div class="flex  justify-between p-5">
           <div class="w-32">
             <div class="relative h-10 w-full min-w-[500px]">
@@ -86,7 +92,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
        when os_process == process do
     # message = String.replace(message, "\e[A", "\e[D")
 
-    IO.puts("Send to terminal: #{inspect(message)}")
+    # IO.puts("Send to terminal: #{inspect(message)}")
 
     socket
     |> push_event("print_#{id}", %{data: message})
@@ -98,7 +104,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         %{"key" => key},
         %{assigns: %{terminal_process: terminal_process}} = socket
       ) do
-    IO.puts("Pressed Key: #{inspect(key)}")
+    # IO.puts("Pressed Key: #{inspect(key)}")
     :exec.send(terminal_process, key)
     {:noreply, socket}
   end
@@ -126,15 +132,23 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     |> remote_if_exists(path, "-#{id}")
   end
 
-  defp remote_if_exists(%{assigns: %{cookie: cookie}} = socket, path, suffix) when cookie not in ["", nil] do
+  defp remote_if_exists(%{assigns: %{cookie: cookie}} = socket, path, suffix)
+       when cookie not in ["", nil] do
     if File.exists?(path) do
+      command =
+        """
+        unset $(env | grep RELEASE | awk -F'=' '{print $1}')
+        export RELEASE_NODE_SUFFIX=#{suffix}
+        export RELEASE_COOKIE=#{cookie}
+        #{path} remote
+        """
+
       {:ok, _pid, process} =
-        :exec.run_link("#{path} remote", [
+        :exec.run_link("#{command}", [
           :stdin,
           :stdout,
           :pty,
-          :pty_echo,
-          {:env, [{"RELEASE_NODE_SUFFIX", "#{suffix}"}, {"RELEASE_COOKIE", "#{cookie}"}]}
+          :pty_echo
         ])
 
       socket
@@ -148,5 +162,5 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     end
   end
 
-  defp remote_if_exists( socket, _path, _suffix), do: assign(socket, :cookie, nil)
+  defp remote_if_exists(socket, _path, _suffix), do: assign(socket, :cookie, nil)
 end
