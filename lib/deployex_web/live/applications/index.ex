@@ -95,10 +95,19 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info({:stdout, _process, _message} = process_stdout_log, socket) do
-    # NOTE: this stdout is coming from the erl_exec command
-    # IO.inspect(message)
-    {:noreply, assign(socket, :process_stdout_log, process_stdout_log)}
+  def handle_info(
+        {:stdout, process, message},
+        %{assigns: %{process_stdout_log: process_stdout_log}} = socket
+      ) do
+    # ATTENTION: This is the stdout from erl_exec command
+    #            Be careful adding logs here, since it can create an infinity loop
+    #            when using deployex web logs.
+
+    id = if process_stdout_log == nil, do: 0, else: process_stdout_log.id + 1
+
+    {:noreply,
+     socket
+     |> assign(:process_stdout_log, %{process: process, message: message, id: id})}
   end
 
   def handle_info({:cookie_updated}, socket) do

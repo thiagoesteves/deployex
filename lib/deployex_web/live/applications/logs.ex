@@ -67,7 +67,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   defp handle_log_update(
          %{
            assigns: %{
-             process_stdout_log: {_type, os_process, message},
+             process_stdout_log: %{process: os_process, message: message, id: _id},
              log_counter: log_counter,
              log_process: process
            }

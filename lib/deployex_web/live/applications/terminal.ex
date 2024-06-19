@@ -85,14 +85,13 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
            assigns: %{
              id: id,
              terminal_process: process,
-             process_stdout_log: {_type, os_process, message}
+             process_stdout_log: %{process: os_process, message: message, id: _id}
            }
          } = socket
        )
        when os_process == process do
-    # message = String.replace(message, "\e[A", "\e[D")
-
-    # IO.puts("Send to terminal: #{inspect(message)}")
+    # Xterm only allows "\e" as escape character
+    message = String.replace(message, "^[", "\e")
 
     socket
     |> push_event("print_#{id}", %{data: message})
@@ -104,7 +103,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         %{"key" => key},
         %{assigns: %{terminal_process: terminal_process}} = socket
       ) do
-    # IO.puts("Pressed Key: #{inspect(key)}")
     :exec.send(terminal_process, key)
     {:noreply, socket}
   end
@@ -147,7 +145,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         :exec.run_link("#{command}", [
           :stdin,
           :stdout,
-          :pty
+          :pty,
+          :pty_echo
         ])
 
       socket

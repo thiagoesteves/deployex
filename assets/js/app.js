@@ -29,9 +29,9 @@ let hooks = {}
 hooks.IexTerminal = {
   mounted() {
       let term = new Terminal({
-        fontSize: 12,
-        cols: 100,
-        rows: 20,
+        fontSize: 15,
+        cols: 80,
+        rows: 24,
         cursorBlink: true
     });
       term.open(this.el.querySelector(".xtermjs_container"));
