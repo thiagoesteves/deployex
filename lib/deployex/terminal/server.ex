@@ -46,7 +46,12 @@ defmodule Deployex.Terminal.Server do
 
     Logger.info("Initializing terminal instance: #{state.instance} at process pid: #{process}")
 
-    {:noreply, %{state | process: process}}
+    state = %{state | message: "", process: process}
+
+    # NOTE: Send at least one message to sync with the target process
+    notify_target(state)
+
+    {:noreply, state}
   end
 
   @impl true
