@@ -9,6 +9,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   """
   use DeployexWeb, :live_component
 
+  require Logger
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -60,14 +62,17 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       socket
       |> assign(:monitored_app, monitored_app)
       |> assign(:cookie, nil)
-      |> assign(:connected?, false)
       |> assign(:bin_path, "")
 
     {:ok, socket}
   end
 
   @impl true
-  def update(assigns, %{assigns: %{connected?: true}} = socket) do
+  def update(%{terminal_process: nil} = assigns, socket) do
+    {:ok, assign(socket, assigns)}
+  end
+
+  def update(assigns, socket) do
     socket =
       socket
       |> assign(assigns)
@@ -76,20 +81,9 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     {:ok, socket}
   end
 
-  def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
-  end
-
   defp handle_terminal_update(
-         %{
-           assigns: %{
-             id: id,
-             terminal_process: process,
-             process_stdout_log: %{process: os_process, message: message, id: _id}
-           }
-         } = socket
-       )
-       when os_process == process do
+         %{assigns: %{id: id, terminal_message: %{message: message}}} = socket
+       ) do
     # Xterm only allows "\e" as escape character
     message = String.replace(message, "^[", "\e")
 
@@ -98,6 +92,11 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   end
 
   @impl true
+  def handle_event("key", _key, %{assigns: %{terminal_process: nil}} = socket) do
+    # Ignore keys until it is connected
+    {:noreply, socket}
+  end
+
   def handle_event(
         "key",
         %{"key" => key},
@@ -114,7 +113,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
      |> try_to_connect()}
   end
 
-  defp try_to_connect(%{assigns: %{id: "0", process_stdout_log: nil}} = socket) do
+  defp try_to_connect(%{assigns: %{id: "0", terminal_message: nil}} = socket) do
     path = Application.get_env(:deployex, :bin_path)
 
     socket
@@ -122,7 +121,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   end
 
   defp try_to_connect(
-         %{assigns: %{id: id, process_stdout_log: nil, monitored_app: monitored_app}} = socket
+         %{assigns: %{id: id, terminal_message: nil, monitored_app: monitored_app}} = socket
        ) do
     path = "#{Deployex.AppConfig.current_path(id)}/bin/#{monitored_app}"
 
@@ -130,10 +129,10 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     |> remote_if_exists(path, "-#{id}")
   end
 
-  defp remote_if_exists(%{assigns: %{cookie: cookie}} = socket, path, suffix)
+  defp remote_if_exists(%{assigns: %{id: id, cookie: cookie}} = socket, path, suffix)
        when cookie not in ["", nil] do
     if File.exists?(path) do
-      command =
+      commands =
         """
         unset $(env | grep RELEASE | awk -F'=' '{print $1}')
         export RELEASE_NODE_SUFFIX=#{suffix}
@@ -141,22 +140,25 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         #{path} remote
         """
 
-      {:ok, _pid, process} =
-        :exec.run_link("#{command}", [
-          :stdin,
-          :stdout,
-          :pty,
-          :pty_echo
-        ])
+      case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+             instance: id,
+             commands: commands,
+             target: self(),
+             type: :iex_terminal
+           }) do
+        {:ok, _pid} ->
+          socket
+          |> assign(:bin_path, path)
 
-      socket
-      |> assign(:terminal_process, process)
-      |> assign(:bin_path, path)
-      |> assign(:connected?, true)
+        reason ->
+          Logger.debug("Error connecting to the terminal self: #{inspect(reason)}")
+
+          socket
+          |> assign(:cookie, nil)
+      end
     else
       socket
       |> assign(:bin_path, "Binary not found")
-      |> assign(:connected?, false)
     end
   end
 

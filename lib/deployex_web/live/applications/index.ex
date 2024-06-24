@@ -2,6 +2,7 @@ defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
   alias Deployex.AppStatus
+  alias Deployex.Terminal.Server
 
   @impl true
   def render(assigns) do
@@ -23,7 +24,8 @@ defmodule DeployexWeb.ApplicationsLive do
         id={@selected_instance}
         title={@page_title}
         action={@live_action}
-        process_stdout_log={@process_stdout_log}
+        terminal_process={@terminal_process}
+        terminal_message={@terminal_message}
         patch={~p"/applications"}
       />
     </.modal>
@@ -39,7 +41,8 @@ defmodule DeployexWeb.ApplicationsLive do
         id={@selected_instance}
         title={@page_title}
         action={@live_action}
-        process_stdout_log={@process_stdout_log}
+        terminal_process={@terminal_process}
+        terminal_message={@terminal_message}
         patch={~p"/applications"}
       />
     </.terminal_modal>
@@ -52,17 +55,24 @@ defmodule DeployexWeb.ApplicationsLive do
 
     state = :sys.get_state(AppStatus)
 
-    socket
-    |> assign(:monitoring_apps_data, state.monitoring)
-    |> assign(:selected_instance, nil)
-    |> assign(:process_stdout_log, nil)
+    socket =
+      socket
+      |> assign(:monitoring_apps_data, state.monitoring)
+      |> assign(:selected_instance, nil)
+      |> assign(:terminal_message, nil)
+      |> assign(:terminal_process, nil)
 
-    {:ok, assign(socket, :monitoring_apps_data, state.monitoring)}
+    {:ok, socket}
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :monitoring_apps_data, [])}
+    {:ok,
+     socket
+     |> assign(:monitoring_apps_data, [])
+     |> assign(:selected_instance, nil)
+     |> assign(:terminal_message, nil)
+     |> assign(:terminal_process, nil)}
   end
 
   @impl true
@@ -70,9 +80,18 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, apply_action(socket, socket.assigns.live_action, params)}
   end
 
-  defp apply_action(socket, :index, _params) do
+  defp apply_action(%{assigns: %{terminal_process: nil}} = socket, :index, _params) do
     socket
     |> assign(:page_title, "Listing Applications")
+  end
+
+  defp apply_action(%{assigns: %{terminal_message: terminal_message}} = socket, :index, _params) do
+    Server.async_terminate(terminal_message)
+
+    socket
+    |> assign(:page_title, "Listing Applications")
+    |> assign(:terminal_message, nil)
+    |> assign(:terminal_process, nil)
   end
 
   defp apply_action(socket, logs_type, %{"instance" => instance})
@@ -80,14 +99,12 @@ defmodule DeployexWeb.ApplicationsLive do
     socket
     |> assign(:page_title, "Application Logs")
     |> assign(:selected_instance, instance)
-    |> assign(:process_stdout_log, nil)
   end
 
   defp apply_action(socket, :terminal, %{"instance" => instance}) do
     socket
     |> assign(:page_title, "Application Terminal")
     |> assign(:selected_instance, instance)
-    |> assign(:process_stdout_log, nil)
   end
 
   @impl true
@@ -95,34 +112,31 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
   end
 
-  def handle_info(
-        {:stdout, process, message},
-        %{assigns: %{process_stdout_log: process_stdout_log}} = socket
-      ) do
+  def handle_info({:terminal_update, %{type: type, status: :closed}}, socket)
+      when type in [:iex_terminal, :log_terminal] do
+    {:noreply, push_patch(socket, to: ~p"/applications")}
+  end
+
+  def handle_info({:terminal_update, %{type: type, process: process} = msg}, socket)
+      when type in [:iex_terminal, :log_terminal] do
     # ATTENTION: This is the stdout from erl_exec command
     #            Be careful adding logs here, since it can create an infinity loop
     #            when using deployex web logs.
-
-    id = if process_stdout_log == nil, do: 0, else: process_stdout_log.id + 1
-
     {:noreply,
      socket
-     |> assign(:process_stdout_log, %{process: process, message: message, id: id})}
-  end
-
-  def handle_info({:cookie_updated}, socket) do
-    {:noreply, assign(socket, :cookie_updated, nil)}
+     |> assign(:terminal_message, msg)
+     |> assign(:terminal_process, process)}
   end
 
   @impl true
   def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
-    {:noreply, push_patch(socket, to: std_ptah(instance, std))}
+    {:noreply, push_patch(socket, to: std_path(instance, std))}
   end
 
   def handle_event("app-terminal-click", %{"instance" => instance}, socket) do
     {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/terminal")}
   end
 
-  defp std_ptah(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"
-  defp std_ptah(instance, "stdout"), do: ~p"/applications/#{instance}/logs/stdout"
+  defp std_path(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"
+  defp std_path(instance, "stdout"), do: ~p"/applications/#{instance}/logs/stdout"
 end

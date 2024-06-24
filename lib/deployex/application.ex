@@ -22,7 +22,8 @@ defmodule Deployex.Application do
         # Start a worker by calling: Deployex.Worker.start_link(arg)
         # {Deployex.Worker, arg},
         # Start to serve requests, typically the last entry
-        DeployexWeb.Endpoint
+        DeployexWeb.Endpoint,
+        Deployex.Terminal.Supervisor
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

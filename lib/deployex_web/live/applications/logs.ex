@@ -31,7 +31,6 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     socket =
       socket
       |> assign(:log_counter, 0)
-      |> assign(:log_process, 0)
       |> assign(:log_path, "")
       |> stream(:logs, [])
 
@@ -48,7 +47,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     {:ok, socket}
   end
 
-  defp handle_log_update(%{assigns: %{id: "0", process_stdout_log: nil}} = socket) do
+  defp handle_log_update(%{assigns: %{id: "0", terminal_message: nil}} = socket) do
     log_file = Application.get_env(:deployex, :log_file)
 
     socket
@@ -56,7 +55,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   end
 
   defp handle_log_update(
-         %{assigns: %{id: instance, process_stdout_log: nil, action: action}} = socket
+         %{assigns: %{id: instance, terminal_message: nil, action: action}} = socket
        ) do
     log_file = log_path(instance, action)
 
@@ -65,15 +64,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   end
 
   defp handle_log_update(
-         %{
-           assigns: %{
-             process_stdout_log: %{process: os_process, message: message, id: _id},
-             log_counter: log_counter,
-             log_process: process
-           }
-         } = socket
-       )
-       when os_process == process do
+         %{assigns: %{terminal_message: %{message: message}, log_counter: log_counter}} = socket
+       ) do
     messages =
       message
       |> String.split(["\n", "\r"], trim: true)
@@ -110,12 +102,19 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     |> Deployex.AppConfig.stderr_path()
   end
 
-  defp tail_if_exists(socket, path) do
+  defp tail_if_exists(%{assigns: %{id: id}} = socket, path) do
     if File.exists?(path) do
-      {:ok, _pid, process} = :exec.run_link("tail -f -n 10 #{path}", [:stdout, :monitor])
+      commands = "tail -f -n 10 #{path}"
+
+      {:ok, _pid} =
+        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+          instance: id,
+          commands: commands,
+          target: self(),
+          type: :log_terminal
+        })
 
       socket
-      |> assign(:log_process, process)
       |> assign(:log_path, path)
     else
       socket
