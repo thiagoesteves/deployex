@@ -21,11 +21,34 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+import { Terminal  } from "./xterm/xterm"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+let hooks = {}
+hooks.IexTerminal = {
+  mounted() {
+      let term = new Terminal({
+        fontSize: 15,
+        cols: 80,
+        rows: 24,
+        cursorBlink: true
+    });
+      term.open(this.el.querySelector(".xtermjs_container"));
+      term.onKey(key => {
+          this.pushEventTo(this.el, "key", key);
+      });
+
+      this.handleEvent("print_" + this.el.id, e => {
+          term.write(e.data);
+      });
+  }
+};
+
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  hooks
 })
 
 // Show progress bar on live navigation and form submits

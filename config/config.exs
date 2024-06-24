@@ -19,6 +19,7 @@ monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp
 config :deployex,
   generators: [timestamp_type: :utc_datetime],
   env: "local",
+  bin_path: "/opt/deployex/bin/deployex",
   log_file: "/var/log/deployex.log",
   base_path: "/tmp/deployex/varlib",
   replicas: 3,
