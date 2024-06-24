@@ -113,12 +113,12 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_info({:terminal_update, %{type: type, status: :closed}}, socket)
-      when type in [:iex_terminal, :log_terminal] do
+      when type in [:iex_terminal, :logs_stdout, :logs_stderr] do
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
   def handle_info({:terminal_update, %{type: type, process: process} = msg}, socket)
-      when type in [:iex_terminal, :log_terminal] do
+      when type in [:iex_terminal, :logs_stdout, :logs_stderr] do
     # ATTENTION: This is the stdout from erl_exec command
     #            Be careful adding logs here, since it can create an infinity loop
     #            when using deployex web logs.

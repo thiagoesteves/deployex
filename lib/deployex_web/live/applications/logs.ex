@@ -1,13 +1,15 @@
 defmodule DeployexWeb.ApplicationsLive.Logs do
   use DeployexWeb, :live_component
 
+  require Logger
+
   @impl true
   def render(assigns) do
     ~H"""
     <div>
       <.header>
         <%= "#{@title} [#{@id}]" %>
-        <:subtitle>File: <%= @log_path %></:subtitle>
+        <:subtitle><%= @subtitle %></:subtitle>
       </.header>
 
       <div
@@ -30,8 +32,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   def mount(socket) do
     socket =
       socket
+      |> assign(:subtitle, "")
       |> assign(:log_counter, 0)
-      |> assign(:log_path, "")
       |> stream(:logs, [])
 
     {:ok, socket}
@@ -102,25 +104,32 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     |> Deployex.AppConfig.stderr_path()
   end
 
-  defp tail_if_exists(%{assigns: %{id: id}} = socket, path) do
+  defp tail_if_exists(%{assigns: %{id: id, action: action}} = socket, path) do
     if File.exists?(path) do
       commands = "tail -f -n 10 #{path}"
       options = [:stdout]
 
-      {:ok, _pid} =
-        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-          instance: id,
-          commands: commands,
-          options: options,
-          target: self(),
-          type: :log_terminal
-        })
+      case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+             instance: id,
+             commands: commands,
+             options: options,
+             target: self(),
+             type: action
+           }) do
+        {:ok, _pid} ->
+          socket
+          |> assign(:subtitle, "File: " <> path)
 
-      socket
-      |> assign(:log_path, path)
+        {:error, {:already_started, _pid}} ->
+          message = "Maximum number of log terminals achieved for instance: #{id} type: #{action}"
+          Logger.warning(message)
+
+          socket
+          |> assign(:subtitle, message)
+      end
     else
       socket
-      |> assign(:log_path, "File not found")
+      |> assign(:subtitle, "File not found")
     end
   end
 

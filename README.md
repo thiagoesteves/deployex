@@ -12,7 +12,6 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
-- [ ] Phoenix App: Add iex CLI tab
 - [ ] Execute migrations before full deployment
 - [ ] OTP Distribution monitoring for health checks
 - [ ] Full deployment rollback functionality
@@ -381,7 +380,7 @@ export monitored_app_name=myphoenixapp
 # production
 tail -f /var/log/${monitored_app_name}-stdout.log 
 # local test
-tail -f /tmp/${monitored_app_name}/${monitored_app_name}-stdout.log
+tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${monitored_app_name}-${instance}-stdout.log
 ```
 
 ### Connecting to the monitored app CLI
@@ -389,9 +388,9 @@ tail -f /tmp/${monitored_app_name}/${monitored_app_name}-stdout.log
 ```bash
 export monitored_app_name=calori
 # production
-/var/lib/deployex/service/${monitored_app_name}/current/bin/${monitored_app_name} remote
+/var/lib/deployex/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
 # local test
-/tmp/deployex/varlib/service/${monitored_app_name}/current/bin/${monitored_app_name} remote
+/tmp/deployex/varlib/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
 ```
 
 ## How Deployex handles services
@@ -417,16 +416,16 @@ By following this process, Deployex facilitates deployments, ensuring that appli
 
 For the test environment:
 ```bash
-/tmp/deployex/varlib/service/{monitored_app}/previous/{monitored_app}
-/tmp/deployex/varlib/service/{monitored_app}/new/{monitored_app}
-/tmp/deployex/varlib/service/{monitored_app}/current/{monitored_app}
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/previous/${monitored_app}
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/new/${monitored_app}
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/current/${monitored_app}
 ```
 
 For production environment:
 ```bash
-/var/lib/deployex/service/{monitored_app}/previous/{monitored_app}
-/var/lib/deployex/service/{monitored_app}/new/{monitored_app}
-/var/lib/deployex/service/{monitored_app}/current/{monitored_app}
+/var/lib/deployex/service/${monitored_app}/${instance}/previous/${monitored_app}
+/var/lib/deployex/service/${monitored_app}/${instance}/new/${monitored_app}
+/var/lib/deployex/service/${monitored_app}/${instance}/current/${monitored_app}
 ```
 
 ### Hot-upgrades
