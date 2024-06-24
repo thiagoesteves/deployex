@@ -10,7 +10,8 @@ defmodule Deployex.Terminal.Server do
             instance: "",
             target: nil,
             status: :open,
-            message: nil
+            message: nil,
+            options: []
 
   @default_terminal_timeout_session_ms 300_000
 
@@ -28,27 +29,43 @@ defmodule Deployex.Terminal.Server do
 
     Process.monitor(state.target)
 
+    # Since the GenServer will always monitor, check that the flag is present or add otherwise
+    state =
+    if Enum.member?(state.options, :monitor) do
+      state
+    else
+       %{state | options: [:monitor | state.options]}
+    end
+
     {:ok, state, {:continue, :open_erlexec_connection}}
   end
 
   @impl true
-  def handle_continue(:open_erlexec_connection, %__MODULE__{commands: commands} = state) do
-    {:ok, _pid, process} = :exec.run(commands, [:stdin, :stdout, :pty, :pty_echo, :monitor])
+  def handle_continue(:open_erlexec_connection, state) do
+    {:ok, _pid, process} = :exec.run(state.commands, state.options)
 
     {:noreply, %{state | process: process}}
   end
 
   @impl true
-  def handle_cast(:terminate, state) do
+  def handle_cast(:terminate, %{process: process} = state) do
     state = %{state | status: :closed}
+
+    # Stop OS process
+    :exec.stop(process)
+
     {:stop, :normal, state}
   end
 
   @impl true
-  def handle_info(:session_timeout, state) do
+  def handle_info(:session_timeout, %{process: process} = state) do
     state = %{state | status: :closed}
     notify_target(state)
-    Logger.debug("The terminal session timed out")
+
+    # Stop OS process
+    :exec.stop(process)
+
+    Logger.info("The terminal session timed out")
     {:stop, :normal, state}
   end
 
@@ -62,16 +79,23 @@ defmodule Deployex.Terminal.Server do
   end
 
   # NOTE: Target process was terminated
-  def handle_info({:DOWN, _ref, :process, _pid, {:shutdown, :closed}}, state) do
+  def handle_info(
+        {:DOWN, _ref, :process, _pid, {:shutdown, :closed}},
+        %{process: process} = state
+      ) do
     state = %{state | status: :closed}
-    Logger.debug("The Target process was terminated")
+
+    # Stop OS process
+    :exec.stop(process)
+
+    Logger.info("The Target process was terminated")
     {:stop, :normal, state}
   end
 
   # NOTE: OS process was terminated
   def handle_info({:DOWN, _ref, :process, _pid, {:exit_status, _}}, state) do
     state = %{state | status: :closed}
-    Logger.debug("The erlexec process was terminated")
+    Logger.info("The erlexec process was terminated")
     notify_target(state)
     {:stop, :normal, state}
   end

@@ -105,11 +105,13 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   defp tail_if_exists(%{assigns: %{id: id}} = socket, path) do
     if File.exists?(path) do
       commands = "tail -f -n 10 #{path}"
+      options = [:stdout]
 
       {:ok, _pid} =
         Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
           instance: id,
           commands: commands,
+          options: options,
           target: self(),
           type: :log_terminal
         })

@@ -140,9 +140,12 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         #{path} remote
         """
 
+      options = [:stdin, :stdout, :pty, :pty_echo]
+
       case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
              instance: id,
              commands: commands,
+             options: options,
              target: self(),
              type: :iex_terminal
            }) do
