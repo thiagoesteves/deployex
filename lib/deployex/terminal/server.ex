@@ -31,11 +31,11 @@ defmodule Deployex.Terminal.Server do
 
     # Since the GenServer will always monitor, check that the flag is present or add otherwise
     state =
-    if Enum.member?(state.options, :monitor) do
-      state
-    else
-       %{state | options: [:monitor | state.options]}
-    end
+      if Enum.member?(state.options, :monitor) do
+        state
+      else
+        %{state | options: [:monitor | state.options]}
+      end
 
     {:ok, state, {:continue, :open_erlexec_connection}}
   end
@@ -43,6 +43,8 @@ defmodule Deployex.Terminal.Server do
   @impl true
   def handle_continue(:open_erlexec_connection, state) do
     {:ok, _pid, process} = :exec.run(state.commands, state.options)
+
+    Logger.info("Initializing terminal instance: #{state.instance} at process pid: #{process}")
 
     {:noreply, %{state | process: process}}
   end
@@ -80,22 +82,31 @@ defmodule Deployex.Terminal.Server do
 
   # NOTE: Target process was terminated
   def handle_info(
-        {:DOWN, _ref, :process, _pid, {:shutdown, :closed}},
-        %{process: process} = state
-      ) do
+        {:DOWN, _ref, :process, target_pid, reason},
+        %{process: process, target: target} = state
+      )
+      when target_pid == target do
     state = %{state | status: :closed}
 
     # Stop OS process
     :exec.stop(process)
 
-    Logger.info("The Target process was terminated")
+    Logger.warning(
+      "The Target process state: #{inspect(state)} was terminated, reason: #{inspect(reason)}"
+    )
+
     {:stop, :normal, state}
   end
 
   # NOTE: OS process was terminated
-  def handle_info({:DOWN, _ref, :process, _pid, {:exit_status, _}}, state) do
+  def handle_info({:DOWN, os_pid, :process, _pid, reason}, %{process: process} = state)
+      when os_pid == process do
     state = %{state | status: :closed}
-    Logger.info("The erlexec process was terminated")
+
+    Logger.warning(
+      "The erlexec process: #{inspect(state)} was terminated, reason: #{inspect(reason)}"
+    )
+
     notify_target(state)
     {:stop, :normal, state}
   end
