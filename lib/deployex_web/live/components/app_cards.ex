@@ -101,7 +101,6 @@ defmodule DeployexWeb.Components.AppCards do
               </button>
 
               <button
-                :if={app.supervisor == false}
                 phx-click="app-log-click"
                 phx-value-instance={app.instance}
                 phx-value-std="stderr"

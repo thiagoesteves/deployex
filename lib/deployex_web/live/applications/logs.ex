@@ -49,13 +49,6 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     {:ok, socket}
   end
 
-  defp handle_log_update(%{assigns: %{id: "0", terminal_message: nil}} = socket) do
-    log_file = Application.get_env(:deployex, :log_file)
-
-    socket
-    |> tail_if_exists(log_file)
-  end
-
   defp handle_log_update(
          %{assigns: %{id: instance, terminal_message: nil, action: action}} = socket
        ) do

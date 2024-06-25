@@ -373,20 +373,47 @@ After making these changes, remove any previous `myphoenixapp` releases that do 
 
 ## Throubleshooting
 
+### Accessing deployex logs
+
+```bash
+# production
+tail -f /var/log/deployex/deployex-stdout.log
+tail -f /var/log/deployex/deployex-stderr.log
+# local test
+# not available when running as dev env
+```
+
+### Connecting to the deployex IEX CLI
+
+```bash
+export RELEASE_NODE_SUFFIX=""
+export RELEASE_COOKIE=cookie
+# production
+/opt/deployex/bin/deployex remote
+# local test
+# not available when running as dev env
+```
+
 ### Accessing monitored app logs
 
 ```bash
+export instance=1
 export monitored_app_name=myphoenixapp
 # production
-tail -f /var/log/${monitored_app_name}-stdout.log 
+tail -f /var/log/${monitored_app_name}/${monitored_app_name}-${instance}-stdout.log
+tail -f /var/log/${monitored_app_name}/${monitored_app_name}-${instance}-stderr.log
 # local test
 tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${monitored_app_name}-${instance}-stdout.log
+tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${monitored_app_name}-${instance}-stderr.log
 ```
 
-### Connecting to the monitored app CLI
+### Connecting to the monitored app IEX CLI
 
 ```bash
-export monitored_app_name=calori
+export instance=1
+export monitored_app_name=myphoenixapp
+export RELEASE_NODE_SUFFIX=-${instance}
+export RELEASE_COOKIE=cookie
 # production
 /var/lib/deployex/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
 # local test

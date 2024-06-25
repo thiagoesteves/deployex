@@ -46,6 +46,11 @@ defmodule Deployex.AppConfig do
   Return the path for the stdout log file
   """
   @spec stdout_path(integer()) :: binary()
+  def stdout_path(0) do
+    log_path = Application.fetch_env!(:deployex, :log_path)
+    "#{log_path}/deployex-stdout.log"
+  end
+
   def stdout_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
     monitored_app = monitored_app()
@@ -56,6 +61,11 @@ defmodule Deployex.AppConfig do
   Return the path for the stderr log file
   """
   @spec stderr_path(integer()) :: binary()
+  def stderr_path(0) do
+    log_path = Application.fetch_env!(:deployex, :log_path)
+    "#{log_path}/deployex-stderr.log"
+  end
+
   def stderr_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
     monitored_app = monitored_app()
@@ -67,6 +77,19 @@ defmodule Deployex.AppConfig do
   """
   @spec sname(integer()) :: String.t()
   def sname(instance), do: "#{monitored_app()}-#{instance}"
+
+  @doc """
+  Retrieve the bin path for the respective instance (current)
+  """
+  @spec bin_path(integer()) :: String.t()
+  def bin_path(0) do
+    Application.fetch_env!(:deployex, :bin_path)
+  end
+
+  def bin_path(instance) do
+    monitored_app = monitored_app()
+    "#{current_path(instance)}/bin/#{monitored_app}"
+  end
 
   @doc """
   Base path for the state and service data
