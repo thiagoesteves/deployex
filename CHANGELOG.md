@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0-rc6 ()
+## 0.3.0-rc6 (2024-06-25)
 
 ## Backwards incompatible changes for 0.3.0-rc5
  * None

@@ -8,6 +8,10 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 ![Deployment Architecture](/docs/deployex.png)
 
+Upon deployment, the following dashboard becomes available, offering access to logs for both Deployex and monitored applications, along with an IEX terminal."
+
+![Running with no monitored apps](/docs/deployex_server.png)
+
 ## Features to be worked on
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
@@ -38,13 +42,7 @@ Done in 166ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You shold see as per the picture (If `mTLS` is supported):
-
-![Running with no monitored apps](/docs/deployex_server.png)
-
-you can also click in the `stdout`/`stderr` buttom to check for the monitored app logs:
-
-![Logs for monitored apps](/docs/deployex_logs.png)
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser.
 
 *__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 
