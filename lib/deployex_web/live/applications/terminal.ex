@@ -110,40 +110,31 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     {:noreply,
      socket
      |> assign(:cookie, cookie)
-     |> try_to_connect()}
+     |> maybe_connect()}
   end
 
-  defp try_to_connect(%{assigns: %{id: "0", terminal_message: nil}} = socket) do
-    path = Application.get_env(:deployex, :bin_path)
-
-    socket
-    |> remote_if_exists(path, "")
-  end
-
-  defp try_to_connect(
-         %{assigns: %{id: id, terminal_message: nil, monitored_app: monitored_app}} = socket
-       ) do
-    path = "#{Deployex.AppConfig.current_path(id)}/bin/#{monitored_app}"
-
-    socket
-    |> remote_if_exists(path, "-#{id}")
-  end
-
-  defp remote_if_exists(%{assigns: %{id: id, cookie: cookie}} = socket, path, suffix)
+  defp maybe_connect(%{assigns: %{id: instance, cookie: cookie, terminal_message: nil}} = socket)
        when cookie not in ["", nil] do
-    if File.exists?(path) do
+    bin_path =
+      instance
+      |> String.to_integer()
+      |> Deployex.AppConfig.bin_path()
+
+    suffix = if instance == "0", do: "", else: "-#{instance}"
+
+    if File.exists?(bin_path) do
       commands =
         """
         unset $(env | grep RELEASE | awk -F'=' '{print $1}')
         export RELEASE_NODE_SUFFIX=#{suffix}
         export RELEASE_COOKIE=#{cookie}
-        #{path} remote
+        #{bin_path} remote
         """
 
       options = [:stdin, :stdout, :pty, :pty_echo]
 
       case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-             instance: id,
+             instance: instance,
              commands: commands,
              options: options,
              target: self(),
@@ -151,7 +142,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
            }) do
         {:ok, _pid} ->
           socket
-          |> assign(:bin_path, path)
+          |> assign(:bin_path, bin_path)
 
         reason ->
           Logger.debug("Error connecting to the terminal self: #{inspect(reason)}")
@@ -165,5 +156,5 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     end
   end
 
-  defp remote_if_exists(socket, _path, _suffix), do: assign(socket, :cookie, nil)
+  defp maybe_connect(socket), do: assign(socket, :cookie, nil)
 end
