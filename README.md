@@ -411,8 +411,8 @@ tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${monitored_app_name}-$
 
 ```bash
 export instance=1
-export monitored_app_name=calori
-export RELEASE_NODE_SUFFIX=-#{instance}
+export monitored_app_name=myphoenixapp
+export RELEASE_NODE_SUFFIX=-${instance}
 export RELEASE_COOKIE=cookie
 # production
 /var/lib/deployex/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
