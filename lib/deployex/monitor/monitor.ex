@@ -159,8 +159,8 @@ defmodule Deployex.Monitor do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp global_name(instance: instance), do: {:global, %{instance: instance}}
-  defp global_name(instance), do: {:global, %{instance: instance}}
+  defp global_name(instance: instance), do: {:global, %{module: __MODULE__, instance: instance}}
+  defp global_name(instance), do: {:global, %{module: __MODULE__, instance: instance}}
 
   # NOTE: This function needs to use try/catch because reascue (suggested by credo)
   #       doesn't handle :exit
