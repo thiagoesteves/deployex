@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0-rc6 ()
+
+## Backwards incompatible changes for 0.3.0-rc5
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Adding stderr log file for deployex
+
 ## 0.3.0-rc5 (2024-06-24)
 
 ## Backwards incompatible changes for 0.3.0-rc4
