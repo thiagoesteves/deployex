@@ -15,8 +15,9 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       <div
         id="topics"
         class="bg-gray-50 max-h-50 overflow-y-auto scroll-auto w-full mt-5"
-        style="height: 100vh;"
+        style="height: 50vh;"
         phx-update="stream"
+        phx-hook="ScrollBottom"
       >
         <%= for {dom_id, log} <- @streams.logs do %>
           <p id={dom_id} class={["text-xs font-light", log.color]}>
@@ -78,7 +79,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
 
     socket
     |> assign(:log_counter, update_log_counter)
-    |> stream(:logs, messages, at: 0)
+    |> stream(:logs, messages)
   end
 
   defp handle_log_update(socket) do
