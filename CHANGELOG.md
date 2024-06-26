@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0-rc7 ()
+
+## Backwards incompatible changes for 0.3.0-rc6
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Modifying log view to keep the scroll position at the bottom
+
 ## 0.3.0-rc6 (2024-06-25)
 
 ## Backwards incompatible changes for 0.3.0-rc5
