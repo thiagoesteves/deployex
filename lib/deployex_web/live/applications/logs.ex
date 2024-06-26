@@ -13,7 +13,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       </.header>
 
       <div
-        id="topics"
+        id={"#{@action}-logs-#{@id}"}
         class="bg-gray-50 max-h-50 overflow-y-auto scroll-auto w-full mt-5"
         style="height: 50vh;"
         phx-update="stream"

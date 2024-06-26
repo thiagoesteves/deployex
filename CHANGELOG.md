@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0-rc8 (2024-06-26)
+
+## Backwards incompatible changes for 0.3.0-rc7
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Modifying form ids for terminal/logs
+
 ## 0.3.0-rc7 (2024-06-26)
 
 ## Backwards incompatible changes for 0.3.0-rc6
