@@ -1,15 +1,15 @@
-# Changelog
+# Changelog for version v0.3.X
 
-## 0.3.0-rc9 ()
+## 0.3.0-rc9 (2024-06-27)
 
 ## Backwards incompatible changes for 0.3.0-rc8
  * None
 
 ### Bug fixes
- * None
+ * [[`c9bdc47`](https://github.com/thiagoesteves/deployex/commit/c9bdc47)] Fixed an uptime bug that incorrectly depended on previous version information.
 
 ### Enhancements
- * Created a installer script for ubuntu and added to the releases
+ * [[`769e69f`](https://github.com/thiagoesteves/deployex/commit/769e69f)] Created an installer script for ubuntu and added it to the release package
 
 ## 0.3.0-rc8 (2024-06-26)
 
@@ -101,36 +101,6 @@
 ### Enhancements
  * Modified the application to be able to handle multiple instances for the monitored app
 
-## 0.2.1-rc1 (2024-05-24)
-
-## Backwards incompatible changes for 0.2.0
- * None
-
-### Bug fixes
- * None
-
-### Enhancements
- * Changed `env.sh.eex` to use environment variables for RELEASE_COOKIE and only set the default value if the ENV VAR is not present. 
- This will allow the remote connection to be able to capture the RELEASE_COOKIE from the environment
-
-## 0.2.0 🚀 (2024-05-23)
-
-This release marks a transformation of the application, transitioning it into a Phoenix LiveView app featuring a dashboard providing real-time status updates on the current deployment.
-
-## Backwards incompatible changes for 0.1.0
- * This version requires new environment variables to be defined. Please ensure the following environment variables are set.
-
-### Bug fixes
- * None
-
-### Enhancements
- * Transitioning it into a Phoenix LiveView app featuring a dashboard providing real-time status updates on the current deployment.
- * Changed changelog.md to CHANGELOG.md
-
-## 0.1.0 🚀 (2024-05-06)
-
-Initial release for deployex
-
 # Host Binaries Available
 
 This release includes binaries for the following Ubuntu versions:
@@ -139,3 +109,7 @@ This release includes binaries for the following Ubuntu versions:
  * Ubuntu 22.04
 
  You can use these pre-built binaries, or you can build your own if preferred.
+
+# Previous Releases
+ * [0.2.0 🚀 (2024-05-23)](https://github.com/thiagoesteves/deployex/blob/0.2.0/CHANGELOG.md)
+ * [0.1.0 🚀 (2024-05-06)](https://github.com/thiagoesteves/deployex/blob/0.1.0/changelog.md)
