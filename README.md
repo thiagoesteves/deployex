@@ -24,13 +24,19 @@ The Deployex project is still very new and requires the addition of numerous fea
 
 ### Running the application
 
-You can kickstart the setup with the following commands:
+You can kickstart the setup with the following commands, the default number of replicas is 3:
 ```bash
 mix deps.get
-iex --sname deployex -S mix phx.server
-[info] No version set, not able to start_service
-[info] Running DeployexWeb.Endpoint with Bandit 1.5.2 at 127.0.0.1:5001 (http)
+iex --sname deployex --cookie cookie -S mix phx.server
+[info] Initialising deployment server
+[info] Running DeployexWeb.Endpoint with Bandit 1.5.3 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
+[info] Initialising monitor server for instance: 1
+[info] No version set, not able to run_service
+[info] Initialising monitor server for instance: 2
+[info] No version set, not able to run_service
+[info] Initialising monitor server for instance: 3
+[info] No version set, not able to run_service
 [watch] build finished, watching for changes...
 Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
@@ -38,13 +44,15 @@ Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
 
 Rebuilding...
 
-Done in 166ms.
-[error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
+Done in 434ms.
+[error] Error while trying to connect with node: :"myphoenixapp-1@hostname" reason: false
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser.
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You should expect the following dashboard:
 
-*__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the next steps. Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
+![Empty Dashboard](/docs/deployex_no_monitoring_app.png)
+
+*__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running Deployex and Monitored app locally](##_running_deployex_and_monitored_app_locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 
 ### How Deployex handles monitored application Version/Release
 
@@ -101,8 +109,6 @@ Deployex application typically requires several environment variables to be defi
 For local testing, these variables are not expected or set to default values.
 
 ## Production installation
-
-In case you are planning to isntall deployex directly in an ubuntu server, you can rely on the installer script [installer script](/devops/installer/deployex.sh) that is also part of the release package. At the moment, you can get an example from [Calori Web Server](https://github.com/thiagoesteves/calori) and it is only supported Ubuntu 20.04 and 22.04.
 
 If you plan to install Deployex directly on an Ubuntu server, you can use the [installer script](/devops/installer/deployex.sh) included in the release package. For an example, refer to the [Calori Web Server](https://github.com/thiagoesteves/calori). As of now, the release and installation only supports Ubuntu versions 20.04 and 22.04, but you can compile and install manually in your target system.
 
@@ -213,26 +219,23 @@ Move back to the deployex project and run the command line with the required ENV
 ```bash
 export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
 export PHX_SERVER=true
-iex --sname deployex -S mix phx.server
-
+iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
-11:18:31.380 [info] module=Deployex.Deployment function=run_check/1 pid=<0.229.0>  Update is needed from <no current set> to 0.1.0.
-11:18:31.592 [warning] module=Deployex.Upgrade function=check/3 pid=<0.229.0>  HOT UPGRADE version NOT DETECTED, full deployment required, result: {:error, :no_match_versions}
-11:18:31.592 [info] module=Deployex.Monitor function=handle_call/3 pid=<0.230.0>  Requested to stop but application is not running.
-11:18:32.103 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  Ensure running requested for version: 0.1.0
-11:18:32.104 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
-11:18:32.106 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Running, monitoring pid = #PID<0.248.0>, OS process id = 7001.
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: {:error, :no_match_versions}
+[info] Requested instance: 1 to stop but application is not running.
+[warning] No previous version set
+[info] Ensure running requested for instance: 1 version: 0.1.0
+[info]  # Starting /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp...
+[info]  # Running instance: 1, monitoring pid = #PID<0.779.0>, OS process id = 11211.
 iex(deployex@hostname)1>
 ```
 
-__You then need to set the cookie (the same for the monitored app)__:
-```bash
-iex(deployex@hostname)1> Node.set_cookie :cookie
-true
-```
+You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should look like this:
 
-You should then visit the application and check it is running [localhost:5001](http://localhost:5001/)
+![No mTLS Dashboard](/docs/deployex_monitoring_app_no_tls.png)
+
+Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
 ### Updating the application
 
@@ -265,13 +268,16 @@ echo "{\"version\":\"0.1.1\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versi
 
 3. You should then see the following messages in the Deployex terminal while updating the app:
 ```bash
-11:22:04.157 [info] module=Deployex.Deployment function=run_check/1 pid=<0.229.0>  Update is needed from 0.1.0 to 0.1.1.
-11:22:04.381 [warning] module=Deployex.Upgrade function=check/3 pid=<0.229.0>  HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-11:22:04.381 [info] module=Deployex.Monitor function=handle_call/3 pid=<0.230.0>  Requested to stop application pid: #PID<0.231.0>
-11:22:04.437 [warning] module=Deployex.Monitor function=handle_info/2 pid=<0.230.0>  Application with pid: #PID<0.231.0> # State: %{current_pid: nil} being stopped by reason: :normal
-11:22:04.947 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>  Ensure running requested for version: 0.1.1
-11:22:04.948 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Starting /tmp/deployex/varlib/service/myphoenixapp/current/bin/myphoenixapp...
-11:22:04.950 [info] module=Deployex.Monitor function=start_service/2 pid=<0.230.0>   # Running, monitoring pid = #PID<0.249.0>, OS process id = 9289.
+[info] Application instance: 1 is running
+[info] Application instance: 2 is running
+[info] Application instance: 3 is running
+[info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1.
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
+[info] Requested instance: 1 to stop application pid: #PID<0.912.0>
+[warning] Application instance: 1 with pid: #PID<0.912.0> being stopped by reason: :normal
+[info] Ensure running requested for instance: 1 version: 0.1.1
+[info]  # Starting /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp...
+[info]  # Running instance: 1, monitoring pid = #PID<0.1019.0>, OS process id = 29793.
 ```
 
 #### Hot-upgrades
@@ -301,16 +307,19 @@ echo "{\"version\":\"0.1.2\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versi
 
 You can then check that deployex had executed a hot upgrade in the application:
 
-*__ATTENTION: Be sure to have set the cookie in deployex, otherwise the hot-upgrade will fail and a full update will be performed.__*
-
 ```bash
-14:18:20.329 [info] module=Deployex.Deployment function=run_check/1 pid=<0.235.0>  Update is needed from 0.1.1 to 0.1.2.
-14:18:20.583 [warning] module=Deployex.Upgrade function=check/3 pid=<0.235.0>  HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
-14:18:20.815 [info] module=Deployex.Upgrade function=unpack_release/2 pid=<0.235.0>  Unpacked successfully: ~c"0.1.2"
-14:18:20.925 [info] module=Deployex.Upgrade function=install_release/2 pid=<0.235.0>  Installed Release: ~c"0.1.2"
-14:18:20.926 [info] module=Deployex.Upgrade function=permfy/2 pid=<0.235.0>  Made release permanent: 0.1.2
-14:18:20.927 [info] module=Deployex.Upgrade function=run/2 pid=<0.235.0>  Release upgrade executed with success from 0.1.1 to 0.1.2
+[info] Update is needed at instance: 1 from: 0.1.1 to: 0.1.2.
+[warning] HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
+[info] Unpacked successfully: ~c"0.1.2"
+[info] Installed Release: ~c"0.1.2"
+[info] Made release permanent: 0.1.2
+[info] Release upgrade executed with success at instance: 1 from: 0.1.1 to: 0.1.2
 ```
+
+you can check that the version and the deployment status has changed in the dashboard:
+
+![No mTLS Dashboard](/docs/deployex_monitoring_app_hot_upgrade.png)
+
 
 ### Enhancing OTP Distribution Security with mTLS
 
@@ -371,7 +380,9 @@ vi rel/env.sh.eex
 export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
 # save the file :q
 ```
-After making these changes, remove any previous `myphoenixapp` releases that do not support `mTLS` and proceed with deployment tests, including hot upgrades.
+After making these changes, create and publish a new version `0.1.3` for `myphoenixapp` and run the deployex with the command from item 4. After the deployment, you should see the follwoing dashboard:
+
+![mTLS Dashboard](/docs/deployex_monitoring_app_tls.png)
 
 *__ATTENTION: Ensure that the cookie is properly set__*
 
