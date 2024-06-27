@@ -72,12 +72,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
-
-      - name: Compile and Generate a Release
-        run: mix release
-
       - name: Move installer to root
         run: mv devops/installer/deployex.sh deployex.sh
 
