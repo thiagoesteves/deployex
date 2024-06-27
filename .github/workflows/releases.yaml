@@ -65,9 +65,24 @@ jobs:
           name: deployex-ubuntu-22.04.tar.gz
           path: .
 
+  copyInstaller:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Move installer to root
+        run: mv devops/installer/deployex.sh deployex.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployex.sh
+          path: .
+
   build3:
     name: Publish artifacts to the release
-    needs: [buildUbuntu2004, buildUbuntu2204]
+    needs: [buildUbuntu2004, buildUbuntu2204, copyInstaller]
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -84,8 +99,14 @@ jobs:
          name: deployex-ubuntu-22.04.tar.gz
          path: .
 
+     - name: Download installer artefact
+       uses: actions/download-artifact@v4
+       with:
+         name: deployex.sh
+         path: .
+
      - name: Release the files
        uses: ncipollo/release-action@v1
        with:
-         artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz"
+         artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz, deployex.sh"
          bodyFile: "CHANGELOG.md"
