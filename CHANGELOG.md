@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0-rc9 ()
+
+## Backwards incompatible changes for 0.3.0-rc8
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Created a installer script for ubuntu and added to the releases
+
 ## 0.3.0-rc8 (2024-06-26)
 
 ## Backwards incompatible changes for 0.3.0-rc7

@@ -100,6 +100,12 @@ Deployex application typically requires several environment variables to be defi
 
 For local testing, these variables are not expected or set to default values.
 
+## Production installation
+
+In case you are planning to isntall deployex directly in an ubuntu server, you can rely on the installer script [installer script](/devops/installer/deployex.sh) that is also part of the release package. At the moment, you can get an example from [Calori Web Server](https://github.com/thiagoesteves/calori) and it is only supported Ubuntu 20.04 and 22.04.
+
+If you plan to install Deployex directly on an Ubuntu server, you can use the [installer script](/devops/installer/deployex.sh) included in the release package. For an example, refer to the [Calori Web Server](https://github.com/thiagoesteves/calori). As of now, the release and installation only supports Ubuntu versions 20.04 and 22.04, but you can compile and install manually in your target system.
+
 ## Running Deployex and Monitored app locally
 
 For local testing, the root path used is `/tmp/{monitored_app}`. Follow these steps:
