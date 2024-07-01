@@ -233,7 +233,7 @@ defmodule Deployex.Monitor do
     Path.join([AppConfig.current_path(instance), "bin", AppConfig.monitored_app()])
   end
 
-  defp now, do: System.os_time(:second)
+  defp now, do: System.monotonic_time()
 
   defp reset_state(state),
     do: %{state | status: :idle, current_pid: nil, restarts: 0, start_time: nil}
