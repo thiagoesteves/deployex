@@ -1,5 +1,16 @@
 # Changelog for version v0.3.X
 
+## 0.3.0-rc10 (2024-07-02)
+
+## Backwards incompatible changes for 0.3.0-rc9
+ * None
+
+### Bug fixes
+ * [[`PR-16`](https://github.com/thiagoesteves/deployex/pull/16)] Fixed an uptime bug that at deployex.
+
+### Enhancements
+ * [[`PR-18`](https://github.com/thiagoesteves/deployex/pull/18/files)] Improvements for consistency
+
 ## 0.3.0-rc9 (2024-06-27)
 
 ## Backwards incompatible changes for 0.3.0-rc8
