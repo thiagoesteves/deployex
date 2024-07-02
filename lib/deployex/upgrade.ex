@@ -83,8 +83,8 @@ defmodule Deployex.Upgrade do
           :ok | {:error, any()}
   def update_sys_config_from_installed_version(instance, node, to_version) do
     rel_vsn_dir = "#{AppConfig.current_path(instance)}/releases/#{to_version}"
-    sys_config_path = Path.join(rel_vsn_dir, "sys.config")
-    original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
+    sys_config_path = "#{rel_vsn_dir}/sys.config"
+    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
     # Read the build time config from build.config
     {:ok, [sys_config]} = :file.consult(sys_config_path)
     # In this step, it will run the runtime.exs and Config Providers for the current version
@@ -114,8 +114,8 @@ defmodule Deployex.Upgrade do
   @spec return_original_sys_config(integer(), charlist()) :: :ok | {:error, atom()}
   def return_original_sys_config(instance, to_version) do
     rel_vsn_dir = "#{AppConfig.current_path(instance)}/releases/#{to_version}"
-    sys_config_path = Path.join(rel_vsn_dir, "sys.config")
-    original_sys_config_file = Path.join(rel_vsn_dir, "original.sys.config")
+    sys_config_path = "#{rel_vsn_dir}/sys.config"
+    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
 
     File.rename(original_sys_config_file, sys_config_path)
   end
