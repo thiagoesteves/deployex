@@ -193,6 +193,8 @@ defmodule Deployex.AppStatus do
   end
 
   defp update_deployex_app do
+    uptime = uptime_to_string(Application.get_env(:deployex, :booted_at))
+
     %Deployex.AppStatus{
       name: "deployex",
       instance: 0,
@@ -203,7 +205,7 @@ defmodule Deployex.AppStatus do
       prev_version: nil,
       supervisor: true,
       status: :running,
-      uptime: "-/-"
+      uptime: uptime
     }
   end
 
@@ -258,12 +260,10 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  defp now, do: System.os_time(:second)
-
   defp uptime_to_string(nil), do: "-/-"
 
   defp uptime_to_string(start_time) do
-    diff = now() - start_time
+    diff = System.convert_time_unit(System.monotonic_time() - start_time, :native, :second)
 
     case diff do
       uptime when uptime < 10 -> "now"
