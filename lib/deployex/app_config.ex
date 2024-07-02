@@ -19,10 +19,10 @@ defmodule Deployex.AppConfig do
       |> Enum.each(&File.mkdir_p!/1)
 
       # Create version folders (If they don't exist)
-      File.mkdir_p!(Path.join([base_path(), "version", "#{instance}"]))
+      File.mkdir_p!("#{base_path()}/version/#{instance}")
 
       # Create folder and Log message files (If they don't exist)
-      File.mkdir_p!(Path.join([log_path(), "#{monitored_app()}"]))
+      File.mkdir_p!("#{log_path()}/#{monitored_app()}")
       File.touch(stdout_path(instance))
       File.touch(stderr_path(instance))
     end)
@@ -101,23 +101,23 @@ defmodule Deployex.AppConfig do
   Path for retrieving the new app data
   """
   @spec new_path(integer()) :: binary()
-  def new_path(instance), do: Path.join([service_path(), "#{instance}", "new"])
+  def new_path(instance), do: "#{service_path()}/#{instance}/new"
 
   @doc """
   Path where the app will be running from
   """
   @spec current_path(integer()) :: binary()
-  def current_path(instance), do: Path.join([service_path(), "#{instance}", "current"])
+  def current_path(instance), do: "#{service_path()}/#{instance}/current"
 
   @doc """
   Path to move the previous app files
   """
   @spec previous_path(integer()) :: binary()
-  def previous_path(instance), do: Path.join([service_path(), "#{instance}", "previous"])
+  def previous_path(instance), do: "#{service_path()}/#{instance}/previous"
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp service_path, do: Path.join([base_path(), "service", monitored_app()])
+  defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
 end

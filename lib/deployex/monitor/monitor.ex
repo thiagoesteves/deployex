@@ -188,7 +188,7 @@ defmodule Deployex.Monitor do
         Logger.info(" # Starting #{executable}...")
 
         {:ok, pid, os_pid} =
-          :exec.run_link(pre_commands(instance) <> executable <> " start", [
+          :exec.run_link(commands(instance), [
             {:stdout, AppConfig.stdout_path(instance)},
             {:stderr, AppConfig.stderr_path(instance)}
           ])
@@ -215,22 +215,24 @@ defmodule Deployex.Monitor do
     state
   end
 
-  # NOTE: These are commands that need to run prior starting the application
+  # NOTE: Some commands need to run prior starting the application
   #       - Unset env vars from the deployex release to not mix with the monitored app release
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
-  defp pre_commands(instance) do
+  defp commands(instance) do
     phx_port = AppConfig.phx_start_port() + (instance - 1)
+    executable_path = executable_path(instance)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
     export RELEASE_NODE_SUFFIX=-#{instance}
     export PORT=#{phx_port}
+    #{executable_path} start
     """
   end
 
   defp executable_path(instance) do
-    Path.join([AppConfig.current_path(instance), "bin", AppConfig.monitored_app()])
+    "#{AppConfig.current_path(instance)}/bin/#{AppConfig.monitored_app()}"
   end
 
   defp now, do: System.os_time(:second)
