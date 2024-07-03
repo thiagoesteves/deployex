@@ -33,13 +33,9 @@ defmodule Deployex.Monitor do
 
     Logger.metadata(instance: instance)
 
-    current_version = AppStatus.current_version(instance)
+    trigger_run_service()
 
-    state =
-      %__MODULE__{instance: instance}
-      |> run_service(current_version)
-
-    {:ok, state}
+    {:ok, %__MODULE__{instance: instance}}
   end
 
   @impl true
@@ -47,26 +43,23 @@ defmodule Deployex.Monitor do
     {:reply, {:ok, state}, state}
   end
 
-  def handle_call(:start_service, _from, %{instance: instance, current_pid: current_pid})
+  def handle_call(:start_service, _from, %{current_pid: current_pid} = state)
       when is_nil(current_pid) do
-    current_version = AppStatus.current_version(instance)
+    trigger_run_service()
 
-    state = run_service(%__MODULE__{instance: instance}, current_version)
-
-    {:reply, :ok, state}
+    {:reply, :ok, reset_state(state)}
   end
 
   def handle_call(:start_service, _from, %__MODULE__{current_pid: current_pid} = state) do
     {:reply, {:error, current_pid, :already_started}, state}
   end
 
-  def handle_call(
-        :stop_service,
-        _from,
-        %__MODULE__{current_pid: current_pid, instance: instance} = state
-      )
+  def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
       when is_nil(current_pid) do
-    Logger.info("Requested instance: #{instance} to stop but application is not running.")
+    Logger.warning(
+      "Requested instance: #{state.instance} to stop but application is not running."
+    )
+
     {:reply, :ok, state}
   end
 
@@ -75,36 +68,46 @@ defmodule Deployex.Monitor do
     {:reply, :ok, state}
   end
 
-  def handle_call(
-        :stop_service,
-        _from,
-        %__MODULE__{current_pid: current_pid, instance: instance} = state
-      ) do
+  def handle_call(:stop_service, _from, state) do
     Logger.info(
-      "Requested instance: #{instance} to stop application pid: #{inspect(current_pid)}"
+      "Requested instance: #{state.instance} to stop application pid: #{inspect(state.current_pid)}"
     )
 
     # Stop current application
-    :exec.stop(current_pid)
+    :exec.stop(state.current_pid)
 
     # NOTE: The next command is needed for Systems that have a different PID for the "/bin/app start" script
     #       and the bin/beam.smp process
-    :exec.run(
-      "kill -9 $(ps -ax | grep \"#{AppConfig.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
-      [:sync, :stdout, :stderr]
-    )
+    cleanup_beam_process(state.instance)
 
     {:reply, :ok, reset_state(state)}
   end
 
   @impl true
-  def handle_info(
-        {:check_running, pid},
-        %__MODULE__{current_pid: current_pid, instance: instance} = state
-      )
-      when pid == current_pid do
-    Logger.info("Application instance: #{instance} is running")
-    Deployment.notify_application_running(instance)
+  def handle_info(:run_service, state) do
+    version = AppStatus.current_version(state.instance)
+
+    state =
+      if version == nil do
+        Logger.info("No version set, not able to run_service")
+        state
+      else
+        Logger.info(
+          "Ensure running requested for instance: #{state.instance} version: #{version}"
+        )
+
+        run_service(state, version)
+      end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:check_running, pid}, state) when pid == state.current_pid do
+    Logger.info("Application instance: #{state.instance} is running")
+
+    Deployment.notify_application_running(state.instance)
+
     {:noreply, %{state | status: :running}}
   end
 
@@ -112,26 +115,27 @@ defmodule Deployex.Monitor do
     {:noreply, state}
   end
 
-  def handle_info(
-        {:EXIT, pid, reason},
-        %__MODULE__{current_pid: current_pid, instance: instance, restarts: restarts} = state
-      ) do
-    state =
-      if current_pid == pid do
-        Logger.error(
-          "Unexpected exit message received for instance: #{instance} from pid: #{inspect(pid)} being restarted"
-        )
+  def handle_info({:EXIT, pid, _reason}, %{current_pid: current_pid} = state)
+      when current_pid == pid do
+    Logger.error(
+      "Unexpected exit message received for instance: #{state.instance} from pid: #{inspect(pid)}, application being restarted"
+    )
 
-        current_version = AppStatus.current_version(instance)
+    cleanup_beam_process(state.instance)
 
-        run_service(%{state | restarts: restarts + 1}, current_version)
-      else
-        Logger.warning(
-          "Application instance: #{instance} with pid: #{inspect(pid)} being stopped by reason: #{inspect(reason)}"
-        )
+    # Update the number of restarts
+    restarts = state.restarts + 1
 
-        state
-      end
+    # Retry with backoff pattern
+    trigger_run_service(2 * restarts * 1000)
+
+    {:noreply, %{state | restarts: restarts}}
+  end
+
+  def handle_info({:EXIT, pid, reason}, state) do
+    Logger.warning(
+      "Application instance: #{state.instance} with pid: #{inspect(pid)} being stopped by reason: #{inspect(reason)}"
+    )
 
     {:noreply, state}
   end
@@ -162,7 +166,9 @@ defmodule Deployex.Monitor do
   defp global_name(instance: instance), do: {:global, %{module: __MODULE__, instance: instance}}
   defp global_name(instance), do: {:global, %{module: __MODULE__, instance: instance}}
 
-  # NOTE: This function needs to use try/catch because reascue (suggested by credo)
+  def trigger_run_service(timeout \\ 1), do: Process.send_after(self(), :run_service, timeout)
+
+  # NOTE: This function needs to use try/catch because rescue (suggested by credo)
   #       doesn't handle :exit
   defp call_gen_server(instance, message) do
     try do
@@ -173,46 +179,30 @@ defmodule Deployex.Monitor do
     end
   end
 
-  defp run_service(state, nil) do
-    Logger.info("No version set, not able to run_service")
-    state
-  end
-
   defp run_service(%__MODULE__{instance: instance} = state, version) do
-    Logger.info("Ensure running requested for instance: #{instance} version: #{version}")
-
     executable = executable_path(instance)
 
-    state =
-      if File.exists?(executable) do
-        Logger.info(" # Starting #{executable}...")
+    if File.exists?(executable) do
+      Logger.info(" # Starting #{executable}...")
 
-        {:ok, pid, os_pid} =
-          :exec.run_link(commands(instance), [
-            {:stdout, AppConfig.stdout_path(instance)},
-            {:stderr, AppConfig.stderr_path(instance)}
-          ])
+      {:ok, pid, os_pid} =
+        :exec.run_link(commands(instance), [
+          {:stdout, AppConfig.stdout_path(instance)},
+          {:stderr, AppConfig.stderr_path(instance)}
+        ])
 
-        Logger.info(
-          " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
-        )
-
-        %{state | current_pid: pid, status: :starting, start_time: now()}
-      else
-        Logger.error("Version set but no #{executable}")
-
-        reset_state(state)
-      end
-
-    if state.current_pid do
-      Process.send_after(
-        self(),
-        {:check_running, state.current_pid},
-        @timeout_to_verify_app_ready
+      Logger.info(
+        " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
       )
-    end
 
-    state
+      Process.send_after(self(), {:check_running, pid}, @timeout_to_verify_app_ready)
+
+      %{state | current_pid: pid, status: :starting, start_time: now()}
+    else
+      Logger.error("Version: #{version} set but no #{executable}")
+
+      reset_state(state)
+    end
   end
 
   # NOTE: Some commands need to run prior starting the application
@@ -233,6 +223,20 @@ defmodule Deployex.Monitor do
 
   defp executable_path(instance) do
     "#{AppConfig.current_path(instance)}/bin/#{AppConfig.monitored_app()}"
+  end
+
+  defp cleanup_beam_process(instance) do
+    case :exec.run(
+           "kill -9 $(ps -ax | grep \"#{AppConfig.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+           [:sync, :stdout, :stderr]
+         ) do
+      {:ok, _} ->
+        Logger.warning("Remaining beam app removed for instance: #{instance}")
+
+      {:error, _reason} ->
+        # Logger.warning("Nothing to remove for instance: #{instance} - #{inspect(reason)}")
+        :ok
+    end
   end
 
   defp now, do: System.monotonic_time()
