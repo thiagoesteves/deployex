@@ -20,7 +20,8 @@ defmodule Deployex.AppStatus do
             supervisor: false,
             status: nil,
             restarts: 0,
-            uptime: nil
+            uptime: nil,
+            last_dead_version: nil
 
   @update_apps_interval_ms 1_000
   @update_otp_distribution_interval_ms 5_000
@@ -124,6 +125,25 @@ defmodule Deployex.AppStatus do
     |> File.write!(version)
   end
 
+  @spec add_dead_version_list(integer(), Deployex.Storage.version_map()) :: :ok
+  def add_dead_version_list(instance, version) when is_map(version) do
+    # Retrieve current dead version list
+    current_list = dead_version_list(instance)
+
+    version = Jason.encode!([version | current_list])
+
+    instance
+    |> dead_version_path()
+    |> File.write!(version)
+  end
+
+  @spec dead_version_list(integer()) :: list()
+  def dead_version_list(instance) do
+    instance
+    |> dead_version_path()
+    |> read_data_from_file() || []
+  end
+
   @spec clear_new(integer()) :: :ok
   def clear_new(instance) do
     instance
@@ -159,32 +179,35 @@ defmodule Deployex.AppStatus do
   defp previous_version_path(instance),
     do: "#{AppConfig.base_path()}/version/#{instance}/previous.json"
 
-  defp current_version_map(instance) do
+  defp dead_version_path(instance),
+    do: "#{AppConfig.base_path()}/version/#{instance}/dead.json"
+
+  def current_version_map(instance) do
     instance
     |> current_version_path()
-    |> version_map()
+    |> read_data_from_file()
   end
 
   defp previous_version_map(instance) do
     instance
     |> previous_version_path()
-    |> version_map()
+    |> read_data_from_file()
   end
 
-  defp version_map(path) do
+  defp read_data_from_file(path) do
+    file2json = fn data ->
+      case Jason.decode(data) do
+        {:ok, map} -> map
+        _ -> nil
+      end
+    end
+
     case File.read(path) do
       {:ok, data} ->
-        file2json(data)
+        file2json.(data)
 
       _ ->
         nil
-    end
-  end
-
-  defp file2json(data) do
-    case Jason.decode(data) do
-      {:ok, map} -> map
-      _ -> nil
     end
   end
 
@@ -197,12 +220,9 @@ defmodule Deployex.AppStatus do
 
     %Deployex.AppStatus{
       name: "deployex",
-      instance: 0,
       version: Application.spec(:deployex, :vsn) |> to_string,
-      last_deployment: nil,
       otp: check_deployex(),
       tls: check_tls(),
-      prev_version: nil,
       supervisor: true,
       status: :running,
       uptime: uptime
@@ -211,6 +231,14 @@ defmodule Deployex.AppStatus do
 
   defp update_monitored_app(instance) do
     %{deployment: deployment, restarts: restarts, uptime: uptime} = check_monitor_data(instance)
+
+    last_dead_version =
+      instance
+      |> dead_version_list()
+      |> case do
+        [] -> "-/-"
+        list -> Enum.at(list, 0)["version"]
+      end
 
     %Deployex.AppStatus{
       name: Application.get_env(:deployex, :monitored_app_name),
@@ -223,7 +251,8 @@ defmodule Deployex.AppStatus do
       supervisor: false,
       status: deployment,
       restarts: restarts,
-      uptime: uptime
+      uptime: uptime,
+      last_dead_version: last_dead_version
     }
   end
 
