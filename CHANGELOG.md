@@ -1,5 +1,16 @@
 # Changelog for version v0.3.X
 
+## 0.3.0-rc11 ()
+
+## Backwards incompatible changes for 0.3.0-rc10
+ * Modified aws secret manager name to deployex-${deployex_monitored_app_name}-${deployex_cloud_environment}-secrets
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[``]()] New aws secret manager name
+
 ## 0.3.0-rc10 (2024-07-02)
 
 ## Backwards incompatible changes for 0.3.0-rc9

@@ -112,6 +112,20 @@ For local testing, these variables are not expected or set to default values.
 
 If you plan to install Deployex directly on an Ubuntu server, you can use the [installer script](/devops/installer/deployex.sh) included in the release package. For an example, refer to the [Calori Web Server](https://github.com/thiagoesteves/calori). As of now, the release and installation only supports Ubuntu versions 20.04 and 22.04, but you can compile and install manually in your target system.
 
+## Production Secrets Requirements
+
+Deployex is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS:
+
+```
+deployex-${deployex_monitored_app_name}-${deployex_cloud_environment}-secrets
+```
+
+and the following secrets are expected:
+| ENV NAME   |      EXAMPLE      |  SOURCE | DESCRIPTION |
+|----------|-------------|------|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
+
 ## Running Deployex and Monitored app locally
 
 For local testing, the root path used is `/tmp/{monitored_app}`. Follow these steps:
