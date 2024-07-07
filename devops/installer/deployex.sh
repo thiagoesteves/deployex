@@ -3,29 +3,21 @@
 # Function to display usage information
 usage() {
     echo "Usage:"
-    echo "  $0 --install -a <app_name> -r <replicas> -h <hostname> -c <account_name> -d <deployex_hostname> -u <aws_region> -s <os_target>"
-    echo "  $0 --update -v <new_version> -s <os_target>"
+    echo "  $0 --install <config_file>"
+    echo "  $0 --update <config_file>"
     echo "  $0 --help"
     echo
     echo "Options:"
-    echo "  --install                Install an application"
-    echo "  --update                 Update an application"
-    echo "  --help                   Print help"
-    echo "  -a, --app_name           Name of the application to install (lowercase)"
-    echo "  -r, --replicas           Number of replicas to deploy"
-    echo "  -h, --hostname           Hostname where the monitored application will run"
-    echo "  -c, --account_name       AWS account name to use"
-    echo "  -d, --deployex_hostname  Deployment execution hostname"
-    echo "  -u, --aws_region         AWS region for deployment"
-    echo "  -s, --os_target          Target operating system for installation/update"
-    echo "  -v, --new_version        New version of the application for update"
+    echo "  --install <config_file>   Install an application using a JSON config file"
+    echo "  --update <config_file>    Update ONLY the deployex application using a JSON config file"
+    echo "  --help                    Print help"
     echo
     echo "Examples:"
     echo "  Install an application:"
-    echo "    $0 ./deployex.sh --install -a example -r 3 -h example.com -c prod -d deployex.example.com -u sa-east-1 -v 1.0.0 -s ubuntu-20.04"
+    echo "    $0 --install deployex-config.json"
     echo
     echo "  Update an application:"
-    echo "    $0 --update -v 2.0 -s  ubuntu-20.04"
+    echo "    $0 --update deployex-config.json"
     echo
     exit 1
 }
@@ -55,11 +47,17 @@ remove_deployex() {
 install_deployex() {
     local app_name="$1"
     local replicas="$2"
-    local hostname="$3"
-    local account_name="$4"
-    local deployex_hostname="$5"
-    local aws_region="$6"
-    local upper_app_name="${app_name^^}"
+    local account_name="$3"
+    local deployex_hostname="$4"
+    local aws_region="$5"
+
+    # Load environment variables from JSON
+    local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")
+    eval "$env_variables"
+
+    if [ -n "$env_variables" ]; then
+      DEPLOYEX_SYSTEMD_ENV_VARS="$(jq -r '.env | to_entries[] | "  Environment=\(.key)=\(.value)"' "$config_file")"
+    fi
 
 DEPLOYEX_SYSTEMD_FILE="
   [Unit]
@@ -69,10 +67,7 @@ DEPLOYEX_SYSTEMD_FILE="
   [Service]
   Environment=SHELL=/usr/bin/bash
   Environment=AWS_REGION=${aws_region}
-  Environment=${upper_app_name}_PHX_HOST=${hostname}
-  Environment=${upper_app_name}_PHX_SERVER=true
-  Environment=${upper_app_name}_CLOUD_ENVIRONMENT=${account_name}
-  Environment=${upper_app_name}_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates
+"$DEPLOYEX_SYSTEMD_ENV_VARS"
   Environment=DEPLOYEX_CLOUD_ENVIRONMENT=${account_name}
   Environment=DEPLOYEX_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates
   Environment=DEPLOYEX_MONITORED_APP_NAME=${app_name}
@@ -135,63 +130,56 @@ update_deployex() {
     systemctl enable --now ${DEPLOYEX_SERVIVE_NAME}
 }
 
-# Parse command-line options
-while getopts ":a:r:h:c:d:u:v:s:-:" opt; do
-    case $opt in
-        a)
-            app_name="$OPTARG"
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --install)
+            operation="install"
+            config_file="$2"
+            shift
             ;;
-        r)
-            replicas="$OPTARG"
+        --update)
+            operation="update"
+            config_file="$2"
+            shift
             ;;
-        h)
-            hostname="$OPTARG"
-            ;;
-        c)
-            account_name="$OPTARG"
-            ;;
-        d)
-            deployex_hostname="$OPTARG"
-            ;;
-        u)
-            aws_region="$OPTARG"
-            ;;
-        v)
-            version="$OPTARG"
-            ;;
-        s)
-            os_target="$OPTARG"
-            ;;
-        -)
-            case "${OPTARG}" in
-                install)
-                    operation="install"
-                    ;;
-                update)
-                    operation="update"
-                    ;;
-                help)
-                    usage
-                    ;;
-                *)
-                    echo "Invalid option: --${OPTARG}"
-                    usage
-                    ;;
-            esac
+        --help)
+            usage
             ;;
         *)
+            echo "Invalid option: $1"
             usage
             ;;
     esac
+    shift
 done
+
+# Ensure operation is set and config_file is provided
+if [[ -z "$operation" || -z "$config_file" ]]; then
+    usage
+fi
+
+# Validate config file existence
+if [ ! -f "$config_file" ]; then
+    echo "Config file '$config_file' not found."
+    exit 1
+fi
+
+# Load variables from JSON config file
+if ! variables=$(jq -e '. | {app_name, replicas, account_name, deployex_hostname, aws_region, version, os_target}' "$config_file"); then
+    echo "Failed to parse JSON config file."
+    exit 1
+fi
+
+# Assign variables
+eval "$(echo "$variables" | jq -r '@sh "app_name=\(.app_name) replicas=\(.replicas) account_name=\(.account_name) deployex_hostname=\(.deployex_hostname) aws_region=\(.aws_region) version=\(.version) os_target=\(.os_target)"')"
 
 # Check if all required parameters are provided based on the operation
 if [ "$operation" == "install" ]; then
-    if [[ -z "$app_name" || -z "$replicas" || -z "$hostname" || -z "$account_name" || -z "$deployex_hostname" || -z "$aws_region" || -z "$os_target" || -z "$version" ]]; then
+    if [[ -z "$app_name" || -z "$replicas" || -z "$account_name" || -z "$deployex_hostname" || -z "$aws_region" ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$app_name" "$replicas" "$hostname" "$account_name" "$deployex_hostname" "$aws_region"
+    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$aws_region"
     update_deployex "$version" "$os_target"
 elif [ "$operation" == "update" ]; then
     if [[ -z "$version" || -z "$os_target" ]]; then

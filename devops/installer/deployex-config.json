@@ -1,0 +1,15 @@
+{
+    "app_name": "myapp",
+    "replicas": 3,
+    "account_name": "prod",
+    "deployex_hostname": "deployex.example.com",
+    "aws_region": "sa-east-1",
+    "version": "0.3.0-rc11",
+    "os_target": "ubuntu-20.04", // "ubuntu-20.04" or "ubuntu-22.04"
+    "env": {
+        "MYAPP_PHX_HOST": "example.com",
+        "MYAPP_PHX_SERVER": "true",
+        "MYAPP_CLOUD_ENVIRONMENT": "prod",
+        "MYAPP_OTP_TLS_CERT_PATH": "/usr/local/share/ca-certificates"
+    }
+  }

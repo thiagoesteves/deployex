@@ -61,7 +61,10 @@ defmodule Deployex.Storage.S3 do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-
   defp env, do: Application.get_env(:deployex, :env)
-  defp bucket, do: "#{AppConfig.monitored_app()}-#{env()}-distribution"
+
+  defp bucket do
+    # NOTE: Cloud structures use "-" instead of "_".
+    "#{AppConfig.monitored_app()}-#{env()}-distribution" |> String.replace("_", "-")
+  end
 end

@@ -12,12 +12,12 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ![Running with no monitored apps](/docs/deployex_server.png)
 
-## Features to be worked on
+## The Path for 1.0.0
 
 The Deployex project is still very new and requires the addition of numerous features to become a comprehensive deployment solution. Below are some of the features it can incorporate:
 
 - [ ] Execute migrations before full deployment
-- [ ] OTP Distribution monitoring for health checks
+- [ ] OTP Distribution monitoring for health checks [optional]
 - [ ] Full deployment rollback functionality
 
 ## Getting Started
@@ -103,18 +103,20 @@ Deployex application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
 | __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
-| __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the aws region |
-| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | the aws region |
+| __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
+| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
 
 For local testing, these variables are not expected or set to default values.
 
 ## Production installation
 
-If you plan to install Deployex directly on an Ubuntu server, you can use the [installer script](/devops/installer/deployex.sh) included in the release package. For an example, refer to the [Calori Web Server](https://github.com/thiagoesteves/calori). As of now, the release and installation only supports Ubuntu versions 20.04 and 22.04, but you can compile and install manually in your target system.
+If you intend to install Deployex directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server](https://github.com/thiagoesteves/calori/blob/main/devops/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a JSON configuration file, an example of which can be found [here](/devops/installer/deployex-config.json). This JSON file can also export environment variables specific to the monitored applications.
+
+Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install Deployex on your target system.
 
 ## Production Secrets Requirements
 
-Deployex is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS:
+Deployex is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS (It is important to note that this name is expected to not contain "_"):
 
 ```
 deployex-${deployex_monitored_app_name}-${deployex_cloud_environment}-secrets

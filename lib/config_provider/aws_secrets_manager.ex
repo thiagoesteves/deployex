@@ -43,7 +43,7 @@ defmodule Deployex.AwsSecretsManagerProvider do
       region = System.fetch_env!("AWS_REGION")
       request_opts = Keyword.merge(opts, region: region)
 
-      # NOTE: The default pattern for cloud structures are using "-" instead of "_"
+      # NOTE: Cloud structures use "-" instead of "_".
       monitored_app_name =
         System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME") |> String.replace("_", "-")
 
