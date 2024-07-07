@@ -38,12 +38,16 @@ defmodule Deployex.AwsSecretsManagerProvider do
       {:ok, _} = Application.ensure_all_started(:hackney)
       {:ok, _} = Application.ensure_all_started(:ex_aws)
 
-      Logger.info("  - Retrieve secrets")
+      Logger.info("  - Trying to retrieve secrets")
 
       region = System.fetch_env!("AWS_REGION")
       request_opts = Keyword.merge(opts, region: region)
 
-      secrets = fetch_aws_secret_id("deployex-#{env}-secrets", request_opts)
+      # NOTE: The default pattern for cloud structures are using "-" instead of "_"
+      monitored_app_name =
+        System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME") |> String.replace("_", "-")
+
+      secrets = fetch_aws_secret_id("deployex-#{monitored_app_name}-#{env}-secrets", request_opts)
 
       secret_key_base = keyword(:secret_key_base, secrets["DEPLOYEX_SECRET_KEY_BASE"])
       erlang_cookie = secrets["DEPLOYEX_ERLANG_COOKIE"] |> String.to_atom()
