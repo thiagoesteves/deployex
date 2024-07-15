@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc12 ()
+
+## Backwards incompatible changes for 0.3.0-rc11
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-19`](https://github.com/thiagoesteves/deployex/pull/19)] Adding backoff delay pattern for retries and enhanced Monitor state handling
+
 ## 0.3.0-rc11 (2024-07-09)
 
 ## Backwards incompatible changes for 0.3.0-rc10
