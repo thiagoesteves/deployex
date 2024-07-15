@@ -1,15 +1,17 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc11 ()
+## 0.3.0-rc11 (2024-07-09)
 
 ## Backwards incompatible changes for 0.3.0-rc10
- * None
+ * Modified aws secret manager name which requires an update from the previous version
+ * Modified installer script to use a configuration json file instead arguments
 
 ### Bug fixes
- *
+ * None
 
 ### Enhancements
- * Adding retry backoff pattern for restarting the failed instances
+ * [[`PR-21`](https://github.com/thiagoesteves/deployex/pull/21/files)] Modified aws secret manager name to deployex-${deployex_monitored_app_name}-${deployex_cloud_environment}-secrets
+ * Modified ubuntu installer script to require a configuration json file instead of arguments
 
 ## 0.3.0-rc10 (2024-07-02)
 
