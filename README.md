@@ -105,6 +105,8 @@ Deployex application typically requires several environment variables to be defi
 | __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
 | __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
+| __DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS__ | 600000 | system ENV | 600000 | The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back |
+| __DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS__ | 5000 | system ENV | 5000 | Periodic checking for new deployments |
 
 For local testing, these variables are not expected or set to default values.
 

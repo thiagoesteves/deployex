@@ -5,8 +5,6 @@ defmodule Deployex.Deployment do
   previous was not completed yet.
   """
 
-  @deployment_schedule_interval :timer.seconds(5)
-  @deployment_timeout_rollback :timer.minutes(10)
   @wait_time_from_stop_ms 500
 
   use GenServer
@@ -17,7 +15,9 @@ defmodule Deployex.Deployment do
   defstruct instances: 1,
             current: 1,
             dead_version_list: [],
-            deployments: %{}
+            deployments: %{},
+            timeout_rollback: 0,
+            schedule_interval: 0
 
   ### ==========================================================================
   ### Callback functions
@@ -30,7 +30,10 @@ defmodule Deployex.Deployment do
   @impl true
   def init(instances: instances) do
     Logger.info("Initialising deployment server")
-    schedule_new_deployment()
+    timeout_rollback = Application.fetch_env!(:deployex, __MODULE__)[:timeout_rollback]
+    schedule_interval = Application.fetch_env!(:deployex, __MODULE__)[:schedule_interval]
+
+    schedule_new_deployment(schedule_interval)
 
     deployments =
       Enum.to_list(1..instances)
@@ -42,13 +45,15 @@ defmodule Deployex.Deployment do
      %__MODULE__{
        instances: instances,
        deployments: deployments,
+       timeout_rollback: timeout_rollback,
+       schedule_interval: schedule_interval,
        dead_version_list: AppStatus.dead_version_list()
      }}
   end
 
   @impl true
   def handle_info(:schedule, %__MODULE__{} = state) do
-    schedule_new_deployment()
+    schedule_new_deployment(state.schedule_interval)
     current_deployment = state.deployments[state.current]
 
     new_state =
@@ -132,8 +137,7 @@ defmodule Deployex.Deployment do
   ### Private functions
   ### ==========================================================================
 
-  defp schedule_new_deployment,
-    do: Process.send_after(self(), :schedule, @deployment_schedule_interval)
+  defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
 
   defp rollback_to_previous_version(%{current: instance} = state) do
     # Add current version to the dead version list
@@ -222,7 +226,7 @@ defmodule Deployex.Deployment do
       Process.send_after(
         self(),
         {:timeout_rollback, state.current, deploy_ref},
-        @deployment_timeout_rollback,
+        state.timeout_rollback,
         []
       )
 
