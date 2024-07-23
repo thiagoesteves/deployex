@@ -132,11 +132,11 @@ defmodule Deployex.AppConfig do
     do: "#{base_path()}/version/#{instance}/previous.json"
 
   @doc """
-  Path to the dead version json file
+  Path to the ghosted version json file
   """
-  @spec dead_version_path :: binary()
-  def dead_version_path,
-    do: "#{base_path()}/version/dead.json"
+  @spec ghosted_version_path :: binary()
+  def ghosted_version_path,
+    do: "#{base_path()}/version/ghosted.json"
 
   ### ==========================================================================
   ### Private functions

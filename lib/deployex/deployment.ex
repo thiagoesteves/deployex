@@ -14,7 +14,7 @@ defmodule Deployex.Deployment do
 
   defstruct instances: 1,
             current: 1,
-            dead_version_list: [],
+            ghosted_version_list: [],
             deployments: %{},
             timeout_rollback: 0,
             schedule_interval: 0
@@ -47,7 +47,7 @@ defmodule Deployex.Deployment do
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
-       dead_version_list: AppStatus.dead_version_list()
+       ghosted_version_list: AppStatus.ghosted_version_list()
      }}
   end
 
@@ -140,13 +140,13 @@ defmodule Deployex.Deployment do
   defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
 
   defp rollback_to_previous_version(%{current: instance} = state) do
-    # Add current version to the dead version list
+    # Add current version to the ghosted version list
     {:ok, new_list} =
       state.current
       |> AppStatus.current_version_map()
-      |> AppStatus.add_dead_version_list()
+      |> AppStatus.add_ghosted_version_list()
 
-    state = %{state | dead_version_list: new_list}
+    state = %{state | ghosted_version_list: new_list}
 
     previous_version_map = AppStatus.previous_version_map(instance)
 
@@ -190,11 +190,11 @@ defmodule Deployex.Deployment do
     end
   end
 
-  defp check_deployment(%{current: instance, dead_version_list: dead_version_list} = state) do
+  defp check_deployment(%{current: instance, ghosted_version_list: ghosted_version_list} = state) do
     storage = Storage.get_current_version_map()
     current_app_version = AppStatus.current_version(instance) || "<no current set>"
 
-    dead_version? = Enum.any?(dead_version_list, &(&1["version"] == storage["version"]))
+    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == storage["version"]))
 
     deploy_application = fn ->
       deploy_ref = :erlang.make_ref()
@@ -208,7 +208,7 @@ defmodule Deployex.Deployment do
       end
     end
 
-    if storage != nil and storage["version"] != current_app_version and not dead_version? do
+    if storage != nil and storage["version"] != current_app_version and not ghosted_version? do
       Logger.info(
         "Update is needed at instance: #{instance} from: #{current_app_version} to: #{storage["version"]}."
       )

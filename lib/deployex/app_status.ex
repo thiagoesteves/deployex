@@ -21,7 +21,7 @@ defmodule Deployex.AppStatus do
             status: nil,
             restarts: 0,
             uptime: nil,
-            last_dead_version: nil
+            last_ghosted_version: nil
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
@@ -123,20 +123,20 @@ defmodule Deployex.AppStatus do
     |> File.write!(version)
   end
 
-  @spec add_dead_version_list(Storage.version_map()) :: {:ok, list()}
-  def add_dead_version_list(version) when is_map(version) do
-    # Retrieve current dead version list
-    current_list = dead_version_list()
+  @spec add_ghosted_version_list(Storage.version_map()) :: {:ok, list()}
+  def add_ghosted_version_list(version) when is_map(version) do
+    # Retrieve current ghosted version list
+    current_list = ghosted_version_list()
 
-    dead_version? = Enum.any?(current_list, &(&1["version"] == version["version"]))
+    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version["version"]))
 
     # Add the version if not in the list
-    if dead_version? == false do
+    if ghosted_version? == false do
       new_list = [version | current_list]
 
       json_list = Jason.encode!(new_list)
 
-      AppConfig.dead_version_path()
+      AppConfig.ghosted_version_path()
       |> File.write!(json_list)
 
       {:ok, new_list}
@@ -145,9 +145,9 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  @spec dead_version_list :: list()
-  def dead_version_list do
-    AppConfig.dead_version_path()
+  @spec ghosted_version_list :: list()
+  def ghosted_version_list do
+    AppConfig.ghosted_version_path()
     |> read_data_from_file() || []
   end
 
@@ -204,8 +204,8 @@ defmodule Deployex.AppStatus do
 
     uptime = uptime_to_string(Application.get_env(:deployex, :booted_at))
 
-    last_dead_version =
-      case dead_version_list() do
+    last_ghosted_version =
+      case ghosted_version_list() do
         [] -> "-/-"
         list -> Enum.at(list, 0)["version"]
       end
@@ -218,7 +218,7 @@ defmodule Deployex.AppStatus do
       supervisor: true,
       status: :running,
       uptime: uptime,
-      last_dead_version: last_dead_version
+      last_ghosted_version: last_ghosted_version
     }
   end
 
