@@ -1,6 +1,6 @@
 defmodule Deployex.Common do
   @moduledoc """
-  This module contains functions to be shared among modules
+  This module contains functions to be shared among other modules
   """
 
   ### ==========================================================================
@@ -12,7 +12,7 @@ defmodule Deployex.Common do
   """
   @spec short_ref(reference()) :: String.t()
   def short_ref(reference) do
-    String.slice(inspect(reference), -7..-2)
+    String.slice(inspect(reference), -6..-2)
   end
 
   ### ==========================================================================
