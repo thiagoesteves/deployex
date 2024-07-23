@@ -3,6 +3,8 @@ defmodule Deployex.AppConfig do
   This module contains all paths for services and also initialize the directories
   """
 
+  @deployex_instance 0
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
@@ -46,7 +48,7 @@ defmodule Deployex.AppConfig do
   Return the path for the stdout log file
   """
   @spec stdout_path(integer()) :: binary()
-  def stdout_path(0) do
+  def stdout_path(@deployex_instance) do
     log_path = Application.fetch_env!(:deployex, :log_path)
     "#{log_path}/deployex-stdout.log"
   end
@@ -61,7 +63,7 @@ defmodule Deployex.AppConfig do
   Return the path for the stderr log file
   """
   @spec stderr_path(integer()) :: binary()
-  def stderr_path(0) do
+  def stderr_path(@deployex_instance) do
     log_path = Application.fetch_env!(:deployex, :log_path)
     "#{log_path}/deployex-stderr.log"
   end
@@ -82,7 +84,7 @@ defmodule Deployex.AppConfig do
   Retrieve the bin path for the respective instance (current)
   """
   @spec bin_path(integer()) :: String.t()
-  def bin_path(0) do
+  def bin_path(@deployex_instance) do
     Application.fetch_env!(:deployex, :bin_path)
   end
 
@@ -114,6 +116,27 @@ defmodule Deployex.AppConfig do
   """
   @spec previous_path(integer()) :: binary()
   def previous_path(instance), do: "#{service_path()}/#{instance}/previous"
+
+  @doc """
+  Path to the current version json file
+  """
+  @spec current_version_path(integer()) :: binary()
+  def current_version_path(instance),
+    do: "#{base_path()}/version/#{instance}/current.json"
+
+  @doc """
+  Path to the previous version json file
+  """
+  @spec previous_version_path(integer()) :: binary()
+  def previous_version_path(instance),
+    do: "#{base_path()}/version/#{instance}/previous.json"
+
+  @doc """
+  Path to the dead version json file
+  """
+  @spec dead_version_path :: binary()
+  def dead_version_path,
+    do: "#{base_path()}/version/dead.json"
 
   ### ==========================================================================
   ### Private functions

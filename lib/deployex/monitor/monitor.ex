@@ -5,16 +5,17 @@ defmodule Deployex.Monitor do
   use GenServer
   require Logger
 
-  alias Deployex.{AppConfig, AppStatus, Deployment}
+  alias Deployex.{AppConfig, AppStatus, Common, Deployment}
 
   defstruct current_pid: nil,
             instance: 0,
             status: :idle,
             restarts: 0,
-            start_time: nil
+            start_time: nil,
+            deploy_ref: :init
 
   # NOTE: Timeout to check if the application crashed for any reason
-  @timeout_to_verify_app_ready 3_000
+  @timeout_to_verify_app_ready :timer.seconds(30)
 
   ### ==========================================================================
   ### Callback functions
@@ -33,8 +34,6 @@ defmodule Deployex.Monitor do
 
     Logger.metadata(instance: instance)
 
-    trigger_run_service()
-
     {:ok, %__MODULE__{instance: instance}}
   end
 
@@ -43,15 +42,15 @@ defmodule Deployex.Monitor do
     {:reply, {:ok, state}, state}
   end
 
-  def handle_call(:start_service, _from, %{current_pid: current_pid} = state)
+  def handle_call(
+        {:start_service, deploy_ref},
+        _from,
+        %__MODULE__{current_pid: current_pid} = state
+      )
       when is_nil(current_pid) do
-    trigger_run_service()
+    trigger_run_service(deploy_ref)
 
-    {:reply, :ok, reset_state(state)}
-  end
-
-  def handle_call(:start_service, _from, %__MODULE__{current_pid: current_pid} = state) do
-    {:reply, {:error, current_pid, :already_started}, state}
+    {:reply, :ok, reset_state(state, deploy_ref)}
   end
 
   def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
@@ -60,11 +59,6 @@ defmodule Deployex.Monitor do
       "Requested instance: #{state.instance} to stop but application is not running."
     )
 
-    {:reply, :ok, state}
-  end
-
-  def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
-      when is_nil(current_pid) do
     {:reply, :ok, state}
   end
 
@@ -84,7 +78,7 @@ defmodule Deployex.Monitor do
   end
 
   @impl true
-  def handle_info(:run_service, state) do
+  def handle_info({:run_service, deploy_ref}, state) when deploy_ref == state.deploy_ref do
     version = AppStatus.current_version(state.instance)
 
     state =
@@ -102,16 +96,21 @@ defmodule Deployex.Monitor do
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info({:check_running, pid}, state) when pid == state.current_pid do
-    Logger.info("Application instance: #{state.instance} is running")
+  def handle_info({:run_service, _deploy_ref}, state) do
+    # Do nothing, a different deployment was requested
+    {:noreply, state}
+  end
 
-    Deployment.notify_application_running(state.instance)
+  def handle_info({:check_running, pid, deploy_ref}, state)
+      when pid == state.current_pid and deploy_ref == state.deploy_ref do
+    Logger.info(" # Application instance: #{state.instance} is running")
+
+    Deployment.notify_application_running(state.instance, deploy_ref)
 
     {:noreply, %{state | status: :running}}
   end
 
-  def handle_info({:check_running, _pid}, state) do
+  def handle_info({:check_running, _pid, _deploy_ref}, state) do
     {:noreply, state}
   end
 
@@ -127,7 +126,7 @@ defmodule Deployex.Monitor do
     restarts = state.restarts + 1
 
     # Retry with backoff pattern
-    trigger_run_service(2 * restarts * 1000)
+    trigger_run_service(state.deploy_ref, 2 * restarts * 1000)
 
     {:noreply, %{state | restarts: restarts}}
   end
@@ -144,10 +143,10 @@ defmodule Deployex.Monitor do
   ### Public functions
   ### ==========================================================================
 
-  @spec start_service(integer()) ::
+  @spec start_service(integer(), reference()) ::
           :ok | {:error, pid(), :already_started} | {:error, :rescued}
-  def start_service(instance) do
-    call_gen_server(instance, :start_service)
+  def start_service(instance, deploy_ref) do
+    call_gen_server(instance, {:start_service, deploy_ref})
   end
 
   @spec stop_service(integer()) :: :ok | {:error, :rescued}
@@ -166,7 +165,8 @@ defmodule Deployex.Monitor do
   defp global_name(instance: instance), do: {:global, %{module: __MODULE__, instance: instance}}
   defp global_name(instance), do: {:global, %{module: __MODULE__, instance: instance}}
 
-  def trigger_run_service(timeout \\ 1), do: Process.send_after(self(), :run_service, timeout)
+  def trigger_run_service(deploy_ref, timeout \\ 1),
+    do: Process.send_after(self(), {:run_service, deploy_ref}, timeout)
 
   # NOTE: This function needs to use try/catch because rescue (suggested by credo)
   #       doesn't handle :exit
@@ -179,7 +179,7 @@ defmodule Deployex.Monitor do
     end
   end
 
-  defp run_service(%__MODULE__{instance: instance} = state, version) do
+  defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version) do
     executable = executable_path(instance)
 
     if File.exists?(executable) do
@@ -192,10 +192,10 @@ defmodule Deployex.Monitor do
         ])
 
       Logger.info(
-        " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process id = #{os_pid}."
+        " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{Common.short_ref(deploy_ref)}."
       )
 
-      Process.send_after(self(), {:check_running, pid}, @timeout_to_verify_app_ready)
+      Process.send_after(self(), {:check_running, pid, deploy_ref}, @timeout_to_verify_app_ready)
 
       %{state | current_pid: pid, status: :starting, start_time: now()}
     else
@@ -241,6 +241,13 @@ defmodule Deployex.Monitor do
 
   defp now, do: System.monotonic_time()
 
-  defp reset_state(state),
-    do: %{state | status: :idle, current_pid: nil, restarts: 0, start_time: nil}
+  defp reset_state(state, deploy_ref \\ nil),
+    do: %{
+      state
+      | status: :idle,
+        current_pid: nil,
+        restarts: 0,
+        start_time: nil,
+        deploy_ref: deploy_ref
+    }
 end

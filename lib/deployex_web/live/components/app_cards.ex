@@ -46,14 +46,17 @@ defmodule DeployexWeb.Components.AppCards do
               <.restarts restarts={app.restarts} />
             </p>
 
-            <p :if={app.prev_version} class="flex tracking-tight pt-3 justify-between">
+            <p :if={app.previous_version} class="flex tracking-tight pt-3 justify-between">
               <span class="text-xs font-bold ml-3 ">previous version</span>
               <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
-                <%= app.prev_version %>
+                <%= app.previous_version %>
               </span>
             </p>
 
-            <p :if={app.last_dead_version} class="flex tracking-tight pt-3 justify-between">
+            <p
+              :if={app.supervisor and app.last_dead_version}
+              class="flex tracking-tight pt-3 justify-between"
+            >
               <span class="text-xs font-bold ml-3 ">Last dead version</span>
               <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
                 <%= app.last_dead_version %>
