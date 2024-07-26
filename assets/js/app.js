@@ -18,30 +18,44 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
-import {Socket} from "phoenix"
-import {LiveSocket} from "phoenix_live_view"
+import { Socket } from "phoenix"
+import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
-import { Terminal  } from "./xterm/xterm"
+import { Terminal } from "./xterm/xterm"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 let hooks = {}
 hooks.IexTerminal = {
   mounted() {
-      let term = new Terminal({
-        fontSize: 15,
-        cols: 80,
-        rows: 24,
-        cursorBlink: true
+    let term = new Terminal({
+      fontSize: 15,
+      cols: 80,
+      rows: 24,
+      cursorBlink: true
     });
-      term.open(this.el.querySelector(".xtermjs_container"));
-      term.onKey(key => {
-          this.pushEventTo(this.el, "key", key);
-      });
+    term.open(this.el.querySelector(".xtermjs_container"));
+    term.onKey(key => {
+      this.pushEventTo(this.el, "key", key);
+    });
 
-      this.handleEvent("print_" + this.el.id, e => {
-          term.write(e.data);
-      });
+    term.attachCustomKeyEventHandler(key => {
+
+      if (key.code === 'KeyC' || key.code === 'KeyV') {
+        if (key.ctrlKey && key.shiftKey) {
+          return false;
+        }
+        navigator.clipboard.readText()
+          .then(text => {
+            this.pushEventTo(this.el, "key", { key: text });
+          })
+      }
+      return true;
+    });
+
+    this.handleEvent("print_" + this.el.id, e => {
+      term.write(e.data);
+    });
   }
 };
 
@@ -62,12 +76,12 @@ hooks.ScrollBottom = {
 
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: { _csrf_token: csrfToken },
   hooks
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
