@@ -22,7 +22,7 @@ jobs:
           version-type: strict
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             _build
@@ -50,7 +50,7 @@ jobs:
           version-type: strict
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             _build
@@ -78,14 +78,13 @@ jobs:
           version-type: strict
 
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             _build
             deps
-            apps/site_web/assets/node_modules
           key: |
-            deployex-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-${{ hashFiles('apps/site_web/assets/yarn.lock') }}-2024-05-10
+            deployex-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}-2024-05-10
           restore-keys: |
             deployex-
 
@@ -105,7 +104,7 @@ jobs:
         run: mix format --check-formatted
 
       - name: Restore PLT cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: plt_cache
         with:
           key: plt-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('**/mix.lock') }}-${{ hashFiles('**/*.ex') }}
