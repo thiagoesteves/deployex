@@ -182,7 +182,6 @@ defmodule Deployex.Deployment do
     deploy_ref = :erlang.make_ref()
 
     if current_app_version != nil do
-      :ok = Monitor.stop_service(state.current)
       :ok = Monitor.start_service(state.current, deploy_ref)
       set_timeout_to_rollback(state, deploy_ref)
     else
