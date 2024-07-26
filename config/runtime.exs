@@ -57,6 +57,14 @@ if config_env() == :prod do
 
   config :deployex, Deployex.Storage, adapter: storage_adapter
 
+  config :deployex, Deployex.Deployment,
+    # Default 10 minutes
+    timeout_rollback:
+      String.to_integer(System.get_env("DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS") || "600000"),
+    # Default 5 seconds
+    schedule_interval:
+      String.to_integer(System.get_env("DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS") || "5000")
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

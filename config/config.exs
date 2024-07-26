@@ -28,6 +28,10 @@ config :deployex,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
   monitored_app_phx_start_port: 4000
 
+config :deployex, Deployex.Deployment,
+  timeout_rollback: :timer.minutes(10),
+  schedule_interval: :timer.seconds(5)
+
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,
   url: [host: "localhost"],
