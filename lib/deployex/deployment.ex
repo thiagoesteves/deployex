@@ -151,11 +151,9 @@ defmodule Deployex.Deployment do
     previous_version_map = AppStatus.previous_version_map(instance)
 
     deploy_application = fn ->
-      deploy_ref = :erlang.make_ref()
-
       case Storage.download_and_unpack(instance, previous_version_map["version"]) do
         {:ok, _} ->
-          full_deployment(state, previous_version_map, deploy_ref)
+          full_deployment(state, previous_version_map)
 
         reason ->
           Logger.error(
@@ -179,11 +177,11 @@ defmodule Deployex.Deployment do
 
   defp initialize_version(state) do
     current_app_version = AppStatus.current_version(state.current)
-    deploy_ref = :erlang.make_ref()
+    new_deploy_ref = :erlang.make_ref()
 
     if current_app_version != nil do
-      :ok = Monitor.start_service(state.current, deploy_ref)
-      set_timeout_to_rollback(state, deploy_ref)
+      :ok = Monitor.start_service(state.current, new_deploy_ref)
+      set_timeout_to_rollback(state, new_deploy_ref)
     else
       state
     end
@@ -196,14 +194,12 @@ defmodule Deployex.Deployment do
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == storage["version"]))
 
     deploy_application = fn ->
-      deploy_ref = :erlang.make_ref()
-
       case Storage.download_and_unpack(instance, storage["version"]) do
         {:ok, :full_deployment} ->
-          full_deployment(state, storage, deploy_ref)
+          full_deployment(state, storage)
 
         {:ok, :hot_upgrade} ->
-          hot_upgrade(state, storage, deploy_ref)
+          hot_upgrade(state, storage)
       end
     end
 
@@ -239,10 +235,12 @@ defmodule Deployex.Deployment do
     %{state | deployments: deployments}
   end
 
-  defp full_deployment(%{current: instance} = state, storage, deploy_ref) do
+  defp full_deployment(%{current: instance} = state, storage) do
+    new_deploy_ref = :erlang.make_ref()
+
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       Logger.info(
-        "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)}."
+        "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
       )
 
       Monitor.stop_service(instance)
@@ -255,16 +253,19 @@ defmodule Deployex.Deployment do
 
       AppStatus.set_current_version_map(instance, storage,
         deployment: :full_deployment,
-        deploy_ref: deploy_ref
+        deploy_ref: new_deploy_ref
       )
 
-      :ok = Monitor.start_service(instance, deploy_ref)
+      :ok = Monitor.start_service(instance, new_deploy_ref)
     end)
 
-    set_timeout_to_rollback(state, deploy_ref)
+    set_timeout_to_rollback(state, new_deploy_ref)
   end
 
-  defp hot_upgrade(%{current: instance} = state, storage, deploy_ref) do
+  defp hot_upgrade(%{current: instance} = state, storage) do
+    # For hot code reloading, the previous deployment code is not changed
+    deploy_ref = state.deployments[instance].deploy_ref
+
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       Logger.info(
         "Hot upgrade instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)}."
@@ -274,7 +275,7 @@ defmodule Deployex.Deployment do
 
       if :ok == Upgrade.run(instance, from_version, storage["version"]) do
         AppStatus.set_current_version_map(instance, storage,
-          deployment: :hot_upgrad,
+          deployment: :hot_upgrade,
           deploy_ref: deploy_ref
         )
 
@@ -285,7 +286,7 @@ defmodule Deployex.Deployment do
     if AppStatus.current_version(instance) != storage["version"] do
       Logger.error("Hot Upgrade failed, running for full deployment")
 
-      full_deployment(state, storage, deploy_ref)
+      full_deployment(state, storage)
     else
       state
     end

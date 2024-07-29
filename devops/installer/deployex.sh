@@ -22,20 +22,20 @@ usage() {
     exit 1
 }
 
-DEPLOYEX_SERVIVE_NAME=deployex.service
-DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVIVE_NAME}
+DEPLOYEX_SERVICE_NAME=deployex.service
+DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
 DEPLOYEX_OPT_DIR=/opt/deployex
 DEPLOYEX_LOG_PATH=/var/log/deployex
 DEPLOYEX_VAR_LIB=/var/lib/deployex
 
 remove_deployex() {
     echo "#           Removing Deployex              #"
-    systemctl stop ${DEPLOYEX_SERVIVE_NAME}
-    systemctl disable ${DEPLOYEX_SERVIVE_NAME}
-    rm /etc/systemd/system/${DEPLOYEX_SERVIVE_NAME}
-    rm /etc/systemd/system/${DEPLOYEX_SERVIVE_NAME} # and symlinks that might be related
-    rm /usr/lib/systemd/system/${DEPLOYEX_SERVIVE_NAME} 
-    rm /usr/lib/systemd/system/${DEPLOYEX_SERVIVE_NAME} # and symlinks that might be related
+    systemctl stop ${DEPLOYEX_SERVICE_NAME}
+    systemctl disable ${DEPLOYEX_SERVICE_NAME}
+    rm /etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
+    rm /etc/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
+    rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME}
+    rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
     systemctl daemon-reload
     systemctl reset-failed
     rm -rf ${DEPLOYEX_OPT_DIR}
@@ -50,6 +50,8 @@ install_deployex() {
     local account_name="$3"
     local deployex_hostname="$4"
     local aws_region="$5"
+    local deploy_timeout_rollback_ms="$6"
+    local deploy_schedule_interval_ms="$7"
 
     # Load environment variables from JSON
     local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")
@@ -73,6 +75,8 @@ DEPLOYEX_SYSTEMD_FILE="
   Environment=DEPLOYEX_MONITORED_APP_NAME=${app_name}
   Environment=DEPLOYEX_PHX_HOST=${deployex_hostname}
   Environment=DEPLOYEX_MONITORED_REPLICAS=${replicas}
+  Environment=DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS=${deploy_timeout_rollback_ms}
+  Environment=DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS=${deploy_schedule_interval_ms}
   ExecStart=${DEPLOYEX_OPT_DIR}/bin/deployex start
   StandardOutput=append:${DEPLOYEX_LOG_PATH}/deployex-stdout.log
   StandardError=append:${DEPLOYEX_LOG_PATH}/deployex-stderr.log
@@ -120,14 +124,14 @@ update_deployex() {
             exit
     fi
     echo "# Stop current service                     #"
-    systemctl stop ${DEPLOYEX_SERVIVE_NAME}
+    systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean and create a new directory         #"
     rm -rf ${DEPLOYEX_OPT_DIR} && mkdir ${DEPLOYEX_OPT_DIR} && cd ${DEPLOYEX_OPT_DIR}
     tar xf /tmp/deployex-${OS_TARGET}.tar.gz
     echo "# Start systemd                            #"
     echo "# Start new service                        #"
     systemctl daemon-reload
-    systemctl enable --now ${DEPLOYEX_SERVIVE_NAME}
+    systemctl enable --now ${DEPLOYEX_SERVICE_NAME}
 }
 
 while [[ "$#" -gt 0 ]]; do
@@ -171,15 +175,15 @@ if ! variables=$(jq -e '. | {app_name, replicas, account_name, deployex_hostname
 fi
 
 # Assign variables
-eval "$(echo "$variables" | jq -r '@sh "app_name=\(.app_name) replicas=\(.replicas) account_name=\(.account_name) deployex_hostname=\(.deployex_hostname) aws_region=\(.aws_region) version=\(.version) os_target=\(.os_target)"')"
+eval "$(echo "$variables" | jq -r '@sh "app_name=\(.app_name) replicas=\(.replicas) account_name=\(.account_name) deployex_hostname=\(.deployex_hostname) aws_region=\(.aws_region) version=\(.version) os_target=\(.os_target) deploy_timeout_rollback_ms=\(.deploy_timeout_rollback_ms) deploy_schedule_interval_ms=\(.deploy_schedule_interval_ms)"')"
 
 # Check if all required parameters are provided based on the operation
 if [ "$operation" == "install" ]; then
-    if [[ -z "$app_name" || -z "$replicas" || -z "$account_name" || -z "$deployex_hostname" || -z "$aws_region" ]]; then
+    if [[ -z "$app_name" || -z "$replicas" || -z "$account_name" || -z "$deployex_hostname" || -z "$aws_region" || -z "$deploy_timeout_rollback_ms" || -z "$deploy_schedule_interval_ms" ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$aws_region"
+    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$aws_region" "$deploy_timeout_rollback_ms" "$deploy_schedule_interval_ms"
     update_deployex "$version" "$os_target"
 elif [ "$operation" == "update" ]; then
     if [[ -z "$version" || -z "$os_target" ]]; then

@@ -6,6 +6,8 @@
     "aws_region": "sa-east-1",
     "version": "0.3.0-rc11",
     "os_target": "ubuntu-20.04", // "ubuntu-20.04" or "ubuntu-22.04"
+    "deploy_timeout_rollback_ms": 600000,
+    "deploy_schedule_interval_ms": 5000,
     "env": {
         "MYAPP_PHX_HOST": "example.com",
         "MYAPP_PHX_SERVER": "true",
