@@ -10,7 +10,7 @@ Deployex is currently used by [Calori Web Server](https://github.com/thiagoestev
 
 Upon deployment, the following dashboard becomes available, offering access to logs for both Deployex and monitored applications, along with an IEX terminal."
 
-![Running with no monitored apps](/docs/deployex_server.png)
+[![Running with no monitored apps](/docs/recording.png)](/docs/recording.mp4)
 
 ## Features
 

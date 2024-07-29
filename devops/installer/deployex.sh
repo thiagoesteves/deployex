@@ -169,7 +169,7 @@ if [ ! -f "$config_file" ]; then
 fi
 
 # Load variables from JSON config file
-if ! variables=$(jq -e '. | {app_name, replicas, account_name, deployex_hostname, aws_region, version, os_target}' "$config_file"); then
+if ! variables=$(jq -e '. | {app_name, replicas, account_name, deployex_hostname, aws_region, version, os_target, deploy_timeout_rollback_ms, deploy_schedule_interval_ms}' "$config_file"); then
     echo "Failed to parse JSON config file."
     exit 1
 fi
