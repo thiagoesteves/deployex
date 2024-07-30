@@ -27,8 +27,8 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:
    - OTP connectivity
-   - Previous version installed
-   - Last deployment
+   - Version history
+   - Last deployment status
    - Number of restarts
 
 # What is missing for the version 1.0.0
