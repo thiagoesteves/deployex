@@ -25,6 +25,8 @@ usage() {
 DEPLOYEX_SERVICE_NAME=deployex.service
 DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
 DEPLOYEX_OPT_DIR=/opt/deployex
+DEPLOYEX_STORAGE_DIR=/opt/deployex/storage
+DEPLOYEX_SERVICE_DIR=/opt/deployex/service
 DEPLOYEX_LOG_PATH=/var/log/deployex
 DEPLOYEX_VAR_LIB=/var/lib/deployex
 
@@ -38,7 +40,7 @@ remove_deployex() {
     rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
     systemctl daemon-reload
     systemctl reset-failed
-    rm -rf ${DEPLOYEX_OPT_DIR}
+    rm -rf ${DEPLOYEX_SERVICE_DIR}
     rm -rf ${DEPLOYEX_LOG_PATH}
     rm -rf ${DEPLOYEX_VAR_LIB}
     echo "#     Deployex removed with success        #"
@@ -126,7 +128,9 @@ update_deployex() {
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean and create a new directory         #"
-    rm -rf ${DEPLOYEX_OPT_DIR} && mkdir ${DEPLOYEX_OPT_DIR} && cd ${DEPLOYEX_OPT_DIR}
+    rm -rf ${DEPLOYEX_SERVICE_DIR}
+    mkdir ${DEPLOYEX_OPT_DIR}
+    cd ${DEPLOYEX_OPT_DIR}
     tar xf /tmp/deployex-${OS_TARGET}.tar.gz
     echo "# Start systemd                            #"
     echo "# Start new service                        #"
