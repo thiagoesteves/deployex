@@ -81,7 +81,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
       |> Enum.map(fn version ->
         %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
       end)
-      |> Enum.sort(&(Date.compare(&1["inserted_at"], &2["inserted_at"]) == :gt))
+      |> Enum.sort(&(Date.compare(&1["inserted_at"], &2["inserted_at"]) != :gt))
       |> filter_by_instance.()
 
     socket =
