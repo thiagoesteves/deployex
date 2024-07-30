@@ -100,7 +100,7 @@ defmodule Deployex.AppStatus do
   end
 
   @spec set_current_version_map(integer(), Storage.version_map(), Keyword.t()) :: :ok
-  def set_current_version_map(instance, version, attrs) when is_map(version) do
+  def set_current_version_map(instance, storage, attrs) do
     # Update previous version
     case current_version_map(instance) do
       nil ->
@@ -113,14 +113,35 @@ defmodule Deployex.AppStatus do
     end
 
     version =
-      version
-      |> Map.put(:deployment, Keyword.get(attrs, :deployment))
-      |> Map.put(:deploy_ref, inspect(Keyword.get(attrs, :deploy_ref)))
-      |> Jason.encode!()
+      %{
+        version: storage["version"],
+        hash: storage["hash"],
+        instance: instance,
+        deployment: Keyword.get(attrs, :deployment),
+        deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
+        inserted_at: NaiveDateTime.utc_now()
+      }
 
-    instance
-    |> AppConfig.current_version_path()
-    |> File.write!(version)
+    write_current_version = fn version ->
+      json_version = Jason.encode!(version)
+
+      instance
+      |> AppConfig.current_version_path()
+      |> File.write!(json_version)
+    end
+
+    write_history_version = fn version ->
+      new_list = [version | history_version_list()]
+
+      json_list = Jason.encode!(new_list)
+
+      AppConfig.history_version_path()
+      |> File.write!(json_list)
+    end
+
+    with :ok <- write_current_version.(version) do
+      write_history_version.(version)
+    end
   end
 
   @spec add_ghosted_version_list(Storage.version_map()) :: {:ok, list()}
@@ -148,6 +169,12 @@ defmodule Deployex.AppStatus do
   @spec ghosted_version_list :: list()
   def ghosted_version_list do
     AppConfig.ghosted_version_path()
+    |> read_data_from_file() || []
+  end
+
+  @spec history_version_list :: list()
+  def history_version_list do
+    AppConfig.history_version_path()
     |> read_data_from_file() || []
   end
 

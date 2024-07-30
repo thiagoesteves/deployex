@@ -30,6 +30,21 @@ defmodule DeployexWeb.ApplicationsLive do
       />
     </.modal>
 
+    <.modal
+      :if={@live_action in [:versions]}
+      id="app-versions-modal"
+      show
+      on_cancel={JS.patch(~p"/applications")}
+    >
+      <.live_component
+        module={DeployexWeb.ApplicationsLive.Versions}
+        id={@selected_instance}
+        title={@page_title}
+        action={@live_action}
+        patch={~p"/applications"}
+      />
+    </.modal>
+
     <.terminal_modal
       :if={@live_action in [:terminal]}
       id="app-terminal-modal"
@@ -107,6 +122,12 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:selected_instance, instance)
   end
 
+  defp apply_action(socket, :versions, %{"instance" => instance}) do
+    socket
+    |> assign(:page_title, "Monitored App version history")
+    |> assign(:selected_instance, instance)
+  end
+
   @impl true
   def handle_info({:monitoring_app_updated, monitoring_apps_data}, socket) do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
@@ -129,12 +150,18 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  @spec handle_event(<<_::104, _::_*40>>, map(), Phoenix.LiveView.Socket.t()) ::
+          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
     {:noreply, push_patch(socket, to: std_path(instance, std))}
   end
 
   def handle_event("app-terminal-click", %{"instance" => instance}, socket) do
     {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/terminal")}
+  end
+
+  def handle_event("app-versions-click", %{"instance" => instance}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/versions")}
   end
 
   defp std_path(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"

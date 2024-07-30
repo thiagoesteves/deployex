@@ -76,7 +76,7 @@ defmodule DeployexWeb.Components.AppCards do
                 phx-value-instance={app.instance}
                 phx-value-std="stdout"
                 type="button"
-                class="ml-2 text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                class="ml-2 me-2 mb-2 text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 dark:focus:ring-green-800 rounded-lg text-sm px-2 py-1 text-center"
               >
                 stdout
               </button>
@@ -86,28 +86,19 @@ defmodule DeployexWeb.Components.AppCards do
                 phx-value-instance={app.instance}
                 phx-value-std="terminal"
                 type="button"
-                class="ml-2 text-white bg-gradient-to-r from-gray-500 to-gray-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                class="ml-2  me-2 mb-2 text-white bg-gradient-to-r from-gray-500 to-gray-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
               >
                 <svg
-                  width="32px"
-                  height="32px"
-                  viewBox="0 0 16 16"
-                  xmlns="http://www.w3.org/2000/svg"
-                  version="1.1"
+                  width="16px"
+                  height="16px"
+                  viewBox="0 0 15 15"
                   fill="none"
-                  stroke="#FFFFFF"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.0"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <g id="SVGRepo_bgCarrier" stroke-width="0" />
-
-                  <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" />
-
-                  <g id="SVGRepo_iconCarrier">
-                    <rect height="10.5" width="12.5" y="2.75" x="1.75" />
-                    <path d="m8.75 10.25h2.5m-6.5-4.5 2.5 2.25-2.5 2.25" />
-                  </g>
+                  <path
+                    d="M3.5 4.5L6.5 7.5L3.5 10.5M8 10.5H12M1.5 1.5H13.5C14.0523 1.5 14.5 1.94772 14.5 2.5V12.5C14.5 13.0523 14.0523 13.5 13.5 13.5H1.5C0.947716 13.5 0.5 13.0523 0.5 12.5V2.5C0.5 1.94772 0.947715 1.5 1.5 1.5Z"
+                    stroke="#FFFFFF"
+                  />
                 </svg>
               </button>
 
@@ -116,9 +107,18 @@ defmodule DeployexWeb.Components.AppCards do
                 phx-value-instance={app.instance}
                 phx-value-std="stderr"
                 type="button"
-                class="text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2"
+                class="me-2 mb-2 text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm px-2 py-1 text-center"
               >
                 stderr
+              </button>
+
+              <button
+                phx-click="app-versions-click"
+                phx-value-instance={app.instance}
+                type="button"
+                class="me-2 mb-2 text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-2 py-1 text-center"
+              >
+                versions
               </button>
             </p>
           </div>

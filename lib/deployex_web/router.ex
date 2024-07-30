@@ -27,6 +27,7 @@ defmodule DeployexWeb.Router do
       live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
       live "/applications/:instance/terminal", ApplicationsLive, :terminal
+      live "/applications/:instance/versions", ApplicationsLive, :versions
 
       live "/about", ComingSoonLive, :index
     end
