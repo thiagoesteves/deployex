@@ -132,13 +132,6 @@ defmodule Deployex.AppConfig do
     do: "#{base_path()}/storage/#{instance}/current.json"
 
   @doc """
-  Path to the previous version json file
-  """
-  @spec previous_version_path(integer()) :: binary()
-  def previous_version_path(instance),
-    do: "#{base_path()}/storage/#{instance}/previous.json"
-
-  @doc """
   Path to the history version json file
   """
   @spec history_version_path :: binary()

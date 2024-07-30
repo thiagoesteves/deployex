@@ -66,23 +66,12 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
 
   @impl true
   def update(assigns, socket) do
-    filter_by_instance = fn list ->
-      instance = String.to_integer(assigns.id)
-
-      if instance == 0 do
-        list
-      else
-        list |> Enum.filter(&(&1["instance"] == instance))
-      end
-    end
-
     version_list =
-      AppStatus.history_version_list()
-      |> Enum.map(fn version ->
-        %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
-      end)
-      |> Enum.sort(&(Date.compare(&1["inserted_at"], &2["inserted_at"]) != :gt))
-      |> filter_by_instance.()
+      if assigns.id == "0" do
+        AppStatus.history_version_list()
+      else
+        AppStatus.history_version_list(assigns.id)
+      end
 
     socket =
       socket

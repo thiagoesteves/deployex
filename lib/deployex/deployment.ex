@@ -148,7 +148,8 @@ defmodule Deployex.Deployment do
 
     state = %{state | ghosted_version_list: new_list}
 
-    previous_version_map = AppStatus.previous_version_map(instance)
+    # Retrieve previous version
+    previous_version_map = AppStatus.history_version_list(instance) |> Enum.at(1)
 
     deploy_application = fn ->
       case Storage.download_and_unpack(instance, previous_version_map["version"]) do
