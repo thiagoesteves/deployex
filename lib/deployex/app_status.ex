@@ -22,6 +22,15 @@ defmodule Deployex.AppStatus do
             uptime: nil,
             last_ghosted_version: nil
 
+  @type deployex_version_map :: %{
+          version: String.t(),
+          hash: String.t(),
+          instance: integer(),
+          deployment: atom(),
+          deploy_ref: String.t(),
+          inserted_at: NaiveDateTime.t()
+        }
+
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
 
@@ -79,7 +88,7 @@ defmodule Deployex.AppStatus do
     current_version_map(instance)["version"]
   end
 
-  @spec current_version_map(integer()) :: Storage.version_map() | nil
+  @spec current_version_map(integer()) :: deployex_version_map() | nil
   def current_version_map(instance) do
     instance
     |> AppConfig.current_version_path()
@@ -125,7 +134,7 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  @spec add_ghosted_version_list(Storage.version_map()) :: {:ok, list()}
+  @spec add_ghosted_version_list(deployex_version_map()) :: {:ok, list()}
   def add_ghosted_version_list(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_version_list()
