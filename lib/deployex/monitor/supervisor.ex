@@ -19,14 +19,30 @@ defmodule Deployex.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-
-  def new(args) do
+  @spec start_service(integer(), reference()) :: {:ok, pid} | {:error, pid(), :already_started}
+  def start_service(instance, deploy_ref) do
     spec = %{
       id: Deployex.Monitor,
-      start: {Deployex.Monitor, :start_link, [args]},
+      start: {Deployex.Monitor, :start_link, [[instance: instance, deploy_ref: deploy_ref]]},
       restart: :transient
     }
 
     DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
+  @spec stop_service(integer()) :: :ok
+  def stop_service(instance) do
+    instance
+    |> Deployex.Monitor.global_name()
+    |> :global.whereis_name()
+    |> case do
+      :undefined ->
+        :ok
+
+      child_pid ->
+        Deployex.Common.call_gen_server(child_pid, :stop_service)
+
+        DynamicSupervisor.terminate_child(__MODULE__, child_pid)
+    end
   end
 end

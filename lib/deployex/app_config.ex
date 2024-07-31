@@ -15,7 +15,7 @@ defmodule Deployex.AppConfig do
   @spec init(list()) :: :ok
   def init(instances) do
     create_storage_folder = fn instance ->
-      File.mkdir_p!("#{base_path()}/storage/#{instance}")
+      File.mkdir_p!("#{base_path()}/storage/#{monitored_app()}/#{instance}")
     end
 
     instances
@@ -129,21 +129,21 @@ defmodule Deployex.AppConfig do
   """
   @spec current_version_path(integer()) :: binary()
   def current_version_path(instance),
-    do: "#{base_path()}/storage/#{instance}/current.json"
+    do: "#{base_path()}/storage/#{monitored_app()}/#{instance}/current.json"
 
   @doc """
   Path to the history version json file
   """
   @spec history_version_path :: binary()
   def history_version_path,
-    do: "#{base_path()}/storage/#{@deployex_instance}/history.json"
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"
 
   @doc """
   Path to the ghosted version json file
   """
   @spec ghosted_version_path :: binary()
   def ghosted_version_path,
-    do: "#{base_path()}/storage/#{@deployex_instance}/ghosted.json"
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/ghosted.json"
 
   ### ==========================================================================
   ### Private functions

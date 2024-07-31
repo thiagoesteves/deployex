@@ -29,13 +29,7 @@ defmodule Deployex.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Deployex.Supervisor]
-    response = Supervisor.start_link(children, opts)
-
-    # Initialise instances
-    replicas_list()
-    |> Enum.each(&Deployex.Monitor.Supervisor.new(instance: &1))
-
-    response
+    Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration
