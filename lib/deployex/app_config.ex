@@ -14,20 +14,27 @@ defmodule Deployex.AppConfig do
   """
   @spec init(list()) :: :ok
   def init(instances) do
+    create_storage_folder = fn instance ->
+      File.mkdir_p!("#{base_path()}/storage/#{instance}")
+    end
+
     instances
     |> Enum.each(fn instance ->
       # Create the service folders (If they don't exist)
       [new_path(instance), current_path(instance), previous_path(instance)]
       |> Enum.each(&File.mkdir_p!/1)
 
-      # Create version folders (If they don't exist)
-      File.mkdir_p!("#{base_path()}/version/#{instance}")
+      # Create storage folders (If they don't exist)
+      create_storage_folder.(instance)
 
       # Create folder and Log message files (If they don't exist)
       File.mkdir_p!("#{log_path()}/#{monitored_app()}")
       File.touch(stdout_path(instance))
       File.touch(stderr_path(instance))
     end)
+
+    # Create storage for deployex instance
+    create_storage_folder.(@deployex_instance)
 
     :ok
   end
@@ -122,21 +129,21 @@ defmodule Deployex.AppConfig do
   """
   @spec current_version_path(integer()) :: binary()
   def current_version_path(instance),
-    do: "#{base_path()}/version/#{instance}/current.json"
+    do: "#{base_path()}/storage/#{instance}/current.json"
 
   @doc """
-  Path to the previous version json file
+  Path to the history version json file
   """
-  @spec previous_version_path(integer()) :: binary()
-  def previous_version_path(instance),
-    do: "#{base_path()}/version/#{instance}/previous.json"
+  @spec history_version_path :: binary()
+  def history_version_path,
+    do: "#{base_path()}/storage/#{@deployex_instance}/history.json"
 
   @doc """
   Path to the ghosted version json file
   """
   @spec ghosted_version_path :: binary()
   def ghosted_version_path,
-    do: "#{base_path()}/version/ghosted.json"
+    do: "#{base_path()}/storage/#{@deployex_instance}/ghosted.json"
 
   ### ==========================================================================
   ### Private functions

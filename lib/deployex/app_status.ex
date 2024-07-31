@@ -16,12 +16,20 @@ defmodule Deployex.AppStatus do
             otp: nil,
             tls: :not_supported,
             last_deployment: nil,
-            previous_version: nil,
             supervisor: false,
             status: nil,
             restarts: 0,
             uptime: nil,
             last_ghosted_version: nil
+
+  @type deployex_version_map :: %{
+          version: String.t(),
+          hash: String.t(),
+          instance: integer(),
+          deployment: atom(),
+          deploy_ref: String.t(),
+          inserted_at: NaiveDateTime.t()
+        }
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
@@ -80,17 +88,10 @@ defmodule Deployex.AppStatus do
     current_version_map(instance)["version"]
   end
 
-  @spec current_version_map(integer()) :: Storage.version_map() | nil
+  @spec current_version_map(integer()) :: deployex_version_map() | nil
   def current_version_map(instance) do
     instance
     |> AppConfig.current_version_path()
-    |> read_data_from_file()
-  end
-
-  @spec previous_version_map(integer()) :: Storage.version_map() | nil
-  def previous_version_map(instance) do
-    instance
-    |> AppConfig.previous_version_path()
     |> read_data_from_file()
   end
 
@@ -100,30 +101,40 @@ defmodule Deployex.AppStatus do
   end
 
   @spec set_current_version_map(integer(), Storage.version_map(), Keyword.t()) :: :ok
-  def set_current_version_map(instance, version, attrs) when is_map(version) do
-    # Update previous version
-    case current_version_map(instance) do
-      nil ->
-        Logger.warning("No previous version set")
+  def set_current_version_map(instance, storage, attrs) do
+    version =
+      %{
+        version: storage["version"],
+        hash: storage["hash"],
+        instance: instance,
+        deployment: Keyword.get(attrs, :deployment),
+        deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
+        inserted_at: NaiveDateTime.utc_now()
+      }
 
-      current_version ->
-        instance
-        |> AppConfig.previous_version_path()
-        |> File.write!(current_version |> Jason.encode!())
+    write_current_version = fn version ->
+      json_version = Jason.encode!(version)
+
+      instance
+      |> AppConfig.current_version_path()
+      |> File.write!(json_version)
     end
 
-    version =
-      version
-      |> Map.put(:deployment, Keyword.get(attrs, :deployment))
-      |> Map.put(:deploy_ref, inspect(Keyword.get(attrs, :deploy_ref)))
-      |> Jason.encode!()
+    write_history_version = fn version ->
+      new_list = [version | history_version_list()]
 
-    instance
-    |> AppConfig.current_version_path()
-    |> File.write!(version)
+      json_list = Jason.encode!(new_list)
+
+      AppConfig.history_version_path()
+      |> File.write!(json_list)
+    end
+
+    with :ok <- write_current_version.(version) do
+      write_history_version.(version)
+    end
   end
 
-  @spec add_ghosted_version_list(Storage.version_map()) :: {:ok, list()}
+  @spec add_ghosted_version_list(deployex_version_map()) :: {:ok, list()}
   def add_ghosted_version_list(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_version_list()
@@ -149,6 +160,28 @@ defmodule Deployex.AppStatus do
   def ghosted_version_list do
     AppConfig.ghosted_version_path()
     |> read_data_from_file() || []
+  end
+
+  @spec history_version_list :: list()
+  def history_version_list do
+    version_list =
+      AppConfig.history_version_path()
+      |> read_data_from_file() || []
+
+    Enum.map(version_list, fn version ->
+      %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
+    end)
+    |> Enum.sort(&(Date.compare(&1["inserted_at"], &2["inserted_at"]) != :gt))
+  end
+
+  @spec history_version_list(integer()) :: list()
+  def history_version_list(instance) when is_binary(instance) do
+    history_version_list(String.to_integer(instance))
+  end
+
+  def history_version_list(instance) when is_number(instance) do
+    history_version_list()
+    |> Enum.filter(&(&1["instance"] == instance))
   end
 
   @spec clear_new(integer()) :: :ok
@@ -243,7 +276,6 @@ defmodule Deployex.AppStatus do
       otp: check_otp_monitored_app.(instance, deployment),
       tls: check_tls(),
       last_deployment: current_version_map(instance)["deployment"],
-      previous_version: previous_version_map(instance)["version"],
       supervisor: false,
       status: deployment,
       restarts: restarts,
