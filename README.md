@@ -23,7 +23,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Ensures all instances remain connected to the OTP distribution, including deployex itself.
  * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
  * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
- * Provides access to the IEx shell for both monitored apps and deployex.
+ * Provides access to the IEx shell for monitored apps and deployex.
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:
    - OTP connectivity
@@ -35,10 +35,11 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 - [ ] Execute migrations before full deployment or hot code reloading
 
-# Next Steps
+# Nice to have
 
 - [ ] Add telemetry support for deployex to capture metrics and telemetry via OTP distribution.
 - [ ] Integrate CPU utilization monitoring from the OTP distribution.
+- [ ] Continuous improvement in UI design.
 
 ## Getting Started
 
