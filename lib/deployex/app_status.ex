@@ -106,6 +106,7 @@ defmodule Deployex.AppStatus do
       %{
         version: storage["version"],
         hash: storage["hash"],
+        pre_commands: storage["pre_commands"],
         instance: instance,
         deployment: Keyword.get(attrs, :deployment),
         deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),

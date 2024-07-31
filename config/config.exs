@@ -14,7 +14,7 @@
 # General application configuration
 import Config
 
-monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
+monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "ectoapp")
 
 config :deployex,
   generators: [timestamp_type: :utc_datetime],

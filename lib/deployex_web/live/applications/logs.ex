@@ -131,5 +131,6 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   defp log_color("info"), do: "text-blue-500"
   defp log_color("warning"), do: "text-yellow-700"
   defp log_color("error"), do: "text-red-700"
+  defp log_color("notice"), do: "text-orange-700"
   defp log_color(_), do: "text-gray-700"
 end
