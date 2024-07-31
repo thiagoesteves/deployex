@@ -22,6 +22,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Rolled-back monitored app versions are ghosted, preventing their redeployment.
  * Ensures all instances remain connected to the OTP distribution, including deployex itself.
  * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
+ * Provides the ability to run pre-commans prior full deployments for Database migrations or any other eval command.
  * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
  * Provides access to the IEx shell for monitored apps and deployex.
  * Provides installer script to be used with ubuntu hosts.
@@ -31,11 +32,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
    - Last deployment status
    - Number of restarts
 
-# What is missing for the version 1.0.0
-
-- [ ] Execute migrations before full deployment or hot code reloading
-
-# Nice to have
+## Nice to have
 
 - [ ] Add telemetry support for deployex to capture metrics and telemetry via OTP distribution.
 - [ ] Integrate CPU utilization monitoring from the OTP distribution.
@@ -90,6 +87,7 @@ Expected Json format:
 ```bash
 {
   "version": "1.0.0",
+  "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], // optional field
   "hash": "local"
 }
 ```
@@ -105,8 +103,9 @@ s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{ve
 # local test path
 /tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
+## Production Information
 
-## Environment Variables
+### Environment Variables
 
 Deployex application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
 
@@ -128,13 +127,19 @@ Deployex application typically requires several environment variables to be defi
 
 For local testing, these variables are not expected or set to default values.
 
-## Production installation
+### installation
 
 If you intend to install Deployex directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server](https://github.com/thiagoesteves/calori/blob/main/devops/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a JSON configuration file, an example of which can be found [here](/devops/installer/deployex-config.json). This JSON file can also export environment variables specific to the monitored applications.
 
 Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install Deployex on your target system.
 
-## Production Secrets Requirements
+### Pre-commands
+
+It is very likely your application will require database commands, such as migrations. Deployex executes pre-commands defined in current.json using the pre_commands field. These commands will run in the same order as defined, and before the application starts.
+
+__*PS: Pre commands are executed only for full deployment, not available for hot upgrades*__
+
+### Secrets Requirements
 
 Deployex is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS (It is important to note that this name is expected to not contain "_"):
 

@@ -5,7 +5,7 @@ defmodule Deployex.Storage do
 
   @behaviour Deployex.Storage.Adapter
 
-  @type version_map :: %{version: String.t(), hash: String.t()}
+  @type version_map :: %{version: String.t(), hash: String.t(), pre_commands: list()}
 
   def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
@@ -18,7 +18,16 @@ defmodule Deployex.Storage do
   """
   @impl true
   @spec get_current_version_map :: version_map() | nil
-  def get_current_version_map, do: default().get_current_version_map()
+  def get_current_version_map do
+    storage_map = default().get_current_version_map()
+
+    # Check optional fields
+    if storage_map["pre_commands"] == nil do
+      Map.put(storage_map, "pre_commands", [])
+    else
+      storage_map
+    end
+  end
 
   @doc """
   Download and unpack the application

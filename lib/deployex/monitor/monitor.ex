@@ -79,18 +79,18 @@ defmodule Deployex.Monitor do
 
   @impl true
   def handle_info({:run_service, deploy_ref}, state) when deploy_ref == state.deploy_ref do
-    version = AppStatus.current_version(state.instance)
+    version_map = AppStatus.current_version_map(state.instance)
 
     state =
-      if version == nil do
+      if version_map == nil do
         Logger.info("No version set, not able to run_service")
         state
       else
         Logger.info(
-          "Ensure running requested for instance: #{state.instance} version: #{version}"
+          "Ensure running requested for instance: #{state.instance} version: #{version_map["version"]}"
         )
 
-        run_service(state, version)
+        run_service(state, version_map)
       end
 
     {:noreply, state}
@@ -179,14 +179,33 @@ defmodule Deployex.Monitor do
     end
   end
 
-  defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version) do
+  defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version_map) do
     executable = executable_path(instance)
+    pre_commands = version_map["pre_commands"]
+    version = version_map["version"]
+
+    execute_pre_commands = fn ->
+      Enum.each(pre_commands, fn command ->
+        Logger.info(" # Running pre-command: #{command}")
+
+        {:ok, _} =
+          :exec.run_link(run_app_bin(instance, command), [
+            :sync,
+            {:stdout, AppConfig.stdout_path(instance)},
+            {:stderr, AppConfig.stderr_path(instance)}
+          ])
+      end)
+    end
 
     if File.exists?(executable) do
-      Logger.info(" # Starting #{executable}...")
+      Logger.info(" # Identified executable: #{executable}")
+
+      execute_pre_commands.()
+
+      Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
-        :exec.run_link(commands(instance), [
+        :exec.run_link(run_app_bin(instance), [
           {:stdout, AppConfig.stdout_path(instance)},
           {:stderr, AppConfig.stderr_path(instance)}
         ])
@@ -209,7 +228,7 @@ defmodule Deployex.Monitor do
   #       - Unset env vars from the deployex release to not mix with the monitored app release
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
-  defp commands(instance) do
+  defp run_app_bin(instance, command \\ "start") do
     phx_port = AppConfig.phx_start_port() + (instance - 1)
     executable_path = executable_path(instance)
 
@@ -217,7 +236,7 @@ defmodule Deployex.Monitor do
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
     export RELEASE_NODE_SUFFIX=-#{instance}
     export PORT=#{phx_port}
-    #{executable_path} start
+    #{executable_path} #{command}
     """
   end
 
