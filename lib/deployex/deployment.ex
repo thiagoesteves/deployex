@@ -10,7 +10,8 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Common, Monitor, Storage, Upgrade}
+  alias Deployex.{AppStatus, Common, Storage, Upgrade}
+  alias Deployex.Monitor.Supervisor, as: MonitorSup
 
   defstruct instances: 1,
             current: 1,
@@ -81,7 +82,7 @@ defmodule Deployex.Deployment do
       if instance == state.current and deploy_ref == current_deployment.deploy_ref do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        Monitor.stop_service(state.current)
+        MonitorSup.stop_service(state.current)
 
         rollback_to_previous_version(state)
       else
@@ -181,7 +182,7 @@ defmodule Deployex.Deployment do
     new_deploy_ref = :erlang.make_ref()
 
     if current_app_version != nil do
-      :ok = Monitor.start_service(state.current, new_deploy_ref)
+      {:ok, _} = MonitorSup.start_service(state.current, new_deploy_ref)
       set_timeout_to_rollback(state, new_deploy_ref)
     else
       state
@@ -244,7 +245,7 @@ defmodule Deployex.Deployment do
         "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
       )
 
-      Monitor.stop_service(instance)
+      MonitorSup.stop_service(instance)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
@@ -257,7 +258,7 @@ defmodule Deployex.Deployment do
         deploy_ref: new_deploy_ref
       )
 
-      :ok = Monitor.start_service(instance, new_deploy_ref)
+      {:ok, _} = MonitorSup.start_service(instance, new_deploy_ref)
     end)
 
     set_timeout_to_rollback(state, new_deploy_ref)

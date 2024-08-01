@@ -23,34 +23,26 @@ defmodule Deployex.Monitor do
 
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: global_name(args))
+    name = global_name(Keyword.get(args, :instance))
+    GenServer.start_link(__MODULE__, args, name: {:global, name})
   end
 
   @impl true
-  def init(instance: instance) do
+  def init(instance: instance, deploy_ref: deploy_ref) do
     Process.flag(:trap_exit, true)
 
     Logger.info("Initialising monitor server for instance: #{instance}")
 
     Logger.metadata(instance: instance)
 
-    {:ok, %__MODULE__{instance: instance}}
+    trigger_run_service(deploy_ref)
+
+    {:ok, reset_state(%__MODULE__{instance: instance}, deploy_ref)}
   end
 
   @impl true
   def handle_call(:state, _from, state) do
     {:reply, {:ok, state}, state}
-  end
-
-  def handle_call(
-        {:start_service, deploy_ref},
-        _from,
-        %__MODULE__{current_pid: current_pid} = state
-      )
-      when is_nil(current_pid) do
-    trigger_run_service(deploy_ref)
-
-    {:reply, :ok, reset_state(state, deploy_ref)}
   end
 
   def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
@@ -114,6 +106,13 @@ defmodule Deployex.Monitor do
     {:noreply, state}
   end
 
+  def handle_info({:EXIT, _pid, :normal}, state) do
+    # Ignore any erl_exec application that terminates normally, as this
+    # occurs because the process is trapping all exits, including those
+    # that are expected.
+    {:noreply, state}
+  end
+
   def handle_info({:EXIT, pid, _reason}, %{current_pid: current_pid} = state)
       when current_pid == pid do
     Logger.error(
@@ -143,41 +142,21 @@ defmodule Deployex.Monitor do
   ### Public functions
   ### ==========================================================================
 
-  @spec start_service(integer(), reference()) ::
-          :ok | {:error, pid(), :already_started} | {:error, :rescued}
-  def start_service(instance, deploy_ref) do
-    call_gen_server(instance, {:start_service, deploy_ref})
-  end
-
-  @spec stop_service(integer()) :: :ok | {:error, :rescued}
-  def stop_service(instance) do
-    call_gen_server(instance, :stop_service)
-  end
-
   @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, :rescued}
   def state(instance) do
-    call_gen_server(instance, :state)
+    instance
+    |> global_name()
+    |> Common.call_gen_server(:state)
   end
+
+  @spec global_name(integer()) :: map()
+  def global_name(instance), do: %{module: __MODULE__, instance: instance}
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp global_name(instance: instance), do: {:global, %{module: __MODULE__, instance: instance}}
-  defp global_name(instance), do: {:global, %{module: __MODULE__, instance: instance}}
-
   def trigger_run_service(deploy_ref, timeout \\ 1),
     do: Process.send_after(self(), {:run_service, deploy_ref}, timeout)
-
-  # NOTE: This function needs to use try/catch because rescue (suggested by credo)
-  #       doesn't handle :exit
-  defp call_gen_server(instance, message) do
-    try do
-      GenServer.call(global_name(instance), message)
-    catch
-      _, _ ->
-        {:error, :rescued}
-    end
-  end
 
   defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version_map) do
     executable = executable_path(instance)
