@@ -70,7 +70,6 @@ defmodule Deployex.Monitor do
   end
 
   def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
-
     execute_pre_commands(state.instance, pre_commands, app_bin_path)
 
     {:reply, {:ok, pre_commands}, state}
@@ -229,9 +228,9 @@ defmodule Deployex.Monitor do
     "#{AppConfig.new_path(instance)}/bin/#{AppConfig.monitored_app()}"
   end
 
-  def execute_pre_commands(_instance, pre_commands, _bin_path) when pre_commands == [], do: :ok
+  defp execute_pre_commands(_instance, pre_commands, _bin_path) when pre_commands == [], do: :ok
 
-  def execute_pre_commands(instance, pre_commands, bin_path) do
+  defp execute_pre_commands(instance, pre_commands, bin_path) do
     migration_exec = executable_path(instance, bin_path)
 
     if File.exists?(migration_exec) do
