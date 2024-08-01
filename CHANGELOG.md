@@ -3,13 +3,14 @@
 ## 0.3.0-rc13 ()
 
 ## Backwards incompatible changes for 0.3.0-rc12
- * A new folder was created (`storage`) and this will represent the persistent data for deployex, updating to this version will require losing previous data.
+ * A new folder was created (`storage/{app-name}`) and this will represent the persistent data for deployex, updating to this version will require losing previous data.
 
 ### Bug fixes
  * None
 
 ### Enhancements
- * [[``]()] 
+ * [[`00eb09f`](https://github.com/thiagoesteves/deployex/commit/00eb09f71e4ea25ef6a062edade9c95380fda74b)] Modify Monitor to use dynamic supervisors for start/stop instead of receiving direct commands via gen_server
+ * [[`b91f640`](https://github.com/thiagoesteves/deployex/commit/b91f640a78a375ddfff310e1465ac962480dc7ee)] Implemented pre_commands functionality for running migrations
 
 ## 0.3.0-rc12 (2024-07-29)
 

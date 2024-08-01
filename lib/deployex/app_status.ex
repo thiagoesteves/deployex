@@ -257,7 +257,8 @@ defmodule Deployex.AppStatus do
   end
 
   defp update_monitored_app(instance) do
-    %{deployment: deployment, restarts: restarts, uptime: uptime} = check_monitor_data(instance)
+    %{deployment_status: deployment_status, restarts: restarts, uptime: uptime} =
+      check_monitor_data(instance)
 
     check_otp_monitored_app = fn
       instance, :running ->
@@ -274,11 +275,11 @@ defmodule Deployex.AppStatus do
       name: Application.get_env(:deployex, :monitored_app_name),
       instance: instance,
       version: current_version(instance),
-      otp: check_otp_monitored_app.(instance, deployment),
+      otp: check_otp_monitored_app.(instance, deployment_status),
       tls: check_tls(),
       last_deployment: current_version_map(instance)["deployment"],
       supervisor: false,
-      status: deployment,
+      status: deployment_status,
       restarts: restarts,
       uptime: uptime
     }
@@ -296,7 +297,7 @@ defmodule Deployex.AppStatus do
     case Monitor.state(instance) do
       {:ok, state} ->
         %{
-          deployment: state.status,
+          deployment_status: state.status,
           restarts: state.restarts,
           uptime: uptime_to_string(state.start_time)
         }
