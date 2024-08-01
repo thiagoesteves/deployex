@@ -6,7 +6,7 @@ defmodule Deployex.AppStatus do
   use GenServer
   alias Deployex.AppConfig
   alias Deployex.Monitor
-  alias Deployex.Storage
+  alias Deployex.Release
 
   require Logger
 
@@ -100,13 +100,13 @@ defmodule Deployex.AppStatus do
     @apps_data_updated_topic
   end
 
-  @spec set_current_version_map(integer(), Storage.version_map(), Keyword.t()) :: :ok
-  def set_current_version_map(instance, storage, attrs) do
+  @spec set_current_version_map(integer(), Release.version_map(), Keyword.t()) :: :ok
+  def set_current_version_map(instance, release, attrs) do
     version =
       %{
-        version: storage["version"],
-        hash: storage["hash"],
-        pre_commands: storage["pre_commands"],
+        version: release["version"],
+        hash: release["hash"],
+        pre_commands: release["pre_commands"],
         instance: instance,
         deployment: Keyword.get(attrs, :deployment),
         deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),

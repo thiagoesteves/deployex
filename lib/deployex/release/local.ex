@@ -1,9 +1,9 @@
-defmodule Deployex.Storage.Local do
+defmodule Deployex.Release.Local do
   @moduledoc """
-    Storage adapter used for handling local files
+    Release adapter used for handling local files
   """
 
-  @behaviour Deployex.Storage.Adapter
+  @behaviour Deployex.Release.Adapter
 
   alias Deployex.{AppConfig, AppStatus, Upgrade}
 
@@ -17,7 +17,7 @@ defmodule Deployex.Storage.Local do
   Retrieve current version
   """
   @impl true
-  @spec get_current_version_map() :: Deployex.Storage.version_map() | nil
+  @spec get_current_version_map() :: Deployex.Release.version_map() | nil
   def get_current_version_map do
     monitored_app = AppConfig.monitored_app()
 
@@ -42,10 +42,10 @@ defmodule Deployex.Storage.Local do
   def download_and_unpack(instance, version) do
     monitored_app = AppConfig.monitored_app()
 
-    storage_path =
+    release_path =
       "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 
-    download_path = "/tmp/#{monitored_app}/" <> storage_path
+    download_path = "/tmp/#{monitored_app}/" <> release_path
 
     AppStatus.clear_new(instance)
     new_path = AppConfig.new_path(instance)

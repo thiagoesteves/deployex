@@ -1,9 +1,9 @@
-defmodule Deployex.Storage.S3 do
+defmodule Deployex.Release.S3 do
   @moduledoc """
-    Storage adapter used for handling S3 files
+    Release adapter used for handling S3 files
   """
 
-  @behaviour Deployex.Storage.Adapter
+  @behaviour Deployex.Release.Adapter
 
   alias Deployex.{AppConfig, AppStatus, Upgrade}
 
@@ -17,7 +17,7 @@ defmodule Deployex.Storage.S3 do
   Retrieve current version
   """
   @impl true
-  @spec get_current_version_map() :: Deployex.Storage.version_map() | nil
+  @spec get_current_version_map() :: Deployex.Release.version_map() | nil
   def get_current_version_map do
     path = "versions/#{AppConfig.monitored_app()}/#{env()}/current.json"
 

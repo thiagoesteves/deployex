@@ -10,7 +10,7 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Common, Storage, Upgrade}
+  alias Deployex.{AppStatus, Common, Release, Upgrade}
   alias Deployex.Monitor.Supervisor, as: MonitorSup
 
   defstruct instances: 1,
@@ -153,7 +153,7 @@ defmodule Deployex.Deployment do
     previous_version_map = AppStatus.history_version_list(instance) |> Enum.at(1)
 
     deploy_application = fn ->
-      case Storage.download_and_unpack(instance, previous_version_map["version"]) do
+      case Release.download_and_unpack(instance, previous_version_map["version"]) do
         {:ok, _} ->
           full_deployment(state, previous_version_map)
 
@@ -190,24 +190,24 @@ defmodule Deployex.Deployment do
   end
 
   defp check_deployment(%{current: instance, ghosted_version_list: ghosted_version_list} = state) do
-    storage = Storage.get_current_version_map()
+    release = Release.get_current_version_map()
     current_app_version = AppStatus.current_version(instance) || "<no current set>"
 
-    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == storage["version"]))
+    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == release["version"]))
 
     deploy_application = fn ->
-      case Storage.download_and_unpack(instance, storage["version"]) do
+      case Release.download_and_unpack(instance, release["version"]) do
         {:ok, :full_deployment} ->
-          full_deployment(state, storage)
+          full_deployment(state, release)
 
         {:ok, :hot_upgrade} ->
-          hot_upgrade(state, storage)
+          hot_upgrade(state, release)
       end
     end
 
-    if storage != nil and storage["version"] != current_app_version and not ghosted_version? do
+    if release != nil and release["version"] != current_app_version and not ghosted_version? do
       Logger.info(
-        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{storage["version"]}."
+        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release["version"]}."
       )
 
       deploy_application.()
@@ -237,7 +237,7 @@ defmodule Deployex.Deployment do
     %{state | deployments: deployments}
   end
 
-  defp full_deployment(%{current: instance} = state, storage) do
+  defp full_deployment(%{current: instance} = state, release) do
     new_deploy_ref = :erlang.make_ref()
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
@@ -253,7 +253,7 @@ defmodule Deployex.Deployment do
 
       AppStatus.update(instance)
 
-      AppStatus.set_current_version_map(instance, storage,
+      AppStatus.set_current_version_map(instance, release,
         deployment: :full_deployment,
         deploy_ref: new_deploy_ref
       )
@@ -264,7 +264,7 @@ defmodule Deployex.Deployment do
     set_timeout_to_rollback(state, new_deploy_ref)
   end
 
-  defp hot_upgrade(%{current: instance} = state, storage) do
+  defp hot_upgrade(%{current: instance} = state, release) do
     # For hot code reloading, the previous deployment code is not changed
     deploy_ref = state.deployments[instance].deploy_ref
 
@@ -275,8 +275,8 @@ defmodule Deployex.Deployment do
 
       from_version = AppStatus.current_version(instance)
 
-      if :ok == Upgrade.run(instance, from_version, storage["version"]) do
-        AppStatus.set_current_version_map(instance, storage,
+      if :ok == Upgrade.run(instance, from_version, release["version"]) do
+        AppStatus.set_current_version_map(instance, release,
           deployment: :hot_upgrade,
           deploy_ref: deploy_ref
         )
@@ -285,10 +285,10 @@ defmodule Deployex.Deployment do
       end
     end)
 
-    if AppStatus.current_version(instance) != storage["version"] do
+    if AppStatus.current_version(instance) != release["version"] do
       Logger.error("Hot Upgrade failed, running for full deployment")
 
-      full_deployment(state, storage)
+      full_deployment(state, release)
     else
       state
     end
