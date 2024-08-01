@@ -16,6 +16,7 @@ defmodule Deployex.Monitor do
 
   # NOTE: Timeout to check if the application crashed for any reason
   @timeout_to_verify_app_ready :timer.seconds(30)
+  @retry_delay_pre_commands :timer.seconds(1)
 
   ### ==========================================================================
   ### Callback functions
@@ -69,8 +70,11 @@ defmodule Deployex.Monitor do
     {:reply, :ok, reset_state(state)}
   end
 
+  # This command is available during the hot upgrade. If it fails, the process will
+  # restart and attempt a full deployment.
   def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
-    execute_pre_commands(state.instance, pre_commands, app_bin_path)
+
+    :ok = execute_pre_commands(state.instance, pre_commands, app_bin_path)
 
     {:reply, {:ok, pre_commands}, state}
   end
@@ -175,11 +179,9 @@ defmodule Deployex.Monitor do
     app_exec = executable_path(instance, :current)
     version = version_map["version"]
 
-    if File.exists?(app_exec) do
-      Logger.info(" # Identified executable: #{app_exec}")
-
-      execute_pre_commands(instance, version_map["pre_commands"], :current)
-
+    with true <- File.exists?(app_exec),
+         :ok <- Logger.info(" # Identified executable: #{app_exec}"),
+         :ok <- execute_pre_commands(instance, version_map["pre_commands"], :current) do
       Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
@@ -199,9 +201,14 @@ defmodule Deployex.Monitor do
 
       %{state | current_pid: pid, status: :starting, start_time: now()}
     else
-      Logger.error("Version: #{version} set but no #{app_exec}")
+      false ->
+        trigger_run_service(deploy_ref, @retry_delay_pre_commands)
+        Logger.error("Version: #{version} set but no #{app_exec}")
+        state
 
-      reset_state(state)
+      {:error, :pre_commands} ->
+        trigger_run_service(deploy_ref, @retry_delay_pre_commands)
+        %{state | status: :pre_commands}
     end
   end
 
@@ -228,6 +235,7 @@ defmodule Deployex.Monitor do
     "#{AppConfig.new_path(instance)}/bin/#{AppConfig.monitored_app()}"
   end
 
+  # credo:disable-for-lines:28
   defp execute_pre_commands(_instance, pre_commands, _bin_path) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(instance, pre_commands, bin_path) do
@@ -236,19 +244,25 @@ defmodule Deployex.Monitor do
     if File.exists?(migration_exec) do
       Logger.info(" # Migration executable: #{migration_exec}")
 
-      Enum.each(pre_commands, fn command ->
-        Logger.info(" # Running pre-command: #{command}")
+      Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
+        :exec.run(run_app_bin(instance, migration_exec, pre_command), [
+          :sync,
+          {:stdout, AppConfig.stdout_path(instance)},
+          {:stderr, AppConfig.stderr_path(instance)}
+        ])
+        |> case do
+          {:ok, _} ->
+            {:cont, acc}
 
-        {:ok, _} =
-          :exec.run_link(run_app_bin(instance, migration_exec, command), [
-            :sync,
-            {:stdout, AppConfig.stdout_path(instance)},
-            {:stderr, AppConfig.stderr_path(instance)}
-          ])
+          {:error, reason} ->
+            Logger.error(
+              "Error running pre-command: #{pre_command} for instance: #{instance} reason: #{inspect(reason)}"
+            )
+
+            {:halt, {:error, :pre_commands}}
+        end
       end)
     end
-
-    :ok
   end
 
   defp cleanup_beam_process(instance) do
