@@ -1,9 +1,9 @@
-defmodule Deployex.Storage do
+defmodule Deployex.Release do
   @moduledoc """
-  This module will provide storage abstraction
+  This module will provide release abstraction
   """
 
-  @behaviour Deployex.Storage.Adapter
+  @behaviour Deployex.Release.Adapter
 
   @type version_map :: %{version: String.t(), hash: String.t(), pre_commands: list()}
 
@@ -19,13 +19,13 @@ defmodule Deployex.Storage do
   @impl true
   @spec get_current_version_map :: version_map() | nil
   def get_current_version_map do
-    storage_map = default().get_current_version_map()
+    release_map = default().get_current_version_map()
 
     # Check optional fields
-    if storage_map["pre_commands"] == nil do
-      Map.put(storage_map, "pre_commands", [])
+    if release_map["pre_commands"] == nil do
+      Map.put(release_map, "pre_commands", [])
     else
-      storage_map
+      release_map
     end
   end
 
