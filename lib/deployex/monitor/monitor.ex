@@ -73,7 +73,6 @@ defmodule Deployex.Monitor do
   # This command is available during the hot upgrade. If it fails, the process will
   # restart and attempt a full deployment.
   def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
-
     :ok = execute_pre_commands(state.instance, pre_commands, app_bin_path)
 
     {:reply, {:ok, pre_commands}, state}
@@ -262,6 +261,8 @@ defmodule Deployex.Monitor do
             {:halt, {:error, :pre_commands}}
         end
       end)
+    else
+      {:error, :migration_exec_non_available}
     end
   end
 
