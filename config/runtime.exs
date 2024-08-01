@@ -48,14 +48,14 @@ if config_env() == :prod do
       port: port
     ]
 
-  storage_adapter =
-    if System.get_env("DEPLOYEX_STORAGE_ADAPTER") == "local" do
-      Deployex.Storage.Local
+  release_adapter =
+    if System.get_env("DEPLOYEX_RELEASE_ADAPTER") == "local" do
+      Deployex.Release.Local
     else
-      Deployex.Storage.S3
+      Deployex.Release.S3
     end
 
-  config :deployex, Deployex.Storage, adapter: storage_adapter
+  config :deployex, Deployex.Release, adapter: release_adapter
 
   config :deployex, Deployex.Deployment,
     # Default 10 minutes

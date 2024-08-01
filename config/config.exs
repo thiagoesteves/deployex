@@ -95,7 +95,7 @@ config :ex_aws,
     :instance_role
   ]
 
-config :deployex, Deployex.Storage, adapter: Deployex.Storage.Local
+config :deployex, Deployex.Release, adapter: Deployex.Release.Local
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

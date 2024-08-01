@@ -202,7 +202,11 @@ defmodule DeployexWeb.Components.AppCards do
     <%= cond do %>
       <% @status == :running and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
-          <%= @version %>
+          <%= @version %> [running]
+        </div>
+      <% @status == :pre_commands and @version != nil -> %>
+        <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
+          <%= @version %> [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>

@@ -303,7 +303,7 @@ defmodule Deployex.AppStatus do
         }
 
       _ ->
-        %{deployment: nil, restarts: nil, uptime: "/"}
+        %{deployment_status: nil, restarts: nil, uptime: "/"}
     end
   end
 
