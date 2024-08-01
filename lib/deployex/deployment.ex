@@ -201,8 +201,8 @@ defmodule Deployex.Deployment do
           full_deployment(state, release)
 
         {:ok, :hot_upgrade} ->
-          # In order to run the migrations for the hot upgrade deployment, deployex
-          # is relaying on the unpacked version in the new folder.
+          # To run the migrations for the hot upgrade deployment, deployex relies on the
+          # unpacked version in the new-folder
           Deployex.Monitor.run_pre_commands(instance, release["pre_commands"], :new)
           hot_upgrade(state, release)
       end
