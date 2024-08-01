@@ -22,7 +22,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Rolled-back monitored app versions are ghosted, preventing their redeployment.
  * Ensures all instances remain connected to the OTP distribution, including deployex itself.
  * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
- * Provides the ability to run pre-commans prior full deployments for Database migrations or any other eval command.
+ * Provides the ability to run pre-commans prior deployments for Database migrations or any other eval command.
  * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
  * Provides access to the IEx shell for monitored apps and deployex.
  * Provides installer script to be used with ubuntu hosts.
@@ -75,7 +75,7 @@ The Deployex app expects a `current.json` file to be available, which contains v
 
 #### Version file (current.json) 
 
-Expected location in the storage folder:
+Expected location in the release folder:
 ```bash
 # production path
 s3://{monitored_app}-{env}-distribution/versions/{monitored_app}/{env}/current.json
@@ -96,7 +96,7 @@ Once the file is captured, the deployment will start if no app is running or if 
 
 #### Release package
 
-Expected location in the storage folder:
+Expected location in the release folder:
 ```bash
 # production path
 s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
@@ -119,7 +119,7 @@ Deployex application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_HOST__ | example.com | system ENV | -/- | The hostname for your application |
 | __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
-| __DEPLOYEX_STORAGE_ADAPTER__ | local | system ENV | s3 | storage adapter type |
+| __DEPLOYEX_RELEASE_ADAPTER__ | local | system ENV | s3 | release adapter type |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
 | __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
 | __DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS__ | 600000 | system ENV | 600000 | The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back |
@@ -135,9 +135,7 @@ Currently, the release and installation process supports Ubuntu versions 20.04 a
 
 ### Pre-commands
 
-It is very likely your application will require database commands, such as migrations. Deployex executes pre-commands defined in current.json using the pre_commands field. These commands will run in the same order as defined, and before the application starts.
-
-__*PS: Pre commands are executed only for full deployment, not available for hot upgrades*__
+Your application will likely require database commands, such as migrations. Deployex handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
 ### Secrets Requirements
 
@@ -157,7 +155,7 @@ and the following secrets are expected:
 
 For local testing, the root path used is `/tmp/{monitored_app}`. Follow these steps:
 
-Create the required storage folders:
+Create the required release folders:
 ```bash
 export monitored_app_name=myphoenixapp
 mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}

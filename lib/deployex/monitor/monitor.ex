@@ -69,6 +69,13 @@ defmodule Deployex.Monitor do
     {:reply, :ok, reset_state(state)}
   end
 
+  def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
+
+    execute_pre_commands(state.instance, pre_commands, app_bin_path)
+
+    {:reply, {:ok, pre_commands}, state}
+  end
+
   @impl true
   def handle_info({:run_service, deploy_ref}, state) when deploy_ref == state.deploy_ref do
     version_map = AppStatus.current_version_map(state.instance)
@@ -149,6 +156,13 @@ defmodule Deployex.Monitor do
     |> Common.call_gen_server(:state)
   end
 
+  @spec run_pre_commands(integer(), list(), :new | :current) :: {:ok, list()} | {:error, :rescued}
+  def run_pre_commands(instance, pre_commands, app_bin_path) do
+    instance
+    |> global_name()
+    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_path})
+  end
+
   @spec global_name(integer()) :: map()
   def global_name(instance), do: %{module: __MODULE__, instance: instance}
 
@@ -159,35 +173,24 @@ defmodule Deployex.Monitor do
     do: Process.send_after(self(), {:run_service, deploy_ref}, timeout)
 
   defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version_map) do
-    executable = executable_path(instance)
-    pre_commands = version_map["pre_commands"]
+    app_exec = executable_path(instance, :current)
     version = version_map["version"]
 
-    execute_pre_commands = fn ->
-      Enum.each(pre_commands, fn command ->
-        Logger.info(" # Running pre-command: #{command}")
+    if File.exists?(app_exec) do
+      Logger.info(" # Identified executable: #{app_exec}")
 
-        {:ok, _} =
-          :exec.run_link(run_app_bin(instance, command), [
-            :sync,
-            {:stdout, AppConfig.stdout_path(instance)},
-            {:stderr, AppConfig.stderr_path(instance)}
-          ])
-      end)
-    end
-
-    if File.exists?(executable) do
-      Logger.info(" # Identified executable: #{executable}")
-
-      execute_pre_commands.()
+      execute_pre_commands(instance, version_map["pre_commands"], :current)
 
       Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
-        :exec.run_link(run_app_bin(instance), [
-          {:stdout, AppConfig.stdout_path(instance)},
-          {:stderr, AppConfig.stderr_path(instance)}
-        ])
+        :exec.run_link(
+          run_app_bin(instance, app_exec, "start"),
+          [
+            {:stdout, AppConfig.stdout_path(instance)},
+            {:stderr, AppConfig.stderr_path(instance)}
+          ]
+        )
 
       Logger.info(
         " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{Common.short_ref(deploy_ref)}."
@@ -197,7 +200,7 @@ defmodule Deployex.Monitor do
 
       %{state | current_pid: pid, status: :starting, start_time: now()}
     else
-      Logger.error("Version: #{version} set but no #{executable}")
+      Logger.error("Version: #{version} set but no #{app_exec}")
 
       reset_state(state)
     end
@@ -207,9 +210,8 @@ defmodule Deployex.Monitor do
   #       - Unset env vars from the deployex release to not mix with the monitored app release
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
-  defp run_app_bin(instance, command \\ "start") do
+  defp run_app_bin(instance, executable_path, command) do
     phx_port = AppConfig.phx_start_port() + (instance - 1)
-    executable_path = executable_path(instance)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
@@ -219,8 +221,35 @@ defmodule Deployex.Monitor do
     """
   end
 
-  defp executable_path(instance) do
+  defp executable_path(instance, :current) do
     "#{AppConfig.current_path(instance)}/bin/#{AppConfig.monitored_app()}"
+  end
+
+  defp executable_path(instance, :new) do
+    "#{AppConfig.new_path(instance)}/bin/#{AppConfig.monitored_app()}"
+  end
+
+  def execute_pre_commands(_instance, pre_commands, _bin_path) when pre_commands == [], do: :ok
+
+  def execute_pre_commands(instance, pre_commands, bin_path) do
+    migration_exec = executable_path(instance, bin_path)
+
+    if File.exists?(migration_exec) do
+      Logger.info(" # Migration executable: #{migration_exec}")
+
+      Enum.each(pre_commands, fn command ->
+        Logger.info(" # Running pre-command: #{command}")
+
+        {:ok, _} =
+          :exec.run_link(run_app_bin(instance, migration_exec, command), [
+            :sync,
+            {:stdout, AppConfig.stdout_path(instance)},
+            {:stderr, AppConfig.stderr_path(instance)}
+          ])
+      end)
+    end
+
+    :ok
   end
 
   defp cleanup_beam_process(instance) do
