@@ -1,6 +1,6 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc13 ()
+## 0.3.0-rc13 (2024-08-02)
 
 ## Backwards incompatible changes for 0.3.0-rc12
  * A new folder was created (`storage/{app-name}`) and this will represent the persistent data for deployex, updating to this version will require losing previous data.
