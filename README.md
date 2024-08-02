@@ -49,9 +49,6 @@ iex --sname deployex --cookie cookie -S mix phx.server
 [info] Initialising deployment server
 [info] Running DeployexWeb.Endpoint with Bandit 1.5.3 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
-[info] Initialising monitor server for instance: 1
-[info] Initialising monitor server for instance: 2
-[info] Initialising monitor server for instance: 3
 [watch] build finished, watching for changes...
 Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
@@ -59,7 +56,7 @@ Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
 
 Rebuilding...
 
-Done in 410ms.
+Done in 407ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
@@ -83,11 +80,11 @@ s3://{monitored_app}-{env}-distribution/versions/{monitored_app}/{env}/current.j
 /tmp/{monitored_app}/versions/{monitored_app}/{env}/current.json
 ```
 
-Expected Json format:
+Expected Json format for `current.json`:
 ```bash
 {
   "version": "1.0.0",
-  "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], // optional field
+  "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], # optional field
   "hash": "local"
 }
 ```
@@ -153,7 +150,7 @@ and the following secrets are expected:
 
 ## Running Deployex and Monitored app locally
 
-For local testing, the root path used is `/tmp/{monitored_app}`. Follow these steps:
+For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
 Create the required release folders:
 ```bash
@@ -162,9 +159,11 @@ mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
 
-Go to the application you want to deploy/monitor and create a release. In this example, we create a brand new application using phx.new and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
+It is important to note that for local deployments, deployex will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
 ### Creating an Elixir phoenix app (default name is `myphoenixapp`)
+
+In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
 ```bash
 mix local.hex
@@ -246,8 +245,9 @@ No appups, nothing to move to the release
 
 Move the release file to the distributed folder and updated the version:
 ```bash
-cp _build/prod/myphoenixapp-0.1.0.tar.gz /tmp/myphoenixapp/dist/myphoenixapp
-echo "{\"version\":\"0.1.0\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versions/myphoenixapp/local/current.json
+export app_name=myphoenixapp
+cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 ### Running Deployex and deploy the app
@@ -258,18 +258,18 @@ Move back to the deployex project and run the command line with the required ENV
 ```bash
 export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
 export PHX_SERVER=true
+export DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod # In case your monitored add is using ecto
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
 [info] Update is needed at instance: 1 from: <no current set> to: 0.1.0.
 [warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 59398.
-[warning] Requested instance: 1 to stop but application is not running.
-[warning] No previous version set
+[info] Full deploy instance: 1 deploy_ref: 15014.
+[info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Starting /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp...
-[info]  # Running instance: 1, monitoring pid = #PID<0.717.0>, OS process = 98937 deploy_ref: 59398.
-after a while ...
+[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+[info]  # Starting application
+[info]  # Running instance: 1, monitoring pid = #PID<0.768.0>, OS process = 52708 deploy_ref: 15014.
 [info]  # Application instance: 1 is running
 [info]  # Moving to the next instance: 2
 ...
@@ -307,21 +307,23 @@ No appups, nothing to move to the release
 
 2. Now, *__keep Deployex running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
-cp _build/prod/myphoenixapp-0.1.1.tar.gz /tmp/myphoenixapp/dist/myphoenixapp
-echo "{\"version\":\"0.1.1\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versions/myphoenixapp/local/current.json
+export app_name=myphoenixapp
+cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 3. You should then see the following messages in the Deployex terminal while updating the app:
 ```bash
 [info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1.
 [warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 61512.
-[info] Requested instance: 1 to stop application pid: #PID<0.717.0>
+[info] Full deploy instance: 1 deploy_ref: 61157.
+[info] Requested instance: 1 to stop application pid: #PID<0.768.0>
 [warning] Remaining beam app removed for instance: 1
-[warning] Application instance: 1 with pid: #PID<0.717.0> being stopped by reason: :normal
+[info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Starting /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp...
-[info]  # Running instance: 1, monitoring pid = #PID<0.761.0>, OS process = 1066 deploy_ref: 61512.
+[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+[info]  # Starting application
+[info]  # Running instance: 1, monitoring pid = #PID<0.840.0>, OS process = 53882 deploy_ref: 61157.
 [info]  # Application instance: 1 is running
 [info]  # Moving to the next instance: 2
 ...
@@ -348,8 +350,9 @@ You can find your generated appups in rel/appups/myphoenixapp/ with the .appup e
 
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
-cp _build/prod/myphoenixapp-0.1.2.tar.gz /tmp/myphoenixapp/dist/myphoenixapp
-echo "{\"version\":\"0.1.2\",\"hash\":\"local\"}" | jq > /tmp/myphoenixapp/versions/myphoenixapp/local/current.json
+export app_name=myphoenixapp
+cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 You can then check that deployex had executed a hot upgrade in the application:
@@ -357,7 +360,7 @@ You can then check that deployex had executed a hot upgrade in the application:
 ```bash
 [info] Update is needed at instance: 1 from: 0.1.1 to: 0.1.2.
 [warning] HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
-[info] Hot upgrade instance: 1 deploy_ref: 54063.
+[info] Hot upgrade instance: 1 deploy_ref: 61157.
 [info] Unpacked successfully: ~c"0.1.2"
 [info] Installed Release: ~c"0.1.2"
 [info] Made release permanent: 0.1.2
@@ -375,7 +378,7 @@ you can check that the version and the deployment status has changed in the dash
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 
-1. Generate the necessary certificates:
+1. Generate the necessary certificates, deployex has a good examples of how to create self-signed tls certificates:
 ```bash
 cd deployex
 make tls-distribution-certs

@@ -29,7 +29,7 @@ defmodule DeployexWeb.Router do
       live "/applications/:instance/terminal", ApplicationsLive, :terminal
       live "/applications/:instance/versions", ApplicationsLive, :versions
 
-      live "/about", ComingSoonLive, :index
+      live "/about", AboutLive, :index
     end
   end
 
