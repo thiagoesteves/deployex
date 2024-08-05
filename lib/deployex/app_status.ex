@@ -172,7 +172,7 @@ defmodule Deployex.AppStatus do
     Enum.map(version_list, fn version ->
       %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
     end)
-    |> Enum.sort(&(Date.compare(&1["inserted_at"], &2["inserted_at"]) != :gt))
+    |> Enum.sort(&(NaiveDateTime.compare(&1["inserted_at"], &2["inserted_at"]) == :gt))
   end
 
   @spec history_version_list(integer()) :: list()
