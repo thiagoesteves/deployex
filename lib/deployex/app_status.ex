@@ -5,6 +5,7 @@ defmodule Deployex.AppStatus do
 
   use GenServer
   alias Deployex.AppConfig
+  alias Deployex.Common
   alias Deployex.Monitor
   alias Deployex.Release
 
@@ -34,11 +35,6 @@ defmodule Deployex.AppStatus do
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
 
-  @sec_in_minute 60
-  @sec_in_hour 3_600
-  @sec_in_day 86_400
-  @sec_in_months 2_628_000
-
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
@@ -48,20 +44,20 @@ defmodule Deployex.AppStatus do
   end
 
   @impl true
-  def init(instances: instances) do
+  def init(_args) do
     Process.flag(:trap_exit, true)
 
     :timer.send_interval(@update_apps_interval, :update_apps)
 
-    {:ok, %{instances: instances, monitoring: []}}
+    {:ok, %{instances: AppConfig.replicas(), monitoring: []}}
   end
 
   @impl true
-  def handle_info(:update_apps, %{instances: instances, monitoring: monitoring} = state) do
+  def handle_info(:update_apps, %{monitoring: monitoring} = state) do
     deployex = update_deployex_app()
 
     monitoring_apps =
-      Enum.to_list(1..instances)
+      AppConfig.replicas_list()
       |> Enum.map(fn instance ->
         update_monitored_app(instance)
       end)
@@ -135,8 +131,8 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  @spec add_ghosted_version_list(deployex_version_map()) :: {:ok, list()}
-  def add_ghosted_version_list(version) when is_map(version) do
+  @spec add_ghosted_version(deployex_version_map()) :: {:ok, list()}
+  def add_ghosted_version(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_version_list()
 
@@ -172,7 +168,7 @@ defmodule Deployex.AppStatus do
     Enum.map(version_list, fn version ->
       %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
     end)
-    |> Enum.sort(&(NaiveDateTime.compare(&1["inserted_at"], &2["inserted_at"]) == :gt))
+    |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
   end
 
   @spec history_version_list(integer()) :: list()
@@ -236,7 +232,7 @@ defmodule Deployex.AppStatus do
       if Node.list() != [], do: :connected, else: :not_connected
     end
 
-    uptime = uptime_to_string(Application.get_env(:deployex, :booted_at))
+    uptime = Common.uptime_to_string(Application.get_env(:deployex, :booted_at))
 
     last_ghosted_version =
       case ghosted_version_list() do
@@ -299,26 +295,11 @@ defmodule Deployex.AppStatus do
         %{
           deployment_status: state.status,
           restarts: state.restarts,
-          uptime: uptime_to_string(state.start_time)
+          uptime: Common.uptime_to_string(state.start_time)
         }
 
       _ ->
-        %{deployment_status: nil, restarts: nil, uptime: "/"}
-    end
-  end
-
-  defp uptime_to_string(nil), do: "-/-"
-
-  defp uptime_to_string(start_time) do
-    diff = System.convert_time_unit(System.monotonic_time() - start_time, :native, :second)
-
-    case diff do
-      uptime when uptime < 10 -> "now"
-      uptime when uptime < @sec_in_minute -> "<1m ago"
-      uptime when uptime < @sec_in_hour -> "#{trunc(uptime / @sec_in_minute)}m ago"
-      uptime when uptime < @sec_in_day -> "#{trunc(uptime / @sec_in_hour)}h ago"
-      uptime when uptime <= @sec_in_months -> "#{trunc(uptime / @sec_in_day)}d ago"
-      uptime -> "#{trunc(uptime / @sec_in_months)}d ago"
+        %{deployment_status: nil, restarts: nil, uptime: Common.uptime_to_string(nil)}
     end
   end
 end

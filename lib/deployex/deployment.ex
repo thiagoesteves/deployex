@@ -10,7 +10,7 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Common, Release, Upgrade}
+  alias Deployex.{AppConfig, AppStatus, Common, Release, Upgrade}
   alias Deployex.Monitor.Supervisor, as: MonitorSup
 
   defstruct instances: 1,
@@ -29,7 +29,7 @@ defmodule Deployex.Deployment do
   end
 
   @impl true
-  def init(instances: instances) do
+  def init(_arg) do
     Logger.info("Initialising deployment server")
     timeout_rollback = Application.fetch_env!(:deployex, __MODULE__)[:timeout_rollback]
     schedule_interval = Application.fetch_env!(:deployex, __MODULE__)[:schedule_interval]
@@ -37,14 +37,14 @@ defmodule Deployex.Deployment do
     schedule_new_deployment(schedule_interval)
 
     deployments =
-      Enum.to_list(1..instances)
+      AppConfig.replicas_list()
       |> Enum.reduce(%{}, fn instance, acc ->
         Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
       end)
 
     {:ok,
      %__MODULE__{
-       instances: instances,
+       instances: AppConfig.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
@@ -145,7 +145,7 @@ defmodule Deployex.Deployment do
     {:ok, new_list} =
       state.current
       |> AppStatus.current_version_map()
-      |> AppStatus.add_ghosted_version_list()
+      |> AppStatus.add_ghosted_version()
 
     state = %{state | ghosted_version_list: new_list}
 
