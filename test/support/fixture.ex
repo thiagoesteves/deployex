@@ -1,4 +1,4 @@
-defmodule Deployex.StorageSupport do
+defmodule Deployex.Fixture do
   @moduledoc """
   This module will handle the storage functions for testing purpose
   """

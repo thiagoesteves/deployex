@@ -1,4 +1,4 @@
-defmodule Deployex.Monitor do
+defmodule Deployex.Monitor.Impl do
   @moduledoc """
   GenServer that monitor and supervise the application.
   """
@@ -6,6 +6,8 @@ defmodule Deployex.Monitor do
   require Logger
 
   alias Deployex.{AppConfig, AppStatus, Common, Deployment}
+
+  @behaviour Deployex.Monitor.Adapter
 
   defstruct current_pid: nil,
             instance: 0,
@@ -150,7 +152,7 @@ defmodule Deployex.Monitor do
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
-
+  @impl true
   @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, :rescued}
   def state(instance) do
     instance
@@ -158,12 +160,19 @@ defmodule Deployex.Monitor do
     |> Common.call_gen_server(:state)
   end
 
+  @impl true
   @spec run_pre_commands(integer(), list(), :new | :current) :: {:ok, list()} | {:error, :rescued}
   def run_pre_commands(instance, pre_commands, app_bin_path) do
     instance
     |> global_name()
     |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_path})
   end
+
+  @impl true
+  defdelegate start_service(instance, deploy_ref), to: Deployex.Monitor.Supervisor
+
+  @impl true
+  defdelegate stop_service(instance), to: Deployex.Monitor.Supervisor
 
   @spec global_name(integer()) :: map()
   def global_name(instance), do: %{module: __MODULE__, instance: instance}

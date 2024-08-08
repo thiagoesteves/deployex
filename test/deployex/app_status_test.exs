@@ -3,10 +3,10 @@ defmodule Deployex.AppStatusTest do
 
   alias Deployex.AppConfig
   alias Deployex.AppStatus
-  alias Deployex.StorageSupport
+  alias Deployex.Fixture
 
   setup do
-    StorageSupport.storage_cleanup()
+    Fixture.storage_cleanup()
 
     release = %{
       "version" => "1.0.0",

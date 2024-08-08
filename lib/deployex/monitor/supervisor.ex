@@ -4,6 +4,8 @@ defmodule Deployex.Monitor.Supervisor do
   use DynamicSupervisor
   require Logger
 
+  alias Deployex.Monitor.Impl
+
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
@@ -33,7 +35,7 @@ defmodule Deployex.Monitor.Supervisor do
   @spec stop_service(integer()) :: :ok
   def stop_service(instance) do
     instance
-    |> Deployex.Monitor.global_name()
+    |> Impl.global_name()
     |> :global.whereis_name()
     |> case do
       :undefined ->
