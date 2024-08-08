@@ -1,5 +1,10 @@
 import Config
 
+config :deployex,
+  base_path: "/tmp/deployex/test/varlib",
+  monitored_app_name: "testapp",
+  monitored_app_phx_start_port: 4444
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :deployex, DeployexWeb.Endpoint,

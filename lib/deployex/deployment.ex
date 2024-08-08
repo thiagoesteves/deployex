@@ -10,8 +10,7 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Common, Release, Upgrade}
-  alias Deployex.Monitor.Supervisor, as: MonitorSup
+  alias Deployex.{AppConfig, AppStatus, Common, Monitor, Release, Upgrade}
 
   defstruct instances: 1,
             current: 1,
@@ -29,7 +28,7 @@ defmodule Deployex.Deployment do
   end
 
   @impl true
-  def init(instances: instances) do
+  def init(_arg) do
     Logger.info("Initialising deployment server")
     timeout_rollback = Application.fetch_env!(:deployex, __MODULE__)[:timeout_rollback]
     schedule_interval = Application.fetch_env!(:deployex, __MODULE__)[:schedule_interval]
@@ -37,14 +36,14 @@ defmodule Deployex.Deployment do
     schedule_new_deployment(schedule_interval)
 
     deployments =
-      Enum.to_list(1..instances)
+      AppConfig.replicas_list()
       |> Enum.reduce(%{}, fn instance, acc ->
         Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
       end)
 
     {:ok,
      %__MODULE__{
-       instances: instances,
+       instances: AppConfig.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
@@ -82,7 +81,7 @@ defmodule Deployex.Deployment do
       if instance == state.current and deploy_ref == current_deployment.deploy_ref do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        MonitorSup.stop_service(state.current)
+        Monitor.stop_service(state.current)
 
         rollback_to_previous_version(state)
       else
@@ -145,7 +144,7 @@ defmodule Deployex.Deployment do
     {:ok, new_list} =
       state.current
       |> AppStatus.current_version_map()
-      |> AppStatus.add_ghosted_version_list()
+      |> AppStatus.add_ghosted_version()
 
     state = %{state | ghosted_version_list: new_list}
 
@@ -182,7 +181,7 @@ defmodule Deployex.Deployment do
     new_deploy_ref = :erlang.make_ref()
 
     if current_app_version != nil do
-      {:ok, _} = MonitorSup.start_service(state.current, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(state.current, new_deploy_ref)
       set_timeout_to_rollback(state, new_deploy_ref)
     else
       state
@@ -248,7 +247,7 @@ defmodule Deployex.Deployment do
         "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
       )
 
-      MonitorSup.stop_service(instance)
+      Monitor.stop_service(instance)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
@@ -261,7 +260,7 @@ defmodule Deployex.Deployment do
         deploy_ref: new_deploy_ref
       )
 
-      {:ok, _} = MonitorSup.start_service(instance, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(instance, new_deploy_ref)
     end)
 
     set_timeout_to_rollback(state, new_deploy_ref)

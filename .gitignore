@@ -39,8 +39,6 @@ npm-debug.log
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
 
-/test/
-
 # Certificates and public/private keys
 *.crt
 *.key
