@@ -2,8 +2,8 @@ defmodule Deployex.StatusTest do
   use ExUnit.Case, async: false
 
   alias Deployex.AppConfig
-  alias Deployex.Status
   alias Deployex.Fixture
+  alias Deployex.Status
 
   setup do
     Fixture.storage_cleanup()
