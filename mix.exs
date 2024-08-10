@@ -25,7 +25,8 @@ defmodule Deployex.MixProject do
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      test_coverage: test_coverage()
     ]
   end
 
@@ -114,7 +115,19 @@ defmodule Deployex.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:mox, "~> 1.0", only: :test}
+    ]
+  end
+
+  defp test_coverage do
+    [
+      summary: [threshold: 95],
+      ignore_modules: [
+        Deployex.Application,
+        DeployexWeb.Telemetry,
+        DeployexWeb.Layouts
+      ]
     ]
   end
 

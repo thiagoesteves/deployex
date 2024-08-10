@@ -5,7 +5,7 @@ defmodule Deployex.Release.S3 do
 
   @behaviour Deployex.Release.Adapter
 
-  alias Deployex.{AppConfig, AppStatus, Upgrade}
+  alias Deployex.{AppConfig, Status, Upgrade}
 
   require Logger
 
@@ -17,7 +17,6 @@ defmodule Deployex.Release.S3 do
   Retrieve current version
   """
   @impl true
-  @spec get_current_version_map() :: Deployex.Release.version_map() | nil
   def get_current_version_map do
     path = "versions/#{AppConfig.monitored_app()}/#{env()}/current.json"
 
@@ -34,8 +33,6 @@ defmodule Deployex.Release.S3 do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(integer(), binary()) ::
-          {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
@@ -48,12 +45,12 @@ defmodule Deployex.Release.S3 do
       |> ExAws.S3.download_file(s3_path, download_path)
       |> ExAws.request()
 
-    AppStatus.clear_new(instance)
+    Status.clear_new(instance)
     new_path = AppConfig.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(instance, download_path, AppStatus.current_version(instance), version)
+    Upgrade.check(instance, download_path, Status.current_version(instance), version)
   after
     Briefly.cleanup()
   end

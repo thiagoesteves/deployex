@@ -7,14 +7,14 @@ defmodule Deployex.Application do
 
   @impl true
   def start(_type, _args) do
-    Deployex.AppConfig.init(replicas_list())
+    Deployex.AppConfig.init()
 
     children =
       [
         Deployex.Monitor.Supervisor,
         DeployexWeb.Telemetry,
-        {Deployex.Deployment, instances: replicas()},
-        {Deployex.AppStatus, instances: replicas()},
+        Deployex.Deployment,
+        Deployex.Status.Application,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         # Start the Finch HTTP client for sending emails
@@ -39,7 +39,4 @@ defmodule Deployex.Application do
     DeployexWeb.Endpoint.config_change(changed, removed)
     :ok
   end
-
-  defp replicas, do: Application.get_env(:deployex, :replicas)
-  defp replicas_list, do: Enum.to_list(1..replicas())
 end

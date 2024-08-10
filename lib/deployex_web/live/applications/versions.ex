@@ -3,7 +3,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
 
   require Logger
 
-  alias Deployex.AppStatus
+  alias Deployex.Status
 
   @impl true
   def render(assigns) do
@@ -68,9 +68,9 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
   def update(assigns, socket) do
     version_list =
       if assigns.id == "0" do
-        AppStatus.history_version_list()
+        Status.history_version_list()
       else
-        AppStatus.history_version_list(assigns.id)
+        Status.history_version_list(assigns.id)
       end
 
     socket =

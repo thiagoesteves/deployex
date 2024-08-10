@@ -10,8 +10,7 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppStatus, Common, Release, Upgrade}
-  alias Deployex.Monitor.Supervisor, as: MonitorSup
+  alias Deployex.{AppConfig, Common, Monitor, Release, Status, Upgrade}
 
   defstruct instances: 1,
             current: 1,
@@ -29,7 +28,7 @@ defmodule Deployex.Deployment do
   end
 
   @impl true
-  def init(instances: instances) do
+  def init(_arg) do
     Logger.info("Initialising deployment server")
     timeout_rollback = Application.fetch_env!(:deployex, __MODULE__)[:timeout_rollback]
     schedule_interval = Application.fetch_env!(:deployex, __MODULE__)[:schedule_interval]
@@ -37,18 +36,18 @@ defmodule Deployex.Deployment do
     schedule_new_deployment(schedule_interval)
 
     deployments =
-      Enum.to_list(1..instances)
+      AppConfig.replicas_list()
       |> Enum.reduce(%{}, fn instance, acc ->
         Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
       end)
 
     {:ok,
      %__MODULE__{
-       instances: instances,
+       instances: AppConfig.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
-       ghosted_version_list: AppStatus.ghosted_version_list()
+       ghosted_version_list: Status.ghosted_version_list()
      }}
   end
 
@@ -82,7 +81,7 @@ defmodule Deployex.Deployment do
       if instance == state.current and deploy_ref == current_deployment.deploy_ref do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        MonitorSup.stop_service(state.current)
+        Monitor.stop_service(state.current)
 
         rollback_to_previous_version(state)
       else
@@ -144,13 +143,13 @@ defmodule Deployex.Deployment do
     # Add current version to the ghosted version list
     {:ok, new_list} =
       state.current
-      |> AppStatus.current_version_map()
-      |> AppStatus.add_ghosted_version_list()
+      |> Status.current_version_map()
+      |> Status.add_ghosted_version()
 
     state = %{state | ghosted_version_list: new_list}
 
     # Retrieve previous version
-    previous_version_map = AppStatus.history_version_list(instance) |> Enum.at(1)
+    previous_version_map = Status.history_version_list(instance) |> Enum.at(1)
 
     deploy_application = fn ->
       case Release.download_and_unpack(instance, previous_version_map["version"]) do
@@ -178,11 +177,11 @@ defmodule Deployex.Deployment do
   end
 
   defp initialize_version(state) do
-    current_app_version = AppStatus.current_version(state.current)
+    current_app_version = Status.current_version(state.current)
     new_deploy_ref = :erlang.make_ref()
 
     if current_app_version != nil do
-      {:ok, _} = MonitorSup.start_service(state.current, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(state.current, new_deploy_ref)
       set_timeout_to_rollback(state, new_deploy_ref)
     else
       state
@@ -191,7 +190,7 @@ defmodule Deployex.Deployment do
 
   defp check_deployment(%{current: instance, ghosted_version_list: ghosted_version_list} = state) do
     release = Release.get_current_version_map()
-    current_app_version = AppStatus.current_version(instance) || "<no current set>"
+    current_app_version = Status.current_version(instance) || "<no current set>"
 
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == release["version"]))
 
@@ -248,20 +247,20 @@ defmodule Deployex.Deployment do
         "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
       )
 
-      MonitorSup.stop_service(instance)
+      Monitor.stop_service(instance)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
       :timer.sleep(@wait_time_from_stop_ms)
 
-      AppStatus.update(instance)
+      Status.update(instance)
 
-      AppStatus.set_current_version_map(instance, release,
+      Status.set_current_version_map(instance, release,
         deployment: :full_deployment,
         deploy_ref: new_deploy_ref
       )
 
-      {:ok, _} = MonitorSup.start_service(instance, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(instance, new_deploy_ref)
     end)
 
     set_timeout_to_rollback(state, new_deploy_ref)
@@ -276,10 +275,10 @@ defmodule Deployex.Deployment do
         "Hot upgrade instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)}."
       )
 
-      from_version = AppStatus.current_version(instance)
+      from_version = Status.current_version(instance)
 
       if :ok == Upgrade.run(instance, from_version, release["version"]) do
-        AppStatus.set_current_version_map(instance, release,
+        Status.set_current_version_map(instance, release,
           deployment: :hot_upgrade,
           deploy_ref: deploy_ref
         )
@@ -288,7 +287,7 @@ defmodule Deployex.Deployment do
       end
     end)
 
-    if AppStatus.current_version(instance) != release["version"] do
+    if Status.current_version(instance) != release["version"] do
       Logger.error("Hot Upgrade failed, running for full deployment")
 
       full_deployment(state, release)
