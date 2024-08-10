@@ -97,7 +97,9 @@ config :ex_aws,
 
 config :deployex, Deployex.Release, adapter: Deployex.Release.Local
 
-config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Impl
+config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Application
+
+config :deployex, Deployex.Status, adapter: Deployex.Status.Application
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

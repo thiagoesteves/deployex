@@ -43,6 +43,13 @@ defmodule Deployex.Monitor do
   def run_pre_commands(instance, pre_commands, app_bin_path),
     do: default().run_pre_commands(instance, pre_commands, app_bin_path)
 
+  @doc """
+  Return the global name used by this module to register the precesses
+  """
+  @impl true
+  @spec global_name(integer()) :: map()
+  def global_name(instance), do: default().global_name(instance)
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================

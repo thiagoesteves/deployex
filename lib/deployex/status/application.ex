@@ -1,4 +1,4 @@
-defmodule Deployex.AppStatus do
+defmodule Deployex.Status.Application do
   @moduledoc """
   Module that host the current state and also provide functions to handle it
   """
@@ -7,7 +7,8 @@ defmodule Deployex.AppStatus do
   alias Deployex.AppConfig
   alias Deployex.Common
   alias Deployex.Monitor
-  alias Deployex.Release
+
+  @behaviour Deployex.Status.Adapter
 
   require Logger
 
@@ -23,22 +24,12 @@ defmodule Deployex.AppStatus do
             uptime: nil,
             last_ghosted_version: nil
 
-  @type deployex_version_map :: %{
-          version: String.t(),
-          hash: String.t(),
-          instance: integer(),
-          deployment: atom(),
-          deploy_ref: String.t(),
-          inserted_at: NaiveDateTime.t()
-        }
-
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
 
   ### ==========================================================================
-  ### Callback functions
+  ### Callback GenServer functions
   ### ==========================================================================
-
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
@@ -50,6 +41,11 @@ defmodule Deployex.AppStatus do
     :timer.send_interval(@update_apps_interval, :update_apps)
 
     {:ok, %{instances: AppConfig.replicas(), monitoring: []}}
+  end
+
+  @impl true
+  def handle_call(:state, _from, state) do
+    {:reply, {:ok, state}, state}
   end
 
   @impl true
@@ -76,27 +72,32 @@ defmodule Deployex.AppStatus do
   end
 
   ### ==========================================================================
-  ### Public functions
+  ### Callback Deployex.Status.Adapter functions
   ### ==========================================================================
 
-  @spec current_version(integer()) :: String.t() | nil
+  @impl true
+  def state do
+    Common.call_gen_server(__MODULE__, :state)
+  end
+
+  @impl true
   def current_version(instance) do
     current_version_map(instance)["version"]
   end
 
-  @spec current_version_map(integer()) :: deployex_version_map() | nil
+  @impl true
   def current_version_map(instance) do
     instance
     |> AppConfig.current_version_path()
     |> read_data_from_file()
   end
 
-  @spec listener_topic() :: String.t()
+  @impl true
   def listener_topic do
     @apps_data_updated_topic
   end
 
-  @spec set_current_version_map(integer(), Release.version_map(), Keyword.t()) :: :ok
+  @impl true
   def set_current_version_map(instance, release, attrs) do
     version =
       %{
@@ -131,7 +132,7 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  @spec add_ghosted_version(deployex_version_map()) :: {:ok, list()}
+  @impl true
   def add_ghosted_version(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_version_list()
@@ -153,13 +154,13 @@ defmodule Deployex.AppStatus do
     end
   end
 
-  @spec ghosted_version_list :: list()
+  @impl true
   def ghosted_version_list do
     AppConfig.ghosted_version_path()
     |> read_data_from_file() || []
   end
 
-  @spec history_version_list :: list()
+  @impl true
   def history_version_list do
     version_list =
       AppConfig.history_version_path()
@@ -171,17 +172,18 @@ defmodule Deployex.AppStatus do
     |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
   end
 
-  @spec history_version_list(integer()) :: list()
+  @impl true
   def history_version_list(instance) when is_binary(instance) do
     history_version_list(String.to_integer(instance))
   end
 
+  @impl true
   def history_version_list(instance) when is_number(instance) do
     history_version_list()
     |> Enum.filter(&(&1["instance"] == instance))
   end
 
-  @spec clear_new(integer()) :: :ok
+  @impl true
   def clear_new(instance) do
     instance
     |> AppConfig.new_path()
@@ -194,7 +196,7 @@ defmodule Deployex.AppStatus do
     :ok
   end
 
-  @spec update(integer()) :: :ok
+  @impl true
   def update(instance) do
     # Remove previous path
     instance
@@ -240,7 +242,7 @@ defmodule Deployex.AppStatus do
         list -> Enum.at(list, 0)["version"]
       end
 
-    %Deployex.AppStatus{
+    %Deployex.Status{
       name: "deployex",
       version: Application.spec(:deployex, :vsn) |> to_string,
       otp: check_otp_deployex.(),
@@ -267,7 +269,7 @@ defmodule Deployex.AppStatus do
         :not_connected
     end
 
-    %Deployex.AppStatus{
+    %Deployex.Status{
       name: Application.get_env(:deployex, :monitored_app_name),
       instance: instance,
       version: current_version(instance),

@@ -1,7 +1,7 @@
 defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
-  alias Deployex.AppStatus
+  alias Deployex.Status
   alias Deployex.Terminal.Server
 
   @impl true
@@ -66,9 +66,10 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
-    Phoenix.PubSub.subscribe(Deployex.PubSub, AppStatus.listener_topic())
+    Phoenix.PubSub.subscribe(Deployex.PubSub, Status.listener_topic())
 
-    state = :sys.get_state(AppStatus)
+    # state = :sys.get_state(Deployex.Status.Application)
+    {:ok, state} = Deployex.Status.state()
 
     socket =
       socket

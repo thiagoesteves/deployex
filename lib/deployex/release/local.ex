@@ -5,7 +5,7 @@ defmodule Deployex.Release.Local do
 
   @behaviour Deployex.Release.Adapter
 
-  alias Deployex.{AppConfig, AppStatus, Upgrade}
+  alias Deployex.{AppConfig, Status, Upgrade}
 
   require Logger
 
@@ -17,7 +17,6 @@ defmodule Deployex.Release.Local do
   Retrieve current version
   """
   @impl true
-  @spec get_current_version_map() :: Deployex.Release.version_map() | nil
   def get_current_version_map do
     monitored_app = AppConfig.monitored_app()
 
@@ -37,8 +36,6 @@ defmodule Deployex.Release.Local do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(integer(), binary()) ::
-          {:error, :invalid_from_version} | {:ok, :full_deployment | :hot_upgrade}
   def download_and_unpack(instance, version) do
     monitored_app = AppConfig.monitored_app()
 
@@ -47,12 +44,12 @@ defmodule Deployex.Release.Local do
 
     download_path = "/tmp/#{monitored_app}/" <> release_path
 
-    AppStatus.clear_new(instance)
+    Status.clear_new(instance)
     new_path = AppConfig.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(instance, download_path, AppStatus.current_version(instance), version)
+    Upgrade.check(instance, download_path, Status.current_version(instance), version)
   end
 
   ### ==========================================================================

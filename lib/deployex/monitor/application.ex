@@ -1,11 +1,11 @@
-defmodule Deployex.Monitor.Impl do
+defmodule Deployex.Monitor.Application do
   @moduledoc """
   GenServer that monitor and supervise the application.
   """
   use GenServer
   require Logger
 
-  alias Deployex.{AppConfig, AppStatus, Common, Deployment}
+  alias Deployex.{AppConfig, Common, Deployment, Status}
 
   @behaviour Deployex.Monitor.Adapter
 
@@ -82,7 +82,7 @@ defmodule Deployex.Monitor.Impl do
 
   @impl true
   def handle_info({:run_service, deploy_ref}, state) when deploy_ref == state.deploy_ref do
-    version_map = AppStatus.current_version_map(state.instance)
+    version_map = Status.current_version_map(state.instance)
 
     state =
       if version_map == nil do
@@ -153,7 +153,6 @@ defmodule Deployex.Monitor.Impl do
   ### Public functions
   ### ==========================================================================
   @impl true
-  @spec state(integer()) :: {:ok, %__MODULE__{}} | {:error, :rescued}
   def state(instance) do
     instance
     |> global_name()
@@ -161,7 +160,6 @@ defmodule Deployex.Monitor.Impl do
   end
 
   @impl true
-  @spec run_pre_commands(integer(), list(), :new | :current) :: {:ok, list()} | {:error, :rescued}
   def run_pre_commands(instance, pre_commands, app_bin_path) do
     instance
     |> global_name()
@@ -174,7 +172,7 @@ defmodule Deployex.Monitor.Impl do
   @impl true
   defdelegate stop_service(instance), to: Deployex.Monitor.Supervisor
 
-  @spec global_name(integer()) :: map()
+  @impl true
   def global_name(instance), do: %{module: __MODULE__, instance: instance}
 
   ### ==========================================================================

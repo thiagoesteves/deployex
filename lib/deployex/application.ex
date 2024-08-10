@@ -14,7 +14,7 @@ defmodule Deployex.Application do
         Deployex.Monitor.Supervisor,
         DeployexWeb.Telemetry,
         Deployex.Deployment,
-        Deployex.AppStatus,
+        Deployex.Status.Application,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         # Start the Finch HTTP client for sending emails

@@ -9,4 +9,5 @@ defmodule Deployex.Monitor.Adapter do
   @callback state(integer()) :: {:ok, map()} | {:error, :rescued}
   @callback run_pre_commands(integer(), list(), :new | :current) ::
               {:ok, list()} | {:error, :rescued}
+  @callback global_name(integer()) :: map()
 end

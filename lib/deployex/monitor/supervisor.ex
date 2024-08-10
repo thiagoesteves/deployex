@@ -4,8 +4,6 @@ defmodule Deployex.Monitor.Supervisor do
   use DynamicSupervisor
   require Logger
 
-  alias Deployex.Monitor.Impl
-
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
@@ -24,8 +22,10 @@ defmodule Deployex.Monitor.Supervisor do
   @spec start_service(integer(), reference()) :: {:ok, pid} | {:error, pid(), :already_started}
   def start_service(instance, deploy_ref) do
     spec = %{
-      id: Deployex.Monitor,
-      start: {Deployex.Monitor, :start_link, [[instance: instance, deploy_ref: deploy_ref]]},
+      id: Deployex.Monitor.Application,
+      start:
+        {Deployex.Monitor.Application, :start_link,
+         [[instance: instance, deploy_ref: deploy_ref]]},
       restart: :transient
     }
 
@@ -35,7 +35,7 @@ defmodule Deployex.Monitor.Supervisor do
   @spec stop_service(integer()) :: :ok
   def stop_service(instance) do
     instance
-    |> Impl.global_name()
+    |> Deployex.Monitor.Application.global_name()
     |> :global.whereis_name()
     |> case do
       :undefined ->
