@@ -23,15 +23,19 @@ defmodule Deployex.Deployment do
   ### Callback functions
   ### ==========================================================================
 
-  def start_link(arg) do
-    GenServer.start_link(__MODULE__, arg, name: __MODULE__)
+  def start_link(args) do
+    name = Keyword.fetch!(args, :name)
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   @impl true
-  def init(_arg) do
-    Logger.info("Initialising deployment server")
-    timeout_rollback = Application.fetch_env!(:deployex, __MODULE__)[:timeout_rollback]
-    schedule_interval = Application.fetch_env!(:deployex, __MODULE__)[:schedule_interval]
+  def init(args) do
+    timeout_rollback = Keyword.fetch!(args, :timeout_rollback)
+    schedule_interval = Keyword.fetch!(args, :schedule_interval)
+
+    Logger.info(
+      "Initialising deployment server timeout_rollback: #{timeout_rollback} schedule_interval: #{schedule_interval}"
+    )
 
     schedule_new_deployment(schedule_interval)
 
@@ -109,7 +113,7 @@ defmodule Deployex.Deployment do
 
           %{state | current: new_current}
 
-        instance != state.current and deploy_ref == updated_deployment.deploy_ref ->
+        instance != state.current and deploy_ref == updated_deployment[:deploy_ref] ->
           # Ignore because the application restarted and it is now runnitn again
           state
 
@@ -129,8 +133,8 @@ defmodule Deployex.Deployment do
   ### ==========================================================================
 
   @spec notify_application_running(integer(), reference()) :: :ok
-  def notify_application_running(instance, deploy_ref) do
-    GenServer.cast(__MODULE__, {:application_running, instance, deploy_ref})
+  def notify_application_running(name \\ __MODULE__, instance, deploy_ref) do
+    GenServer.cast(name, {:application_running, instance, deploy_ref})
   end
 
   ### ==========================================================================
@@ -202,7 +206,7 @@ defmodule Deployex.Deployment do
         {:ok, :hot_upgrade} ->
           # To run the migrations for the hot upgrade deployment, deployex relies on the
           # unpacked version in the new-folder
-          Deployex.Monitor.run_pre_commands(instance, release["pre_commands"], :new)
+          Monitor.run_pre_commands(instance, release["pre_commands"], :new)
           hot_upgrade(state, release)
       end
     end
@@ -277,13 +281,18 @@ defmodule Deployex.Deployment do
 
       from_version = Status.current_version(instance)
 
-      if :ok == Upgrade.run(instance, from_version, release["version"]) do
-        Status.set_current_version_map(instance, release,
-          deployment: :hot_upgrade,
-          deploy_ref: deploy_ref
-        )
+      case Upgrade.execute(instance, from_version, release["version"]) do
+        :ok ->
+          Status.set_current_version_map(instance, release,
+            deployment: :hot_upgrade,
+            deploy_ref: deploy_ref
+          )
 
-        notify_application_running(instance, deploy_ref)
+          notify_application_running(instance, deploy_ref)
+          :ok
+
+        _reason ->
+          :ok
       end
     end)
 

@@ -101,6 +101,8 @@ config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Application
 
 config :deployex, Deployex.Status, adapter: Deployex.Status.Application
 
+config :deployex, Deployex.Upgrade, adapter: Deployex.Upgrade.Application
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

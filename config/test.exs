@@ -15,6 +15,18 @@ config :deployex, DeployexWeb.Endpoint,
 # In test we don't send emails.
 config :deployex, Deployex.Mailer, adapter: Swoosh.Adapters.Test
 
+# Config Mock for Monitor
+config :deployex, Deployex.Monitor, adapter: Deployex.MonitorMock
+
+# Config Mock for Monitor
+config :deployex, Deployex.Status, adapter: Deployex.StatusMock
+
+# Config Mock for Release
+config :deployex, Deployex.Release, adapter: Deployex.ReleaseMock
+
+# Config Mock for Upgrade
+config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock
+
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 

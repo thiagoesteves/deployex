@@ -126,7 +126,10 @@ defmodule Deployex.MixProject do
       ignore_modules: [
         Deployex.Application,
         DeployexWeb.Telemetry,
-        DeployexWeb.Layouts
+        DeployexWeb.Layouts,
+        Deployex.Macros,
+        Deployex.AwsSecretsManagerProvider,
+        DeployexWeb.CoreComponents
       ]
     ]
   end

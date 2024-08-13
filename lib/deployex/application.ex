@@ -5,16 +5,16 @@ defmodule Deployex.Application do
 
   use Application
 
+  import Deployex.Macros
+
   @impl true
   def start(_type, _args) do
     Deployex.AppConfig.init()
 
     children =
       [
-        Deployex.Monitor.Supervisor,
         DeployexWeb.Telemetry,
-        Deployex.Deployment,
-        Deployex.Status.Application,
+        Deployex.Monitor.Supervisor,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         # Start the Finch HTTP client for sending emails
@@ -24,12 +24,31 @@ defmodule Deployex.Application do
         # Start to serve requests, typically the last entry
         DeployexWeb.Endpoint,
         Deployex.Terminal.Supervisor
-      ]
+      ] ++ application_servers()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Deployex.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  # NOTE: skip the starting of the development server when running tests
+  if_not_test do
+    alias Deployex.Deployment
+
+    defp application_servers do
+      [
+        Deployex.Status.Application,
+        {Deployment,
+         [
+           timeout_rollback: Application.fetch_env!(:deployex, Deployment)[:timeout_rollback],
+           schedule_interval: Application.fetch_env!(:deployex, Deployment)[:schedule_interval],
+           name: Deployment
+         ]}
+      ]
+    end
+  else
+    defp application_servers, do: []
   end
 
   # Tell Phoenix to update the endpoint configuration
