@@ -27,6 +27,9 @@ config :deployex, Deployex.Release, adapter: Deployex.ReleaseMock
 # Config Mock for Upgrade
 config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock
 
+# Config Mock for Operational System
+config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
+
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 

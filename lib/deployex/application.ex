@@ -32,7 +32,7 @@ defmodule Deployex.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # NOTE: skip the starting of the development server when running tests
+  # NOTE: Skip starting the development and status server when running tests.
   if_not_test do
     alias Deployex.Deployment
 

@@ -103,6 +103,8 @@ config :deployex, Deployex.Status, adapter: Deployex.Status.Application
 
 config :deployex, Deployex.Upgrade, adapter: Deployex.Upgrade.Application
 
+config :deployex, Deployex.OpSys, adapter: Deployex.OpSys.Erlexec
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

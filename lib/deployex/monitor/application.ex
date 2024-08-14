@@ -5,7 +5,7 @@ defmodule Deployex.Monitor.Application do
   use GenServer
   require Logger
 
-  alias Deployex.{AppConfig, Common, Deployment, Status}
+  alias Deployex.{AppConfig, Common, Deployment, OpSys, Status}
 
   @behaviour Deployex.Monitor.Adapter
 
@@ -14,11 +14,9 @@ defmodule Deployex.Monitor.Application do
             status: :idle,
             restarts: 0,
             start_time: nil,
-            deploy_ref: :init
-
-  # NOTE: Timeout to check if the application crashed for any reason
-  @timeout_to_verify_app_ready :timer.seconds(30)
-  @retry_delay_pre_commands :timer.seconds(1)
+            deploy_ref: :init,
+            timeout_app_ready: nil,
+            retry_delay_pre_commands: nil
 
   ### ==========================================================================
   ### Callback functions
@@ -31,7 +29,12 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  def init(instance: instance, deploy_ref: deploy_ref) do
+  def init(
+        instance: instance,
+        deploy_ref: deploy_ref,
+        timeout_app_ready: timeout_app_ready,
+        retry_delay_pre_commands: retry_delay_pre_commands
+      ) do
     Process.flag(:trap_exit, true)
 
     Logger.info("Initialising monitor server for instance: #{instance}")
@@ -40,7 +43,15 @@ defmodule Deployex.Monitor.Application do
 
     trigger_run_service(deploy_ref)
 
-    {:ok, reset_state(%__MODULE__{instance: instance}, deploy_ref)}
+    {:ok,
+     reset_state(
+       %__MODULE__{
+         instance: instance,
+         timeout_app_ready: timeout_app_ready,
+         retry_delay_pre_commands: retry_delay_pre_commands
+       },
+       deploy_ref
+     )}
   end
 
   @impl true
@@ -63,7 +74,7 @@ defmodule Deployex.Monitor.Application do
     )
 
     # Stop current application
-    :exec.stop(state.current_pid)
+    OpSys.stop(state.current_pid)
 
     # NOTE: The next command is needed for Systems that have a different PID for the "/bin/app start" script
     #       and the bin/beam.smp process
@@ -96,11 +107,6 @@ defmodule Deployex.Monitor.Application do
         run_service(state, version_map)
       end
 
-    {:noreply, state}
-  end
-
-  def handle_info({:run_service, _deploy_ref}, state) do
-    # Do nothing, a different deployment was requested
     {:noreply, state}
   end
 
@@ -167,7 +173,7 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  defdelegate start_service(instance, deploy_ref), to: Deployex.Monitor.Supervisor
+  defdelegate start_service(instance, deploy_ref, options \\ []), to: Deployex.Monitor.Supervisor
 
   @impl true
   defdelegate stop_service(instance), to: Deployex.Monitor.Supervisor
@@ -181,7 +187,15 @@ defmodule Deployex.Monitor.Application do
   def trigger_run_service(deploy_ref, timeout \\ 1),
     do: Process.send_after(self(), {:run_service, deploy_ref}, timeout)
 
-  defp run_service(%__MODULE__{instance: instance, deploy_ref: deploy_ref} = state, version_map) do
+  defp run_service(
+         %__MODULE__{
+           instance: instance,
+           deploy_ref: deploy_ref,
+           timeout_app_ready: timeout_app_ready,
+           retry_delay_pre_commands: retry_delay_pre_commands
+         } = state,
+         version_map
+       ) do
     app_exec = executable_path(instance, :current)
     version = version_map["version"]
 
@@ -191,7 +205,7 @@ defmodule Deployex.Monitor.Application do
       Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
-        :exec.run_link(
+        OpSys.run_link(
           run_app_bin(instance, app_exec, "start"),
           [
             {:stdout, AppConfig.stdout_path(instance)},
@@ -203,17 +217,17 @@ defmodule Deployex.Monitor.Application do
         " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{Common.short_ref(deploy_ref)}."
       )
 
-      Process.send_after(self(), {:check_running, pid, deploy_ref}, @timeout_to_verify_app_ready)
+      Process.send_after(self(), {:check_running, pid, deploy_ref}, timeout_app_ready)
 
       %{state | current_pid: pid, status: :starting, start_time: now()}
     else
       false ->
-        trigger_run_service(deploy_ref, @retry_delay_pre_commands)
+        trigger_run_service(deploy_ref, retry_delay_pre_commands)
         Logger.error("Version: #{version} set but no #{app_exec}")
         state
 
       {:error, :pre_commands} ->
-        trigger_run_service(deploy_ref, @retry_delay_pre_commands)
+        trigger_run_service(deploy_ref, retry_delay_pre_commands)
         %{state | status: :pre_commands}
     end
   end
@@ -251,7 +265,7 @@ defmodule Deployex.Monitor.Application do
       Logger.info(" # Migration executable: #{migration_exec}")
 
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
-        :exec.run(run_app_bin(instance, migration_exec, pre_command), [
+        OpSys.run(run_app_bin(instance, migration_exec, pre_command), [
           :sync,
           {:stdout, AppConfig.stdout_path(instance)},
           {:stderr, AppConfig.stderr_path(instance)}
@@ -274,7 +288,7 @@ defmodule Deployex.Monitor.Application do
   end
 
   defp cleanup_beam_process(instance) do
-    case :exec.run(
+    case OpSys.run(
            "kill -9 $(ps -ax | grep \"#{AppConfig.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
            [:sync, :stdout, :stderr]
          ) do
