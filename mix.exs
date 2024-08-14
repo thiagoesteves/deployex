@@ -129,7 +129,8 @@ defmodule Deployex.MixProject do
         DeployexWeb.Layouts,
         Deployex.Macros,
         Deployex.AwsSecretsManagerProvider,
-        DeployexWeb.CoreComponents
+        DeployexWeb.CoreComponents,
+        Deployex.OpSys.Erlexec
       ]
     ]
   end

@@ -9,6 +9,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   """
   use DeployexWeb, :live_component
 
+  alias Deployex.OpSys
+
   require Logger
 
   @impl true
@@ -102,7 +104,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         %{"key" => key},
         %{assigns: %{terminal_process: terminal_process}} = socket
       ) do
-    :exec.send(terminal_process, key)
+    OpSys.send(terminal_process, key)
     {:noreply, socket}
   end
 

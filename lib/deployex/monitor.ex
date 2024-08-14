@@ -15,9 +15,10 @@ defmodule Deployex.Monitor do
   Starts monitor service for an specific instance
   """
   @impl true
-  @spec start_service(integer(), reference()) :: {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(instance, deploy_ref) do
-    default().start_service(instance, deploy_ref)
+  @spec start_service(integer(), reference(), list()) ::
+          {:ok, pid} | {:error, pid(), :already_started}
+  def start_service(instance, deploy_ref, options \\ []) do
+    default().start_service(instance, deploy_ref, options)
   end
 
   @doc """

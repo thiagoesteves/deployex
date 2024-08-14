@@ -3,6 +3,8 @@ defmodule Deployex.Terminal.Server do
   use GenServer
   require Logger
 
+  alias Deployex.OpSys
+
   defstruct commands: nil,
             type: nil,
             process: nil,
@@ -42,7 +44,7 @@ defmodule Deployex.Terminal.Server do
 
   @impl true
   def handle_continue(:open_erlexec_connection, state) do
-    {:ok, _pid, process} = :exec.run(state.commands, state.options)
+    {:ok, _pid, process} = OpSys.run(state.commands, state.options)
 
     Logger.info("Initializing terminal instance: #{state.instance} at process pid: #{process}")
 
@@ -59,7 +61,7 @@ defmodule Deployex.Terminal.Server do
     state = %{state | status: :closed}
 
     # Stop OS process
-    :exec.stop(process)
+    OpSys.stop(process)
 
     {:stop, :normal, state}
   end
@@ -70,7 +72,7 @@ defmodule Deployex.Terminal.Server do
     notify_target(state)
 
     # Stop OS process
-    :exec.stop(process)
+    OpSys.stop(process)
 
     Logger.info("The terminal session timed out")
     {:stop, :normal, state}
@@ -94,7 +96,7 @@ defmodule Deployex.Terminal.Server do
     state = %{state | status: :closed}
 
     # Stop OS process
-    :exec.stop(process)
+    OpSys.stop(process)
 
     Logger.warning(
       "The Target process state: #{inspect(state)} was terminated, reason: #{inspect(reason)}"
