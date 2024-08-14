@@ -7,7 +7,7 @@ defmodule Deployex.Terminal.Supervisor do
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
-  def start_link(init_arg \\ []) do
+  def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 

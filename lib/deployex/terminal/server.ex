@@ -13,7 +13,8 @@ defmodule Deployex.Terminal.Server do
             target: nil,
             status: :open,
             message: nil,
-            options: []
+            options: [],
+            timeout_session: nil
 
   @default_terminal_timeout_session_ms 300_000
 
@@ -27,7 +28,14 @@ defmodule Deployex.Terminal.Server do
   @impl true
   @spec init(any()) :: {:ok, any(), {:continue, :open_erlexec_connection}}
   def init(state) do
-    Process.send_after(self(), :session_timeout, @default_terminal_timeout_session_ms)
+    state =
+      Map.put(
+        state,
+        :timeout_session,
+        state.timeout_session || @default_terminal_timeout_session_ms
+      )
+
+    Process.send_after(self(), :session_timeout, state.timeout_session)
 
     Process.monitor(state.target)
 
