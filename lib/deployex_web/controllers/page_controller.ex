@@ -6,4 +6,8 @@ defmodule DeployexWeb.PageController do
     conn
     |> redirect(to: ~p"/applications")
   end
+
+  def about(conn, _params) do
+    render(conn, :about)
+  end
 end
