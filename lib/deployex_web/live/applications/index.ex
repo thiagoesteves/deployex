@@ -154,8 +154,6 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  @spec handle_event(<<_::104, _::_*40>>, map(), Phoenix.LiveView.Socket.t()) ::
-          {:noreply, Phoenix.LiveView.Socket.t()}
   def handle_event("app-log-click", %{"instance" => instance, "std" => std}, socket) do
     {:noreply, push_patch(socket, to: std_path(instance, std))}
   end
