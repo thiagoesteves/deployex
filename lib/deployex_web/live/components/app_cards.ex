@@ -65,6 +65,7 @@ defmodule DeployexWeb.Components.AppCards do
 
             <p class="flex  tracking-tight  pt-3   justify-between">
               <button
+                id={"app-log-stdout-#{app.instance}"}
                 phx-click="app-log-click"
                 phx-value-instance={app.instance}
                 phx-value-std="stdout"
@@ -75,6 +76,7 @@ defmodule DeployexWeb.Components.AppCards do
               </button>
 
               <button
+                id={"app-terminal-#{app.instance}"}
                 phx-click="app-terminal-click"
                 phx-value-instance={app.instance}
                 phx-value-std="terminal"
@@ -96,6 +98,7 @@ defmodule DeployexWeb.Components.AppCards do
               </button>
 
               <button
+                id={"app-log-stderr-#{app.instance}"}
                 phx-click="app-log-click"
                 phx-value-instance={app.instance}
                 phx-value-std="stderr"
@@ -106,6 +109,7 @@ defmodule DeployexWeb.Components.AppCards do
               </button>
 
               <button
+                id={"app-versions-#{app.instance}"}
                 phx-click="app-versions-click"
                 phx-value-instance={app.instance}
                 type="button"

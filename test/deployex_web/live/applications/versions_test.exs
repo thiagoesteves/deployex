@@ -4,10 +4,10 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Phoenix.LiveViewTest
   import Mox
 
+  alias Deployex.Fixture.Monitoring
+
   setup :set_mox_global
   setup :verify_on_exit!
-
-  alias Deployex.Fixture.Monitoring
 
   test "GET /versions full list", %{conn: conn} do
     topic = "topic-version-000"
@@ -15,7 +15,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     Deployex.StatusMock
     |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
-    |> expect(:history_version_list, 2, fn ->
+    |> expect(:history_version_list, fn ->
       [
         %{
           "version" => "10.11.12",
@@ -34,7 +34,9 @@ defmodule DeployexWeb.Applications.VersionsTest do
       ]
     end)
 
-    {:ok, _view, html} = live(conn, ~p"/applications/0/versions")
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    html = index_live |> element("#app-versions-0") |> render_click()
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.12"
@@ -55,7 +57,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     Deployex.StatusMock
     |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
-    |> expect(:history_version_list, 2, fn "1" ->
+    |> expect(:history_version_list, fn "1" ->
       [
         %{
           "version" => "10.11.16",
@@ -74,7 +76,9 @@ defmodule DeployexWeb.Applications.VersionsTest do
       ]
     end)
 
-    {:ok, _view, html} = live(conn, ~p"/applications/1/versions")
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    html = index_live |> element("#app-versions-1") |> render_click()
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.16"
