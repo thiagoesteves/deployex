@@ -21,7 +21,7 @@ defmodule DeployexWeb.Router do
   scope "/", DeployexWeb do
     pipe_through :browser
 
-    get "/about", PageController, :about
+    get "/about", PageController, :show
   end
 
   scope "/", DeployexWeb do
