@@ -3,6 +3,9 @@ defmodule DeployexWeb.ApplicationsLive do
 
   alias Deployex.Status
   alias Deployex.Terminal.Server
+  alias DeployexWeb.ApplicationsLive.Logs
+  alias DeployexWeb.ApplicationsLive.Terminal
+  alias DeployexWeb.ApplicationsLive.Versions
 
   @impl true
   def render(assigns) do
@@ -20,7 +23,7 @@ defmodule DeployexWeb.ApplicationsLive do
       on_cancel={JS.patch(~p"/applications")}
     >
       <.live_component
-        module={DeployexWeb.ApplicationsLive.Logs}
+        module={Logs}
         id={@selected_instance}
         title={@page_title}
         action={@live_action}
@@ -37,7 +40,7 @@ defmodule DeployexWeb.ApplicationsLive do
       on_cancel={JS.patch(~p"/applications")}
     >
       <.live_component
-        module={DeployexWeb.ApplicationsLive.Versions}
+        module={Versions}
         id={@selected_instance}
         title={@page_title}
         action={@live_action}
@@ -52,7 +55,7 @@ defmodule DeployexWeb.ApplicationsLive do
       on_cancel={JS.patch(~p"/applications")}
     >
       <.live_component
-        module={DeployexWeb.ApplicationsLive.Terminal}
+        module={Terminal}
         id={@selected_instance}
         title={@page_title}
         action={@live_action}

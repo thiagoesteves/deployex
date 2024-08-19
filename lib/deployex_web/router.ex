@@ -21,6 +21,12 @@ defmodule DeployexWeb.Router do
   scope "/", DeployexWeb do
     pipe_through :browser
 
+    get "/about", PageController, :show
+  end
+
+  scope "/", DeployexWeb do
+    pipe_through :browser
+
     live_session :default do
       live "/", ApplicationsLive, :index
       live "/applications", ApplicationsLive, :index
@@ -28,8 +34,6 @@ defmodule DeployexWeb.Router do
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
       live "/applications/:instance/terminal", ApplicationsLive, :terminal
       live "/applications/:instance/versions", ApplicationsLive, :versions
-
-      live "/about", AboutLive, :index
     end
   end
 

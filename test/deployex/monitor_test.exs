@@ -7,11 +7,11 @@ defmodule Deployex.MonitorTest do
   setup :verify_on_exit!
 
   alias Deployex.AppConfig
-  alias Deployex.Fixture
+  alias Deployex.Fixture.Storage
   alias Deployex.Monitor.Application, as: MonitorApp
 
   setup do
-    Fixture.storage_cleanup()
+    Storage.cleanup()
   end
 
   describe "Initialization tests" do
@@ -410,6 +410,21 @@ defmodule Deployex.MonitorTest do
 
       assert :ok = MonitorApp.stop_service(instance)
     end
+  end
+
+  test "Adapter function test" do
+    Deployex.MonitorMock
+    |> expect(:start_service, fn _instance, _reference, _list -> {:ok, self()} end)
+    |> expect(:stop_service, fn _instance -> :ok end)
+    |> expect(:state, fn _instance -> {:ok, %{}} end)
+    |> expect(:run_pre_commands, fn _instance, cmds, _new_or_current -> {:ok, cmds} end)
+    |> expect(:global_name, fn _instance -> %{} end)
+
+    assert {:ok, _pid} = Deployex.Monitor.start_service(1, make_ref(), [])
+    assert :ok = Deployex.Monitor.stop_service(1)
+    assert {:ok, %{}} = Deployex.Monitor.state(1)
+    assert {:ok, []} = Deployex.Monitor.run_pre_commands(1, [], :new)
+    assert %{} = Deployex.Monitor.global_name(1)
   end
 
   defp create_bin_files(instance) do

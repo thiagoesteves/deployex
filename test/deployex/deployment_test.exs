@@ -7,10 +7,10 @@ defmodule Deployex.DeploymentTest do
   setup :verify_on_exit!
 
   alias Deployex.Deployment
-  alias Deployex.Fixture
+  alias Deployex.Fixture.Storage
 
   setup do
-    Fixture.storage_cleanup()
+    Storage.cleanup()
   end
 
   describe "Initialization tests" do

@@ -28,12 +28,12 @@ defmodule DeployexWeb.Components.AppCards do
 
             <p class="flex  tracking-tight  pt-3   justify-between">
               <span class="text-xs font-bold ml-3">OTP-Nodes</span>
-              <.ok_notok status={app.otp} />
+              <.connected? status={app.otp} />
             </p>
 
             <p :if={app.supervisor} class="flex tracking-tight pt-3  justify-between ">
               <span class=" text-xs font-bold ml-3">mTLS</span>
-              <.ok_notok status={app.tls} />
+              <.supported? status={app.tls} />
             </p>
 
             <p :if={app.last_deployment} class="flex tracking-tight pt-3 justify-between">
@@ -123,29 +123,30 @@ defmodule DeployexWeb.Components.AppCards do
     """
   end
 
-  defp ok_notok(assigns) do
+  defp connected?(assigns) do
     ~H"""
-    <%= cond do %>
-      <% @status == :connected -> %>
-        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2 py-0.5 rounded dark:bg-gray-700 dark:text-green-400 border border-green-400">
-          CONNECTED
-        </span>
-      <% @status == :not_connected -> %>
-        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
-          NOT CONNECTED
-        </span>
-      <% @status == :supported -> %>
-        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2 py-0.5 rounded dark:bg-gray-700 dark:text-green-400 border border-green-400">
-          SUPPORTED
-        </span>
-      <% @status == :not_supported -> %>
-        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
-          NOT SUPPORTED
-        </span>
-      <% true -> %>
-        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
-          NOT CONNECTED
-        </span>
+    <%= if @status == :connected do %>
+      <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2 py-0.5 rounded dark:bg-gray-700 dark:text-green-400 border border-green-400">
+        CONNECTED
+      </span>
+    <% else %>
+      <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
+        NOT CONNECTED
+      </span>
+    <% end %>
+    """
+  end
+
+  defp supported?(assigns) do
+    ~H"""
+    <%= if @status == :supported do %>
+      <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2 py-0.5 rounded dark:bg-gray-700 dark:text-green-400 border border-green-400">
+        SUPPORTED
+      </span>
+    <% else %>
+      <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-400">
+        NOT SUPPORTED
+      </span>
     <% end %>
     """
   end
@@ -212,13 +213,9 @@ defmodule DeployexWeb.Components.AppCards do
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
           <%= @version %> [starting]
         </div>
-      <% @version == nil -> %>
+      <% true -> %>
         <div class={[@class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>
           version not set
-        </div>
-      <% true -> %>
-        <div class={[@class, "bg-gradient-to-t from-gray-400 to-gray-600"]}>
-          invalid state
         </div>
     <% end %>
     """
