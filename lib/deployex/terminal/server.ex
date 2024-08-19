@@ -52,16 +52,26 @@ defmodule Deployex.Terminal.Server do
 
   @impl true
   def handle_continue(:open_erlexec_connection, state) do
-    {:ok, _pid, process} = OpSys.run(state.commands, state.options)
+    case OpSys.run(state.commands, state.options) do
+      {:ok, _pid, process} ->
+        Logger.info(
+          "Initializing terminal instance: #{state.instance} at process pid: #{process}"
+        )
 
-    Logger.info("Initializing terminal instance: #{state.instance} at process pid: #{process}")
+        state = %{state | message: "", process: process}
 
-    state = %{state | message: "", process: process}
+        # NOTE: Send at least one message to sync with the target process
+        notify_target(state)
 
-    # NOTE: Send at least one message to sync with the target process
-    notify_target(state)
+        {:noreply, state}
 
-    {:noreply, state}
+      reason ->
+        Logger.error(
+          "Error while trying to run the commands for instance: #{state.instance}, reason: #{inspect(reason)}"
+        )
+
+        {:stop, :normal, state}
+    end
   end
 
   @impl true

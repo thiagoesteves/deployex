@@ -155,8 +155,8 @@ defmodule DeployexWeb.Applications.LogsTest do
              os_pid = 123_456
 
              Deployex.StatusMock
-             |> stub(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
-             |> stub(:listener_topic, fn -> topic end)
+             |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+             |> expect(:listener_topic, fn -> topic end)
 
              Deployex.OpSysMock
              |> expect(:run, fn _command, _options ->
@@ -167,10 +167,14 @@ defmodule DeployexWeb.Applications.LogsTest do
                :ok
              end)
 
-             {:ok, index_live, _html} = live(conn, ~p"/applications")
-
-             assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-                      "Application Logs [1]"
+             assert {:ok, _pid} =
+                      Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+                        instance: "1",
+                        commands: "",
+                        options: [],
+                        target: self(),
+                        type: :logs_stdout
+                      })
 
              {:ok, index_live, _html} = live(conn, ~p"/applications")
 

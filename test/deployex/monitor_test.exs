@@ -6,7 +6,7 @@ defmodule Deployex.MonitorTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployex.AppConfig
+  alias Deployex.Fixture.Binary
   alias Deployex.Fixture.Storage
   alias Deployex.Monitor.Application, as: MonitorApp
 
@@ -100,7 +100,7 @@ defmodule Deployex.MonitorTest do
       instance = 1003
       os_pid = 123_456
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -137,7 +137,7 @@ defmodule Deployex.MonitorTest do
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -173,7 +173,7 @@ defmodule Deployex.MonitorTest do
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -211,7 +211,7 @@ defmodule Deployex.MonitorTest do
       instance = 1006
       os_pid = 123_456
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -248,7 +248,7 @@ defmodule Deployex.MonitorTest do
       os_pid = 123_456
       pre_commands = ["eval running_cmd1", "eval running_cmd1"]
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -292,7 +292,7 @@ defmodule Deployex.MonitorTest do
       instance = 1010
       os_pid = 123_456
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -335,7 +335,7 @@ defmodule Deployex.MonitorTest do
       instance = 1011
       os_pid = 123_456
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -378,7 +378,7 @@ defmodule Deployex.MonitorTest do
       instance = 1012
       os_pid = 123_456
 
-      create_bin_files(instance)
+      Binary.create_bin_files(instance)
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
@@ -425,15 +425,5 @@ defmodule Deployex.MonitorTest do
     assert {:ok, %{}} = Deployex.Monitor.state(1)
     assert {:ok, []} = Deployex.Monitor.run_pre_commands(1, [], :new)
     assert %{} = Deployex.Monitor.global_name(1)
-  end
-
-  defp create_bin_files(instance) do
-    current = "#{AppConfig.current_path(instance)}/bin/"
-    File.mkdir_p(current)
-    File.touch!("#{current}/#{AppConfig.monitored_app()}")
-
-    new = "#{AppConfig.new_path(instance)}/bin/"
-    File.mkdir_p(new)
-    File.touch!("#{new}/#{AppConfig.monitored_app()}")
   end
 end
