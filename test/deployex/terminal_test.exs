@@ -6,12 +6,12 @@ defmodule Deployex.TerminalTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployex.Fixture
+  alias Deployex.Fixture.Storage
   alias Deployex.Terminal.Server, as: TerminalServer
   alias Deployex.Terminal.Supervisor, as: TerminalSup
 
   setup do
-    Fixture.storage_cleanup()
+    Storage.cleanup()
   end
 
   describe "Initialization tests" do

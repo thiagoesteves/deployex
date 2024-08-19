@@ -7,11 +7,11 @@ defmodule Deployex.StatusAppTest do
   setup :verify_on_exit!
 
   alias Deployex.AppConfig
-  alias Deployex.Fixture
+  alias Deployex.Fixture.Storage
   alias Deployex.Status.Application, as: StatusApp
 
   setup do
-    Fixture.storage_cleanup()
+    Storage.cleanup()
 
     release = %{
       "version" => "1.0.0",

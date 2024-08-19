@@ -7,11 +7,11 @@ defmodule Deployex.MonitorTest do
   setup :verify_on_exit!
 
   alias Deployex.AppConfig
-  alias Deployex.Fixture
+  alias Deployex.Fixture.Storage
   alias Deployex.Monitor.Application, as: MonitorApp
 
   setup do
-    Fixture.storage_cleanup()
+    Storage.cleanup()
   end
 
   describe "Initialization tests" do

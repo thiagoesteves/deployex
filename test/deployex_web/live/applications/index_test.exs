@@ -4,36 +4,14 @@ defmodule DeployexWeb.Applications.IndexTest do
   import Phoenix.LiveViewTest
   import Mox
 
+  alias Deployex.Fixture.Monitoring
+
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @deployex_status %Deployex.Status{
-    name: "deployex",
-    version: "1.2.3",
-    otp: :connected,
-    tls: :supported,
-    supervisor: true,
-    status: :running,
-    uptime: "short time",
-    last_ghosted_version: "-/-"
-  }
-
-  @application_status %Deployex.Status{
-    name: "my-test-app",
-    instance: 1,
-    version: "4.5.6",
-    otp: :connected,
-    tls: :supported,
-    last_deployment: "full_deployment",
-    supervisor: false,
-    status: :running,
-    restarts: 0,
-    uptime: "long time"
-  }
-
   test "GET /applications", %{conn: conn} do
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: [@deployex_status, @application_status]}} end)
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> "test-topic" end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
@@ -50,10 +28,10 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications deployment: hot-upgrade", %{conn: conn} do
-    topic = "topic-test-001"
+    topic = "topic-index-001"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: [@deployex_status, @application_status]}} end)
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -62,8 +40,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "FULL"
 
     new_state = [
-      @deployex_status,
-      @application_status |> Map.put(:last_deployment, "hot_upgrade")
+      Monitoring.deployex(),
+      Monitoring.application(%{last_deployment: "hot_upgrade"})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -72,10 +50,10 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications restarts", %{conn: conn} do
-    topic = "topic-test-002"
+    topic = "topic-index-002"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: [@deployex_status, @application_status]}} end)
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -86,8 +64,8 @@ defmodule DeployexWeb.Applications.IndexTest do
              "Restarts</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
 
     new_state = [
-      @deployex_status,
-      @application_status |> Map.put(:restarts, 1)
+      Monitoring.deployex(),
+      Monitoring.application(%{restarts: 1})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -97,10 +75,10 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications OTP not connected", %{conn: conn} do
-    topic = "topic-test-003"
+    topic = "topic-index-003"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: [@deployex_status, @application_status]}} end)
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -110,8 +88,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "NOT CONNECTED"
 
     new_state = [
-      @deployex_status,
-      @application_status |> Map.put(:otp, :not_connected)
+      Monitoring.deployex(),
+      Monitoring.application(%{otp: :not_connected})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -120,10 +98,10 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications TLS not supported", %{conn: conn} do
-    topic = "topic-test-004"
+    topic = "topic-index-004"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: [@deployex_status, @application_status]}} end)
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -133,8 +111,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "NOT SUPPORTED"
 
     new_state = [
-      @deployex_status |> Map.put(:tls, :not_supported),
-      @application_status
+      Monitoring.deployex(%{tls: :not_supported}),
+      Monitoring.application()
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -143,17 +121,15 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications application states", %{conn: conn} do
-    topic = "topic-test-005"
+    topic = "topic-index-005"
 
     Deployex.StatusMock
     |> expect(:state, fn ->
       {:ok,
        %{
          monitoring: [
-           @deployex_status,
-           @application_status
-           |> Map.put(:status, :idle)
-           |> Map.put(:version, nil)
+           Monitoring.deployex(),
+           Monitoring.application(%{status: :idle, version: nil})
          ]
        }}
     end)
@@ -166,10 +142,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      @deployex_status,
-      @application_status
-      |> Map.put(:status, :starting)
-      |> Map.put(:version, "1.0.0")
+      Monitoring.deployex(),
+      Monitoring.application(%{status: :starting, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -179,10 +153,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      @deployex_status,
-      @application_status
-      |> Map.put(:status, :pre_commands)
-      |> Map.put(:version, "1.0.0")
+      Monitoring.deployex(),
+      Monitoring.application(%{status: :pre_commands, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
@@ -192,10 +164,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      @deployex_status,
-      @application_status
-      |> Map.put(:status, :running)
-      |> Map.put(:version, "1.0.0")
+      Monitoring.deployex(),
+      Monitoring.application(%{status: :running, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
