@@ -14,10 +14,6 @@ defmodule DeployexWeb.Router do
     }
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", DeployexWeb do
     pipe_through :browser
 
