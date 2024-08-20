@@ -53,7 +53,7 @@ hooks.IexTerminal = {
       return true;
     });
 
-    this.handleEvent("print_" + this.el.id, e => {
+    this.handleEvent("print-" + this.el.id, e => {
       term.write(e.data);
     });
   }
