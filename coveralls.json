@@ -1,0 +1,19 @@
+{
+    "skip_files": [
+      "lib/config_provider/aws_secrets_manager.ex",
+      "lib/deployex_web/components/core_components.ex",
+      "lib/deployex/application.ex",
+      "lib/deployex/monitor/adapter.ex",
+      "lib/deployex/op_sys/adapter.ex",
+      "lib/deployex/release/adapter.ex",
+      "lib/deployex/status/adapter.ex",
+      "lib/deployex/upgrade/adapter.ex",
+      "lib/deployex/mailer.ex",
+      "lib/deployex/macros.ex",
+      "lib/deployex_web/components/layouts.ex",
+      "lib/deployex_web/controllers/page_html.ex",
+      "lib/deployex_web/endpoint.ex",
+      "lib/deployex_web/gettext.ex",
+      "lib/deployex_web/telemetry.ex"
+    ]
+  }

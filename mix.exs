@@ -9,6 +9,14 @@ defmodule Deployex.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.cobertura": :test
+      ],
       docs: docs(),
       package: package(),
       description: description(),
@@ -25,8 +33,7 @@ defmodule Deployex.MixProject do
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
-      aliases: aliases(),
-      test_coverage: test_coverage()
+      aliases: aliases()
     ]
   end
 
@@ -116,23 +123,8 @@ defmodule Deployex.MixProject do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mox, "~> 1.0", only: :test}
-    ]
-  end
-
-  defp test_coverage do
-    [
-      summary: [threshold: 95],
-      ignore_modules: [
-        Deployex.Application,
-        DeployexWeb.Telemetry,
-        DeployexWeb.Layouts,
-        Deployex.Macros,
-        Deployex.AwsSecretsManagerProvider,
-        DeployexWeb.CoreComponents,
-        Deployex.OpSys.Erlexec,
-        DeployexWeb.PageHTML
-      ]
+      {:mox, "~> 1.0", only: :test},
+      {:excoveralls, "~> 0.18", only: :test},
     ]
   end
 
