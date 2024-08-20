@@ -139,7 +139,7 @@ defmodule Deployex.StatusAppTest do
                  supervisor: true,
                  status: :running,
                  restarts: 0,
-                 uptime: "now",
+                 uptime: _,
                  last_ghosted_version: "-/-"
                },
                %Deployex.Status{

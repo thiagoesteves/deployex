@@ -6,6 +6,7 @@ on:
 
 env:
   MIX_ENV: test
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   SHELL: /usr/bin/bash
 
 jobs:
@@ -61,7 +62,7 @@ jobs:
             deployex-
 
       - name: Run tests
-        run: mix test
+        run: mix coveralls.github
 
   analysis:
     name: Static Analysis
