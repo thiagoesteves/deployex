@@ -185,6 +185,14 @@ defmodule Deployex.StatusAppTest do
            } = monitoring
   end
 
+  test "Initialize a GenServer and capture its state" do
+    name = "#{__MODULE__}-status-000" |> String.to_atom()
+
+    assert {:ok, _pid} = Deployex.Status.Application.start_link(name: name)
+
+    assert {:ok, %{monitoring: [], instances: 3}} = Deployex.Status.Application.state(name)
+  end
+
   test "update" do
     path = AppConfig.new_path(1)
     assert :ok = StatusApp.update(1)

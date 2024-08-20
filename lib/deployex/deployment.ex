@@ -33,9 +33,10 @@ defmodule Deployex.Deployment do
     timeout_rollback = Keyword.fetch!(args, :timeout_rollback)
     schedule_interval = Keyword.fetch!(args, :schedule_interval)
 
-    Logger.info(
+    log_message =
       "Initialising deployment server timeout_rollback: #{timeout_rollback} schedule_interval: #{schedule_interval}"
-    )
+
+    Logger.info(log_message)
 
     schedule_new_deployment(schedule_interval)
 
@@ -99,30 +100,24 @@ defmodule Deployex.Deployment do
   @impl true
   def handle_cast({:application_running, instance, deploy_ref}, %__MODULE__{} = state) do
     current_deployment = state.deployments[state.current]
-    updated_deployment = state.deployments[instance]
 
     state =
-      cond do
-        instance == state.current and deploy_ref == current_deployment.deploy_ref ->
-          Process.cancel_timer(current_deployment.timer_ref)
+      if instance == state.current and
+           deploy_ref == current_deployment.deploy_ref do
+        Process.cancel_timer(current_deployment.timer_ref)
 
-          new_current =
-            if state.current == state.instances, do: 1, else: state.current + 1
+        new_current =
+          if state.current == state.instances, do: 1, else: state.current + 1
 
-          Logger.info(" # Moving to the next instance: #{new_current}")
+        Logger.info(" # Moving to the next instance: #{new_current}")
 
-          %{state | current: new_current}
+        %{state | current: new_current}
+      else
+        Logger.warning(
+          "Received instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)} that doesn't match the expected one: #{state.current} deploy_ref: #{Common.short_ref(current_deployment.deploy_ref)}"
+        )
 
-        instance != state.current and deploy_ref == updated_deployment[:deploy_ref] ->
-          # Ignore because the application restarted and it is now runnitn again
-          state
-
-        true ->
-          Logger.error(
-            "Received instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)} that doesn't match the expected one: #{state.current} deploy_ref: #{Common.short_ref(current_deployment.deploy_ref)}"
-          )
-
-          state
+        state
       end
 
     {:noreply, state}
@@ -212,9 +207,10 @@ defmodule Deployex.Deployment do
     end
 
     if release != nil and release["version"] != current_app_version and not ghosted_version? do
-      Logger.info(
+      log_message =
         "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release["version"]}."
-      )
+
+      Logger.info(log_message)
 
       deploy_application.()
     else
@@ -247,9 +243,10 @@ defmodule Deployex.Deployment do
     new_deploy_ref = :erlang.make_ref()
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      Logger.info(
+      log_message =
         "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
-      )
+
+      Logger.info(log_message)
 
       Monitor.stop_service(instance)
 
@@ -275,9 +272,10 @@ defmodule Deployex.Deployment do
     deploy_ref = state.deployments[instance].deploy_ref
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      Logger.info(
+      log_message =
         "Hot upgrade instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)}."
-      )
+
+      Logger.info(log_message)
 
       from_version = Status.current_version(instance)
 

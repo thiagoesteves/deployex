@@ -5,6 +5,7 @@
     "lib/deployex/application.ex",
     "lib/deployex/monitor/adapter.ex",
     "lib/deployex/op_sys/adapter.ex",
+    "lib/deployex/op_sys/erlexec.ex",
     "lib/deployex/release/adapter.ex",
     "lib/deployex/status/adapter.ex",
     "lib/deployex/upgrade/adapter.ex",
@@ -14,7 +15,9 @@
     "lib/deployex_web/controllers/page_html.ex",
     "lib/deployex_web/endpoint.ex",
     "lib/deployex_web/gettext.ex",
-    "lib/deployex_web/telemetry.ex"
+    "lib/deployex_web/telemetry.ex",
+    "deps/*",
+    "test/*"
   ],
   "coverage_options": {
     "minimum_coverage": 80
