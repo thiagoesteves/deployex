@@ -61,7 +61,7 @@ jobs:
             deployex-
 
       - name: Run tests
-        run: mix test
+        run: mix coveralls
 
   analysis:
     name: Static Analysis
