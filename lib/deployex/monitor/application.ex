@@ -59,19 +59,23 @@ defmodule Deployex.Monitor.Application do
     {:reply, {:ok, state}, state}
   end
 
-  def handle_call(:stop_service, _from, %__MODULE__{current_pid: current_pid} = state)
+  def handle_call(
+        :stop_service,
+        _from,
+        %__MODULE__{current_pid: current_pid, instance: instance} = state
+      )
       when is_nil(current_pid) do
-    Logger.warning(
-      "Requested instance: #{state.instance} to stop but application is not running."
-    )
+    Logger.warning("Requested instance: #{instance} to stop but application is not running.")
 
     {:reply, :ok, state}
   end
 
-  def handle_call(:stop_service, _from, state) do
-    Logger.info(
-      "Requested instance: #{state.instance} to stop application pid: #{inspect(state.current_pid)}"
-    )
+  def handle_call(
+        :stop_service,
+        _from,
+        %__MODULE__{instance: instance, current_pid: pid} = state
+      ) do
+    Logger.info("Requested instance: #{instance} to stop application pid: #{inspect(pid)}")
 
     # Stop current application
     OpSys.stop(state.current_pid)
@@ -92,17 +96,17 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  def handle_info({:run_service, deploy_ref}, state) when deploy_ref == state.deploy_ref do
+  def handle_info({:run_service, deploy_ref}, %__MODULE__{instance: instance} = state)
+      when deploy_ref == state.deploy_ref do
     version_map = Status.current_version_map(state.instance)
+    version = version_map["version"]
 
     state =
       if version_map == nil do
         Logger.info("No version set, not able to run_service")
         state
       else
-        Logger.info(
-          "Ensure running requested for instance: #{state.instance} version: #{version_map["version"]}"
-        )
+        Logger.info("Ensure running requested for instance: #{instance} version: #{version}")
 
         run_service(state, version_map)
       end
@@ -213,9 +217,10 @@ defmodule Deployex.Monitor.Application do
           ]
         )
 
-      Logger.info(
+      log_message =
         " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{Common.short_ref(deploy_ref)}."
-      )
+
+      Logger.info(log_message)
 
       Process.send_after(self(), {:check_running, pid, deploy_ref}, timeout_app_ready)
 

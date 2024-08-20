@@ -12,18 +12,6 @@ defmodule Deployex.Status.Application do
 
   require Logger
 
-  defstruct name: nil,
-            instance: 0,
-            version: nil,
-            otp: nil,
-            tls: :not_supported,
-            last_deployment: nil,
-            supervisor: false,
-            status: nil,
-            restarts: 0,
-            uptime: nil,
-            last_ghosted_version: nil
-
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
 
@@ -31,14 +19,18 @@ defmodule Deployex.Status.Application do
   ### Callback GenServer functions
   ### ==========================================================================
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    name = Keyword.get(args, :name, __MODULE__)
+
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   @impl true
-  def init(_args) do
+  def init(args) do
     Process.flag(:trap_exit, true)
 
-    :timer.send_interval(@update_apps_interval, :update_apps)
+    args
+    |> Keyword.get(:update_apps_interval, @update_apps_interval)
+    |> :timer.send_interval(:update_apps)
 
     {:ok, %{instances: AppConfig.replicas(), monitoring: []}}
   end
@@ -76,8 +68,8 @@ defmodule Deployex.Status.Application do
   ### ==========================================================================
 
   @impl true
-  def state do
-    Common.call_gen_server(__MODULE__, :state)
+  def state(name \\ __MODULE__) do
+    Common.call_gen_server(name, :state)
   end
 
   @impl true
