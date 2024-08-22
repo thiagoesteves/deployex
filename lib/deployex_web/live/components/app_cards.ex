@@ -64,6 +64,30 @@ defmodule DeployexWeb.Components.AppCards do
             </p>
 
             <p class="flex  tracking-tight  pt-3   justify-between">
+              <.link
+                id={"app-restart-#{app.instance}"}
+                patch={"/applications/#{app.instance}/restart"}
+              >
+                <button
+                  type="button"
+                  class="ml-2 me-2 mb-2 text-white bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 rounded-lg text-sm px-2 py-1 text-center"
+                >
+                  <svg
+                    width="32px"
+                    height="16px"
+                    viewBox="0 0 100 100"
+                    xmlns="http://www.w3.org/2000/svg"
+                    version="1.1"
+                  >
+                    <g style="fill:none;stroke:#007B00;stroke-width:12px;stroke-linecap:round;stroke-linejoin:round;">
+                      <path d="m 50,10 0,35" />
+                      <path d="M 20,29 C 4,52 15,90 50,90 85,90 100,47 74,20" />
+                    </g>
+                    <path style="fill:#007B00;" d="m 2,21 29,-2 2,29" />
+                  </svg>
+                </button>
+              </.link>
+
               <button
                 id={"app-log-stdout-#{app.instance}"}
                 phx-click="app-log-click"
