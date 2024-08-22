@@ -13,7 +13,24 @@ defmodule DeployexWeb.ApplicationsLive do
     ~H"""
     <div class="min-h-screen bg-gray-700 ">
       <div class="p-10">
-        <DeployexWeb.Components.AppCards.content monitoring_apps_data={@monitoring_apps_data} />
+        <div class="grid grid-cols-3  gap-10 items-center p-30">
+          <%= for app <- @monitoring_apps_data do %>
+            <DeployexWeb.Components.AppCard.content
+              supervisor={app.supervisor}
+              status={app.status}
+              instance={app.instance}
+              restarts={app.restarts}
+              name={app.name}
+              version={app.version}
+              uptime={app.uptime}
+              otp={app.otp}
+              tls={app.tls}
+              last_deployment={app.last_deployment}
+              last_ghosted_version={app.last_ghosted_version}
+              restart_path={~p"/applications/#{app.instance}/restart"}
+            />
+          <% end %>
+        </div>
       </div>
     </div>
 
