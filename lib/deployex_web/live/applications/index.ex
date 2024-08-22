@@ -19,7 +19,7 @@ defmodule DeployexWeb.ApplicationsLive do
               supervisor={app.supervisor}
               status={app.status}
               instance={app.instance}
-              restarts={app.restarts}
+              crash_restart_count={app.crash_restart_count}
               name={app.name}
               version={app.version}
               uptime={app.uptime}

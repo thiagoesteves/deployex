@@ -30,7 +30,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
    - OTP connectivity
    - Version history
    - Last deployment status
-   - Number of restarts
+   - Number of crash restarts
 
 ## Nice to have
 

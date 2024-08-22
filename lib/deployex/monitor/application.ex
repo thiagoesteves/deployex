@@ -12,7 +12,7 @@ defmodule Deployex.Monitor.Application do
   defstruct current_pid: nil,
             instance: 0,
             status: :idle,
-            restarts: 0,
+            crash_restart_count: 0,
             start_time: nil,
             deploy_ref: :init,
             timeout_app_ready: nil,
@@ -142,13 +142,13 @@ defmodule Deployex.Monitor.Application do
 
     cleanup_beam_process(state.instance)
 
-    # Update the number of restarts
-    restarts = state.restarts + 1
+    # Update the number of crash restarts
+    crash_restart_count = state.crash_restart_count + 1
 
     # Retry with backoff pattern
-    trigger_run_service(state.deploy_ref, 2 * restarts * 1000)
+    trigger_run_service(state.deploy_ref, 2 * crash_restart_count * 1000)
 
-    {:noreply, %{state | restarts: restarts}}
+    {:noreply, %{state | crash_restart_count: crash_restart_count}}
   end
 
   def handle_info({:EXIT, pid, reason}, state) do
@@ -313,7 +313,7 @@ defmodule Deployex.Monitor.Application do
       state
       | status: :idle,
         current_pid: nil,
-        restarts: 0,
+        crash_restart_count: 0,
         start_time: nil,
         deploy_ref: deploy_ref
     }

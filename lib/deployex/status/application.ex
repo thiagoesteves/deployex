@@ -247,7 +247,11 @@ defmodule Deployex.Status.Application do
   end
 
   defp update_monitored_app(instance) do
-    %{deployment_status: deployment_status, restarts: restarts, uptime: uptime} =
+    %{
+      deployment_status: deployment_status,
+      crash_restart_count: crash_restart_count,
+      uptime: uptime
+    } =
       check_monitor_data(instance)
 
     check_otp_monitored_app = fn
@@ -270,7 +274,7 @@ defmodule Deployex.Status.Application do
       last_deployment: current_version_map(instance)["deployment"],
       supervisor: false,
       status: deployment_status,
-      restarts: restarts,
+      crash_restart_count: crash_restart_count,
       uptime: uptime
     }
   end
@@ -288,12 +292,12 @@ defmodule Deployex.Status.Application do
       {:ok, state} ->
         %{
           deployment_status: state.status,
-          restarts: state.restarts,
+          crash_restart_count: state.crash_restart_count,
           uptime: Common.uptime_to_string(state.start_time)
         }
 
       _ ->
-        %{deployment_status: nil, restarts: nil, uptime: Common.uptime_to_string(nil)}
+        %{deployment_status: nil, crash_restart_count: nil, uptime: Common.uptime_to_string(nil)}
     end
   end
 end
