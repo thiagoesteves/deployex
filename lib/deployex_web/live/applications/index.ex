@@ -1,6 +1,7 @@
 defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
+  alias Deployex.Monitor
   alias Deployex.Status
   alias Deployex.Terminal.Server
   alias DeployexWeb.ApplicationsLive.Logs
@@ -20,6 +21,7 @@ defmodule DeployexWeb.ApplicationsLive do
               status={app.status}
               instance={app.instance}
               crash_restart_count={app.crash_restart_count}
+              force_restart_count={app.force_restart_count}
               name={app.name}
               version={app.version}
               uptime={app.uptime}
@@ -205,8 +207,9 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/versions")}
   end
 
-  def handle_event("restart", %{"id" => _instance}, socket) do
-    # NOTE: Add restart here, good luck
+  def handle_event("restart", %{"id" => instance}, socket) do
+    # Restart the application
+    Monitor.restart(instance |> String.to_integer())
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 

@@ -78,7 +78,7 @@ defmodule Deployex.Common do
     ...> assert Common.call_gen_server(valid_name, "any-message") == :ok
     ...> assert Common.call_gen_server(%{}, "any-message") == {:error, :rescued}
   """
-  @spec call_gen_server(pid() | map() | atom(), any()) :: {:ok, any()} | {:error, :rescued}
+  @spec call_gen_server(pid() | map() | atom(), any()) :: :ok | {:ok, any()} | {:error, :rescued}
   def call_gen_server(key, message) when is_pid(key) or is_atom(key) do
     try do
       GenServer.call(key, message)

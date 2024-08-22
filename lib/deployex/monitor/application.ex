@@ -9,15 +9,6 @@ defmodule Deployex.Monitor.Application do
 
   @behaviour Deployex.Monitor.Adapter
 
-  defstruct current_pid: nil,
-            instance: 0,
-            status: :idle,
-            crash_restart_count: 0,
-            start_time: nil,
-            deploy_ref: :init,
-            timeout_app_ready: nil,
-            retry_delay_pre_commands: nil
-
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
@@ -45,7 +36,7 @@ defmodule Deployex.Monitor.Application do
 
     {:ok,
      reset_state(
-       %__MODULE__{
+       %Deployex.Monitor{
          instance: instance,
          timeout_app_ready: timeout_app_ready,
          retry_delay_pre_commands: retry_delay_pre_commands
@@ -62,7 +53,7 @@ defmodule Deployex.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %__MODULE__{current_pid: current_pid, instance: instance} = state
+        %Deployex.Monitor{current_pid: current_pid, instance: instance} = state
       )
       when is_nil(current_pid) do
     Logger.warning("Requested instance: #{instance} to stop but application is not running.")
@@ -73,7 +64,7 @@ defmodule Deployex.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %__MODULE__{instance: instance, current_pid: pid} = state
+        %Deployex.Monitor{instance: instance, current_pid: pid} = state
       ) do
     Logger.info("Requested instance: #{instance} to stop application pid: #{inspect(pid)}")
 
@@ -95,8 +86,29 @@ defmodule Deployex.Monitor.Application do
     {:reply, {:ok, pre_commands}, state}
   end
 
+  def handle_call(:restart, _from, state) when is_nil(state.current_pid) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:restart, _from, state) do
+    Logger.warning("Restart requested for instance: #{state.instance}")
+
+    # Stop current application
+    OpSys.stop(state.current_pid)
+
+    cleanup_beam_process(state.instance)
+
+    # Update the number of force restarts
+    force_restart_count = state.force_restart_count + 1
+
+    # Retry with backoff pattern
+    trigger_run_service(state.deploy_ref)
+
+    {:reply, :ok, %{state | force_restart_count: force_restart_count}}
+  end
+
   @impl true
-  def handle_info({:run_service, deploy_ref}, %__MODULE__{instance: instance} = state)
+  def handle_info({:run_service, deploy_ref}, %Deployex.Monitor{instance: instance} = state)
       when deploy_ref == state.deploy_ref do
     version_map = Status.current_version_map(state.instance)
     version = version_map["version"]
@@ -183,6 +195,13 @@ defmodule Deployex.Monitor.Application do
   defdelegate stop_service(instance), to: Deployex.Monitor.Supervisor
 
   @impl true
+  def restart(instance) do
+    instance
+    |> global_name()
+    |> Common.call_gen_server(:restart)
+  end
+
+  @impl true
   def global_name(instance), do: %{module: __MODULE__, instance: instance}
 
   ### ==========================================================================
@@ -192,7 +211,7 @@ defmodule Deployex.Monitor.Application do
     do: Process.send_after(self(), {:run_service, deploy_ref}, timeout)
 
   defp run_service(
-         %__MODULE__{
+         %Deployex.Monitor{
            instance: instance,
            deploy_ref: deploy_ref,
            timeout_app_ready: timeout_app_ready,
@@ -314,6 +333,7 @@ defmodule Deployex.Monitor.Application do
       | status: :idle,
         current_pid: nil,
         crash_restart_count: 0,
+        force_restart_count: 0,
         start_time: nil,
         deploy_ref: deploy_ref
     }

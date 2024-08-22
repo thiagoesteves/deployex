@@ -7,6 +7,7 @@ defmodule DeployexWeb.Components.AppCard do
   attr :status, :atom, required: true
   attr :instance, :integer, required: true
   attr :crash_restart_count, :integer, required: true
+  attr :force_restart_count, :integer, required: true
   attr :name, :string, required: true
   attr :version, :string, required: true
   attr :uptime, :string, required: true
@@ -54,6 +55,11 @@ defmodule DeployexWeb.Components.AppCard do
         <p :if={@supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
           <span class="text-xs font-bold ml-3">Crash Restart</span>
           <.restarts restarts={@crash_restart_count} />
+        </p>
+
+        <p :if={@supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+          <span class="text-xs font-bold ml-3">Force Restart</span>
+          <.restarts restarts={@force_restart_count} />
         </p>
 
         <p
