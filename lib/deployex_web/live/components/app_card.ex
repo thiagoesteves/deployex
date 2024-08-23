@@ -26,7 +26,13 @@ defmodule DeployexWeb.Components.AppCard do
       class={[app_background(@supervisor, @status), "rounded-lg border border-black mt-2"]}
     >
       <div class="flex flex-col rounded mb-3">
-        <.version status={@status} version={@version} />
+        <.header_card
+          status={@status}
+          version={@version}
+          instance={@instance}
+          supervisor={@supervisor}
+          restart_path={@restart_path}
+        />
 
         <h3 class="font-mono text-center text-xl text-black font-bold"><%= "#{@name}" %></h3>
 
@@ -80,27 +86,6 @@ defmodule DeployexWeb.Components.AppCard do
         </p>
 
         <p class="flex  tracking-tight  pt-3   justify-between">
-          <.link id={"app-restart-#{@instance}"} patch={@restart_path}>
-            <button
-              type="button"
-              class="ml-2 me-2 mb-2 text-white bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-cyan-300 dark:focus:ring-cyan-800 rounded-lg text-sm px-2 py-1 text-center"
-            >
-              <svg
-                width="32px"
-                height="16px"
-                viewBox="0 0 100 100"
-                xmlns="http://www.w3.org/2000/svg"
-                version="1.1"
-              >
-                <g style="fill:none;stroke:#007B00;stroke-width:12px;stroke-linecap:round;stroke-linejoin:round;">
-                  <path d="m 50,10 0,35" />
-                  <path d="M 20,29 C 4,52 15,90 50,90 85,90 100,47 74,20" />
-                </g>
-                <path style="fill:#007B00;" d="m 2,21 29,-2 2,29" />
-              </svg>
-            </button>
-          </.link>
-
           <button
             id={"app-log-stdout-#{@instance}"}
             phx-click="app-log-click"
@@ -231,29 +216,77 @@ defmodule DeployexWeb.Components.AppCard do
     "bg-gray-400"
   end
 
-  defp version(assigns) do
-    class = "font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
+  defp restart_buttom(assigns) do
+    ~H"""
+    <.link id={"app-restart-#{@instance}"} patch={@restart_path}>
+      <button
+        type="button"
+        class="ml-2 me-2 mb-2 text-white bg-gradient-to-r from-red-400 via-red-500 to-red-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 rounded-lg text-sm px-2 py-1 text-center"
+      >
+        <svg
+          width="32px"
+          height="16px"
+          viewBox="0 0 100 100"
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+        >
+          <g style="fill:none;stroke:#FFFFFF;stroke-width:12px;stroke-linecap:round;stroke-linejoin:round;">
+            <path d="m 50,10 0,35" />
+            <path d="M 20,29 C 4,52 15,90 50,90 85,90 100,47 74,20" />
+          </g>
+          <path style="fill:#FFFFFF;" d="m 2,21 29,-2 2,29" />
+        </svg>
+      </button>
+    </.link>
+    """
+  end
+
+  defp header_card(assigns) do
+    default_spec_class = "font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
+
+    class =
+      if assigns.supervisor do
+        default_spec_class
+      else
+        "flex items-center justify-between font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
+      end
 
     assigns =
       assigns
       |> assign(class: class)
+      |> assign(default_spec_class: default_spec_class)
 
     ~H"""
     <%= cond do %>
       <% @status == :running and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
+          <.restart_buttom
+            :if={@supervisor == false}
+            instance={@instance}
+            restart_path={@restart_path}
+          />
           <%= @version %> [running]
         </div>
       <% @status == :pre_commands and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
+          <.restart_buttom
+            :if={@supervisor == false}
+            instance={@instance}
+            restart_path={@restart_path}
+          />
           <%= @version %> [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
+          <.restart_buttom
+            :if={@supervisor == false}
+            instance={@instance}
+            restart_path={@restart_path}
+          />
           <%= @version %> [starting]
         </div>
       <% true -> %>
-        <div class={[@class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>
+        <div class={[@default_spec_class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>
           version not set
         </div>
     <% end %>
