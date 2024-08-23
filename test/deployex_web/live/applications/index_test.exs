@@ -49,7 +49,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert render(view) =~ "HOT UPGRADE"
   end
 
-  test "GET /applications restarts", %{conn: conn} do
+  test "GET /applications restarts (crash and force)", %{conn: conn} do
     topic = "topic-index-002"
 
     Deployex.StatusMock
@@ -63,15 +63,21 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~
              "Crash Restart</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
 
+    assert html =~
+             "Force Restart</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
+
     new_state = [
       Monitoring.deployex(),
-      Monitoring.application(%{crash_restart_count: 1})
+      Monitoring.application(%{crash_restart_count: 1, force_restart_count: 1})
     ]
 
     Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
 
     assert render(view) =~
              "Crash Restart</span><span class=\"bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse\">\n      1"
+
+    assert render(view) =~
+             "Force Restart</span><span class=\"bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse\">\n      1"
   end
 
   test "GET /applications OTP not connected", %{conn: conn} do

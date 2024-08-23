@@ -2,6 +2,7 @@ defmodule Deployex.MonitorTest do
   use ExUnit.Case, async: false
 
   import Mox
+  import ExUnit.CaptureLog
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -372,10 +373,51 @@ defmodule Deployex.MonitorTest do
       assert :ok = MonitorApp.stop_service(instance)
     end
 
-    test "Ignore cleanup beam command" do
+    test "Force Restart the Application with pre-commands" do
       ref = make_ref()
       test_pid_process = self()
       instance = 1012
+      os_pid = 123_456
+      pre_commands = ["eval command1", "eval command2"]
+
+      Binary.create_bin_files(instance)
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        %{
+          "version" => "1.0.0",
+          "pre_commands" => pre_commands
+        }
+      end)
+
+      Deployex.OpSysMock
+      |> expect(:run_link, fn _command, _options ->
+        send(test_pid_process, {:handle_ref_event, ref})
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, 4, fn commands, _options ->
+        assert commands =~ "eval command1" or commands =~ "eval command2" or commands =~ "kill -9"
+        {:ok, test_pid_process}
+      end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert capture_log(fn ->
+               assert {:ok, _pid} = MonitorApp.start_service(instance, ref, timeout_app_ready: 10)
+
+               assert {:error, :application_is_not_running} = MonitorApp.restart(instance)
+
+               assert_receive {:handle_ref_event, ^ref}, 1_000
+
+               assert :ok = MonitorApp.restart(instance)
+
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~ "Restart requested for instance: #{instance}"
+    end
+
+    test "Ignore cleanup beam command" do
+      ref = make_ref()
+      test_pid_process = self()
+      instance = 1013
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -417,12 +459,14 @@ defmodule Deployex.MonitorTest do
     |> expect(:start_service, fn _instance, _reference, _list -> {:ok, self()} end)
     |> expect(:stop_service, fn _instance -> :ok end)
     |> expect(:state, fn _instance -> {:ok, %{}} end)
+    |> expect(:restart, fn _instance -> :ok end)
     |> expect(:run_pre_commands, fn _instance, cmds, _new_or_current -> {:ok, cmds} end)
     |> expect(:global_name, fn _instance -> %{} end)
 
     assert {:ok, _pid} = Deployex.Monitor.start_service(1, make_ref(), [])
     assert :ok = Deployex.Monitor.stop_service(1)
     assert {:ok, %{}} = Deployex.Monitor.state(1)
+    assert :ok = Deployex.Monitor.restart(1)
     assert {:ok, []} = Deployex.Monitor.run_pre_commands(1, [], :new)
     assert %{} = Deployex.Monitor.global_name(1)
   end

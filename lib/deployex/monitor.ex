@@ -42,7 +42,7 @@ defmodule Deployex.Monitor do
   This function forces a restart of the application
   """
   @impl true
-  @spec restart(integer()) :: :ok
+  @spec restart(integer()) :: :ok | {:error, :application_is_not_running}
   def restart(instance), do: default().restart(instance)
 
   @doc """

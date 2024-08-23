@@ -87,7 +87,7 @@ defmodule Deployex.Monitor.Application do
   end
 
   def handle_call(:restart, _from, state) when is_nil(state.current_pid) do
-    {:reply, :ok, state}
+    {:reply, {:error, :application_is_not_running}, state}
   end
 
   def handle_call(:restart, _from, state) do

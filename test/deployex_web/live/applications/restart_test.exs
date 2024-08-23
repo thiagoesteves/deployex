@@ -33,6 +33,9 @@ defmodule DeployexWeb.Applications.RestartTest do
     |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
     |> expect(:listener_topic, fn -> topic end)
 
+    Deployex.MonitorMock
+    |> expect(:restart, 1, fn 1 -> :ok end)
+
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-1") |> render_click() =~
@@ -40,7 +43,6 @@ defmodule DeployexWeb.Applications.RestartTest do
 
     assert index_live |> element("#confirm-button-1", "Confirm") |> render_click()
 
-    # NOTE: Add reset events here
     refute has_element?(index_live, "#cancel-button-1")
   end
 end
