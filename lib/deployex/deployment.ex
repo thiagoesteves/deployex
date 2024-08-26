@@ -10,7 +10,12 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
-  alias Deployex.{AppConfig, Common, Monitor, Release, Status, Upgrade}
+  alias Deployex.Common
+  alias Deployex.Monitor
+  alias Deployex.Release
+  alias Deployex.Status
+  alias Deployex.Storage
+  alias Deployex.Upgrade
 
   defstruct instances: 1,
             current: 1,
@@ -41,14 +46,14 @@ defmodule Deployex.Deployment do
     schedule_new_deployment(schedule_interval)
 
     deployments =
-      AppConfig.replicas_list()
+      Storage.replicas_list()
       |> Enum.reduce(%{}, fn instance, acc ->
         Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
       end)
 
     {:ok,
      %__MODULE__{
-       instances: AppConfig.replicas(),
+       instances: Storage.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,

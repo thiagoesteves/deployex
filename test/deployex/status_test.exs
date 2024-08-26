@@ -6,12 +6,12 @@ defmodule Deployex.StatusAppTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployex.AppConfig
-  alias Deployex.Fixture.Storage
+  alias Deployex.Fixture.Storage, as: StorageFixture
   alias Deployex.Status.Application, as: StatusApp
+  alias Deployex.Storage
 
   setup do
-    Storage.cleanup()
+    StorageFixture.cleanup()
 
     release = %{
       "version" => "1.0.0",
@@ -198,7 +198,7 @@ defmodule Deployex.StatusAppTest do
   end
 
   test "update" do
-    path = AppConfig.new_path(1)
+    path = Storage.new_path(1)
     assert :ok = StatusApp.update(1)
     refute File.exists?(path)
   end

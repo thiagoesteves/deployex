@@ -9,7 +9,7 @@ defmodule Deployex.Application do
 
   @impl true
   def start(_type, _args) do
-    Deployex.AppConfig.init()
+    Deployex.Storage.init()
 
     children =
       [

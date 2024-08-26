@@ -65,7 +65,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   @impl true
   def mount(socket) do
-    monitored_app = Deployex.AppConfig.monitored_app()
+    monitored_app = Deployex.Storage.monitored_app()
 
     socket =
       socket
@@ -128,7 +128,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     bin_path =
       instance
       |> String.to_integer()
-      |> Deployex.AppConfig.bin_path()
+      |> Deployex.Storage.bin_path()
 
     suffix = if instance == "0", do: "", else: "-#{instance}"
 
