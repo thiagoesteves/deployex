@@ -77,11 +77,13 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def current_version(instance) do
-    Storage.current_version_map(instance)["version"]
+    current_version_map(instance)["version"]
   end
 
   @impl true
-  def current_version_map(instance), do: Storage.current_version_map(instance)
+  def current_version_map(instance) do
+    Enum.at(Storage.versions(instance), 0)
+  end
 
   @impl true
   def set_current_version_map(instance, release, attrs) do
@@ -96,9 +98,7 @@ defmodule Deployex.Status.Application do
         inserted_at: NaiveDateTime.utc_now()
       }
 
-    with :ok <- Storage.set_current_version_map(instance, version) do
-      Storage.add_version(version)
-    end
+    Storage.add_version(version)
   end
 
   @impl true
@@ -116,10 +116,7 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def history_version_list(instance) when is_number(instance) do
-    Storage.versions()
-    |> Enum.filter(&(&1["instance"] == instance))
-  end
+  def history_version_list(instance), do: Storage.versions(instance)
 
   @impl true
   def clear_new(instance) do

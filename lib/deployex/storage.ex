@@ -185,27 +185,18 @@ defmodule Deployex.Storage do
   def previous_path(instance), do: default().previous_path(instance)
 
   @doc """
-  Return the current version map
-  """
-  @impl true
-  @spec current_version_map(integer()) :: map()
-  def current_version_map(instance), do: default().current_version_map(instance)
-
-  @doc """
-  Set the current version map
-  """
-  @impl true
-  @spec set_current_version_map(integer(), map()) :: :ok
-  def set_current_version_map(instance, version),
-    do: default().set_current_version_map(instance, version)
-
-  @doc """
   Retrieve the history of set versions
-
   """
   @impl true
   @spec versions() :: list()
   def versions, do: default().versions()
+
+  @doc """
+  Retrieve the history of set versions by instance
+  """
+  @impl true
+  @spec versions(integer()) :: list()
+  def versions(instance), do: default().versions(instance)
 
   @doc """
   Add a version to the version history

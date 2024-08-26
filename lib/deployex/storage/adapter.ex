@@ -17,9 +17,8 @@ defmodule Deployex.Storage.Adapter do
   @callback current_path(integer()) :: binary()
   @callback previous_path(integer()) :: binary()
 
-  @callback current_version_map(integer()) :: map()
-  @callback set_current_version_map(integer(), map()) :: :ok
   @callback versions() :: list()
+  @callback versions(integer()) :: list()
   @callback add_version(map()) :: :ok
   @callback ghosted_versions() :: list()
   @callback add_ghosted_version_map(map()) :: {:ok, list()}

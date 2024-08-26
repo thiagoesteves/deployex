@@ -100,22 +100,6 @@ defmodule Deployex.Storage.Local do
   def previous_path(instance), do: "#{service_path()}/#{instance}/previous"
 
   @impl true
-  def current_version_map(instance) do
-    instance
-    |> current_version_path()
-    |> read_data_from_file()
-  end
-
-  @impl true
-  def set_current_version_map(instance, version) do
-    json_version = Jason.encode!(version)
-
-    instance
-    |> current_version_path()
-    |> File.write!(json_version)
-  end
-
-  @impl true
   def versions do
     version_list =
       history_version_path()
@@ -125,6 +109,12 @@ defmodule Deployex.Storage.Local do
       %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
     end)
     |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
+  end
+
+  @impl true
+  def versions(instance) do
+    versions()
+    |> Enum.filter(&(&1["instance"] == instance))
   end
 
   @impl true
@@ -170,9 +160,6 @@ defmodule Deployex.Storage.Local do
   ### ==========================================================================
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
-
-  def current_version_path(instance),
-    do: "#{base_path()}/storage/#{monitored_app()}/#{instance}/current.json"
 
   def history_version_path,
     do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"
