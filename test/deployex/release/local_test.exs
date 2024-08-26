@@ -1,6 +1,7 @@
-defmodule Deployex.ReleaseTest do
+defmodule Deployex.Release.LocalTest do
   use ExUnit.Case, async: false
 
+  import Mock
   import Mox
   import ExUnit.CaptureLog
 
@@ -35,5 +36,24 @@ defmodule Deployex.ReleaseTest do
     Storage.create_current_json(expected_map)
 
     assert expected_map == Local.get_current_version_map()
+  end
+
+  test "download_and_unpack/2 success" do
+    version = "5.0.0"
+    instance = 999
+
+    Deployex.StatusMock
+    |> expect(:clear_new, fn ^instance -> :ok end)
+    |> expect(:current_version, fn ^instance -> version end)
+
+    Deployex.UpgradeMock
+    |> expect(:check, fn ^instance, _path, _from, _to -> {:ok, :full_deployment} end)
+
+    download_path = "/tmp/testapp/dist/testapp/testapp-5.0.0.tar.gz"
+    new_path = "/tmp/deployex/test/varlib/service/testapp/999/new"
+
+    with_mock System, cmd: fn "tar", ["-x", "-f", ^download_path, "-C", ^new_path] -> {"", 0} end do
+      assert {:ok, :full_deployment} = Local.download_and_unpack(instance, version)
+    end
   end
 end

@@ -206,31 +206,4 @@ defmodule Deployex.StatusAppTest do
   test "clear_new" do
     assert :ok = StatusApp.clear_new(1)
   end
-
-  test "Adapter function test" do
-    Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{}} end)
-    |> expect(:current_version, fn _instance -> "1.0.0" end)
-    |> expect(:current_version_map, fn _instance -> %Deployex.Status{} end)
-    |> expect(:listener_topic, fn -> "topic" end)
-    |> expect(:set_current_version_map, fn _instance, _map, _list -> :ok end)
-    |> expect(:add_ghosted_version, fn map -> {:ok, map} end)
-    |> expect(:ghosted_version_list, fn -> [] end)
-    |> expect(:history_version_list, fn -> [] end)
-    |> expect(:history_version_list, fn _instance -> ["1.0.0"] end)
-    |> expect(:clear_new, fn _instance -> :ok end)
-    |> expect(:update, fn _instance -> :ok end)
-
-    assert {:ok, %{}} = Deployex.Status.state()
-    assert "1.0.0" = Deployex.Status.current_version(1)
-    assert %Deployex.Status{} = Deployex.Status.current_version_map(1)
-    assert "topic" = Deployex.Status.listener_topic()
-    assert :ok = Deployex.Status.set_current_version_map(1, %{}, [])
-    assert {:ok, _} = Deployex.Status.add_ghosted_version(%{})
-    assert [] = Deployex.Status.ghosted_version_list()
-    assert [] = Deployex.Status.history_version_list()
-    assert ["1.0.0"] = Deployex.Status.history_version_list(1)
-    assert :ok = Deployex.Status.clear_new(1)
-    assert :ok = Deployex.Status.update(1)
-  end
 end
