@@ -185,41 +185,46 @@ defmodule Deployex.Storage do
   def previous_path(instance), do: default().previous_path(instance)
 
   @doc """
-  Path to the current version json file
-
-  ## Examples
-
-    iex> alias Deployex.Storage
-    ...> assert Storage.current_version_path(0) == "/tmp/deployex/test/varlib/storage/testapp/0/current.json"
-    ...> assert Storage.current_version_path(1) == "/tmp/deployex/test/varlib/storage/testapp/1/current.json"
-    ...> assert Storage.current_version_path(2) == "/tmp/deployex/test/varlib/storage/testapp/2/current.json"
-    ...> assert Storage.current_version_path(3) == "/tmp/deployex/test/varlib/storage/testapp/3/current.json"
+  Return the current version map
   """
   @impl true
-  @spec current_version_path(integer()) :: binary()
-  def current_version_path(instance), do: default().current_version_path(instance)
+  @spec current_version_map(integer()) :: map()
+  def current_version_map(instance), do: default().current_version_map(instance)
 
   @doc """
-  Path to the history version json file
-
-  ## Examples
-
-    iex> alias Deployex.Storage
-    ...> assert Storage.history_version_path == "/tmp/deployex/test/varlib/storage/testapp/0/history.json"
+  Set the current version map
   """
   @impl true
-  @spec history_version_path :: binary()
-  def history_version_path, do: default().history_version_path()
+  @spec set_current_version_map(integer(), map()) :: :ok
+  def set_current_version_map(instance, version),
+    do: default().set_current_version_map(instance, version)
 
   @doc """
-  Path to the ghosted version json file
+  Retrieve the history of set versions
 
-  ## Examples
-
-    iex> alias Deployex.Storage
-    ...> assert Storage.ghosted_version_path == "/tmp/deployex/test/varlib/storage/testapp/0/ghosted.json"
   """
   @impl true
-  @spec ghosted_version_path :: binary()
-  def ghosted_version_path, do: default().ghosted_version_path()
+  @spec versions() :: list()
+  def versions, do: default().versions()
+
+  @doc """
+  Add a version to the version history
+  """
+  @impl true
+  @spec add_version(map()) :: :ok
+  def add_version(version), do: default().add_version(version)
+
+  @doc """
+  Retrieve the ghosted version history
+  """
+  @impl true
+  @spec ghosted_versions() :: list()
+  def ghosted_versions, do: default().ghosted_versions()
+
+  @doc """
+  Add a version to the ghosted version history
+  """
+  @impl true
+  @spec add_ghosted_version_map(map()) :: {:ok, list()}
+  def add_ghosted_version_map(version), do: default().add_ghosted_version_map(version)
 end

@@ -100,20 +100,100 @@ defmodule Deployex.Storage.Local do
   def previous_path(instance), do: "#{service_path()}/#{instance}/previous"
 
   @impl true
-  def current_version_path(instance),
-    do: "#{base_path()}/storage/#{monitored_app()}/#{instance}/current.json"
+  def current_version_map(instance) do
+    instance
+    |> current_version_path()
+    |> read_data_from_file()
+  end
 
   @impl true
-  def history_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"
+  def set_current_version_map(instance, version) do
+    json_version = Jason.encode!(version)
+
+    instance
+    |> current_version_path()
+    |> File.write!(json_version)
+  end
 
   @impl true
-  def ghosted_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/ghosted.json"
+  def versions do
+    version_list =
+      history_version_path()
+      |> read_data_from_file() || []
+
+    Enum.map(version_list, fn version ->
+      %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
+    end)
+    |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
+  end
+
+  @impl true
+  def add_version(version) do
+    new_list = [version | versions()]
+
+    json_list = Jason.encode!(new_list)
+
+    history_version_path()
+    |> File.write!(json_list)
+  end
+
+  @impl true
+  def ghosted_versions do
+    ghosted_version_path()
+    |> read_data_from_file() || []
+  end
+
+  @impl true
+  def add_ghosted_version_map(version) when is_map(version) do
+    # Retrieve current ghosted version list
+    current_list = ghosted_versions()
+
+    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version["version"]))
+
+    # Add the version if not in the list
+    if ghosted_version? == false do
+      new_list = [version | current_list]
+
+      json_list = Jason.encode!(new_list)
+
+      ghosted_version_path()
+      |> File.write!(json_list)
+
+      {:ok, new_list}
+    else
+      {:ok, current_list}
+    end
+  end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
+
+  def current_version_path(instance),
+    do: "#{base_path()}/storage/#{monitored_app()}/#{instance}/current.json"
+
+  def history_version_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"
+
+  def ghosted_version_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/ghosted.json"
+
+  defp read_data_from_file(path) do
+    file2json = fn data ->
+      case Jason.decode(data) do
+        {:ok, map} -> map
+        _ -> nil
+      end
+    end
+
+    case File.read(path) do
+      {:ok, data} ->
+        file2json.(data)
+
+      _ ->
+        nil
+    end
+  end
 end

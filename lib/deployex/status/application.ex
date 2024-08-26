@@ -73,21 +73,15 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
+  def listener_topic, do: @apps_data_updated_topic
+
+  @impl true
   def current_version(instance) do
-    current_version_map(instance)["version"]
+    Storage.current_version_map(instance)["version"]
   end
 
   @impl true
-  def current_version_map(instance) do
-    instance
-    |> Storage.current_version_path()
-    |> read_data_from_file()
-  end
-
-  @impl true
-  def listener_topic do
-    @apps_data_updated_topic
-  end
+  def current_version_map(instance), do: Storage.current_version_map(instance)
 
   @impl true
   def set_current_version_map(instance, release, attrs) do
@@ -102,67 +96,19 @@ defmodule Deployex.Status.Application do
         inserted_at: NaiveDateTime.utc_now()
       }
 
-    write_current_version = fn version ->
-      json_version = Jason.encode!(version)
-
-      instance
-      |> Storage.current_version_path()
-      |> File.write!(json_version)
-    end
-
-    write_history_version = fn version ->
-      new_list = [version | history_version_list()]
-
-      json_list = Jason.encode!(new_list)
-
-      Storage.history_version_path()
-      |> File.write!(json_list)
-    end
-
-    with :ok <- write_current_version.(version) do
-      write_history_version.(version)
+    with :ok <- Storage.set_current_version_map(instance, version) do
+      Storage.add_version(version)
     end
   end
 
   @impl true
-  def add_ghosted_version(version) when is_map(version) do
-    # Retrieve current ghosted version list
-    current_list = ghosted_version_list()
-
-    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version["version"]))
-
-    # Add the version if not in the list
-    if ghosted_version? == false do
-      new_list = [version | current_list]
-
-      json_list = Jason.encode!(new_list)
-
-      Storage.ghosted_version_path()
-      |> File.write!(json_list)
-
-      {:ok, new_list}
-    else
-      {:ok, current_list}
-    end
-  end
+  def add_ghosted_version(version), do: Storage.add_ghosted_version_map(version)
 
   @impl true
-  def ghosted_version_list do
-    Storage.ghosted_version_path()
-    |> read_data_from_file() || []
-  end
+  def ghosted_version_list, do: Storage.ghosted_versions()
 
   @impl true
-  def history_version_list do
-    version_list =
-      Storage.history_version_path()
-      |> read_data_from_file() || []
-
-    Enum.map(version_list, fn version ->
-      %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
-    end)
-    |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
-  end
+  def history_version_list, do: Storage.versions()
 
   @impl true
   def history_version_list(instance) when is_binary(instance) do
@@ -171,7 +117,7 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def history_version_list(instance) when is_number(instance) do
-    history_version_list()
+    Storage.versions()
     |> Enum.filter(&(&1["instance"] == instance))
   end
 
@@ -204,23 +150,6 @@ defmodule Deployex.Status.Application do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp read_data_from_file(path) do
-    file2json = fn data ->
-      case Jason.decode(data) do
-        {:ok, map} -> map
-        _ -> nil
-      end
-    end
-
-    case File.read(path) do
-      {:ok, data} ->
-        file2json.(data)
-
-      _ ->
-        nil
-    end
-  end
-
   defp update_deployex_app do
     check_otp_deployex = fn ->
       if Node.list() != [], do: :connected, else: :not_connected
