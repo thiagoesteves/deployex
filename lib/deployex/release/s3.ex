@@ -5,7 +5,9 @@ defmodule Deployex.Release.S3 do
 
   @behaviour Deployex.Release.Adapter
 
-  alias Deployex.{AppConfig, Status, Upgrade}
+  alias Deployex.Status
+  alias Deployex.Storage
+  alias Deployex.Upgrade
 
   require Logger
 
@@ -18,7 +20,7 @@ defmodule Deployex.Release.S3 do
   """
   @impl true
   def get_current_version_map do
-    path = "versions/#{AppConfig.monitored_app()}/#{env()}/current.json"
+    path = "versions/#{Storage.monitored_app()}/#{env()}/current.json"
 
     bucket()
     |> ExAws.S3.get_object(path)
@@ -36,7 +38,7 @@ defmodule Deployex.Release.S3 do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = AppConfig.monitored_app()
+    monitored_app = Storage.monitored_app()
 
     s3_path = "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 
@@ -46,7 +48,7 @@ defmodule Deployex.Release.S3 do
       |> ExAws.request()
 
     Status.clear_new(instance)
-    new_path = AppConfig.new_path(instance)
+    new_path = Storage.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
@@ -62,6 +64,6 @@ defmodule Deployex.Release.S3 do
 
   defp bucket do
     # NOTE: Cloud structures use "-" instead of "_".
-    "#{AppConfig.monitored_app()}-#{env()}-distribution" |> String.replace("_", "-")
+    "#{Storage.monitored_app()}-#{env()}-distribution" |> String.replace("_", "-")
   end
 end

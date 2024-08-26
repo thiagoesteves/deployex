@@ -4,9 +4,9 @@ defmodule Deployex.Status.Application do
   """
 
   use GenServer
-  alias Deployex.AppConfig
   alias Deployex.Common
   alias Deployex.Monitor
+  alias Deployex.Storage
 
   @behaviour Deployex.Status.Adapter
 
@@ -32,7 +32,7 @@ defmodule Deployex.Status.Application do
     |> Keyword.get(:update_apps_interval, @update_apps_interval)
     |> :timer.send_interval(:update_apps)
 
-    {:ok, %{instances: AppConfig.replicas(), monitoring: []}}
+    {:ok, %{instances: Storage.replicas(), monitoring: []}}
   end
 
   @impl true
@@ -45,7 +45,7 @@ defmodule Deployex.Status.Application do
     deployex = update_deployex_app()
 
     monitoring_apps =
-      AppConfig.replicas_list()
+      Storage.replicas_list()
       |> Enum.map(fn instance ->
         update_monitored_app(instance)
       end)
@@ -80,7 +80,7 @@ defmodule Deployex.Status.Application do
   @impl true
   def current_version_map(instance) do
     instance
-    |> AppConfig.current_version_path()
+    |> Storage.current_version_path()
     |> read_data_from_file()
   end
 
@@ -106,7 +106,7 @@ defmodule Deployex.Status.Application do
       json_version = Jason.encode!(version)
 
       instance
-      |> AppConfig.current_version_path()
+      |> Storage.current_version_path()
       |> File.write!(json_version)
     end
 
@@ -115,7 +115,7 @@ defmodule Deployex.Status.Application do
 
       json_list = Jason.encode!(new_list)
 
-      AppConfig.history_version_path()
+      Storage.history_version_path()
       |> File.write!(json_list)
     end
 
@@ -137,7 +137,7 @@ defmodule Deployex.Status.Application do
 
       json_list = Jason.encode!(new_list)
 
-      AppConfig.ghosted_version_path()
+      Storage.ghosted_version_path()
       |> File.write!(json_list)
 
       {:ok, new_list}
@@ -148,14 +148,14 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def ghosted_version_list do
-    AppConfig.ghosted_version_path()
+    Storage.ghosted_version_path()
     |> read_data_from_file() || []
   end
 
   @impl true
   def history_version_list do
     version_list =
-      AppConfig.history_version_path()
+      Storage.history_version_path()
       |> read_data_from_file() || []
 
     Enum.map(version_list, fn version ->
@@ -178,11 +178,11 @@ defmodule Deployex.Status.Application do
   @impl true
   def clear_new(instance) do
     instance
-    |> AppConfig.new_path()
+    |> Storage.new_path()
     |> File.rm_rf()
 
     instance
-    |> AppConfig.new_path()
+    |> Storage.new_path()
     |> File.mkdir_p()
 
     :ok
@@ -192,12 +192,12 @@ defmodule Deployex.Status.Application do
   def update(instance) do
     # Remove previous path
     instance
-    |> AppConfig.previous_path()
+    |> Storage.previous_path()
     |> File.rm_rf()
 
     # Move current to previous and new to current
-    File.rename(AppConfig.current_path(instance), AppConfig.previous_path(instance))
-    File.rename(AppConfig.new_path(instance), AppConfig.current_path(instance))
+    File.rename(Storage.current_path(instance), Storage.previous_path(instance))
+    File.rename(Storage.new_path(instance), Storage.current_path(instance))
     :ok
   end
 

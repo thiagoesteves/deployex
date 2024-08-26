@@ -89,13 +89,13 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   defp log_path(instance, :logs_stdout) do
     instance
     |> String.to_integer()
-    |> Deployex.AppConfig.stdout_path()
+    |> Deployex.Storage.stdout_path()
   end
 
   defp log_path(instance, :logs_stderr) do
     instance
     |> String.to_integer()
-    |> Deployex.AppConfig.stderr_path()
+    |> Deployex.Storage.stderr_path()
   end
 
   defp tail_if_exists(%{assigns: %{id: id, action: action}} = socket, path) do

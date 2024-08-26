@@ -5,7 +5,11 @@ defmodule Deployex.Monitor.Application do
   use GenServer
   require Logger
 
-  alias Deployex.{AppConfig, Common, Deployment, OpSys, Status}
+  alias Deployex.Common
+  alias Deployex.Deployment
+  alias Deployex.OpSys
+  alias Deployex.Status
+  alias Deployex.Storage
 
   @behaviour Deployex.Monitor.Adapter
 
@@ -231,8 +235,8 @@ defmodule Deployex.Monitor.Application do
         OpSys.run_link(
           run_app_bin(instance, app_exec, "start"),
           [
-            {:stdout, AppConfig.stdout_path(instance)},
-            {:stderr, AppConfig.stderr_path(instance)}
+            {:stdout, Storage.stdout_path(instance)},
+            {:stderr, Storage.stderr_path(instance)}
           ]
         )
 
@@ -261,7 +265,7 @@ defmodule Deployex.Monitor.Application do
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
   defp run_app_bin(instance, executable_path, command) do
-    phx_port = AppConfig.phx_start_port() + (instance - 1)
+    phx_port = Storage.phx_start_port() + (instance - 1)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
@@ -272,11 +276,11 @@ defmodule Deployex.Monitor.Application do
   end
 
   defp executable_path(instance, :current) do
-    "#{AppConfig.current_path(instance)}/bin/#{AppConfig.monitored_app()}"
+    "#{Storage.current_path(instance)}/bin/#{Storage.monitored_app()}"
   end
 
   defp executable_path(instance, :new) do
-    "#{AppConfig.new_path(instance)}/bin/#{AppConfig.monitored_app()}"
+    "#{Storage.new_path(instance)}/bin/#{Storage.monitored_app()}"
   end
 
   # credo:disable-for-lines:28
@@ -291,8 +295,8 @@ defmodule Deployex.Monitor.Application do
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
         OpSys.run(run_app_bin(instance, migration_exec, pre_command), [
           :sync,
-          {:stdout, AppConfig.stdout_path(instance)},
-          {:stderr, AppConfig.stderr_path(instance)}
+          {:stdout, Storage.stdout_path(instance)},
+          {:stderr, Storage.stderr_path(instance)}
         ])
         |> case do
           {:ok, _} ->
@@ -313,7 +317,7 @@ defmodule Deployex.Monitor.Application do
 
   defp cleanup_beam_process(instance) do
     case OpSys.run(
-           "kill -9 $(ps -ax | grep \"#{AppConfig.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+           "kill -9 $(ps -ax | grep \"#{Storage.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
            [:sync, :stdout, :stderr]
          ) do
       {:ok, _} ->
