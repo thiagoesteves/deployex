@@ -134,7 +134,7 @@ defmodule Deployex.Storage.Local do
   end
 
   @impl true
-  def add_ghosted_version_map(version) when is_map(version) do
+  def add_ghosted_version(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_versions()
 
@@ -155,11 +155,29 @@ defmodule Deployex.Storage.Local do
     end
   end
 
+  @impl true
+  def config do
+    deployex_config_path()
+    |> read_data_from_file()
+  end
+
+  @impl true
+  def config_update(config) do
+    json_config = Jason.encode!(config)
+
+    File.write!(deployex_config_path(), json_config)
+
+    {:ok, config}
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
+
+  def deployex_config_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/deployex.json"
 
   def history_version_path,
     do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"

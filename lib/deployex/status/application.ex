@@ -102,7 +102,7 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def add_ghosted_version(version), do: Storage.add_ghosted_version_map(version)
+  def add_ghosted_version(version), do: Storage.add_ghosted_version(version)
 
   @impl true
   def ghosted_version_list, do: Storage.ghosted_versions()

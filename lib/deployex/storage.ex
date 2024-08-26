@@ -216,6 +216,20 @@ defmodule Deployex.Storage do
   Add a version to the ghosted version history
   """
   @impl true
-  @spec add_ghosted_version_map(map()) :: {:ok, list()}
-  def add_ghosted_version_map(version), do: default().add_ghosted_version_map(version)
+  @spec add_ghosted_version(map()) :: {:ok, list()}
+  def add_ghosted_version(version), do: default().add_ghosted_version(version)
+
+  @doc """
+  Retrieve the current deployex dynamic configuration
+  """
+  @impl true
+  @spec config() :: map() | nil
+  def config, do: default().config()
+
+  @doc """
+  Update the current deployex dynamic configuration
+  """
+  @impl true
+  @spec config_update(map()) :: {:ok, map()} | {:error, :writing_file}
+  def config_update(version), do: default().config_update(version)
 end
