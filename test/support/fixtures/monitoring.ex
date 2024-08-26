@@ -28,7 +28,7 @@ defmodule Deployex.Fixture.Monitoring do
       last_deployment: "full_deployment",
       supervisor: false,
       status: :running,
-      restarts: 0,
+      crash_restart_count: 0,
       uptime: "long time"
     }
 

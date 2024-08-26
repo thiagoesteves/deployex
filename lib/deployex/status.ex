@@ -22,7 +22,8 @@ defmodule Deployex.Status do
             last_deployment: nil,
             supervisor: false,
             status: nil,
-            restarts: 0,
+            crash_restart_count: 0,
+            force_restart_count: 0,
             uptime: nil,
             last_ghosted_version: nil
 

@@ -1,18 +1,38 @@
 defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
+  alias Deployex.Monitor
   alias Deployex.Status
   alias Deployex.Terminal.Server
   alias DeployexWeb.ApplicationsLive.Logs
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
+  alias DeployexWeb.Components.Confirm
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-700 ">
       <div class="p-10">
-        <DeployexWeb.Components.AppCards.content monitoring_apps_data={@monitoring_apps_data} />
+        <div class="grid grid-cols-3  gap-10 items-center p-30">
+          <%= for app <- @monitoring_apps_data do %>
+            <DeployexWeb.Components.AppCard.content
+              supervisor={app.supervisor}
+              status={app.status}
+              instance={app.instance}
+              crash_restart_count={app.crash_restart_count}
+              force_restart_count={app.force_restart_count}
+              name={app.name}
+              version={app.version}
+              uptime={app.uptime}
+              otp={app.otp}
+              tls={app.tls}
+              last_deployment={app.last_deployment}
+              last_ghosted_version={app.last_ghosted_version}
+              restart_path={~p"/applications/#{app.instance}/restart"}
+            />
+          <% end %>
+        </div>
       </div>
     </div>
 
@@ -64,6 +84,21 @@ defmodule DeployexWeb.ApplicationsLive do
         patch={~p"/applications"}
       />
     </.terminal_modal>
+
+    <%= if @live_action in [:restart] do %>
+      <Confirm.content id={"app-restart-modal-#{@selected_instance}"}>
+        <:header>Attention</:header>
+        <p>
+          Are you sure you want to restart instance <%= "#{@selected_instance}" %>?
+        </p>
+        <:footer>
+          <Confirm.cancel_button value={@selected_instance}>Cancel</Confirm.cancel_button>
+          <Confirm.confirm_button event="restart" value={@selected_instance}>
+            Confirm
+          </Confirm.confirm_button>
+        </:footer>
+      </Confirm.content>
+    <% end %>
     """
   end
 
@@ -132,6 +167,12 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:selected_instance, instance)
   end
 
+  defp apply_action(socket, :restart, %{"instance" => instance}) do
+    socket
+    |> assign(:page_title, "Restart application")
+    |> assign(:selected_instance, instance)
+  end
+
   @impl true
   def handle_info({:monitoring_app_updated, monitoring_apps_data}, socket) do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
@@ -164,6 +205,16 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("app-versions-click", %{"instance" => instance}, socket) do
     {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/versions")}
+  end
+
+  def handle_event("restart", %{"id" => instance}, socket) do
+    # Restart the application
+    Monitor.restart(instance |> String.to_integer())
+    {:noreply, push_patch(socket, to: ~p"/applications")}
+  end
+
+  def handle_event("confirm-close-modal", _, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
   defp std_path(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"

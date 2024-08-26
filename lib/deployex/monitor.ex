@@ -5,6 +5,16 @@ defmodule Deployex.Monitor do
 
   @behaviour Deployex.Monitor.Adapter
 
+  defstruct current_pid: nil,
+            instance: 0,
+            status: :idle,
+            crash_restart_count: 0,
+            force_restart_count: 0,
+            start_time: nil,
+            deploy_ref: :init,
+            timeout_app_ready: nil,
+            retry_delay_pre_commands: nil
+
   def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
   ### ==========================================================================
@@ -27,6 +37,13 @@ defmodule Deployex.Monitor do
   @impl true
   @spec stop_service(integer()) :: :ok
   def stop_service(instance), do: default().stop_service(instance)
+
+  @doc """
+  This function forces a restart of the application
+  """
+  @impl true
+  @spec restart(integer()) :: :ok | {:error, :application_is_not_running}
+  def restart(instance), do: default().restart(instance)
 
   @doc """
   Retrieve the expected current version for the application

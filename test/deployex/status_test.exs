@@ -113,11 +113,12 @@ defmodule Deployex.StatusAppTest do
     Deployex.MonitorMock
     |> expect(:state, 3, fn instance ->
       {:ok,
-       %Deployex.Monitor.Application{
+       %Deployex.Monitor{
          current_pid: nil,
          instance: instance,
          status: :idle,
-         restarts: 0,
+         crash_restart_count: 0,
+         force_restart_count: 0,
          start_time: nil,
          deploy_ref: :init
        }}
@@ -138,7 +139,8 @@ defmodule Deployex.StatusAppTest do
                  last_deployment: nil,
                  supervisor: true,
                  status: :running,
-                 restarts: 0,
+                 crash_restart_count: 0,
+                 force_restart_count: 0,
                  uptime: _,
                  last_ghosted_version: "-/-"
                },
@@ -151,7 +153,7 @@ defmodule Deployex.StatusAppTest do
                  last_deployment: "full_deployment",
                  supervisor: false,
                  status: :idle,
-                 restarts: 0,
+                 crash_restart_count: 0,
                  uptime: "-/-",
                  last_ghosted_version: nil
                },
@@ -164,7 +166,8 @@ defmodule Deployex.StatusAppTest do
                  last_deployment: "full_deployment",
                  supervisor: false,
                  status: :idle,
-                 restarts: 0,
+                 crash_restart_count: 0,
+                 force_restart_count: 0,
                  uptime: "-/-",
                  last_ghosted_version: nil
                },
@@ -177,7 +180,8 @@ defmodule Deployex.StatusAppTest do
                  last_deployment: "full_deployment",
                  supervisor: false,
                  status: :idle,
-                 restarts: 0,
+                 crash_restart_count: 0,
+                 force_restart_count: 0,
                  uptime: "-/-",
                  last_ghosted_version: nil
                }
