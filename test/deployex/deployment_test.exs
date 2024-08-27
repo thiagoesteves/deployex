@@ -106,6 +106,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:current_version, 2, fn _instance -> "1.0.0" end)
       |> expect(:update, 1, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -153,6 +154,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
       |> stub(:current_version, fn _instance -> "1.0.0" end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -211,6 +213,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -253,6 +256,7 @@ defmodule Deployex.DeploymentTest do
                end)
                |> expect(:update, 1, fn _instance -> :ok end)
                |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+               |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
                Deployex.MonitorMock
                |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -317,6 +321,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 1, fn 1 -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -383,6 +388,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 1, fn 1 -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -455,6 +461,7 @@ defmodule Deployex.DeploymentTest do
           %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
         ]
       end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -513,6 +520,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
       |> expect(:history_version_list, 1, fn _instance -> [] end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -561,6 +569,7 @@ defmodule Deployex.DeploymentTest do
       Deployex.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
       |> stub(:current_version, fn _instance -> "1.2.3" end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options ->
@@ -624,6 +633,7 @@ defmodule Deployex.DeploymentTest do
           %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
         ]
       end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn 1, _ref, _options -> {:ok, self()} end)

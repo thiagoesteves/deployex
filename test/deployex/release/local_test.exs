@@ -16,6 +16,9 @@ defmodule Deployex.Release.LocalTest do
   end
 
   test "get_current_version_map/1 optional fields" do
+    Deployex.StatusMock
+    |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
+
     Deployex.ReleaseMock
     |> expect(:get_current_version_map, fn ->
       %{"version" => "1.0.0", "hash" => "local"}
