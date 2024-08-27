@@ -40,6 +40,11 @@ defmodule Deployex.Status.Application do
     {:reply, {:ok, state}, state}
   end
 
+  def handle_call({:set_mode, mode, version}, _from, state) do
+    res = do_set_mode(mode, version)
+    {:reply, res, state}
+  end
+
   @impl true
   def handle_info(:update_apps, %{monitoring: monitoring} = state) do
     deployex = update_deployex_app()
@@ -82,7 +87,9 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def current_version_map(instance) do
-    Enum.at(Storage.versions(instance), 0)
+    instance
+    |> Storage.versions()
+    |> Enum.at(0)
   end
 
   @impl true
@@ -144,9 +151,30 @@ defmodule Deployex.Status.Application do
     :ok
   end
 
+  @impl true
+  def set_mode(mode, version) when mode in ["manual", "automatic"] do
+    Common.call_gen_server(__MODULE__, {:set_mode, mode, version})
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp do_set_mode("automatic" = mode, _version) do
+    Storage.config()
+    |> Map.put("mode", mode)
+    |> Storage.config_update()
+  end
+
+  defp do_set_mode(mode, version) do
+    versions = Storage.versions()
+
+    %{
+      "mode" => mode,
+      "manual_version" => Enum.find(versions, &(&1["version"] == version))
+    }
+    |> Storage.config_update()
+  end
+
   defp update_deployex_app do
     check_otp_deployex = fn ->
       if Node.list() != [], do: :connected, else: :not_connected
@@ -160,6 +188,10 @@ defmodule Deployex.Status.Application do
         list -> Enum.at(list, 0)["version"]
       end
 
+    default_config = %{"mode" => "automatic", "manual_version" => ""}
+
+    %{"mode" => mode, "manual_version" => manual_version} = Storage.config() || default_config
+
     %Deployex.Status{
       name: "deployex",
       version: Application.spec(:deployex, :vsn) |> to_string,
@@ -168,7 +200,9 @@ defmodule Deployex.Status.Application do
       supervisor: true,
       status: :running,
       uptime: uptime,
-      last_ghosted_version: last_ghosted_version
+      last_ghosted_version: last_ghosted_version,
+      mode: mode,
+      manual_version: manual_version
     }
   end
 
