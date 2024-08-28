@@ -27,10 +27,10 @@ defmodule Deployex.Release do
   def get_current_version_map do
     # Check if the manual or automatic mode is enabled
     case Status.state() do
-      {:ok, %Status{mode: "automatic"}} ->
+      {:ok, %Status{mode: :automatic}} ->
         default().get_current_version_map()
 
-      {:ok, %Status{mode: "manual", manual_version: version}} ->
+      {:ok, %Status{mode: :manual, manual_version: version}} ->
         version
     end
     |> optional_fields()

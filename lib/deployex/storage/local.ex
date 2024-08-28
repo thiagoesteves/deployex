@@ -159,6 +159,7 @@ defmodule Deployex.Storage.Local do
   def config do
     deployex_config_path()
     |> read_data_from_file()
+    |> sanitize_schema_fields(%Deployex.Storage.Config{}, atoms: [:mode])
   end
 
   @impl true
@@ -173,6 +174,32 @@ defmodule Deployex.Storage.Local do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp sanitize_schema_fields(data, struct, attrs)
+
+  defp sanitize_schema_fields(nil, struct, _attrs) do
+    struct
+  end
+
+  defp sanitize_schema_fields(data, struct, attrs) do
+    atoms = Keyword.get(attrs, :atoms, [])
+    struct_keys = struct |> Map.keys()
+
+    struct_keys
+    |> Enum.reduce(struct, fn key, acc ->
+      string_key = key |> to_string()
+      value = Map.get(data, string_key)
+
+      value =
+        if key in atoms do
+          value |> String.to_existing_atom()
+        else
+          value
+        end
+
+      acc |> Map.put(key, value)
+    end)
+  end
+
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
 

@@ -27,7 +27,7 @@ defmodule Deployex.Status do
             force_restart_count: 0,
             uptime: nil,
             last_ghosted_version: nil,
-            mode: "automatic",
+            mode: :automatic,
             manual_version: %Release{}
 
   @behaviour Deployex.Status.Adapter
@@ -122,6 +122,6 @@ defmodule Deployex.Status do
   Set the configuration mode
   """
   @impl true
-  @spec set_mode(String.t(), String.t()) :: {:ok, map()} | {:error, any()}
+  @spec set_mode(:automatic | :manual, map()) :: {:ok, map()}
   def set_mode(mode, version), do: default().set_mode(mode, version)
 end

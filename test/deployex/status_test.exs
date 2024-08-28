@@ -197,6 +197,84 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, %{monitoring: [], instances: 3}} = Deployex.Status.Application.state(name)
   end
 
+  test "Test set mode configuration to manual" do
+    name = "#{__MODULE__}-mode-000" |> String.to_atom()
+
+    ref = make_ref()
+    pid = self()
+
+    Deployex.MonitorMock
+    |> stub(:state, fn instance ->
+      called = Process.get("state", 0)
+      Process.put("state", called + 1)
+
+      if called > 6 do
+        send(pid, {:handle_ref_event, ref})
+      end
+
+      {:ok,
+       %Deployex.Monitor{
+         current_pid: nil,
+         instance: instance,
+         status: :idle,
+         crash_restart_count: 0,
+         force_restart_count: 0,
+         start_time: nil,
+         deploy_ref: :init
+       }}
+    end)
+
+    assert {:ok, _pid} =
+             Deployex.Status.Application.start_link(update_apps_interval: 50, name: name)
+
+    {:ok, _map} = Deployex.Status.Application.set_mode(name, :manual, %{"version" => "1.2.3"})
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    assert {:ok, %{monitoring: monitoring}} = Deployex.Status.Application.state(name)
+
+    assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
+  end
+
+  test "Test set mode configuration to automatic" do
+    name = "#{__MODULE__}-mode-000" |> String.to_atom()
+
+    ref = make_ref()
+    pid = self()
+
+    Deployex.MonitorMock
+    |> stub(:state, fn instance ->
+      called = Process.get("state", 0)
+      Process.put("state", called + 1)
+
+      if called > 6 do
+        send(pid, {:handle_ref_event, ref})
+      end
+
+      {:ok,
+       %Deployex.Monitor{
+         current_pid: nil,
+         instance: instance,
+         status: :idle,
+         crash_restart_count: 0,
+         force_restart_count: 0,
+         start_time: nil,
+         deploy_ref: :init
+       }}
+    end)
+
+    assert {:ok, _pid} =
+             Deployex.Status.Application.start_link(update_apps_interval: 50, name: name)
+
+    {:ok, _map} = Deployex.Status.Application.set_mode(name, :automatic, %{})
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    assert {:ok, %{monitoring: monitoring}} = Deployex.Status.Application.state(name)
+
+    assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
+  end
+
   test "update" do
     path = Storage.new_path(1)
     assert :ok = StatusApp.update(1)

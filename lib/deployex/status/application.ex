@@ -152,25 +152,24 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def set_mode(mode, version) when mode in ["manual", "automatic"] do
-    Common.call_gen_server(__MODULE__, {:set_mode, mode, version})
+  def set_mode(module \\ __MODULE__, mode, version) when mode in [:manual, :automatic] do
+    Common.call_gen_server(module, {:set_mode, mode, version})
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp do_set_mode("automatic" = mode, _version) do
-    Storage.config()
-    |> Map.put("mode", mode)
-    |> Storage.config_update()
+  defp do_set_mode(:automatic = mode, _version) do
+    config = Storage.config()
+    Storage.config_update(%{config | mode: mode})
   end
 
-  defp do_set_mode(mode, version) do
+  defp do_set_mode(:manual = mode, version) do
     versions = Storage.versions()
 
-    %{
-      "mode" => mode,
-      "manual_version" => Enum.find(versions, &(&1["version"] == version))
+    %Deployex.Storage.Config{
+      mode: mode,
+      manual_version: Enum.find(versions, &(&1["version"] == version))
     }
     |> Storage.config_update()
   end
@@ -188,9 +187,7 @@ defmodule Deployex.Status.Application do
         list -> Enum.at(list, 0)["version"]
       end
 
-    default_config = %{"mode" => "automatic", "manual_version" => ""}
-
-    %{"mode" => mode, "manual_version" => manual_version} = Storage.config() || default_config
+    config = Storage.config()
 
     %Deployex.Status{
       name: "deployex",
@@ -201,8 +198,8 @@ defmodule Deployex.Status.Application do
       status: :running,
       uptime: uptime,
       last_ghosted_version: last_ghosted_version,
-      mode: mode,
-      manual_version: manual_version
+      mode: config.mode,
+      manual_version: config.manual_version
     }
   end
 

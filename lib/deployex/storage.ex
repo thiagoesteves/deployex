@@ -7,6 +7,18 @@ defmodule Deployex.Storage do
 
   def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
+  defmodule Config do
+    @moduledoc """
+    Structure to handle the deployex configuration
+    """
+    @type t :: %__MODULE__{mode: :manual | :automatic, manual_version: map() | nil}
+
+    @derive Jason.Encoder
+
+    defstruct mode: :automatic,
+              manual_version: nil
+  end
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
@@ -223,13 +235,13 @@ defmodule Deployex.Storage do
   Retrieve the current deployex dynamic configuration
   """
   @impl true
-  @spec config() :: map() | nil
+  @spec config() :: Deployex.Storage.Config.t()
   def config, do: default().config()
 
   @doc """
   Update the current deployex dynamic configuration
   """
   @impl true
-  @spec config_update(map()) :: {:ok, map()} | {:error, :writing_file}
-  def config_update(version), do: default().config_update(version)
+  @spec config_update(Deployex.Storage.Config.t()) :: {:ok, Deployex.Storage.Config.t()}
+  def config_update(config), do: default().config_update(config)
 end
