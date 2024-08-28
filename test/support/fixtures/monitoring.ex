@@ -25,7 +25,7 @@ defmodule Deployex.Fixture.Monitoring do
       version: "4.5.6",
       otp: :connected,
       tls: :supported,
-      last_deployment: "full_deployment",
+      last_deployment: :full_deployment,
       supervisor: false,
       status: :running,
       crash_restart_count: 0,

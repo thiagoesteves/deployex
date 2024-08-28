@@ -115,10 +115,10 @@ defmodule Deployex.Monitor.Application do
   def handle_info({:run_service, deploy_ref}, %Deployex.Monitor{instance: instance} = state)
       when deploy_ref == state.deploy_ref do
     version_map = Status.current_version_map(state.instance)
-    version = version_map["version"]
+    version = version_map.version
 
     state =
-      if version_map == nil do
+      if version == nil do
         Logger.info("No version set, not able to run_service")
         state
       else
@@ -224,11 +224,11 @@ defmodule Deployex.Monitor.Application do
          version_map
        ) do
     app_exec = executable_path(instance, :current)
-    version = version_map["version"]
+    version = version_map.version
 
     with true <- File.exists?(app_exec),
          :ok <- Logger.info(" # Identified executable: #{app_exec}"),
-         :ok <- execute_pre_commands(instance, version_map["pre_commands"], :current) do
+         :ok <- execute_pre_commands(instance, version_map.pre_commands, :current) do
       Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =

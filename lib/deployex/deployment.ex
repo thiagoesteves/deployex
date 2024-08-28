@@ -156,7 +156,7 @@ defmodule Deployex.Deployment do
     previous_version_map = Status.history_version_list(instance) |> Enum.at(1)
 
     deploy_application = fn ->
-      case Release.download_and_unpack(instance, previous_version_map["version"]) do
+      case Release.download_and_unpack(instance, previous_version_map.version) do
         {:ok, _} ->
           full_deployment(state, previous_version_map)
 
@@ -196,7 +196,7 @@ defmodule Deployex.Deployment do
     release = Release.get_current_version_map()
     current_app_version = Status.current_version(instance) || "<no current set>"
 
-    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == release.version))
+    ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release.version))
 
     deploy_application = fn ->
       case Release.download_and_unpack(instance, release.version) do

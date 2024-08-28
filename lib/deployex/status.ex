@@ -5,15 +5,30 @@ defmodule Deployex.Status do
 
   alias Deployex.Release
 
-  @type deployex_version_map :: %{
-          version: String.t(),
-          hash: String.t(),
-          pre_commands: list(),
-          instance: integer(),
-          deployment: atom(),
-          deploy_ref: String.t(),
-          inserted_at: NaiveDateTime.t()
-        }
+  defmodule Version do
+    @moduledoc """
+    Structure to handle the application version
+    """
+    @type t :: %__MODULE__{
+            version: String.t() | nil,
+            hash: String.t() | nil,
+            pre_commands: list(),
+            instance: integer(),
+            deployment: :full_deployment | :hot_upgrade,
+            deploy_ref: String.t() | nil,
+            inserted_at: NaiveDateTime.t()
+          }
+
+    @derive Jason.Encoder
+
+    defstruct version: nil,
+              hash: nil,
+              pre_commands: [],
+              instance: 1,
+              deployment: :full_deployment,
+              deploy_ref: nil,
+              inserted_at: nil
+  end
 
   defstruct name: nil,
             instance: 0,
@@ -56,7 +71,7 @@ defmodule Deployex.Status do
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(integer()) :: deployex_version_map() | nil
+  @spec current_version_map(integer()) :: Deployex.Status.Version.t()
   def current_version_map(instance), do: default().current_version_map(instance)
 
   @doc """
@@ -78,7 +93,7 @@ defmodule Deployex.Status do
   Add a ghosted version in the list
   """
   @impl true
-  @spec add_ghosted_version(deployex_version_map()) :: {:ok, list()}
+  @spec add_ghosted_version(Deployex.Status.Version.t()) :: {:ok, list()}
   def add_ghosted_version(version_map), do: default().add_ghosted_version(version_map)
 
   @doc """

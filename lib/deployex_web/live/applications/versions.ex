@@ -41,19 +41,19 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                   scope="row"
                   class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                 >
-                  <%= version["version"] %>
+                  <%= version.version %>
                 </th>
                 <td class="px-6 py-2">
-                  <%= version["instance"] %>
+                  <%= version.instance %>
                 </td>
                 <td class="px-3 py-2">
-                  <%= version["deployment"] %>
+                  <%= version.deployment %>
                 </td>
                 <td class="px-6 py-2">
-                  <%= String.slice(version["deploy_ref"], -6..-2) %>
+                  <%= String.slice(version.deploy_ref, -6..-2) %>
                 </td>
                 <td class="px-6 py-2">
-                  <%= "#{NaiveDateTime.to_string(version["inserted_at"])}" %>
+                  <%= "#{NaiveDateTime.to_string(version.inserted_at)}" %>
                 </td>
               </tr>
             <% end %>

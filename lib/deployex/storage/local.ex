@@ -136,15 +136,15 @@ defmodule Deployex.Storage.Local do
   end
 
   @impl true
-  def add_ghosted_version(version) when is_map(version) do
+  def add_ghosted_version(version_map) when is_map(version_map) do
     # Retrieve current ghosted version list
     current_list = ghosted_versions()
 
-    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version["version"]))
+    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version_map.version))
 
     # Add the version if not in the list
     if ghosted_version? == false do
-      new_list = [version | current_list]
+      new_list = [version_map | current_list]
 
       json_list = Jason.encode!(new_list)
 

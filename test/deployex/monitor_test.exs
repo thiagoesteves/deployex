@@ -25,7 +25,7 @@ defmodule Deployex.MonitorTest do
       Deployex.StatusMock
       |> expect(:current_version_map, fn ^instance ->
         send(test_pid_process, {:handle_ref_event, ref})
-        nil
+        %Deployex.Status.Version{}
       end)
 
       assert {:ok, pid} = MonitorApp.start_service(instance, ref)
@@ -48,7 +48,7 @@ defmodule Deployex.MonitorTest do
       Deployex.StatusMock
       |> expect(:current_version_map, fn ^instance ->
         send(test_pid_process, {:handle_ref_event, ref})
-        nil
+        %Deployex.Status.Version{}
       end)
 
       assert {:ok, pid} = MonitorApp.start_service(instance, ref)
@@ -79,10 +79,7 @@ defmodule Deployex.MonitorTest do
           send(test_pid_process, {:handle_ref_event, ref})
         end
 
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       assert {:ok, pid} = MonitorApp.start_service(instance, ref, retry_delay_pre_commands: 10)
@@ -105,10 +102,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
@@ -142,10 +136,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => pre_commands
-        }
+        %Deployex.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Deployex.OpSysMock
@@ -178,10 +169,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => pre_commands
-        }
+        %Deployex.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Deployex.OpSysMock
@@ -216,10 +204,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
@@ -253,10 +238,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
@@ -297,10 +279,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
@@ -340,10 +319,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
@@ -384,10 +360,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => pre_commands
-        }
+        %Deployex.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Deployex.OpSysMock
@@ -424,10 +397,7 @@ defmodule Deployex.MonitorTest do
 
       Deployex.StatusMock
       |> stub(:current_version_map, fn ^instance ->
-        %{
-          "version" => "1.0.0",
-          "pre_commands" => []
-        }
+        %Deployex.Status.Version{version: "1.0.0"}
       end)
 
       Deployex.OpSysMock
