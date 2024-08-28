@@ -6,7 +6,7 @@ defmodule Deployex.Status.Adapter do
   alias Deployex.Release
   alias Deployex.Status
 
-  @callback state :: {:ok, map()} | {:error, :rescued}
+  @callback monitoring :: {:ok, list()} | {:error, :rescued}
   @callback current_version(integer()) :: String.t() | nil
   @callback current_version_map(integer()) :: Status.Version.t()
   @callback listener_topic() :: String.t()

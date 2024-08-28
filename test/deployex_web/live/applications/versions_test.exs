@@ -13,7 +13,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     topic = "topic-version-000"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
     |> expect(:history_version_list, fn ->
       [
@@ -55,7 +55,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     topic = "topic-version-001"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
     |> expect(:history_version_list, fn "1" ->
       [

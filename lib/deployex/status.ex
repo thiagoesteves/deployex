@@ -30,14 +30,31 @@ defmodule Deployex.Status do
               inserted_at: nil
   end
 
+  @type t :: %__MODULE__{
+          name: String.t() | nil,
+          instance: integer(),
+          version: nil,
+          otp: :connected | :not_connected,
+          tls: :supported | :not_supported,
+          last_deployment: :full_deployment | :hot_upgrade,
+          supervisor: boolean(),
+          status: :idle | :running | :starting,
+          crash_restart_count: integer(),
+          force_restart_count: integer(),
+          uptime: String.t() | nil,
+          last_ghosted_version: String.t() | nil,
+          mode: :automatic | :manual,
+          manual_version: Release.Version.t()
+        }
+
   defstruct name: nil,
             instance: 0,
             version: nil,
-            otp: nil,
+            otp: :not_connected,
             tls: :not_supported,
-            last_deployment: nil,
-            supervisor: false,
-            status: nil,
+            last_deployment: :full_deployment,
+            supervisor: true,
+            status: :idle,
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
@@ -54,11 +71,11 @@ defmodule Deployex.Status do
   ### ==========================================================================
 
   @doc """
-  Retrieve the current state of the gen_server
+  Retrieve the current monitoring status of the gen_server
   """
   @impl true
-  @spec state() :: {:ok, map()} | {:error, :rescued}
-  def state, do: default().state()
+  @spec monitoring() :: {:ok, list()} | {:error, :rescued}
+  def monitoring, do: default().monitoring()
 
   @doc """
   Retrieve the current version set for the monitored application

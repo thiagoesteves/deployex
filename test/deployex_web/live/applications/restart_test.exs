@@ -13,7 +13,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     topic = "topic-restart-000"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -30,7 +30,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     topic = "topic-restart-001"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     Deployex.MonitorMock

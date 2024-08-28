@@ -36,8 +36,8 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def handle_call(:state, _from, state) do
-    {:reply, {:ok, state}, state}
+  def handle_call(:monitoring, _from, state) do
+    {:reply, {:ok, state.monitoring}, state}
   end
 
   def handle_call(:mode, _from, state) do
@@ -79,8 +79,8 @@ defmodule Deployex.Status.Application do
   ### ==========================================================================
 
   @impl true
-  def state(name \\ __MODULE__) do
-    Common.call_gen_server(name, :state)
+  def monitoring(name \\ __MODULE__) do
+    Common.call_gen_server(name, :monitoring)
   end
 
   @impl true

@@ -136,7 +136,7 @@ defmodule Deployex.StatusAppTest do
                  version: _,
                  otp: :not_connected,
                  tls: :not_supported,
-                 last_deployment: nil,
+                 last_deployment: :full_deployment,
                  supervisor: true,
                  status: :running,
                  crash_restart_count: 0,
@@ -194,7 +194,7 @@ defmodule Deployex.StatusAppTest do
 
     assert {:ok, _pid} = Deployex.Status.Application.start_link(name: name)
 
-    assert {:ok, %{monitoring: [], instances: 3}} = Deployex.Status.Application.state(name)
+    assert {:ok, []} = Deployex.Status.Application.monitoring(name)
   end
 
   test "Test set mode configuration to manual" do
@@ -231,7 +231,7 @@ defmodule Deployex.StatusAppTest do
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, %{monitoring: monitoring}} = Deployex.Status.Application.state(name)
+    assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
 
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
   end
@@ -270,7 +270,7 @@ defmodule Deployex.StatusAppTest do
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, %{monitoring: monitoring}} = Deployex.Status.Application.state(name)
+    assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
 
     assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
   end

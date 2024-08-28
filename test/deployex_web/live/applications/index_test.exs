@@ -11,7 +11,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
   test "GET /applications", %{conn: conn} do
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> "test-topic" end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
@@ -31,7 +31,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "topic-index-001"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -53,7 +53,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "topic-index-002"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -84,7 +84,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "topic-index-003"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -107,7 +107,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "topic-index-004"
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -130,14 +130,12 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "topic-index-005"
 
     Deployex.StatusMock
-    |> expect(:state, fn ->
+    |> expect(:monitoring, fn ->
       {:ok,
-       %{
-         monitoring: [
-           Monitoring.deployex(),
-           Monitoring.application(%{status: :idle, version: nil})
-         ]
-       }}
+       [
+         Monitoring.deployex(),
+         Monitoring.application(%{status: :idle, version: nil})
+       ]}
     end)
     |> expect(:listener_topic, fn -> topic end)
 
