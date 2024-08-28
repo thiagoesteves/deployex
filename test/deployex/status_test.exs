@@ -13,10 +13,10 @@ defmodule Deployex.StatusAppTest do
   setup do
     StorageFixture.cleanup()
 
-    release = %{
-      "version" => "1.0.0",
-      "hash" => "ABC",
-      "pre_commands" => []
+    release = %Deployex.Release.Version{
+      version: "1.0.0",
+      hash: "ABC",
+      pre_commands: []
     }
 
     attrs = [deployment: "full_deployment", deploy_ref: make_ref()]

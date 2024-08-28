@@ -28,7 +28,7 @@ defmodule Deployex.Status do
             uptime: nil,
             last_ghosted_version: nil,
             mode: :automatic,
-            manual_version: %Release{}
+            manual_version: %Release.Version{}
 
   @behaviour Deployex.Status.Adapter
 
@@ -70,7 +70,7 @@ defmodule Deployex.Status do
   Set the current version map
   """
   @impl true
-  @spec set_current_version_map(integer(), Release.version_map(), Keyword.t()) :: :ok
+  @spec set_current_version_map(integer(), Release.Version.t(), Keyword.t()) :: :ok
   def set_current_version_map(instance, release, attrs),
     do: default().set_current_version_map(instance, release, attrs)
 
@@ -117,6 +117,13 @@ defmodule Deployex.Status do
   @impl true
   @spec update(integer()) :: :ok
   def update(instance), do: default().update(instance)
+
+  @doc """
+  Retrieve the current mode configuration
+  """
+  @impl true
+  @spec mode() :: {:ok, map()} | {:error, :rescued}
+  def mode, do: default().mode()
 
   @doc """
   Set the configuration mode
