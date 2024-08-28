@@ -16,7 +16,7 @@ defmodule Deployex.Release.LocalTest do
   end
 
   test "get_current_version_map/1 optional fields" do
-    version_map = %{"version" => "2.0.0", "hash" => "test", "pre_commands" => []}
+    version_map = %{"hash" => "test", "pre_commands" => [], "version" => "2.0.0"}
 
     with_mock File, read: fn _path -> {:ok, Jason.encode!(version_map)} end do
       assert version_map == Local.get_current_version_map()
@@ -31,9 +31,10 @@ defmodule Deployex.Release.LocalTest do
 
   test "get_current_version_map/1 for local [error]" do
     expected_map = %{"version" => "2.0.0", "hash" => "123456789"}
+
     Storage.create_current_json(expected_map)
 
-    assert expected_map == Local.get_current_version_map()
+    assert %{"hash" => "123456789", "version" => "2.0.0"} == Local.get_current_version_map()
   end
 
   test "download_and_unpack/2 success" do

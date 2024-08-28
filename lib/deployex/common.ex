@@ -32,8 +32,10 @@ defmodule Deployex.Common do
   ## Examples
 
     iex> alias Deployex.Common
-    ...> start_time = System.monotonic_time() - (:timer.seconds(30) * 1000000)
     ...> assert Common.uptime_to_string(nil) == "-/-"
+    ...> start_time = System.monotonic_time() - (:timer.seconds(1) * 1000000)
+    ...> assert Common.uptime_to_string(start_time) == "now"
+    ...> start_time = System.monotonic_time() - (:timer.seconds(30) * 1000000)
     ...> assert Common.uptime_to_string(start_time) == "<1m ago"
     ...> start_time = System.monotonic_time() - (:timer.seconds(60) * 1000000)
     ...> assert Common.uptime_to_string(start_time) == "1m ago"
@@ -95,6 +97,42 @@ defmodule Deployex.Common do
       _, _ ->
         {:error, :rescued}
     end
+  end
+
+  @doc """
+  This function converts string keys maps to structure maps
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.sanitize_schema_fields(%{"mode" => "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.sanitize_schema_fields(%{mode: "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: "v1"} = Common.sanitize_schema_fields(%{manual_version: "v1"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: nil} = Common.sanitize_schema_fields(nil, %Deployex.Storage.Config{}, atoms: [:mode])
+  """
+  def sanitize_schema_fields(data, struct, attrs \\ [])
+
+  def sanitize_schema_fields(nil, struct, _attrs) do
+    struct
+  end
+
+  def sanitize_schema_fields(data, struct, attrs) do
+    atoms = Keyword.get(attrs, :atoms, [])
+    struct_keys = struct |> Map.keys() |> List.delete(:__struct__)
+
+    struct_keys
+    |> Enum.reduce(struct, fn key, acc ->
+      value = Map.get(data, key) || Map.get(data, key |> to_string(), nil)
+
+      value =
+        if key in atoms and value != nil do
+          value |> String.to_existing_atom()
+        else
+          value
+        end
+
+      if value, do: acc |> Map.put(key, value), else: acc
+    end)
   end
 
   ### ==========================================================================

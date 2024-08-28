@@ -196,24 +196,24 @@ defmodule Deployex.Deployment do
     release = Release.get_current_version_map()
     current_app_version = Status.current_version(instance) || "<no current set>"
 
-    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == release["version"]))
+    ghosted_version? = Enum.any?(ghosted_version_list, &(&1["version"] == release.version))
 
     deploy_application = fn ->
-      case Release.download_and_unpack(instance, release["version"]) do
+      case Release.download_and_unpack(instance, release.version) do
         {:ok, :full_deployment} ->
           full_deployment(state, release)
 
         {:ok, :hot_upgrade} ->
           # To run the migrations for the hot upgrade deployment, deployex relies on the
           # unpacked version in the new-folder
-          Monitor.run_pre_commands(instance, release["pre_commands"], :new)
+          Monitor.run_pre_commands(instance, release.pre_commands, :new)
           hot_upgrade(state, release)
       end
     end
 
-    if release != nil and release["version"] != current_app_version and not ghosted_version? do
+    if release.version != nil and release.version != current_app_version and not ghosted_version? do
       log_message =
-        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release["version"]}."
+        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release.version}."
 
       Logger.info(log_message)
 
@@ -284,7 +284,7 @@ defmodule Deployex.Deployment do
 
       from_version = Status.current_version(instance)
 
-      case Upgrade.execute(instance, from_version, release["version"]) do
+      case Upgrade.execute(instance, from_version, release.version) do
         :ok ->
           Status.set_current_version_map(instance, release,
             deployment: :hot_upgrade,
@@ -299,7 +299,7 @@ defmodule Deployex.Deployment do
       end
     end)
 
-    if Status.current_version(instance) != release["version"] do
+    if Status.current_version(instance) != release.version do
       Logger.error("Hot Upgrade failed, running for full deployment")
 
       full_deployment(state, release)

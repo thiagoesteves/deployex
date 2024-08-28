@@ -40,6 +40,12 @@ defmodule Deployex.Status.Application do
     {:reply, {:ok, state}, state}
   end
 
+  def handle_call(:mode, _from, state) do
+    deployex = Enum.find(state.monitoring, &(&1.name == "deployex"))
+
+    {:reply, {:ok, %{mode: deployex.mode, manual_version: deployex.manual_version}}, state}
+  end
+
   def handle_call({:set_mode, mode, version}, _from, state) do
     res = do_set_mode(mode, version)
     {:reply, res, state}
@@ -96,9 +102,9 @@ defmodule Deployex.Status.Application do
   def set_current_version_map(instance, release, attrs) do
     version =
       %{
-        version: release["version"],
-        hash: release["hash"],
-        pre_commands: release["pre_commands"],
+        version: release.version,
+        hash: release.hash,
+        pre_commands: release.pre_commands,
         instance: instance,
         deployment: Keyword.get(attrs, :deployment),
         deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
@@ -149,6 +155,11 @@ defmodule Deployex.Status.Application do
     File.rename(Storage.current_path(instance), Storage.previous_path(instance))
     File.rename(Storage.new_path(instance), Storage.current_path(instance))
     :ok
+  end
+
+  @impl true
+  def mode(module \\ __MODULE__) do
+    Common.call_gen_server(module, :mode)
   end
 
   @impl true

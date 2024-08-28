@@ -10,7 +10,7 @@ defmodule Deployex.Release.S3Test do
   alias Deployex.Release.S3
 
   test "get_current_version_map/1 valid map" do
-    version_map = %{"version" => "2.0.0", "hash" => "test", "pre_commands" => []}
+    version_map = %{"hash" => "test", "pre_commands" => [], "version" => "2.0.0"}
 
     with_mock ExAws, [], request: fn _command -> {:ok, %{body: Jason.encode!(version_map)}} end do
       assert version_map == S3.get_current_version_map()

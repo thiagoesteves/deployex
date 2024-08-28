@@ -5,13 +5,25 @@ defmodule Deployex.Release do
 
   @behaviour Deployex.Release.Adapter
 
+  alias Deployex.Common
   alias Deployex.Status
 
-  @type version_map :: %{version: String.t(), hash: String.t(), pre_commands: list()}
+  defmodule Version do
+    @moduledoc """
+    Structure to handle the version structure
+    """
+    @type t :: %__MODULE__{
+            version: String.t() | nil,
+            hash: String.t() | nil,
+            pre_commands: list()
+          }
 
-  defstruct version: nil,
-            hash: nil,
-            pre_commands: []
+    @derive Jason.Encoder
+
+    defstruct version: nil,
+              hash: nil,
+              pre_commands: []
+  end
 
   def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
@@ -23,17 +35,17 @@ defmodule Deployex.Release do
   Retrieve the expected current version for the application
   """
   @impl true
-  @spec get_current_version_map :: version_map() | nil
+  @spec get_current_version_map :: Deployex.Release.Version.t()
   def get_current_version_map do
     # Check if the manual or automatic mode is enabled
-    case Status.state() do
-      {:ok, %Status{mode: :automatic}} ->
+    case Status.mode() do
+      {:ok, %{mode: :automatic}} ->
         default().get_current_version_map()
 
-      {:ok, %Status{mode: :manual, manual_version: version}} ->
+      {:ok, %{mode: :manual, manual_version: version}} ->
         version
     end
-    |> optional_fields()
+    |> Common.sanitize_schema_fields(%Deployex.Release.Version{})
   end
 
   @doc """
@@ -43,17 +55,4 @@ defmodule Deployex.Release do
   @spec download_and_unpack(integer(), String.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   def download_and_unpack(instance, version), do: default().download_and_unpack(instance, version)
-
-  ### ==========================================================================
-  ### Private functions
-  ### ==========================================================================
-  defp optional_fields(nil), do: nil
-
-  defp optional_fields(release_map) do
-    if release_map["pre_commands"] == nil do
-      Map.put(release_map, "pre_commands", [])
-    else
-      release_map
-    end
-  end
 end
