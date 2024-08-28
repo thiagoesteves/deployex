@@ -54,24 +54,24 @@ defmodule DeployexWeb.Applications.TerminalTest do
   test "Maximum number of terminals reached", %{conn: conn} do
     topic = "topic-terminal-001"
 
+    ref = make_ref()
+    test_pid_process = self()
+    os_pid = 123_456
+
+    Deployex.StatusMock
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:listener_topic, fn -> topic end)
+
+    Deployex.OpSysMock
+    |> expect(:run, fn _command, _options ->
+      {:ok, test_pid_process, os_pid}
+    end)
+    |> expect(:stop, fn ^os_pid ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      :ok
+    end)
+
     assert capture_log(fn ->
-             ref = make_ref()
-             test_pid_process = self()
-             os_pid = 123_456
-
-             Deployex.StatusMock
-             |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
-             |> expect(:listener_topic, fn -> topic end)
-
-             Deployex.OpSysMock
-             |> expect(:run, fn _command, _options ->
-               {:ok, test_pid_process, os_pid}
-             end)
-             |> expect(:stop, fn ^os_pid ->
-               Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-               :ok
-             end)
-
              assert {:ok, _pid} =
                       Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
                         instance: "1",
@@ -136,20 +136,20 @@ defmodule DeployexWeb.Applications.TerminalTest do
   test "Invalid cookie", %{conn: conn} do
     topic = "topic-terminal-003"
 
+    ref = make_ref()
+    test_pid_process = self()
+
+    Deployex.StatusMock
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:listener_topic, fn -> topic end)
+
+    Deployex.OpSysMock
+    |> expect(:run, 1, fn _command, _options ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      {:error, :invalid_cookie}
+    end)
+
     assert capture_log(fn ->
-             ref = make_ref()
-             test_pid_process = self()
-
-             Deployex.StatusMock
-             |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
-             |> expect(:listener_topic, fn -> topic end)
-
-             Deployex.OpSysMock
-             |> expect(:run, 1, fn _command, _options ->
-               Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-               {:error, :invalid_cookie}
-             end)
-
              {:ok, index_live, _html} = live(conn, ~p"/applications")
 
              assert index_live |> element("#app-terminal-1") |> render_click() =~

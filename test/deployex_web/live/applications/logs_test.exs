@@ -149,24 +149,24 @@ defmodule DeployexWeb.Applications.LogsTest do
   test "Maximum number of logs reached", %{conn: conn} do
     topic = "topic-logs-003"
 
+    ref = make_ref()
+    test_pid_process = self()
+    os_pid = 123_456
+
+    Deployex.StatusMock
+    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:listener_topic, fn -> topic end)
+
+    Deployex.OpSysMock
+    |> expect(:run, fn _command, _options ->
+      {:ok, test_pid_process, os_pid}
+    end)
+    |> expect(:stop, fn ^os_pid ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      :ok
+    end)
+
     assert capture_log(fn ->
-             ref = make_ref()
-             test_pid_process = self()
-             os_pid = 123_456
-
-             Deployex.StatusMock
-             |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
-             |> expect(:listener_topic, fn -> topic end)
-
-             Deployex.OpSysMock
-             |> expect(:run, fn _command, _options ->
-               {:ok, test_pid_process, os_pid}
-             end)
-             |> expect(:stop, fn ^os_pid ->
-               Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-               :ok
-             end)
-
              assert {:ok, _pid} =
                       Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
                         instance: "1",

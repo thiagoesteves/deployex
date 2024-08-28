@@ -247,44 +247,44 @@ defmodule Deployex.DeploymentTest do
       ref = make_ref()
       pid = self()
 
+      Deployex.StatusMock
+      |> expect(:ghosted_version_list, fn -> [] end)
+      |> stub(:current_version, fn _instance ->
+        # keep the version unchanged, triggering full deployment
+        "1.0.0"
+      end)
+      |> expect(:update, 1, fn _instance -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
+
+      Deployex.MonitorMock
+      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+        # First time: initialization
+        # Second time: new deployment, after hotupgrade fails
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _instance -> :ok end)
+      |> stub(:run_pre_commands, fn _instance, _release, :new -> {:ok, []} end)
+
+      Deployex.ReleaseMock
+      |> stub(:get_current_version_map, fn ->
+        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+      end)
+      |> stub(:download_and_unpack, fn _instance, "2.0.0" ->
+        {:ok, :hot_upgrade}
+      end)
+
+      Deployex.UpgradeMock
+      |> stub(:execute, fn _instance, "1.0.0", "2.0.0" -> {:error, "any"} end)
+
       assert capture_log(fn ->
-               Deployex.StatusMock
-               |> expect(:ghosted_version_list, fn -> [] end)
-               |> stub(:current_version, fn _instance ->
-                 # keep the version unchanged, triggering full deployment
-                 "1.0.0"
-               end)
-               |> expect(:update, 1, fn _instance -> :ok end)
-               |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
-               |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
-
-               Deployex.MonitorMock
-               |> expect(:start_service, 2, fn _instance, _ref, _options ->
-                 # First time: initialization
-                 # Second time: new deployment, after hotupgrade fails
-                 called = Process.get("start_service", 0)
-                 Process.put("start_service", called + 1)
-
-                 if called > 0 do
-                   send(pid, {:handle_ref_event, ref})
-                 end
-
-                 {:ok, self()}
-               end)
-               |> stub(:stop_service, fn _instance -> :ok end)
-               |> stub(:run_pre_commands, fn _instance, _release, :new -> {:ok, []} end)
-
-               Deployex.ReleaseMock
-               |> stub(:get_current_version_map, fn ->
-                 %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
-               end)
-               |> stub(:download_and_unpack, fn _instance, "2.0.0" ->
-                 {:ok, :hot_upgrade}
-               end)
-
-               Deployex.UpgradeMock
-               |> stub(:execute, fn _instance, "1.0.0", "2.0.0" -> {:error, "any"} end)
-
                assert {:ok, _pid} =
                         Deployment.start_link(
                           timeout_rollback: 1_000,
