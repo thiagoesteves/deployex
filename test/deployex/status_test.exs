@@ -29,6 +29,14 @@ defmodule Deployex.StatusAppTest do
     %{release: release, attrs: attrs}
   end
 
+  test "current_version_map/1 no version configured" do
+    StorageFixture.cleanup()
+
+    assert StatusApp.current_version(1) == nil
+    assert StatusApp.current_version(2) == nil
+    assert StatusApp.current_version(3) == nil
+  end
+
   test "current_version / current_version_map" do
     expected_version = "1.0.0"
     expected_hash = "ABC"
@@ -232,8 +240,9 @@ defmodule Deployex.StatusAppTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
-
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
+
+    assert {:ok, %{mode: :manual, manual_version: nil}} = Deployex.Status.Application.mode(name)
   end
 
   test "Test set mode configuration to automatic" do
@@ -271,8 +280,10 @@ defmodule Deployex.StatusAppTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
-
     assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
+
+    assert {:ok, %{mode: :automatic, manual_version: nil}} =
+             Deployex.Status.Application.mode(name)
   end
 
   test "update" do
