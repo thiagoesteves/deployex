@@ -7,6 +7,18 @@ defmodule Deployex.Storage do
 
   def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
+  defmodule Config do
+    @moduledoc """
+    Structure to handle the deployex configuration
+    """
+    @type t :: %__MODULE__{mode: :manual | :automatic, manual_version: map() | nil}
+
+    @derive Jason.Encoder
+
+    defstruct mode: :automatic,
+              manual_version: nil
+  end
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
@@ -216,6 +228,20 @@ defmodule Deployex.Storage do
   Add a version to the ghosted version history
   """
   @impl true
-  @spec add_ghosted_version_map(map()) :: {:ok, list()}
-  def add_ghosted_version_map(version), do: default().add_ghosted_version_map(version)
+  @spec add_ghosted_version(map()) :: {:ok, list()}
+  def add_ghosted_version(version), do: default().add_ghosted_version(version)
+
+  @doc """
+  Retrieve the current deployex dynamic configuration
+  """
+  @impl true
+  @spec config() :: Deployex.Storage.Config.t()
+  def config, do: default().config()
+
+  @doc """
+  Update the current deployex dynamic configuration
+  """
+  @impl true
+  @spec config_update(Deployex.Storage.Config.t()) :: {:ok, Deployex.Storage.Config.t()}
+  def config_update(config), do: default().config_update(config)
 end

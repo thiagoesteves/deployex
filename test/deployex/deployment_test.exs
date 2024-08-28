@@ -106,6 +106,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:current_version, 2, fn _instance -> "1.0.0" end)
       |> expect(:update, 1, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -153,6 +154,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
       |> stub(:current_version, fn _instance -> "1.0.0" end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -211,6 +213,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -253,6 +256,7 @@ defmodule Deployex.DeploymentTest do
                end)
                |> expect(:update, 1, fn _instance -> :ok end)
                |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+               |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
                Deployex.MonitorMock
                |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -317,6 +321,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 1, fn 1 -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -383,6 +388,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:update, 1, fn 1 -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -430,6 +436,137 @@ defmodule Deployex.DeploymentTest do
     end
   end
 
+  describe "Deployment manual version" do
+    test "Configure Manual version from automatic" do
+      name = "#{__MODULE__}-manual-000" |> String.to_atom()
+
+      ref = make_ref()
+      pid = self()
+
+      automatic_version = "2.0.0"
+      manual_version = "1.0.0"
+      manual_version_map = %{"version" => manual_version, "hash" => "local", "pre_commands" => []}
+
+      Deployex.StatusMock
+      |> expect(:ghosted_version_list, fn -> [] end)
+      |> stub(:current_version, fn 1 ->
+        # First time: initialization version
+        # Second time: check_deployment
+        # Third time: manual deployment done
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 1 do
+          manual_version
+        else
+          automatic_version
+        end
+      end)
+      |> expect(:update, 1, fn 1 -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:state, 1, fn ->
+        {:ok, %Deployex.Status{mode: :manual, manual_version: manual_version_map}}
+      end)
+
+      Deployex.MonitorMock
+      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+        # First time: initialization
+        # Second time: start manual version
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn 1 -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+
+      Deployex.ReleaseMock
+      |> expect(:download_and_unpack, 1, fn 1, ^manual_version -> {:ok, :full_deployment} end)
+
+      assert {:ok, _pid} =
+               Deployment.start_link(
+                 timeout_rollback: 30_000,
+                 schedule_interval: 200,
+                 name: name,
+                 mStatus: Deployex.StatusMock
+               )
+
+      assert_receive {:handle_ref_event, ^ref}, 1_000
+    end
+
+    test "Configure Automatic version from manual" do
+      name = "#{__MODULE__}-manual-001" |> String.to_atom()
+
+      ref = make_ref()
+      pid = self()
+
+      automatic_version = "2.0.0"
+
+      automatic_version_map = %{
+        "version" => automatic_version,
+        "hash" => "local",
+        "pre_commands" => []
+      }
+
+      manual_version = "1.0.0"
+
+      Deployex.StatusMock
+      |> expect(:ghosted_version_list, fn -> [] end)
+      |> stub(:current_version, fn 1 ->
+        # First time: initialization version
+        # Second time: check_deployment
+        # Third time: automatic deployment done
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 1 do
+          automatic_version
+        else
+          manual_version
+        end
+      end)
+      |> expect(:update, 1, fn 1 -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:state, 1, fn ->
+        {:ok, %Deployex.Status{mode: :automatic}}
+      end)
+
+      Deployex.MonitorMock
+      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+        # First time: initialization
+        # Second time: start manual version
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn 1 -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+
+      Deployex.ReleaseMock
+      |> expect(:download_and_unpack, 1, fn 1, ^automatic_version -> {:ok, :full_deployment} end)
+      |> stub(:get_current_version_map, fn -> automatic_version_map end)
+
+      assert {:ok, _pid} =
+               Deployment.start_link(
+                 timeout_rollback: 30_000,
+                 schedule_interval: 200,
+                 name: name,
+                 mStatus: Deployex.StatusMock
+               )
+
+      assert_receive {:handle_ref_event, ^ref}, 1_000
+    end
+  end
+
   describe "Deployment rollback" do
     @tag :capture_log
     test "Rollback a version after timeout" do
@@ -455,6 +592,7 @@ defmodule Deployex.DeploymentTest do
           %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
         ]
       end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 2, fn _instance, _ref, _options ->
@@ -513,6 +651,7 @@ defmodule Deployex.DeploymentTest do
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
       |> expect(:history_version_list, 1, fn _instance -> [] end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
@@ -561,6 +700,7 @@ defmodule Deployex.DeploymentTest do
       Deployex.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
       |> stub(:current_version, fn _instance -> "1.2.3" end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn _instance, _ref, _options ->
@@ -601,7 +741,7 @@ defmodule Deployex.DeploymentTest do
     end
 
     @tag :capture_log
-    test "Failing rolling abck a version when downloading and unpacking" do
+    test "Failing rolling back a version when downloading and unpacking" do
       name = "#{__MODULE__}-rollback-003" |> String.to_atom()
 
       ref = make_ref()
@@ -624,6 +764,7 @@ defmodule Deployex.DeploymentTest do
           %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
         ]
       end)
+      |> stub(:state, fn -> {:ok, %Deployex.Status{}} end)
 
       Deployex.MonitorMock
       |> expect(:start_service, 1, fn 1, _ref, _options -> {:ok, self()} end)

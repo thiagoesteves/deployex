@@ -134,7 +134,7 @@ defmodule Deployex.Storage.Local do
   end
 
   @impl true
-  def add_ghosted_version_map(version) when is_map(version) do
+  def add_ghosted_version(version) when is_map(version) do
     # Retrieve current ghosted version list
     current_list = ghosted_versions()
 
@@ -155,11 +155,56 @@ defmodule Deployex.Storage.Local do
     end
   end
 
+  @impl true
+  def config do
+    deployex_config_path()
+    |> read_data_from_file()
+    |> sanitize_schema_fields(%Deployex.Storage.Config{}, atoms: [:mode])
+  end
+
+  @impl true
+  def config_update(config) do
+    json_config = Jason.encode!(config)
+
+    File.write!(deployex_config_path(), json_config)
+
+    {:ok, config}
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp sanitize_schema_fields(data, struct, attrs)
+
+  defp sanitize_schema_fields(nil, struct, _attrs) do
+    struct
+  end
+
+  defp sanitize_schema_fields(data, struct, attrs) do
+    atoms = Keyword.get(attrs, :atoms, [])
+    struct_keys = struct |> Map.keys()
+
+    struct_keys
+    |> Enum.reduce(struct, fn key, acc ->
+      string_key = key |> to_string()
+      value = Map.get(data, string_key)
+
+      value =
+        if key in atoms do
+          value |> String.to_existing_atom()
+        else
+          value
+        end
+
+      acc |> Map.put(key, value)
+    end)
+  end
+
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
+
+  def deployex_config_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/deployex.json"
 
   def history_version_path,
     do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"

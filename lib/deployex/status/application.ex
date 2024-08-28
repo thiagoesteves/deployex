@@ -40,6 +40,11 @@ defmodule Deployex.Status.Application do
     {:reply, {:ok, state}, state}
   end
 
+  def handle_call({:set_mode, mode, version}, _from, state) do
+    res = do_set_mode(mode, version)
+    {:reply, res, state}
+  end
+
   @impl true
   def handle_info(:update_apps, %{monitoring: monitoring} = state) do
     deployex = update_deployex_app()
@@ -82,7 +87,9 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def current_version_map(instance) do
-    Enum.at(Storage.versions(instance), 0)
+    instance
+    |> Storage.versions()
+    |> Enum.at(0)
   end
 
   @impl true
@@ -102,7 +109,7 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def add_ghosted_version(version), do: Storage.add_ghosted_version_map(version)
+  def add_ghosted_version(version), do: Storage.add_ghosted_version(version)
 
   @impl true
   def ghosted_version_list, do: Storage.ghosted_versions()
@@ -144,9 +151,29 @@ defmodule Deployex.Status.Application do
     :ok
   end
 
+  @impl true
+  def set_mode(module \\ __MODULE__, mode, version) when mode in [:manual, :automatic] do
+    Common.call_gen_server(module, {:set_mode, mode, version})
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp do_set_mode(:automatic = mode, _version) do
+    config = Storage.config()
+    Storage.config_update(%{config | mode: mode})
+  end
+
+  defp do_set_mode(:manual = mode, version) do
+    versions = Storage.versions()
+
+    %Deployex.Storage.Config{
+      mode: mode,
+      manual_version: Enum.find(versions, &(&1["version"] == version))
+    }
+    |> Storage.config_update()
+  end
+
   defp update_deployex_app do
     check_otp_deployex = fn ->
       if Node.list() != [], do: :connected, else: :not_connected
@@ -160,6 +187,8 @@ defmodule Deployex.Status.Application do
         list -> Enum.at(list, 0)["version"]
       end
 
+    config = Storage.config()
+
     %Deployex.Status{
       name: "deployex",
       version: Application.spec(:deployex, :vsn) |> to_string,
@@ -168,7 +197,9 @@ defmodule Deployex.Status.Application do
       supervisor: true,
       status: :running,
       uptime: uptime,
-      last_ghosted_version: last_ghosted_version
+      last_ghosted_version: last_ghosted_version,
+      mode: config.mode,
+      manual_version: config.manual_version
     }
   end
 

@@ -8,6 +8,7 @@ defmodule Deployex.Status do
   @type deployex_version_map :: %{
           version: String.t(),
           hash: String.t(),
+          pre_commands: list(),
           instance: integer(),
           deployment: atom(),
           deploy_ref: String.t(),
@@ -25,7 +26,9 @@ defmodule Deployex.Status do
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
-            last_ghosted_version: nil
+            last_ghosted_version: nil,
+            mode: :automatic,
+            manual_version: %Release{}
 
   @behaviour Deployex.Status.Adapter
 
@@ -115,7 +118,10 @@ defmodule Deployex.Status do
   @spec update(integer()) :: :ok
   def update(instance), do: default().update(instance)
 
-  ### ==========================================================================
-  ### Private functions
-  ### ==========================================================================
+  @doc """
+  Set the configuration mode
+  """
+  @impl true
+  @spec set_mode(:automatic | :manual, map()) :: {:ok, map()}
+  def set_mode(mode, version), do: default().set_mode(mode, version)
 end

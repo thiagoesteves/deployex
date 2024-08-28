@@ -16,13 +16,11 @@ defmodule Deployex.Release.LocalTest do
   end
 
   test "get_current_version_map/1 optional fields" do
-    Deployex.ReleaseMock
-    |> expect(:get_current_version_map, fn ->
-      %{"version" => "1.0.0", "hash" => "local"}
-    end)
+    version_map = %{"version" => "2.0.0", "hash" => "test", "pre_commands" => []}
 
-    assert %{"hash" => "local", "pre_commands" => [], "version" => "1.0.0"} ==
-             Deployex.Release.get_current_version_map()
+    with_mock File, read: fn _path -> {:ok, Jason.encode!(version_map)} end do
+      assert version_map == Local.get_current_version_map()
+    end
   end
 
   test "get_current_version_map/1 for local [success]" do

@@ -21,5 +21,7 @@ defmodule Deployex.Storage.Adapter do
   @callback versions(integer()) :: list()
   @callback add_version(map()) :: :ok
   @callback ghosted_versions() :: list()
-  @callback add_ghosted_version_map(map()) :: {:ok, list()}
+  @callback add_ghosted_version(map()) :: {:ok, list()}
+  @callback config() :: Deployex.Storage.Config.t()
+  @callback config_update(Deployex.Storage.Config.t()) :: {:ok, Deployex.Storage.Config.t()}
 end
