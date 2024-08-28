@@ -126,7 +126,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> expect(:get_current_version_map, 1, fn ->
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn _instance, "2.0.0" ->
         {:ok, :full_deployment}
@@ -150,7 +150,7 @@ defmodule Deployex.DeploymentTest do
       pid = self()
 
       Deployex.StatusMock
-      |> expect(:ghosted_version_list, fn -> [%{"version" => "2.0.0"}] end)
+      |> expect(:ghosted_version_list, fn -> [%{version: "2.0.0"}] end)
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
       |> stub(:current_version, fn _instance -> "1.0.0" end)
@@ -174,7 +174,7 @@ defmodule Deployex.DeploymentTest do
           send(pid, {:handle_ref_event, ref})
         end
 
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
 
       assert {:ok, _pid} =
@@ -222,7 +222,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> expect(:get_current_version_map, 1, fn ->
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn _instance, "2.0.0" ->
         {:ok, :hot_upgrade}
@@ -275,7 +275,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> stub(:get_current_version_map, fn ->
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
       |> stub(:download_and_unpack, fn _instance, "2.0.0" ->
         {:ok, :hot_upgrade}
@@ -341,7 +341,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> stub(:get_current_version_map, fn ->
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn 1, "2.0.0" ->
         {:ok, :full_deployment}
@@ -408,7 +408,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> stub(:get_current_version_map, fn ->
-        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
+        %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn 1, "2.0.0" ->
         {:ok, :full_deployment}
@@ -445,7 +445,7 @@ defmodule Deployex.DeploymentTest do
 
       automatic_version = "2.0.0"
       manual_version = "1.0.0"
-      manual_version_map = %{"version" => manual_version, "hash" => "local", "pre_commands" => []}
+      manual_version_map = %{version: manual_version, hash: "local", pre_commands: []}
 
       Deployex.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
@@ -507,9 +507,9 @@ defmodule Deployex.DeploymentTest do
       automatic_version = "2.0.0"
 
       automatic_version_map = %{
-        "version" => automatic_version,
-        "hash" => "local",
-        "pre_commands" => []
+        version: automatic_version,
+        hash: "local",
+        pre_commands: []
       }
 
       manual_version = "1.0.0"
@@ -583,13 +583,13 @@ defmodule Deployex.DeploymentTest do
       |> expect(:update, 1, fn 1 -> :ok end)
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
       |> expect(:current_version_map, 1, fn _instance ->
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
       |> expect(:history_version_list, 1, fn _instance ->
         [
-          %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []},
-          %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
+          %{version: version_to_ghost, hash: "local", pre_commands: []},
+          %{version: version_to_rollback, hash: "local", pre_commands: []}
         ]
       end)
       |> stub(:mode, fn -> {:ok, %{mode: :automatic}} end)
@@ -612,7 +612,7 @@ defmodule Deployex.DeploymentTest do
 
       Deployex.ReleaseMock
       |> stub(:get_current_version_map, fn ->
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn 1, ^version_to_rollback ->
         {:ok, :full_deployment}
@@ -629,7 +629,7 @@ defmodule Deployex.DeploymentTest do
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
       state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1["version"] == version_to_ghost))
+      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
       assert state.current == 1
     end
 
@@ -647,7 +647,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
       |> expect(:current_version_map, 1, fn _instance ->
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
       |> expect(:history_version_list, 1, fn _instance -> [] end)
@@ -669,7 +669,7 @@ defmodule Deployex.DeploymentTest do
           send(pid, {:handle_ref_event, ref})
         end
 
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 0, fn _instance, _version_to_rollback ->
         {:ok, :full_deployment}
@@ -686,7 +686,7 @@ defmodule Deployex.DeploymentTest do
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
       state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1["version"] == version_to_ghost))
+      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
       assert state.current == 1
     end
 
@@ -755,13 +755,13 @@ defmodule Deployex.DeploymentTest do
       |> expect(:update, 0, fn _instance -> :ok end)
       |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
       |> expect(:current_version_map, 1, fn _instance ->
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
       |> expect(:history_version_list, 1, fn _instance ->
         [
-          %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []},
-          %{"version" => version_to_rollback, "hash" => "local", "pre_commands" => []}
+          %{version: version_to_ghost, hash: "local", pre_commands: []},
+          %{version: version_to_rollback, hash: "local", pre_commands: []}
         ]
       end)
       |> stub(:mode, fn -> {:ok, %{mode: :automatic}} end)
@@ -785,7 +785,7 @@ defmodule Deployex.DeploymentTest do
           send(pid, {:handle_ref_event, ref})
         end
 
-        %{"version" => version_to_ghost, "hash" => "local", "pre_commands" => []}
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:download_and_unpack, 1, fn 1, ^version_to_rollback ->
         {:error, :invalid_unpack}
@@ -802,7 +802,7 @@ defmodule Deployex.DeploymentTest do
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
       state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1["version"] == version_to_ghost))
+      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
       assert state.current == 1
     end
   end

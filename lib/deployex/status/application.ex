@@ -36,8 +36,8 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def handle_call(:state, _from, state) do
-    {:reply, {:ok, state}, state}
+  def handle_call(:monitoring, _from, state) do
+    {:reply, {:ok, state.monitoring}, state}
   end
 
   def handle_call(:mode, _from, state) do
@@ -79,8 +79,8 @@ defmodule Deployex.Status.Application do
   ### ==========================================================================
 
   @impl true
-  def state(name \\ __MODULE__) do
-    Common.call_gen_server(name, :state)
+  def monitoring(name \\ __MODULE__) do
+    Common.call_gen_server(name, :monitoring)
   end
 
   @impl true
@@ -88,7 +88,7 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def current_version(instance) do
-    current_version_map(instance)["version"]
+    current_version_map(instance).version
   end
 
   @impl true
@@ -96,32 +96,48 @@ defmodule Deployex.Status.Application do
     instance
     |> Storage.versions()
     |> Enum.at(0)
+    |> case do
+      nil ->
+        %Deployex.Status.Version{}
+
+      version ->
+        Common.cast_schema_fields(version, %Deployex.Status.Version{}, atoms: [:deployment])
+    end
   end
 
   @impl true
   def set_current_version_map(instance, release, attrs) do
-    version =
-      %{
-        version: release.version,
-        hash: release.hash,
-        pre_commands: release.pre_commands,
-        instance: instance,
-        deployment: Keyword.get(attrs, :deployment),
-        deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
-        inserted_at: NaiveDateTime.utc_now()
-      }
+    params = %{
+      version: release.version,
+      hash: release.hash,
+      pre_commands: release.pre_commands,
+      instance: instance,
+      deployment: Keyword.get(attrs, :deployment),
+      deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
+      inserted_at: NaiveDateTime.utc_now()
+    }
 
-    Storage.add_version(version)
+    Storage.add_version(params)
   end
 
   @impl true
   def add_ghosted_version(version), do: Storage.add_ghosted_version(version)
 
   @impl true
-  def ghosted_version_list, do: Storage.ghosted_versions()
+  def ghosted_version_list do
+    Storage.ghosted_versions()
+    |> Enum.map(fn record ->
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+    end)
+  end
 
   @impl true
-  def history_version_list, do: Storage.versions()
+  def history_version_list do
+    Storage.versions()
+    |> Enum.map(fn record ->
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+    end)
+  end
 
   @impl true
   def history_version_list(instance) when is_binary(instance) do
@@ -129,7 +145,12 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def history_version_list(instance), do: Storage.versions(instance)
+  def history_version_list(instance) do
+    Storage.versions(instance)
+    |> Enum.map(fn record ->
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+    end)
+  end
 
   @impl true
   def clear_new(instance) do
@@ -176,11 +197,11 @@ defmodule Deployex.Status.Application do
   end
 
   defp do_set_mode(:manual = mode, version) do
-    versions = Storage.versions()
+    versions = history_version_list()
 
     %Deployex.Storage.Config{
       mode: mode,
-      manual_version: Enum.find(versions, &(&1["version"] == version))
+      manual_version: Enum.find(versions, &(&1.version == version))
     }
     |> Storage.config_update()
   end
@@ -195,7 +216,7 @@ defmodule Deployex.Status.Application do
     last_ghosted_version =
       case ghosted_version_list() do
         [] -> "-/-"
-        list -> Enum.at(list, 0)["version"]
+        list -> Enum.at(list, 0).version
       end
 
     config = Storage.config()
@@ -239,7 +260,7 @@ defmodule Deployex.Status.Application do
       version: current_version(instance),
       otp: check_otp_monitored_app.(instance, status),
       tls: check_tls(),
-      last_deployment: current_version_map(instance)["deployment"],
+      last_deployment: current_version_map(instance).deployment,
       supervisor: false,
       status: status,
       crash_restart_count: crash_restart_count,

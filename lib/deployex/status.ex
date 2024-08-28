@@ -5,24 +5,56 @@ defmodule Deployex.Status do
 
   alias Deployex.Release
 
-  @type deployex_version_map :: %{
-          version: String.t(),
-          hash: String.t(),
-          pre_commands: list(),
+  defmodule Version do
+    @moduledoc """
+    Structure to handle the application version
+    """
+    @type t :: %__MODULE__{
+            version: String.t() | nil,
+            hash: String.t() | nil,
+            pre_commands: list(),
+            instance: integer(),
+            deployment: :full_deployment | :hot_upgrade,
+            deploy_ref: String.t() | nil,
+            inserted_at: NaiveDateTime.t()
+          }
+
+    @derive Jason.Encoder
+
+    defstruct version: nil,
+              hash: nil,
+              pre_commands: [],
+              instance: 1,
+              deployment: :full_deployment,
+              deploy_ref: nil,
+              inserted_at: nil
+  end
+
+  @type t :: %__MODULE__{
+          name: String.t() | nil,
           instance: integer(),
-          deployment: atom(),
-          deploy_ref: String.t(),
-          inserted_at: NaiveDateTime.t()
+          version: nil,
+          otp: :connected | :not_connected,
+          tls: :supported | :not_supported,
+          last_deployment: :full_deployment | :hot_upgrade,
+          supervisor: boolean(),
+          status: :idle | :running | :starting,
+          crash_restart_count: integer(),
+          force_restart_count: integer(),
+          uptime: String.t() | nil,
+          last_ghosted_version: String.t() | nil,
+          mode: :automatic | :manual,
+          manual_version: Release.Version.t()
         }
 
   defstruct name: nil,
             instance: 0,
             version: nil,
-            otp: nil,
+            otp: :not_connected,
             tls: :not_supported,
-            last_deployment: nil,
-            supervisor: false,
-            status: nil,
+            last_deployment: :full_deployment,
+            supervisor: true,
+            status: :idle,
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
@@ -39,11 +71,11 @@ defmodule Deployex.Status do
   ### ==========================================================================
 
   @doc """
-  Retrieve the current state of the gen_server
+  Retrieve the current monitoring status of the gen_server
   """
   @impl true
-  @spec state() :: {:ok, map()} | {:error, :rescued}
-  def state, do: default().state()
+  @spec monitoring() :: {:ok, list()} | {:error, :rescued}
+  def monitoring, do: default().monitoring()
 
   @doc """
   Retrieve the current version set for the monitored application
@@ -56,7 +88,7 @@ defmodule Deployex.Status do
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(integer()) :: deployex_version_map() | nil
+  @spec current_version_map(integer()) :: Deployex.Status.Version.t()
   def current_version_map(instance), do: default().current_version_map(instance)
 
   @doc """
@@ -78,7 +110,7 @@ defmodule Deployex.Status do
   Add a ghosted version in the list
   """
   @impl true
-  @spec add_ghosted_version(deployex_version_map()) :: {:ok, list()}
+  @spec add_ghosted_version(Deployex.Status.Version.t()) :: {:ok, list()}
   def add_ghosted_version(version_map), do: default().add_ghosted_version(version_map)
 
   @doc """

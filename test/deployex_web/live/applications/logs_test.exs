@@ -19,7 +19,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     Deployex.OpSysMock
@@ -50,7 +50,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     Deployex.OpSysMock
@@ -81,7 +81,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     Deployex.OpSysMock
@@ -154,7 +154,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
 
     Deployex.StatusMock
-    |> expect(:state, fn -> {:ok, %{monitoring: Monitoring.list()}} end)
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
 
     Deployex.OpSysMock

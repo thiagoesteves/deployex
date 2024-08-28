@@ -106,12 +106,11 @@ defmodule DeployexWeb.ApplicationsLive do
   def mount(_params, _session, socket) when is_connected?(socket) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, Status.listener_topic())
 
-    # state = :sys.get_state(Deployex.Status.Application)
-    {:ok, state} = Deployex.Status.state()
+    {:ok, monitoring} = Deployex.Status.monitoring()
 
     socket =
       socket
-      |> assign(:monitoring_apps_data, state.monitoring)
+      |> assign(:monitoring_apps_data, monitoring)
       |> assign(:selected_instance, nil)
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)

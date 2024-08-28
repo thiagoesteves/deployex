@@ -45,7 +45,7 @@ defmodule Deployex.Release do
       {:ok, %{mode: :manual, manual_version: version}} ->
         version
     end
-    |> Common.sanitize_schema_fields(%Deployex.Release.Version{})
+    |> Common.cast_schema_fields(%Deployex.Release.Version{})
   end
 
   @doc """
