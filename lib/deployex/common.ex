@@ -105,18 +105,18 @@ defmodule Deployex.Common do
   ## Examples
 
     iex> alias Deployex.Common
-    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.sanitize_schema_fields(%{"mode" => "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.sanitize_schema_fields(%{mode: "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: "v1"} = Common.sanitize_schema_fields(%{manual_version: "v1"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: nil} = Common.sanitize_schema_fields(nil, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{"mode" => "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{mode: "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: "v1"} = Common.cast_schema_fields(%{manual_version: "v1"}, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: nil} = Common.cast_schema_fields(nil, %Deployex.Storage.Config{}, atoms: [:mode])
   """
-  def sanitize_schema_fields(data, struct, attrs \\ [])
+  def cast_schema_fields(data, struct, attrs \\ [])
 
-  def sanitize_schema_fields(nil, struct, _attrs) do
+  def cast_schema_fields(nil, struct, _attrs) do
     struct
   end
 
-  def sanitize_schema_fields(data, struct, attrs) do
+  def cast_schema_fields(data, struct, attrs) do
     atoms = Keyword.get(attrs, :atoms, [])
     struct_keys = struct |> Map.keys() |> List.delete(:__struct__)
 

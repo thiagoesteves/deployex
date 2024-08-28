@@ -161,7 +161,7 @@ defmodule Deployex.Storage.Local do
   def config do
     deployex_config_path()
     |> read_data_from_file()
-    |> Common.sanitize_schema_fields(%Deployex.Storage.Config{}, atoms: [:mode])
+    |> Common.cast_schema_fields(%Deployex.Storage.Config{}, atoms: [:mode])
   end
 
   @impl true

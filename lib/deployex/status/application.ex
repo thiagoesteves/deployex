@@ -101,7 +101,7 @@ defmodule Deployex.Status.Application do
         %Deployex.Status.Version{}
 
       version ->
-        Common.sanitize_schema_fields(version, %Deployex.Status.Version{}, atoms: [:deployment])
+        Common.cast_schema_fields(version, %Deployex.Status.Version{}, atoms: [:deployment])
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Deployex.Status.Application do
   def ghosted_version_list do
     Storage.ghosted_versions()
     |> Enum.map(fn record ->
-      Common.sanitize_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
     end)
   end
 
@@ -135,7 +135,7 @@ defmodule Deployex.Status.Application do
   def history_version_list do
     Storage.versions()
     |> Enum.map(fn record ->
-      Common.sanitize_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
     end)
   end
 
@@ -148,7 +148,7 @@ defmodule Deployex.Status.Application do
   def history_version_list(instance) do
     Storage.versions(instance)
     |> Enum.map(fn record ->
-      Common.sanitize_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
+      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
     end)
   end
 
