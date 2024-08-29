@@ -1,4 +1,5 @@
 defmodule DeployexWeb.ApplicationsLive do
+  alias Deployex.Fixture.Storage
   use DeployexWeb, :live_view
 
   alias Deployex.Monitor
@@ -30,6 +31,9 @@ defmodule DeployexWeb.ApplicationsLive do
               last_deployment={app.last_deployment}
               last_ghosted_version={app.last_ghosted_version}
               restart_path={~p"/applications/#{app.instance}/restart"}
+              mode={app.mode}
+              manual_version={app.manual_version}
+              versions={@versions}
             />
           <% end %>
         </div>
@@ -114,6 +118,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:selected_instance, nil)
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
+      |> assign(:versions, [])
 
     {:ok, socket}
   end
@@ -125,7 +130,8 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_instance, nil)
      |> assign(:terminal_message, nil)
-     |> assign(:terminal_process, nil)}
+     |> assign(:terminal_process, nil)
+     |> assign(:versions, [])}
   end
 
   @impl true
@@ -134,8 +140,12 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   defp apply_action(%{assigns: %{terminal_process: nil}} = socket, :index, _params) do
+    # NOTE: This code has to be moved from here
+    versions = Deployex.Storage.versions() |> Enum.map(& &1["version"]) |> Enum.uniq()
+
     socket
     |> assign(:page_title, "Listing Applications")
+    |> assign(:versions, versions)
   end
 
   defp apply_action(%{assigns: %{terminal_message: terminal_message}} = socket, :index, _params) do
@@ -213,6 +223,11 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_event("confirm-close-modal", _, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications")}
+  end
+
+  def handle_event("app-change-mode", data, socket) do
+    IO.inspect(data)
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 

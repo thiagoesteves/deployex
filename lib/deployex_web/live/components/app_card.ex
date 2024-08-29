@@ -1,5 +1,7 @@
 defmodule DeployexWeb.Components.AppCard do
   @moduledoc false
+  use DeployexWeb, :html
+
   use Phoenix.Component
 
   # NOTE: This structure is derived from the Deployex.Status structure
@@ -16,6 +18,9 @@ defmodule DeployexWeb.Components.AppCard do
   attr :last_deployment, :atom, required: true
   attr :last_ghosted_version, :string, required: true
   attr :restart_path, :string, required: true
+  attr :mode, :atom, required: true
+  attr :manual_version, :map, required: true
+  attr :versions, :list, required: true
 
   def content(assigns) do
     ~H"""
@@ -36,14 +41,14 @@ defmodule DeployexWeb.Components.AppCard do
 
         <h3 class="font-mono text-center text-xl text-black font-bold"><%= "#{@name}" %></h3>
 
-        <p :if={@supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+        <p :if={@supervisor == false} class="flex  tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Instance</span>
           <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
             <%= @instance %>
           </span>
         </p>
 
-        <p class="flex  tracking-tight  pt-3   justify-between">
+        <p class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">OTP-Nodes</span>
           <.connected? status={@otp} />
         </p>
@@ -53,24 +58,24 @@ defmodule DeployexWeb.Components.AppCard do
           <.supported? status={@tls} />
         </p>
 
-        <p :if={@last_deployment} class="flex tracking-tight pt-3 justify-between">
+        <p :if={@last_deployment} class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Last deployment</span>
           <.deployment deployment={@last_deployment} />
         </p>
 
-        <p :if={@supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+        <p :if={@supervisor == false} class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Crash Restart</span>
           <.restarts restarts={@crash_restart_count} />
         </p>
 
-        <p :if={@supervisor == false} class="flex  tracking-tight  pt-3   justify-between">
+        <p :if={@supervisor == false} class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Force Restart</span>
           <.restarts restarts={@force_restart_count} />
         </p>
 
         <p
           :if={@supervisor and @last_ghosted_version}
-          class="flex tracking-tight pt-3 justify-between"
+          class="flex items-center tracking-tight pt-3 justify-between"
         >
           <span class="text-xs font-bold ml-3 ">Last ghosted version</span>
           <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
@@ -78,14 +83,18 @@ defmodule DeployexWeb.Components.AppCard do
           </span>
         </p>
 
-        <p class="flex tracking-tight pt-3 justify-between">
+        <p class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3 ">uptime</span>
           <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-blue-400 border border-blue-400">
             <%= @uptime %>
           </span>
         </p>
 
-        <p class="flex  tracking-tight  pt-3   justify-between">
+        <p :if={@supervisor} class="flex tracking-tight pt-3 items-center justify-between">
+          <.mode mode={@mode} manual_version={@manual_version} versions={@versions} />
+        </p>
+
+        <p class="flex items-center tracking-tight pt-3 justify-between">
           <button
             id={"app-log-stdout-#{@instance}"}
             phx-click="app-log-click"
@@ -201,6 +210,35 @@ defmodule DeployexWeb.Components.AppCard do
         HOT UPGRADE
       </span>
     <% end %>
+    """
+  end
+
+  defp mode(assigns) do
+    current_value =
+      if assigns.mode == :automatic do
+        "automatic"
+      else
+        assigns.manual_version.version
+      end
+
+    assigns =
+      assigns
+      |> assign(current_value: current_value)
+      |> assign(versions: ["automatic"] ++ assigns.versions)
+
+    ~H"""
+    <div>
+      <form class="flex   items-center justify-between" phx-change="app-change-mode">
+        <span class="text-xs font-bold ml-3 ">Mode</span>
+        <.input
+          class="me-2 px-8 py-0.5 block border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-700 dark:border-neutral-700 dark:text-blue-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-60"
+          name="select-mode"
+          value={@current_value}
+          type="select-undefined-class"
+          options={@versions}
+        />
+      </form>
+    </div>
     """
   end
 
