@@ -231,7 +231,8 @@ defmodule Deployex.Status.Application do
       uptime: uptime,
       last_ghosted_version: last_ghosted_version,
       mode: config.mode,
-      manual_version: config.manual_version
+      manual_version:
+        Common.cast_schema_fields(config.manual_version, %Deployex.Release.Version{})
     }
   end
 

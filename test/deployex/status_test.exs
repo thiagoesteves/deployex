@@ -7,6 +7,7 @@ defmodule Deployex.StatusAppTest do
   setup :verify_on_exit!
 
   alias Deployex.Fixture.Storage, as: StorageFixture
+  alias Deployex.Release.Version
   alias Deployex.Status.Application, as: StatusApp
   alias Deployex.Storage
 
@@ -242,7 +243,9 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
 
-    assert {:ok, %{mode: :manual, manual_version: nil}} = Deployex.Status.Application.mode(name)
+    assert {:ok,
+            %{mode: :manual, manual_version: %Version{version: nil, hash: nil, pre_commands: []}}} =
+             Deployex.Status.Application.mode(name)
   end
 
   test "Test set mode configuration to automatic" do
@@ -282,7 +285,11 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
 
-    assert {:ok, %{mode: :automatic, manual_version: nil}} =
+    assert {:ok,
+            %{
+              mode: :automatic,
+              manual_version: %Version{version: nil, hash: nil, pre_commands: []}
+            }} =
              Deployex.Status.Application.mode(name)
   end
 

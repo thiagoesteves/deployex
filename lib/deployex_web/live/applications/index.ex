@@ -1,5 +1,4 @@
 defmodule DeployexWeb.ApplicationsLive do
-  alias Deployex.Fixture.Storage
   use DeployexWeb, :live_view
 
   alias Deployex.Monitor
@@ -103,6 +102,23 @@ defmodule DeployexWeb.ApplicationsLive do
         </:footer>
       </Confirm.content>
     <% end %>
+
+    <%= if @mode_confirmation.enabled do %>
+      <Confirm.content id="app-set-mode-modal-0">
+        <:header>Attention</:header>
+        <p>
+          Are you sure you want to set to <%= "#{@mode_confirmation.mode_or_version}" %>?
+        </p>
+        <:footer>
+          <Confirm.cancel_button value={@mode_confirmation.mode_or_version}>
+            Cancel
+          </Confirm.cancel_button>
+          <Confirm.confirm_button event="set-mode" value={@mode_confirmation.mode_or_version}>
+            Confirm
+          </Confirm.confirm_button>
+        </:footer>
+      </Confirm.content>
+    <% end %>
     """
   end
 
@@ -119,6 +135,10 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:versions, [])
+      |> assign(:mode_confirmation, %{
+        enabled: false,
+        mode_or_version: nil
+      })
 
     {:ok, socket}
   end
@@ -131,7 +151,11 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:selected_instance, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
-     |> assign(:versions, [])}
+     |> assign(:versions, [])
+     |> assign(:mode_confirmation, %{
+       enabled: false,
+       mode_or_version: nil
+     })}
   end
 
   @impl true
@@ -222,13 +246,31 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
-  def handle_event("confirm-close-modal", _, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications")}
+  def handle_event("set-mode", %{"id" => mode_or_version}, socket) do
+    if mode_or_version == "automatic" do
+      Status.set_mode(:automatic, "")
+    else
+      Status.set_mode(:manual, mode_or_version)
+    end
+
+    {:noreply,
+     socket
+     |> assign(:mode_confirmation, %{socket.assigns.mode_confirmation | enabled: false})
+     |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event("app-change-mode", data, socket) do
-    IO.inspect(data)
-    {:noreply, push_patch(socket, to: ~p"/applications")}
+  def handle_event("confirm-close-modal", _, socket) do
+    {:noreply,
+     socket
+     |> assign(:mode_confirmation, %{socket.assigns.mode_confirmation | enabled: false})
+     |> push_patch(to: ~p"/applications")}
+  end
+
+  def handle_event("app-change-mode", %{"select-mode" => mode_or_version}, socket) do
+    {:noreply,
+     socket
+     |> assign(:mode_confirmation, %{enabled: true, mode_or_version: mode_or_version})
+     |> push_patch(to: ~p"/applications")}
   end
 
   defp std_path(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"

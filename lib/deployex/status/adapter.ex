@@ -18,5 +18,5 @@ defmodule Deployex.Status.Adapter do
   @callback clear_new(integer()) :: :ok
   @callback update(integer()) :: :ok
   @callback mode() :: {:ok, map()} | {:error, :rescued}
-  @callback set_mode(:automatic | :manual, map()) :: {:ok, map()}
+  @callback set_mode(:automatic | :manual, String.t()) :: {:ok, map()}
 end
