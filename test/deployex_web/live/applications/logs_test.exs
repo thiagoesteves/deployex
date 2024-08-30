@@ -9,6 +9,7 @@ defmodule DeployexWeb.Applications.LogsTest do
   setup :verify_on_exit!
 
   alias Deployex.Fixture.Monitoring
+  alias Deployex.Fixture.Status, as: FixtureStatus
   alias Deployex.Terminal.Server
 
   test "Access to stdout logs by instance", %{conn: conn} do
@@ -21,6 +22,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -52,6 +54,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -83,6 +86,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -156,6 +160,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -189,6 +194,21 @@ defmodule DeployexWeb.Applications.LogsTest do
 
              assert_receive {:handle_ref_event, ^ref}, 1_000
            end) =~ "Maximum number of log terminals achieved for instance: 1 type: logs_stdout"
+  end
+
+  test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
+    topic = "topic-logs-004"
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    assert html = index_live |> element("#app-log-stdout-0") |> render_click()
+    assert html =~ "Application Logs [0]"
+    assert html =~ "File not found"
   end
 
   defp update_log_message(os_pid, message) do

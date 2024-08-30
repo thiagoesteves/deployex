@@ -44,7 +44,7 @@ defmodule Deployex.Status do
           uptime: String.t() | nil,
           last_ghosted_version: String.t() | nil,
           mode: :automatic | :manual,
-          manual_version: Release.Version.t()
+          manual_version: %Release.Version{} | nil
         }
 
   defstruct name: nil,
@@ -60,7 +60,7 @@ defmodule Deployex.Status do
             uptime: nil,
             last_ghosted_version: nil,
             mode: :automatic,
-            manual_version: %Release.Version{}
+            manual_version: nil
 
   @behaviour Deployex.Status.Adapter
 
@@ -161,6 +161,6 @@ defmodule Deployex.Status do
   Set the configuration mode
   """
   @impl true
-  @spec set_mode(:automatic | :manual, map()) :: {:ok, map()}
+  @spec set_mode(:automatic | :manual, String.t()) :: {:ok, map()}
   def set_mode(mode, version), do: default().set_mode(mode, version)
 end

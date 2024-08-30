@@ -231,7 +231,8 @@ defmodule Deployex.Status.Application do
       uptime: uptime,
       last_ghosted_version: last_ghosted_version,
       mode: config.mode,
-      manual_version: config.manual_version
+      manual_version:
+        Common.cast_schema_fields(config.manual_version, %Deployex.Release.Version{})
     }
   end
 
@@ -241,7 +242,11 @@ defmodule Deployex.Status.Application do
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       start_time: start_time
-    } = check_monitor_data(instance)
+    } =
+      case Monitor.state(instance) do
+        {:ok, state} -> state
+        _error -> %Deployex.Monitor{}
+      end
 
     check_otp_monitored_app = fn
       instance, :running ->
@@ -274,16 +279,6 @@ defmodule Deployex.Status.Application do
       :supported
     else
       :not_supported
-    end
-  end
-
-  defp check_monitor_data(instance) do
-    case Monitor.state(instance) do
-      {:ok, state} ->
-        state
-
-      _ ->
-        %Deployex.Monitor{}
     end
   end
 end

@@ -345,7 +345,7 @@ defmodule DeployexWeb.CoreComponents do
   attr :type, :string,
     default: "text",
     values: ~w(checkbox color date datetime-local email file month number password
-               range search select tel text textarea time url week)
+               range search select tel text textarea time url week select-undefined-class)
 
   attr :field, Phoenix.HTML.FormField,
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
@@ -408,6 +408,19 @@ defmodule DeployexWeb.CoreComponents do
         multiple={@multiple}
         {@rest}
       >
+        <option :if={@prompt} value=""><%= @prompt %></option>
+        <%= Form.options_for_select(@options, @value) %>
+      </select>
+      <.error :for={msg <- @errors}><%= msg %></.error>
+    </div>
+    """
+  end
+
+  def input(%{type: "select-undefined-class"} = assigns) do
+    ~H"""
+    <div phx-feedback-for={@name}>
+      <.label for={@id}><%= @label %></.label>
+      <select id={@id} name={@name} multiple={@multiple} {@rest}>
         <option :if={@prompt} value=""><%= @prompt %></option>
         <%= Form.options_for_select(@options, @value) %>
       </select>
