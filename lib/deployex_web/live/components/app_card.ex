@@ -214,16 +214,20 @@ defmodule DeployexWeb.Components.AppCard do
   end
 
   defp mode(assigns) do
-    current_value =
+    default_class =
+      "me-2 px-8 py-0.5 block border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-700 dark:border-neutral-700 dark:text-blue-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-60"
+
+    {current_value, input_class} =
       if assigns.mode == :automatic do
-        "automatic"
+        {"automatic", default_class}
       else
-        assigns.manual_version.version
+        {assigns.manual_version.version, default_class <> " animate-pulse"}
       end
 
     assigns =
       assigns
       |> assign(current_value: current_value)
+      |> assign(input_class: input_class)
       |> assign(versions: ["automatic"] ++ assigns.versions)
 
     ~H"""
@@ -235,7 +239,7 @@ defmodule DeployexWeb.Components.AppCard do
       >
         <span class="text-xs font-bold ml-3 ">Mode</span>
         <.input
-          class="me-2 px-8 py-0.5 block border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-700 dark:border-neutral-700 dark:text-blue-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-60"
+          class={@input_class}
           name="select-mode"
           value={@current_value}
           type="select-undefined-class"
