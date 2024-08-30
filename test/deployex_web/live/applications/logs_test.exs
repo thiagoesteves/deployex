@@ -196,6 +196,21 @@ defmodule DeployexWeb.Applications.LogsTest do
            end) =~ "Maximum number of log terminals achieved for instance: 1 type: logs_stdout"
   end
 
+  test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
+    topic = "topic-logs-004"
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    assert html = index_live |> element("#app-log-stdout-0") |> render_click()
+    assert html =~ "Application Logs [0]"
+    assert html =~ "File not found"
+  end
+
   defp update_log_message(os_pid, message) do
     pid = :global.whereis_name(%{type: :logs_stdout, instance: "1"})
     send(pid, {:stdout, os_pid, "\rtime #{message}"})

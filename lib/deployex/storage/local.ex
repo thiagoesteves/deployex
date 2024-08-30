@@ -189,16 +189,9 @@ defmodule Deployex.Storage.Local do
     do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/ghosted.json"
 
   defp read_data_from_file(path) do
-    file2json = fn data ->
-      case Jason.decode(data) do
-        {:ok, map} -> map
-        _ -> nil
-      end
-    end
-
     case File.read(path) do
       {:ok, data} ->
-        file2json.(data)
+        Jason.decode!(data)
 
       _ ->
         nil
