@@ -9,6 +9,7 @@ defmodule DeployexWeb.Applications.LogsTest do
   setup :verify_on_exit!
 
   alias Deployex.Fixture.Monitoring
+  alias Deployex.Fixture.Status, as: FixtureStatus
   alias Deployex.Terminal.Server
 
   test "Access to stdout logs by instance", %{conn: conn} do
@@ -21,6 +22,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -52,6 +54,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -83,6 +86,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -156,6 +160,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->

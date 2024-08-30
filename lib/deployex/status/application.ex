@@ -237,12 +237,13 @@ defmodule Deployex.Status.Application do
   end
 
   defp update_monitored_app(instance) do
-    %{
-      status: status,
-      crash_restart_count: crash_restart_count,
-      force_restart_count: force_restart_count,
-      start_time: start_time
-    } = check_monitor_data(instance)
+    {:ok,
+     %{
+       status: status,
+       crash_restart_count: crash_restart_count,
+       force_restart_count: force_restart_count,
+       start_time: start_time
+     }} = Monitor.state(instance)
 
     check_otp_monitored_app = fn
       instance, :running ->
@@ -275,16 +276,6 @@ defmodule Deployex.Status.Application do
       :supported
     else
       :not_supported
-    end
-  end
-
-  defp check_monitor_data(instance) do
-    case Monitor.state(instance) do
-      {:ok, state} ->
-        state
-
-      _ ->
-        %Deployex.Monitor{}
     end
   end
 end

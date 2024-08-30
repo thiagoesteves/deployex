@@ -10,6 +10,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
   alias Deployex.Fixture.Binary
   alias Deployex.Fixture.Monitoring
+  alias Deployex.Fixture.Status, as: FixtureStatus
   alias Deployex.Terminal.Server
   alias DeployexWeb.ApplicationsLive.Terminal
 
@@ -23,6 +24,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -61,6 +63,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->
@@ -111,6 +114,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, 0, fn _command, _options ->
@@ -142,6 +146,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, 1, fn _command, _options ->
@@ -179,6 +184,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
@@ -217,6 +223,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
@@ -241,6 +248,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
     |> expect(:run, fn _command, _options ->

@@ -1,7 +1,13 @@
 defmodule DeployexWeb.PageControllerTest do
   use DeployexWeb.ConnCase
 
+  import Mox
+  alias Deployex.Fixture.Status, as: FixtureStatus
+
   test "GET / redirect to /applications", %{conn: conn} do
+    Deployex.StatusMock
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
     conn = get(conn, ~p"/")
 
     assert html_response(conn, 200) =~ "Monitoring Elixir Apps"

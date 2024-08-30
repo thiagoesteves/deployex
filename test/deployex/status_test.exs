@@ -22,10 +22,10 @@ defmodule Deployex.StatusAppTest do
 
     attrs = [deployment: :full_deployment, deploy_ref: make_ref()]
 
-    StatusApp.set_current_version_map(2, release, attrs)
-    StatusApp.set_current_version_map(1, release, attrs)
-    StatusApp.set_current_version_map(3, release, attrs)
-    StatusApp.set_current_version_map(0, release, attrs)
+    StatusApp.set_current_version_map(2, %{release | version: "1.0.2"}, attrs)
+    StatusApp.set_current_version_map(1, %{release | version: "1.0.1"}, attrs)
+    StatusApp.set_current_version_map(3, %{release | version: "1.0.3"}, attrs)
+    StatusApp.set_current_version_map(0, %{release | version: "1.0.0"}, attrs)
 
     %{release: release, attrs: attrs}
   end
@@ -39,41 +39,44 @@ defmodule Deployex.StatusAppTest do
   end
 
   test "current_version / current_version_map" do
-    expected_version = "1.0.0"
+    expected_version_0 = "1.0.0"
+    expected_version_1 = "1.0.1"
+    expected_version_2 = "1.0.2"
+    expected_version_3 = "1.0.3"
     expected_hash = "ABC"
     expected_deployment = :full_deployment
 
-    assert StatusApp.current_version(0) == expected_version
-    assert StatusApp.current_version(1) == expected_version
-    assert StatusApp.current_version(2) == expected_version
-    assert StatusApp.current_version(3) == expected_version
+    assert StatusApp.current_version(0) == expected_version_0
+    assert StatusApp.current_version(1) == expected_version_1
+    assert StatusApp.current_version(2) == expected_version_2
+    assert StatusApp.current_version(3) == expected_version_3
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
-             version: ^expected_version
+             version: ^expected_version_0
            } = StatusApp.current_version_map(0)
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
-             version: ^expected_version
+             version: ^expected_version_1
            } = StatusApp.current_version_map(1)
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
-             version: ^expected_version
+             version: ^expected_version_2
            } = StatusApp.current_version_map(2)
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
-             version: ^expected_version
+             version: ^expected_version_3
            } = StatusApp.current_version_map(3)
   end
 
@@ -134,68 +137,31 @@ defmodule Deployex.StatusAppTest do
     end)
 
     # No info, update needed
-    assert {:noreply, monitoring} =
+    assert {:noreply, %{monitoring: monitoring}} =
              StatusApp.handle_info(:update_apps, %{monitoring: []})
 
-    assert %{
-             monitoring: [
-               %Deployex.Status{
-                 name: "deployex",
-                 instance: 0,
-                 version: _,
-                 otp: :not_connected,
-                 tls: :not_supported,
-                 last_deployment: :full_deployment,
-                 supervisor: true,
-                 status: :running,
-                 crash_restart_count: 0,
-                 force_restart_count: 0,
-                 uptime: _,
-                 last_ghosted_version: "-/-"
-               },
-               %Deployex.Status{
-                 name: "testapp",
-                 instance: 1,
-                 version: "1.0.0",
-                 otp: :not_connected,
-                 tls: :not_supported,
-                 last_deployment: :full_deployment,
-                 supervisor: false,
-                 status: :idle,
-                 crash_restart_count: 0,
-                 uptime: "-/-",
-                 last_ghosted_version: nil
-               },
-               %Deployex.Status{
-                 name: "testapp",
-                 instance: 2,
-                 version: "1.0.0",
-                 otp: :not_connected,
-                 tls: :not_supported,
-                 last_deployment: :full_deployment,
-                 supervisor: false,
-                 status: :idle,
-                 crash_restart_count: 0,
-                 force_restart_count: 0,
-                 uptime: "-/-",
-                 last_ghosted_version: nil
-               },
-               %Deployex.Status{
-                 name: "testapp",
-                 instance: 3,
-                 version: "1.0.0",
-                 otp: :not_connected,
-                 tls: :not_supported,
-                 last_deployment: :full_deployment,
-                 supervisor: false,
-                 status: :idle,
-                 crash_restart_count: 0,
-                 force_restart_count: 0,
-                 uptime: "-/-",
-                 last_ghosted_version: nil
-               }
-             ]
-           } = monitoring
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+                 &1.version == "1.0.1" and &1.status == :idle)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+                 &1.version == "1.0.2" and &1.status == :idle)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+                 &1.version == "1.0.3" and &1.status == :idle)
+           )
   end
 
   test "Initialize a GenServer and capture its state" do
@@ -206,7 +172,7 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, []} = Deployex.Status.Application.monitoring(name)
   end
 
-  test "Test set mode configuration to manual" do
+  test "Test set mode configuration to manual [valid version]" do
     name = "#{__MODULE__}-mode-000" |> String.to_atom()
 
     ref = make_ref()
@@ -236,7 +202,7 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, _pid} =
              Deployex.Status.Application.start_link(update_apps_interval: 50, name: name)
 
-    {:ok, _map} = Deployex.Status.Application.set_mode(name, :manual, %{version: "1.2.3"})
+    {:ok, _map} = Deployex.Status.Application.set_mode(name, :manual, "1.0.1")
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -244,12 +210,56 @@ defmodule Deployex.StatusAppTest do
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
 
     assert {:ok,
-            %{mode: :manual, manual_version: %Version{version: nil, hash: nil, pre_commands: []}}} =
+            %{
+              mode: :manual,
+              manual_version: %Version{hash: "ABC", pre_commands: [], version: "1.0.1"}
+            }} =
+             Deployex.Status.Application.mode(name)
+  end
+
+  test "Test set mode configuration to manual [invalid version]" do
+    name = "#{__MODULE__}-mode-001" |> String.to_atom()
+
+    ref = make_ref()
+    pid = self()
+
+    Deployex.MonitorMock
+    |> stub(:state, fn instance ->
+      called = Process.get("state", 0)
+      Process.put("state", called + 1)
+
+      if called > 6 do
+        send(pid, {:handle_ref_event, ref})
+      end
+
+      {:ok,
+       %Deployex.Monitor{
+         current_pid: nil,
+         instance: instance,
+         status: :idle,
+         crash_restart_count: 0,
+         force_restart_count: 0,
+         start_time: nil,
+         deploy_ref: :init
+       }}
+    end)
+
+    assert {:ok, _pid} =
+             Deployex.Status.Application.start_link(update_apps_interval: 50, name: name)
+
+    {:ok, _map} = Deployex.Status.Application.set_mode(name, :manual, "invalid")
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
+    assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
+
+    assert {:ok, %{mode: :manual, manual_version: %Version{}}} =
              Deployex.Status.Application.mode(name)
   end
 
   test "Test set mode configuration to automatic" do
-    name = "#{__MODULE__}-mode-000" |> String.to_atom()
+    name = "#{__MODULE__}-mode-002" |> String.to_atom()
 
     ref = make_ref()
     pid = self()

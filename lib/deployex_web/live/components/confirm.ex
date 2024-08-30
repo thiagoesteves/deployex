@@ -40,13 +40,13 @@ defmodule DeployexWeb.Components.Confirm do
     """
   end
 
-  attr :value, :string, required: true
+  attr :id, :string, required: true
   slot :inner_block, required: true
 
   def cancel_button(assigns) do
     ~H"""
     <button
-      id={"cancel-button-#{@value}"}
+      id={"cancel-button-#{@id}"}
       class="flex-1 px-4 py-2 border border-gray-800 rounded-full"
       phx-click="confirm-close-modal"
     >
@@ -55,6 +55,7 @@ defmodule DeployexWeb.Components.Confirm do
     """
   end
 
+  attr :id, :string, required: true
   attr :value, :string, required: true
   attr :event, :string, required: true
   slot :inner_block, required: true
@@ -62,7 +63,7 @@ defmodule DeployexWeb.Components.Confirm do
   def confirm_button(assigns) do
     ~H"""
     <button
-      id={"confirm-button-#{@value}"}
+      id={"confirm-button-#{@id}"}
       class="flex-1 px-4 py-2 text-white bg-blue-600 rounded-full"
       phx-click={@event}
       phx-value-id={@value}

@@ -9,6 +9,8 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Components.Confirm
 
+  @manual_version_max_list 10
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -95,8 +97,8 @@ defmodule DeployexWeb.ApplicationsLive do
           Are you sure you want to restart instance <%= "#{@selected_instance}" %>?
         </p>
         <:footer>
-          <Confirm.cancel_button value={@selected_instance}>Cancel</Confirm.cancel_button>
-          <Confirm.confirm_button event="restart" value={@selected_instance}>
+          <Confirm.cancel_button id={@selected_instance}>Cancel</Confirm.cancel_button>
+          <Confirm.confirm_button event="restart" id={@selected_instance} value={@selected_instance}>
             Confirm
           </Confirm.confirm_button>
         </:footer>
@@ -110,10 +112,14 @@ defmodule DeployexWeb.ApplicationsLive do
           Are you sure you want to set to <%= "#{@mode_confirmation.mode_or_version}" %>?
         </p>
         <:footer>
-          <Confirm.cancel_button value={@mode_confirmation.mode_or_version}>
+          <Confirm.cancel_button id="mode">
             Cancel
           </Confirm.cancel_button>
-          <Confirm.confirm_button event="set-mode" value={@mode_confirmation.mode_or_version}>
+          <Confirm.confirm_button
+            event="set-mode"
+            id="mode"
+            value={@mode_confirmation.mode_or_version}
+          >
             Confirm
           </Confirm.confirm_button>
         </:footer>
@@ -164,8 +170,11 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   defp apply_action(%{assigns: %{terminal_process: nil}} = socket, :index, _params) do
-    # NOTE: This code has to be moved from here
-    versions = Deployex.Storage.versions() |> Enum.map(& &1["version"]) |> Enum.uniq()
+    versions =
+      Status.history_version_list()
+      |> Enum.map(& &1.version)
+      |> Enum.uniq()
+      |> Enum.take(@manual_version_max_list)
 
     socket
     |> assign(:page_title, "Listing Applications")
@@ -266,7 +275,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event("app-change-mode", %{"select-mode" => mode_or_version}, socket) do
+  def handle_event("app-mode-select", %{"select-mode" => mode_or_version}, socket) do
     {:noreply,
      socket
      |> assign(:mode_confirmation, %{enabled: true, mode_or_version: mode_or_version})

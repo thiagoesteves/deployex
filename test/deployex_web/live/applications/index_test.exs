@@ -5,6 +5,7 @@ defmodule DeployexWeb.Applications.IndexTest do
   import Mox
 
   alias Deployex.Fixture.Monitoring
+  alias Deployex.Fixture.Status, as: FixtureStatus
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -13,6 +14,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> "test-topic" end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
 
@@ -33,6 +35,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -55,6 +58,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -86,6 +90,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -109,6 +114,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -138,6 +144,7 @@ defmodule DeployexWeb.Applications.IndexTest do
        ]}
     end)
     |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 

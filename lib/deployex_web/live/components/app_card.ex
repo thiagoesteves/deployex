@@ -228,7 +228,11 @@ defmodule DeployexWeb.Components.AppCard do
 
     ~H"""
     <div>
-      <form class="flex   items-center justify-between" phx-change="app-change-mode">
+      <form
+        id="form-mode-select"
+        class="flex items-center justify-between"
+        phx-change="app-mode-select"
+      >
         <span class="text-xs font-bold ml-3 ">Mode</span>
         <.input
           class="me-2 px-8 py-0.5 block border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-gray-700 dark:border-neutral-700 dark:text-blue-300 dark:placeholder-neutral-500 dark:focus:ring-neutral-60"

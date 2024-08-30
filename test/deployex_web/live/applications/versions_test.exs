@@ -5,6 +5,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Mox
 
   alias Deployex.Fixture.Monitoring
+  alias Deployex.Fixture.Status, as: FixtureStatus
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -15,22 +16,20 @@ defmodule DeployexWeb.Applications.VersionsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
-    |> expect(:history_version_list, fn ->
+    |> stub(:history_version_list, fn ->
       [
-        %Deployex.Status.Version{
+        FixtureStatus.version(%{
           version: "10.11.12",
-          instance: "1",
-          deployment: :full_deployment,
+          instance: 1,
           deploy_ref: "#Reference<0.3456702894.2351693834.66666>",
-          inserted_at: NaiveDateTime.utc_now()
-        },
-        %Deployex.Status.Version{
+          deployment: :full_deployment
+        }),
+        FixtureStatus.version(%{
           version: "10.11.13",
-          instance: "2",
-          deployment: :hot_upgrade,
+          instance: 2,
           deploy_ref: "#Reference<0.3456702894.2351693834.99999>",
-          inserted_at: NaiveDateTime.utc_now()
-        }
+          deployment: :hot_upgrade
+        })
       ]
     end)
 
@@ -54,27 +53,26 @@ defmodule DeployexWeb.Applications.VersionsTest do
   test "GET /versions list by instance", %{conn: conn} do
     topic = "topic-version-001"
 
+    full_list = [
+      FixtureStatus.version(%{
+        version: "10.11.16",
+        instance: 1,
+        deploy_ref: "#Reference<0.3456702894.2351693834.55555>",
+        deployment: :full_deployment
+      }),
+      FixtureStatus.version(%{
+        version: "10.11.17",
+        instance: 1,
+        deploy_ref: "#Reference<0.3456702894.2351693834.88888>",
+        deployment: :hot_upgrade
+      })
+    ]
+
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:listener_topic, fn -> topic end)
-    |> expect(:history_version_list, fn "1" ->
-      [
-        %{
-          version: "10.11.16",
-          instance: "1",
-          deployment: :full_deployment,
-          deploy_ref: "#Reference<0.3456702894.2351693834.55555>",
-          inserted_at: NaiveDateTime.utc_now()
-        },
-        %{
-          version: "10.11.17",
-          instance: "1",
-          deployment: :hot_upgrade,
-          deploy_ref: "#Reference<0.3456702894.2351693834.88888>",
-          inserted_at: NaiveDateTime.utc_now()
-        }
-      ]
-    end)
+    |> stub(:history_version_list, fn -> full_list end)
+    |> stub(:history_version_list, fn "1" -> full_list end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
