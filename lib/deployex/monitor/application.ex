@@ -235,8 +235,8 @@ defmodule Deployex.Monitor.Application do
         OpSys.run_link(
           run_app_bin(instance, app_exec, "start"),
           [
-            {:stdout, Storage.stdout_path(instance)},
-            {:stderr, Storage.stderr_path(instance)}
+            {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
+            {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
           ]
         )
 
@@ -295,8 +295,8 @@ defmodule Deployex.Monitor.Application do
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
         OpSys.run(run_app_bin(instance, migration_exec, pre_command), [
           :sync,
-          {:stdout, Storage.stdout_path(instance)},
-          {:stderr, Storage.stderr_path(instance)}
+          {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
+          {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
         ])
         |> case do
           {:ok, _} ->

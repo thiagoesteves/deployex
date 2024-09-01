@@ -6,7 +6,7 @@
  * Changed storage to use term files instead jason format, updating to this version will require losing previous data.
 
 ### Bug fixes
- * None
+ * [[`Issue-47`](https://github.com/thiagoesteves/deployex/issues/47)] Application logs were not being appended
 
 ### Enhancements
  * New storage format (term), allowing a better map handling
