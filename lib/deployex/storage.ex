@@ -236,7 +236,7 @@ defmodule Deployex.Storage do
   """
   @impl true
   @spec config() :: Deployex.Storage.Config.t()
-  def config, do: default().config()
+  def config, do: default().config() || %Deployex.Storage.Config{}
 
   @doc """
   Update the current deployex dynamic configuration

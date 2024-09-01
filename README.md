@@ -22,6 +22,8 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Rolled-back monitored app versions are ghosted, preventing their redeployment.
  * Ensures all instances remain connected to the OTP distribution, including deployex itself.
  * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
+ * Allows setting a previously configured version in the UI, enabling deployex to enforce deployment of a specific version.
+ * Supports individual application restarts via the UI.
  * Provides the ability to run pre-commans prior deployments for Database migrations or any other eval command.
  * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
  * Provides access to the IEx shell for monitored apps and deployex.
@@ -31,9 +33,11 @@ Upon deployment, the following dashboard becomes available, offering access to l
    - Version history
    - Last deployment status
    - Number of crash restarts
+   - Number of forced restarts
 
-## Nice to have
+## Next steps
 
+- [ ] Add admin user/pass to have access to the main page
 - [ ] Add telemetry support for deployex to capture metrics and telemetry via OTP distribution.
 - [ ] Integrate CPU utilization monitoring from the OTP distribution.
 - [ ] Continuous improvement in UI design.

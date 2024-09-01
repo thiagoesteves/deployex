@@ -1,5 +1,19 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc14 ()
+
+## Backwards incompatible changes for 0.3.0-rc13
+ * Changed storage to use term files instead jason format, updating to this version will require losing previous data.
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * New storage format (term), allowing a better map handling
+ * Multiple optimizations and improvements in organizations and context
+ * Unit test added to achieve >90% of coverage
+ * New mode set functionality, the user can now set a specific version to be applied.
+
 ## 0.3.0-rc13 (2024-08-02)
 
 ## Backwards incompatible changes for 0.3.0-rc12

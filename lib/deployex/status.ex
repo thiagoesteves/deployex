@@ -44,7 +44,7 @@ defmodule Deployex.Status do
           uptime: String.t() | nil,
           last_ghosted_version: String.t() | nil,
           mode: :automatic | :manual,
-          manual_version: %Release.Version{} | nil
+          manual_version: Deployex.Status.Version.t() | nil
         }
 
   defstruct name: nil,

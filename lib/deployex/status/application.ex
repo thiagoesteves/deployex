@@ -101,13 +101,13 @@ defmodule Deployex.Status.Application do
         %Deployex.Status.Version{}
 
       version ->
-        Common.cast_schema_fields(version, %Deployex.Status.Version{}, atoms: [:deployment])
+        version
     end
   end
 
   @impl true
   def set_current_version_map(instance, release, attrs) do
-    params = %{
+    params = %Deployex.Status.Version{
       version: release.version,
       hash: release.hash,
       pre_commands: release.pre_commands,
@@ -126,17 +126,11 @@ defmodule Deployex.Status.Application do
   @impl true
   def ghosted_version_list do
     Storage.ghosted_versions()
-    |> Enum.map(fn record ->
-      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
-    end)
   end
 
   @impl true
   def history_version_list do
     Storage.versions()
-    |> Enum.map(fn record ->
-      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
-    end)
   end
 
   @impl true
@@ -147,9 +141,6 @@ defmodule Deployex.Status.Application do
   @impl true
   def history_version_list(instance) do
     Storage.versions(instance)
-    |> Enum.map(fn record ->
-      Common.cast_schema_fields(record, %Deployex.Status.Version{}, atoms: [:deployment])
-    end)
   end
 
   @impl true
@@ -231,8 +222,7 @@ defmodule Deployex.Status.Application do
       uptime: uptime,
       last_ghosted_version: last_ghosted_version,
       mode: config.mode,
-      manual_version:
-        Common.cast_schema_fields(config.manual_version, %Deployex.Release.Version{})
+      manual_version: config.manual_version
     }
   end
 
