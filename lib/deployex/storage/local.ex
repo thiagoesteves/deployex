@@ -5,9 +5,10 @@ defmodule Deployex.Storage.Local do
 
   @behaviour Deployex.Storage.Adapter
 
-  alias Deployex.Common
+  require Logger
 
   @deployex_instance 0
+  @config_key_file "config.term"
 
   ### ==========================================================================
   ### Public functions
@@ -15,18 +16,11 @@ defmodule Deployex.Storage.Local do
 
   @impl true
   def init do
-    create_storage_folder = fn instance ->
-      File.mkdir_p!("#{base_path()}/storage/#{monitored_app()}/#{instance}")
-    end
-
     replicas_list()
     |> Enum.each(fn instance ->
       # Create the service folders (If they don't exist)
       [new_path(instance), current_path(instance), previous_path(instance)]
       |> Enum.each(&File.mkdir_p!/1)
-
-      # Create storage folders (If they don't exist)
-      create_storage_folder.(instance)
 
       # Create folder and Log message files (If they don't exist)
       File.mkdir_p!("#{log_path()}/#{monitored_app()}")
@@ -34,8 +28,10 @@ defmodule Deployex.Storage.Local do
       File.touch(stderr_path(instance))
     end)
 
-    # Create storage for deployex instance
-    create_storage_folder.(@deployex_instance)
+    # Create storage for deployex instance (If they don't exist)
+    File.mkdir_p!(config_path())
+    File.mkdir_p!(history_version_path())
+    File.mkdir_p!(ghosted_version_path())
 
     :ok
   end
@@ -103,36 +99,25 @@ defmodule Deployex.Storage.Local do
 
   @impl true
   def versions do
-    version_list =
-      history_version_path()
-      |> read_data_from_file() || []
-
-    Enum.map(version_list, fn version ->
-      %{version | "inserted_at" => NaiveDateTime.from_iso8601!(version["inserted_at"])}
-    end)
-    |> Enum.sort_by(& &1["inserted_at"], {:desc, NaiveDateTime})
+    history_version_path()
+    |> list()
+    |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
   end
 
   @impl true
   def versions(instance) do
     versions()
-    |> Enum.filter(&(&1["instance"] == instance))
+    |> Enum.filter(&(&1.instance == instance))
   end
 
   @impl true
   def add_version(version) do
-    new_list = [version | versions()]
-
-    json_list = Jason.encode!(new_list)
-
-    history_version_path()
-    |> File.write!(json_list)
+    insert_by_timestamp(history_version_path(), version)
   end
 
   @impl true
   def ghosted_versions do
-    ghosted_version_path()
-    |> read_data_from_file() || []
+    list(ghosted_version_path())
   end
 
   @impl true
@@ -140,18 +125,13 @@ defmodule Deployex.Storage.Local do
     # Retrieve current ghosted version list
     current_list = ghosted_versions()
 
-    ghosted_version? = Enum.any?(current_list, &(&1["version"] == version_map.version))
+    ghosted_version? = Enum.any?(current_list, &(&1.version == version_map.version))
 
     # Add the version if not in the list
     if ghosted_version? == false do
-      new_list = [version_map | current_list]
+      insert_by_timestamp(ghosted_version_path(), version_map)
 
-      json_list = Jason.encode!(new_list)
-
-      ghosted_version_path()
-      |> File.write!(json_list)
-
-      {:ok, new_list}
+      {:ok, [version_map | current_list]}
     else
       {:ok, current_list}
     end
@@ -159,16 +139,12 @@ defmodule Deployex.Storage.Local do
 
   @impl true
   def config do
-    deployex_config_path()
-    |> read_data_from_file()
-    |> Common.cast_schema_fields(%Deployex.Storage.Config{}, atoms: [:mode])
+    get_by_key(config_path(), @config_key_file)
   end
 
   @impl true
   def config_update(config) do
-    json_config = Jason.encode!(config)
-
-    File.write!(deployex_config_path(), json_config)
+    insert_by_key(config_path(), @config_key_file, config)
 
     {:ok, config}
   end
@@ -179,22 +155,41 @@ defmodule Deployex.Storage.Local do
   defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
 
-  def deployex_config_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/deployex.json"
+  defp config_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/deployex/config"
 
-  def history_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/history.json"
+  defp history_version_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/deployex/history"
 
-  def ghosted_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/#{@deployex_instance}/ghosted.json"
+  defp ghosted_version_path,
+    do: "#{base_path()}/storage/#{monitored_app()}/deployex/ghosted"
 
-  defp read_data_from_file(path) do
-    case File.read(path) do
+  defp insert_by_timestamp(path, data) do
+    file = "#{System.os_time(:microsecond)}.term"
+    File.write!("#{path}/#{file}", :erlang.term_to_binary(data))
+  end
+
+  defp insert_by_key(path, key, data) do
+    File.write!("#{path}/#{key}", :erlang.term_to_binary(data))
+  end
+
+  defp get_by_key(path, key) do
+    case File.read("#{path}/" <> key) do
       {:ok, data} ->
-        Jason.decode!(data)
+        Plug.Crypto.non_executable_binary_to_term(data)
 
-      _ ->
+      {:error, _reason} ->
         nil
     end
+  end
+
+  defp list(path) do
+    path
+    |> File.ls!()
+    |> Enum.map(fn file ->
+      ("#{path}/" <> file)
+      |> File.read!()
+      |> Plug.Crypto.non_executable_binary_to_term()
+    end)
   end
 end
