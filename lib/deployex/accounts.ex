@@ -60,7 +60,7 @@ defmodule Deployex.Accounts do
   ### Private functions
   ### ==========================================================================
   # NOTE: In order to generate the hashed password:
-  #       > Bcrypt.hash_pwd_salt("admin")
+  #       > Bcrypt.hash_pwd_salt("deployex")
   defp admin_user do
     %User{
       username: "admin",

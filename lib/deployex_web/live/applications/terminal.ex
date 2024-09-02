@@ -41,7 +41,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     socket =
       socket
       |> assign(:monitored_app, monitored_app)
-      |> assign(:cookie, :nocookie)
       |> assign(:bin_path, "")
 
     {:ok, socket}
@@ -89,14 +88,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     {:noreply, socket}
   end
 
-  # def handle_event("connect", %{"cookie" => cookie}, socket) do
-  #   {:noreply,
-  #    socket
-  #    |> assign(:cookie, cookie)
-  #    |> maybe_connect()}
-  # end
-
-  defp maybe_connect(%{assigns: %{id: instance, cookie: cookie, terminal_message: nil}} = socket)
+  defp maybe_connect(%{assigns: %{id: instance, cookie: cookie}} = socket)
        when cookie != :nocookie do
     bin_path =
       instance
@@ -114,7 +106,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         #{bin_path} remote
         """
 
-      IO.inspect(commands)
       options = [:stdin, :stdout, :pty, :pty_echo]
 
       case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
@@ -130,12 +121,12 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
         {:error, {:already_started, _pid}} ->
           message =
-            "Maximum number of terminals achieved for instance: #{instance} type: :iex_terminal"
+            "Maximum number of terminals achieved for instance: #{instance}"
 
           Logger.warning(message)
 
           socket
-          |> assign(:cookie, :nocookie)
+          |> assign(:bin_path, message)
       end
     else
       socket

@@ -6,7 +6,7 @@ defmodule Deployex.AccountsFixtures do
   def user_fixture do
     %Deployex.Accounts.User{
       username: "admin",
-      hashed_password: "$2b$12$smSkCQaC/9ikq4UeZECBuu7M23BiW9bvTyRQ2p25PAYTZjNQ42ASi"
+      hashed_password: "$2b$12$bI298wLHontVoAtpGAWkOOm5UwhFR4P8dh7IciMaaNTtwq4xtgcTS"
     }
   end
 end

@@ -1,6 +1,8 @@
 defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
+  import Deployex.Macros
+
   alias Deployex.Monitor
   alias Deployex.Status
   alias Deployex.Terminal.Server
@@ -86,7 +88,7 @@ defmodule DeployexWeb.ApplicationsLive do
         action={@live_action}
         terminal_process={@terminal_process}
         terminal_message={@terminal_message}
-        cookie={Node.get_cookie()}
+        cookie={cookie()}
         patch={~p"/applications"}
       />
     </.terminal_modal>
@@ -285,4 +287,12 @@ defmodule DeployexWeb.ApplicationsLive do
 
   defp std_path(instance, "stderr"), do: ~p"/applications/#{instance}/logs/stderr"
   defp std_path(instance, "stdout"), do: ~p"/applications/#{instance}/logs/stdout"
+
+  defp cookie do
+    if_not_test do
+      Node.get_cookie()
+    else
+      :cookie
+    end
+  end
 end

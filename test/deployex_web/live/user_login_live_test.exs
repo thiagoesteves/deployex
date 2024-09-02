@@ -24,7 +24,7 @@ defmodule DeployexWeb.UserLoginLiveTest do
 
   describe "user login" do
     test "redirects if user login with valid credentials", %{conn: conn} do
-      password = "admin"
+      password = "deployex"
       user = user_fixture()
 
       {:ok, lv, _html} = live(conn, ~p"/users/log_in")
