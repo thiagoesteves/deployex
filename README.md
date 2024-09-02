@@ -65,7 +65,7 @@ Done in 407ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser and enter the credentials for the admin user, *__username: admin password: admin__*. You should expect the following dashboard:
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser and enter the credentials for the admin user, *__username: admin password: deployex__*. You should expect the following dashboard:
 
 ![Empty Dashboard](/docs/deployex_no_monitoring_app.png)
 

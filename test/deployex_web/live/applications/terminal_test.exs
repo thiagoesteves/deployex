@@ -38,16 +38,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
       :ok
     end)
 
+    Binary.create_bin_files(1)
+
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-1") |> render_click() =~
-             "Erlang cookie"
-
-    Binary.create_bin_files(1)
-
-    assert index_live
-           |> form("#terminal-form-1", %{"cookie" => "Some cookie"})
-           |> render_submit() =~
              "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
 
     assert :ok =
@@ -87,16 +82,12 @@ defmodule DeployexWeb.Applications.TerminalTest do
                         type: :iex_terminal
                       })
 
+             Binary.create_bin_files(1)
+
              {:ok, index_live, _html} = live(conn, ~p"/applications")
 
              assert index_live |> element("#app-terminal-1") |> render_click() =~
-                      "Erlang cookie"
-
-             Binary.create_bin_files(1)
-
-             index_live
-             |> form("#terminal-form-1", %{"cookie" => "Some cookie"})
-             |> render_submit()
+                      "Terminal for testapp [1]"
 
              assert :ok =
                       Server.async_terminate(%Deployex.Terminal.Server{
@@ -105,39 +96,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
                       })
 
              assert_receive {:handle_ref_event, ^ref}, 1_000
-           end) =~ "Maximum number of terminals achieved for instance: 1 type: :iex_terminal"
-  end
-
-  test "Empty cookie", %{conn: conn} do
-    topic = "topic-terminal-002"
-
-    test_pid_process = self()
-    os_pid = 123_456
-
-    Deployex.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
-
-    Deployex.OpSysMock
-    |> expect(:run, 0, fn _command, _options ->
-      {:ok, test_pid_process, os_pid}
-    end)
-    |> expect(:stop, 0, fn ^os_pid ->
-      :ok
-    end)
-
-    {:ok, index_live, _html} = live(conn, ~p"/applications")
-
-    assert index_live |> element("#app-terminal-1") |> render_click() =~
-             "Erlang cookie"
-
-    Binary.create_bin_files(1)
-
-    refute index_live
-           |> form("#terminal-form-1", %{"cookie" => ""})
-           |> render_submit() =~
-             "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
+           end) =~ "Maximum number of terminals achieved for instance: 1"
   end
 
   test "Invalid cookie", %{conn: conn} do
@@ -160,14 +119,10 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert capture_log(fn ->
              {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-             assert index_live |> element("#app-terminal-1") |> render_click() =~
-                      "Erlang cookie"
-
              Binary.create_bin_files(1)
 
-             index_live
-             |> form("#terminal-form-1", %{"cookie" => "invalid-cookie"})
-             |> render_submit()
+             assert index_live |> element("#app-terminal-1") |> render_click() =~
+                      "Terminal for testapp [1]"
 
              assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -197,16 +152,10 @@ defmodule DeployexWeb.Applications.TerminalTest do
     end)
     |> expect(:stop, fn ^os_pid -> :ok end)
 
+    Binary.create_bin_files(1)
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-1") |> render_click() =~
-             "Erlang cookie"
-
-    Binary.create_bin_files(1)
-
-    assert index_live
-           |> form("#terminal-form-1", %{"cookie" => "Some cookie"})
-           |> render_submit() =~
              "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
 
     # NOTE: Force handle_event in the live component
@@ -228,16 +177,10 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:listener_topic, fn -> topic end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
+    Binary.remove_bin_files(1)
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-1") |> render_click() =~
-             "Erlang cookie"
-
-    Binary.remove_bin_files(1)
-
-    assert index_live
-           |> form("#terminal-form-1", %{"cookie" => "Some cookie"})
-           |> render_submit() =~
              "Bin: Binary not found"
   end
 
@@ -262,16 +205,10 @@ defmodule DeployexWeb.Applications.TerminalTest do
       :ok
     end)
 
+    Binary.create_bin_files(1)
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-1") |> render_click() =~
-             "Erlang cookie"
-
-    Binary.create_bin_files(1)
-
-    assert index_live
-           |> form("#terminal-form-1", %{"cookie" => "Some cookie"})
-           |> render_submit() =~
              "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
 
     pid = :global.whereis_name(%{type: :iex_terminal, instance: "1"})
