@@ -49,6 +49,9 @@ defmodule Deployex.AwsSecretsManagerProvider do
 
       secrets = fetch_aws_secret_id("deployex-#{monitored_app_name}-#{env}-secrets", request_opts)
 
+      admin_hashed_password =
+        keyword(:admin_hashed_password, secrets["DEPLOYEX_ADMIN_HASHED_PASSWORD"])
+
       secret_key_base = keyword(:secret_key_base, secrets["DEPLOYEX_SECRET_KEY_BASE"])
       erlang_cookie = secrets["DEPLOYEX_ERLANG_COOKIE"] |> String.to_atom()
 
@@ -62,7 +65,8 @@ defmodule Deployex.AwsSecretsManagerProvider do
       Config.Reader.merge(
         config,
         deployex: [
-          {DeployexWeb.Endpoint, secret_key_base}
+          {DeployexWeb.Endpoint, secret_key_base},
+          {Deployex.Accounts, admin_hashed_password}
         ]
       )
     end

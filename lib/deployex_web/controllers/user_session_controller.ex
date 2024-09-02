@@ -4,16 +4,11 @@ defmodule DeployexWeb.UserSessionController do
   alias Deployex.Accounts
   alias DeployexWeb.UserAuth
 
-  def create(conn, params) do
-    create(conn, params, "Welcome back!")
-  end
-
-  defp create(conn, %{"user" => user_params}, info) do
+  def create(conn, %{"user" => user_params}) do
     %{"username" => username, "password" => password} = user_params
 
     if user = Accounts.get_user_by_username_and_password(username, password) do
       conn
-      |> put_flash(:info, info)
       |> UserAuth.log_in_user(user, user_params)
     else
       # In order to prevent user enumeration attacks, don't disclose whether the username is registered.

@@ -1,5 +1,10 @@
 defmodule Deployex.Accounts.UserToken do
-  @moduledoc false
+  @moduledoc """
+  This module was copied/modified from the original generate by:
+    mix phx.gen.auth Accounts User users
+
+  The module is responsible to handle user token structures
+  """
   @rand_size 32
 
   # It is very important to keep the reset password token expiry short,
