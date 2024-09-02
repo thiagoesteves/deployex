@@ -37,7 +37,7 @@ defmodule DeployexWeb.ConnCase do
   end
 
   @doc """
-  Setup helper that login the default user admin/admin.
+  Setup helper that login the default admin user.
 
       setup :log_in_default_user
 
