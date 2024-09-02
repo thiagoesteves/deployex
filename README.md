@@ -24,6 +24,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
  * Allows setting a previously configured version in the UI, enabling deployex to enforce deployment of a specific version.
  * Supports individual application restarts via the UI.
+ * Ensure only authenticated users can access the UI.
  * Provides the ability to run pre-commans prior deployments for Database migrations or any other eval command.
  * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
  * Provides access to the IEx shell for monitored apps and deployex.
@@ -37,7 +38,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ## Next steps
 
-- [ ] Add admin user/pass to have access to the main page
+- [X] Add admin user/pass to have access to the main page
 - [ ] Add telemetry support for deployex to capture metrics and telemetry via OTP distribution.
 - [ ] Integrate CPU utilization monitoring from the OTP distribution.
 - [ ] Continuous improvement in UI design.
@@ -64,7 +65,7 @@ Done in 407ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
-Now you can visit [`localhost:5001`](http://localhost:5001) from your browser. You should expect the following dashboard:
+Now you can visit [`localhost:5001`](http://localhost:5001) from your browser and enter the credentials for the admin user, *__username: admin password: admin__*. You should expect the following dashboard:
 
 ![Empty Dashboard](/docs/deployex_no_monitoring_app.png)
 
@@ -114,6 +115,7 @@ Deployex application typically requires several environment variables to be defi
 |----------|-------------|------:|------|------|
 | __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | -/- | secret key used for encryption |
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | -/- | erlang cookie |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
 | __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
@@ -151,6 +153,7 @@ and the following secrets are expected:
 |----------|-------------|------|------|
 | __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
 
 ## Running Deployex and Monitored app locally
 

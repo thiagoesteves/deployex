@@ -18,7 +18,7 @@ defmodule DeployexWeb.CoreComponents do
 
   alias Phoenix.HTML.Form
   alias Phoenix.LiveView.JS
-  import DeployexWeb.Gettext
+  use Gettext, backend: DeployexWeb.Gettext
 
   @doc """
   Renders a modal.

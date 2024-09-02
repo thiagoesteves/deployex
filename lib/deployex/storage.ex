@@ -27,8 +27,8 @@ defmodule Deployex.Storage do
   Ensure all directories are initialised
   """
   @impl true
-  @spec init() :: :ok
-  def init, do: default().init()
+  @spec setup() :: :ok
+  def setup, do: default().setup()
 
   @doc """
   This function return the number of replicas configured
@@ -230,6 +230,20 @@ defmodule Deployex.Storage do
   @impl true
   @spec add_ghosted_version(map()) :: {:ok, list()}
   def add_ghosted_version(version), do: default().add_ghosted_version(version)
+
+  @doc """
+  Add a user session token (This data is not persistent)
+  """
+  @impl true
+  @spec add_user_session_token(Deployex.Accounts.UserToken.t()) :: :ok
+  def add_user_session_token(token), do: default().add_user_session_token(token)
+
+  @doc """
+  Retrieve the user session token by token
+  """
+  @impl true
+  @spec get_user_session_token_by_token(String.t()) :: Deployex.Accounts.UserToken.t() | nil
+  def get_user_session_token_by_token(token), do: default().get_user_session_token_by_token(token)
 
   @doc """
   Retrieve the current deployex dynamic configuration

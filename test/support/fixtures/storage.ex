@@ -11,7 +11,7 @@ defmodule Deployex.Fixture.Storage do
     current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
     File.rm_rf(current_json_dir)
 
-    Deployex.Storage.init()
+    Deployex.Storage.setup()
   end
 
   def create_current_json(map \\ %{version: "1.0.0", hash: "local"}) do

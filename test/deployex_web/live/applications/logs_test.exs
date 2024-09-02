@@ -5,8 +5,11 @@ defmodule DeployexWeb.Applications.LogsTest do
   import ExUnit.CaptureLog
   import Mox
 
-  setup :set_mox_global
-  setup :verify_on_exit!
+  setup [
+    :set_mox_global,
+    :verify_on_exit!,
+    :log_in_default_user
+  ]
 
   alias Deployex.Fixture.Monitoring
   alias Deployex.Fixture.Status, as: FixtureStatus

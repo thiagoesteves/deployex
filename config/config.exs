@@ -28,6 +28,16 @@ config :deployex,
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
   monitored_app_phx_start_port: 4000
 
+# NOTE: The default username/pass is admin/admin and in order to generate
+#       the hashed password, it is required to use:
+#       > Bcrypt.hash_pwd_salt("admin")
+config :deployex, Deployex.Accounts,
+  admin_hashed_password:
+    System.get_env(
+      "DEPLOYEX_ADMIN_HASHED_PASSWORD",
+      "$2b$12$smSkCQaC/9ikq4UeZECBuu7M23BiW9bvTyRQ2p25PAYTZjNQ42ASi"
+    )
+
 config :deployex, Deployex.Deployment,
   timeout_rollback: :timer.minutes(10),
   schedule_interval: :timer.seconds(5)

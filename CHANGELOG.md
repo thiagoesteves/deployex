@@ -4,12 +4,14 @@
 
 ## Backwards incompatible changes for 0.3.0-rc13
  * Changed storage to use term files instead jason format, updating to this version will require losing previous data.
+ * New secret needs to be set to allow authentication __DEPLOYEX_ADMIN_HASHED_PASSWORD__
 
 ### Bug fixes
  * [[`Issue-47`](https://github.com/thiagoesteves/deployex/issues/47)] Application logs were not being appended
 
 ### Enhancements
  * New storage format (term), allowing a better map handling
+ * Adding authentication scheme
  * Multiple optimizations and improvements in organizations and context
  * Unit test added to achieve >90% of coverage
  * New mode set functionality, the user can now set a specific version to be applied.

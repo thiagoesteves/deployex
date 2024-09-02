@@ -43,7 +43,7 @@ defmodule DeployexWeb do
         layouts: [html: DeployexWeb.Layouts]
 
       import Plug.Conn
-      import DeployexWeb.Gettext
+      use Gettext, backend: DeployexWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -86,7 +86,7 @@ defmodule DeployexWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import DeployexWeb.CoreComponents
-      import DeployexWeb.Gettext
+      use Gettext, backend: DeployexWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

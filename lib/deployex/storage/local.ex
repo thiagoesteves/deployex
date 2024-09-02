@@ -1,21 +1,64 @@
 defmodule Deployex.Storage.Local do
   @moduledoc """
-  This module contains all paths for services and also initialize the directories
+  This module handles the storage information using local files and ets tables
+  for temporary data
   """
+
+  use GenServer
+
+  alias Deployex.Common
 
   @behaviour Deployex.Storage.Adapter
 
   require Logger
 
+  @token_table :tokens
   @deployex_instance 0
   @config_key_file "config.term"
 
   ### ==========================================================================
-  ### Public functions
+  ### GenServer callback functions
+  ### ==========================================================================
+
+  def start_link(_attrs) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
+
+  @impl true
+  def init(_attrs) do
+    :ets.new(@token_table, [:set, :protected, :named_table])
+
+    setup()
+
+    {:ok, %{}}
+  end
+
+  @impl true
+  def handle_call({:add_token, user_token}, _from, state) do
+    :ets.insert(@token_table, {user_token.token, user_token})
+
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def add_user_session_token(user_token) do
+    Common.call_gen_server(__MODULE__, {:add_token, user_token})
+  end
+
+  @impl true
+  def get_user_session_token_by_token(token) do
+    case :ets.lookup(@token_table, token) do
+      [{_, value}] -> value
+      _ -> nil
+    end
+  end
+
+  ### ==========================================================================
+  ### Deployex.Storage.Adapter callback functions
   ### ==========================================================================
 
   @impl true
-  def init do
+  def setup do
     replicas_list()
     |> Enum.each(fn instance ->
       # Create the service folders (If they don't exist)
