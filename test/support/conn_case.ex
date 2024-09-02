@@ -16,6 +16,7 @@ defmodule DeployexWeb.ConnCase do
   """
 
   use ExUnit.CaseTemplate
+  import Deployex.AccountsFixtures
 
   using do
     quote do
@@ -44,7 +45,7 @@ defmodule DeployexWeb.ConnCase do
   test context.
   """
   def log_in_default_user(%{conn: conn}) do
-    user = %Deployex.Accounts.User{username: "admin"}
+    user = user_fixture()
     %{conn: log_in_user(conn, user), user: user}
   end
 
