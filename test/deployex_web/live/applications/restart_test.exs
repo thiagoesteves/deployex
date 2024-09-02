@@ -4,8 +4,11 @@ defmodule DeployexWeb.Applications.RestartTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  setup :set_mox_global
-  setup :verify_on_exit!
+  setup [
+    :set_mox_global,
+    :verify_on_exit!,
+    :log_in_default_user
+  ]
 
   alias Deployex.Fixture.Monitoring
   alias Deployex.Fixture.Status, as: FixtureStatus

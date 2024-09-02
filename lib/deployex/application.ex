@@ -9,11 +9,10 @@ defmodule Deployex.Application do
 
   @impl true
   def start(_type, _args) do
-    Deployex.Storage.init()
-
     children =
       [
         DeployexWeb.Telemetry,
+        Deployex.Storage.Local,
         Deployex.Monitor.Supervisor,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
