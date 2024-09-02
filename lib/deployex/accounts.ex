@@ -61,7 +61,6 @@ defmodule Deployex.Accounts do
   ### ==========================================================================
   # NOTE: In order to generate the hashed password:
   #       > Bcrypt.hash_pwd_salt("admin")
-  #       "$2b$12$smSkCQaC/9ikq4UeZECBuu7M23BiW9bvTyRQ2p25PAYTZjNQ42ASi"
   defp admin_user do
     %User{
       username: "admin",

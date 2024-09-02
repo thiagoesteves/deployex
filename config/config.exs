@@ -31,7 +31,6 @@ config :deployex,
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
 #       > Bcrypt.hash_pwd_salt("admin")
-#       "$2b$12$smSkCQaC/9ikq4UeZECBuu7M23BiW9bvTyRQ2p25PAYTZjNQ42ASi"
 config :deployex, Deployex.Accounts,
   admin_hashed_password:
     System.get_env(
