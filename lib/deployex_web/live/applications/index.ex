@@ -86,6 +86,7 @@ defmodule DeployexWeb.ApplicationsLive do
         action={@live_action}
         terminal_process={@terminal_process}
         terminal_message={@terminal_message}
+        cookie={Node.get_cookie()}
         patch={~p"/applications"}
       />
     </.terminal_modal>
