@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc15 ()
+
+## Backwards incompatible changes for 0.3.0-rc14
+ * None
+
+### Bug fixes
+ * [[`PR-51`](https://github.com/thiagoesteves/deployex/pull/51)] Terminal copy/paste bug, terminal was pasting when copying code within it.
+
+### Enhancements
+ * None
+
 ## 0.3.0-rc14 (2024-09-03)
 
 ## Backwards incompatible changes for 0.3.0-rc13
