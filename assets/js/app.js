@@ -41,7 +41,7 @@ hooks.IexTerminal = {
 
     term.attachCustomKeyEventHandler(key => {
 
-      if (key.code === 'KeyC' || key.code === 'KeyV') {
+      if (key.code === 'KeyV') {
         if (key.ctrlKey && key.shiftKey) {
           return false;
         }
