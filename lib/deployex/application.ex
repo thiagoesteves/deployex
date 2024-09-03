@@ -17,13 +17,16 @@ defmodule Deployex.Application do
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         # Start the Finch HTTP client for sending emails
-        {Finch, name: Deployex.Finch},
-        # Start a worker by calling: Deployex.Worker.start_link(arg)
-        # {Deployex.Worker, arg},
-        # Start to serve requests, typically the last entry
-        DeployexWeb.Endpoint,
-        Deployex.Terminal.Supervisor
-      ] ++ application_servers()
+        {Finch, name: Deployex.Finch}
+      ] ++
+        application_servers() ++
+        [
+          # Start a worker by calling: Deployex.Worker.start_link(arg)
+          # {Deployex.Worker, arg},
+          # Start to serve requests, typically the last entry
+          DeployexWeb.Endpoint,
+          Deployex.Terminal.Supervisor
+        ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

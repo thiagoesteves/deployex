@@ -1,16 +1,16 @@
-# Deployex
+# DeployEx
 
-Deployex is a lightweight tool designed for managing deployments in Elixir applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
+DeployEx is a lightweight tool designed for managing deployments in Elixir applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
-Deployex acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that Deployex is always equipped with the latest packages, ready to facilitate deployments.
+DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
 
-Deployex is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
+DeployEx is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
 
 ![Deployment Architecture](/docs/deployex.png)
 
-Upon deployment, the following dashboard becomes available, offering access to logs for both Deployex and monitored applications, along with an IEX terminal."
+Upon deployment, the following dashboard becomes available, offering access to logs for both DeployEx and monitored applications, along with an IEX terminal."
 
-[![Running with no monitored apps](/docs/recording.png)](/docs/recording.mp4)
+[![Running with no monitored apps](/docs/deployex_monitoring_app_tls.png)](/docs/deployex.mov)
 
 ## Features
 
@@ -20,14 +20,14 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Supports hot code reloading for applications using the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library.
  * Provides rollback functionality if a monitored app version remains unstable after a certain period.
  * Rolled-back monitored app versions are ghosted, preventing their redeployment.
- * Ensures all instances remain connected to the OTP distribution, including deployex itself.
- * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and deployex.
- * Allows setting a previously configured version in the UI, enabling deployex to enforce deployment of a specific version.
- * Supports individual application restarts via the UI.
- * Ensure only authenticated users can access the UI.
+ * Ensures all instances remain connected to the OTP distribution, including DeployEx itself.
+ * Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and DeployEx.
  * Provides the ability to run pre-commans prior deployments for Database migrations or any other eval command.
- * Allows access to current log files (stdout and stderr) for both monitored apps and deployex.
- * Provides access to the IEx shell for monitored apps and deployex.
+ * Provides a friendly UI that only authenticated users can access.
+ * Allows setting a previously configured version in the UI, enabling DeployEx to enforce deployment of a specific version.
+ * Supports individual application restarts via the UI.
+ * Allows access to current log files (stdout and stderr) for both monitored apps and DeployEx.
+ * Provides access to the IEx shell for monitored apps and DeployEx.
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:
    - OTP connectivity
@@ -38,8 +38,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ## Next steps
 
-- [X] Add admin user/pass to have access to the main page
-- [ ] Add telemetry support for deployex to capture metrics and telemetry via OTP distribution.
+- [ ] Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
 - [ ] Integrate CPU utilization monitoring from the OTP distribution.
 - [ ] Continuous improvement in UI design.
 
@@ -52,7 +51,7 @@ You can kickstart the setup with the following commands, the default number of r
 mix deps.get
 iex --sname deployex --cookie cookie -S mix phx.server
 [info] Initialising deployment server
-[info] Running DeployexWeb.Endpoint with Bandit 1.5.3 at 127.0.0.1:5001 (http)
+[info] Running DeployexWeb.Endpoint with Bandit 1.5.7 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
 [watch] build finished, watching for changes...
 Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
@@ -61,7 +60,7 @@ Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
 
 Rebuilding...
 
-Done in 407ms.
+Done in 390ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
@@ -69,11 +68,11 @@ Now you can visit [`localhost:5001`](http://localhost:5001) from your browser an
 
 ![Empty Dashboard](/docs/deployex_no_monitoring_app.png)
 
-*__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running Deployex and Monitored app locally](##_running_deployex_and_monitored_app_locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
+*__PS: The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running DeployEx and Monitored app locally](##_running_deployex_and_monitored_app_locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command.__*
 
-### How Deployex handles monitored application Version/Release
+### How DeployEx handles monitored application Version/Release
 
-The Deployex app expects a `current.json` file to be available, which contains version and hash information. This file is mandatory for full deployment and hot upgrades.
+The DeployEx app expects a `current.json` file to be available, which contains version, hash information and any pre-command. This file is mandatory for full deployment and hot upgrades.
 
 #### Version file (current.json) 
 
@@ -109,7 +108,7 @@ s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{ve
 
 ### Environment Variables
 
-Deployex application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
+DeployEx application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
 
 | ENV NAME   |      EXAMPLE      |  SOURCE |  DEFAULT | DESCRIPTION |
 |----------|-------------|------:|------|------|
@@ -132,17 +131,17 @@ For local testing, these variables are not expected or set to default values.
 
 ### installation
 
-If you intend to install Deployex directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server](https://github.com/thiagoesteves/calori/blob/main/devops/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a JSON configuration file, an example of which can be found [here](/devops/installer/deployex-config.json). This JSON file can also export environment variables specific to the monitored applications.
+If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server](https://github.com/thiagoesteves/calori/blob/main/devops/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a JSON configuration file, an example of which can be found [here](/devops/installer/deployex-config.json). This JSON file can also export environment variables specific to the monitored applications.
 
-Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install Deployex on your target system.
+Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install DeployEx on your target system.
 
 ### Pre-commands
 
-Your application will likely require database commands, such as migrations. Deployex handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
+Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
 ### Secrets Requirements
 
-Deployex is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS (It is important to note that this name is expected to not contain "_"):
+DeployEx is currently using AWS secrets to fecth its secrets using config provider. The following secret manager name pattern is expected in AWS (It is important to note that this name is expected to not contain "_"):
 
 ```
 deployex-${deployex_monitored_app_name}-${deployex_cloud_environment}-secrets
@@ -155,7 +154,7 @@ and the following secrets are expected:
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
 | __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
 
-## Running Deployex and Monitored app locally
+## Running DeployEx and Monitored app locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
@@ -166,7 +165,7 @@ mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
 
-It is important to note that for local deployments, deployex will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
+It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
 ### Creating an Elixir phoenix app (default name is `myphoenixapp`)
 
@@ -257,11 +256,11 @@ cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-### Running Deployex and deploy the app
+### Running DeployEx and deploy the app
 
-Move back to the deployex project and run the command line with the required ENV vars. 
+Move back to the DeployEx project and run the command line with the required ENV vars. 
 
-*__NOTE:  All env vars that are available for deployex will also be available to the `monitored_app`__*
+*__NOTE:  All env vars that are available for DeployEx will also be available to the `monitored_app`__*
 ```bash
 export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
 export PHX_SERVER=true
@@ -271,12 +270,12 @@ iex --sname deployex --cookie cookie -S mix phx.server
 
 [info] Update is needed at instance: 1 from: <no current set> to: 0.1.0.
 [warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 15014.
+[info] Full deploy instance: 1 deploy_ref: 32656.
 [info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.0
 [info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.768.0>, OS process = 52708 deploy_ref: 15014.
+[info]  # Running instance: 1, monitoring pid = #PID<0.790.0>, OS process = 36891 deploy_ref: 32656.
 [info]  # Application instance: 1 is running
 [info]  # Moving to the next instance: 2
 ...
@@ -293,7 +292,7 @@ Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. Th
 
 #### Full deployment
 
-In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of Deployex throughout this process. Navigate to the `myphoenixapp` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
+In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myphoenixapp` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
 
 1. Remove any previously generated files and generate a new release
 ```bash
@@ -312,25 +311,25 @@ No appups, nothing to move to the release
 * building /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/myphoenixapp-0.1.1.tar.gz
 ```
 
-2. Now, *__keep Deployex running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
+2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myphoenixapp
 cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-3. You should then see the following messages in the Deployex terminal while updating the app:
+3. You should then see the following messages in the DeployEx terminal while updating the app:
 ```bash
 [info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1.
 [warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 61157.
-[info] Requested instance: 1 to stop application pid: #PID<0.768.0>
+[info] Full deploy instance: 1 deploy_ref: 37406.
+[info] Requested instance: 1 to stop application pid: #PID<0.790.0>
 [warning] Remaining beam app removed for instance: 1
 [info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.1
 [info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.840.0>, OS process = 53882 deploy_ref: 61157.
+[info]  # Running instance: 1, monitoring pid = #PID<0.843.0>, OS process = 37992 deploy_ref: 37406.
 [info]  # Application instance: 1 is running
 [info]  # Moving to the next instance: 2
 ...
@@ -362,12 +361,12 @@ cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-You can then check that deployex had executed a hot upgrade in the application:
+You can then check that DeployEx had executed a hot upgrade in the application:
 
 ```bash
 [info] Update is needed at instance: 1 from: 0.1.1 to: 0.1.2.
 [warning] HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
-[info] Hot upgrade instance: 1 deploy_ref: 61157.
+[info] Hot upgrade instance: 1 deploy_ref: 37406.
 [info] Unpacked successfully: ~c"0.1.2"
 [info] Installed Release: ~c"0.1.2"
 [info] Made release permanent: 0.1.2
@@ -385,7 +384,7 @@ you can check that the version and the deployment status has changed in the dash
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 
-1. Generate the necessary certificates, deployex has a good examples of how to create self-signed tls certificates:
+1. Generate the necessary certificates, DeployEx has a good examples of how to create self-signed tls certificates:
 ```bash
 cd deployex
 make tls-distribution-certs
@@ -436,12 +435,12 @@ export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.
 # save the file :q
 ```
 
-5. To enable `mTLS` for deployex, set the appropriate Erlang options before running the application in the terminal:
+5. To enable `mTLS` for DeployEx, set the appropriate Erlang options before running the application in the terminal:
 ```bash
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
-After making these changes, create and publish a new version `0.1.3` for `myphoenixapp` and run the deployex with the command from item 5. After the deployment, you should see the follwoing dashboard:
+After making these changes, create and publish a new version `0.1.3` for `myphoenixapp` and run the DeployEx with the command from item 5. After the deployment, you should see the follwoing dashboard:
 
 ![mTLS Dashboard](/docs/deployex_monitoring_app_tls.png)
 
@@ -449,7 +448,7 @@ After making these changes, create and publish a new version `0.1.3` for `myphoe
 
 ## Throubleshooting
 
-### Accessing deployex logs
+### Accessing DeployEx logs
 
 ```bash
 # production
@@ -459,7 +458,7 @@ tail -f /var/log/deployex/deployex-stderr.log
 # not available when running as dev env
 ```
 
-### Connecting to the deployex IEX CLI
+### Connecting to the DeployEx IEX CLI
 
 ```bash
 export RELEASE_NODE_SUFFIX=""
@@ -496,16 +495,16 @@ export RELEASE_COOKIE=cookie
 /tmp/deployex/varlib/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
 ```
 
-## How Deployex handles services
+## How DeployEx handles services
 
 ### Full deployment
 
-Deployex operates by monitoring applications and versions using folders and files, treating the monitored app as a service. The deployment process involves several steps to ensure smooth transitions:
+DeployEx operates by monitoring applications and versions using folders and files, treating the monitored app as a service. The deployment process involves several steps to ensure smooth transitions:
 
 1. *__Download and Unpack the New Version:__*
  The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
 2. *__Check if the release contain a hot-upgrade or full deployment:__*
- Deployex will check the release file received and if it is a full deployment, goes to the step 3 .
+ DeployEx will check the release file received and if it is a full deployment, goes to the step 3 .
 3. *__Stop the Current Application:__*
 The currently running application instance is stopped to prepare for the new deployment.
 4. *__Delete the Previous Service Folder:__*
@@ -515,7 +514,7 @@ The currently running application instance is stopped to prepare for the new dep
 6. *__Start the Application:__*
  Finally, the application is started using the version now residing in the `current` service folder, ensuring that the latest version is active and operational.
 
-By following this process, Deployex facilitates deployments, ensuring that applications are updated while minimizing downtime.
+By following this process, DeployEx facilitates deployments, ensuring that applications are updated while minimizing downtime.
 
 For the test environment:
 ```bash
@@ -538,8 +537,8 @@ For this scenario, there will be no moving files/folders since the target is to 
 1. *__Download and Unpack the New Version:__*
  The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
 2. *__Check if the release contain a hot-upgrade or full deployment:__*
- Deployex will check the release file received and if it is a hot-upgrade, goes to the step 3 .
+ DeployEx will check the release file received and if it is a hot-upgrade, goes to the step 3 .
 3. *__Execute the Hotupgrade checks and verification__*
- Deployex will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. Inc ase of failure, it tries to execute a full deployment with the same release file.
+ DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. Inc ase of failure, it tries to execute a full deployment with the same release file.
 
 

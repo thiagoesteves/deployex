@@ -1,6 +1,6 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc14 ()
+## 0.3.0-rc14 (2024-09-03)
 
 ## Backwards incompatible changes for 0.3.0-rc13
  * Changed storage to use term files instead jason format, updating to this version will require losing previous data.
@@ -10,11 +10,12 @@
  * [[`Issue-47`](https://github.com/thiagoesteves/deployex/issues/47)] Application logs were not being appended
 
 ### Enhancements
- * New storage format (term), allowing a better map handling
- * Adding authentication scheme
+ * [[`PR-44`](https://github.com/thiagoesteves/deployex/pull/44)] New storage format (term), allowing a better map handling
+ * [[`PR-49`](https://github.com/thiagoesteves/deployex/pull/49)] Adding authentication scheme
+ * [[`PR-50`](https://github.com/thiagoesteves/deployex/pull/50)] Since authentication is required, there is noneed of typing the Erlang cookie
+ * [[`PR-43`](https://github.com/thiagoesteves/deployex/pull/43)] New mode set functionality, the user can now set a specific version to be applied.
  * Multiple optimizations and improvements in organizations and context
  * Unit test added to achieve >90% of coverage
- * New mode set functionality, the user can now set a specific version to be applied.
 
 ## 0.3.0-rc13 (2024-08-02)
 
