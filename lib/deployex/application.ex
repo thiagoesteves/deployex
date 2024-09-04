@@ -12,6 +12,7 @@ defmodule Deployex.Application do
     children =
       [
         DeployexWeb.Telemetry,
+        Deployex.Telemetry.Collector,
         Deployex.Storage.Local,
         Deployex.Monitor.Supervisor,
         Deployex.Tracer.Server,
