@@ -4,7 +4,7 @@ defmodule Deployex.MixProject do
   def project do
     [
       app: :deployex,
-      version: "0.3.0",
+      version: "0.4.0-metric",
       elixir: "~> 1.15",
       name: "DeployEx",
       source_url: "https://github.com/thiagoesteves/deployex",
@@ -134,6 +134,8 @@ defmodule Deployex.MixProject do
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
       {:hackney, "~> 1.9"},
+      {:goth, "~> 1.4"},
+      {:telemetry_deployex, "~> 0.1.0-rc2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
@@ -141,8 +143,7 @@ defmodule Deployex.MixProject do
       {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
-      {:mock, "~> 0.3.0", only: :test},
-      {:goth, "~> 1.4"}
+      {:mock, "~> 0.3.0", only: :test}
     ]
   end
 
