@@ -49,17 +49,30 @@ if config_env() == :prod do
       port: port
     ]
 
-  adapter = System.fetch_env!("DEPLOYEX_RELEASE_ADAPTER")
-  bucket = System.fetch_env!("DEPLOYEX_RELEASE_BUCKET")
+  release_adapter = System.fetch_env!("DEPLOYEX_RELEASE_ADAPTER")
+  release_bucket = System.fetch_env!("DEPLOYEX_RELEASE_BUCKET")
 
-  case adapter do
-    "local" ->
-      raise "Invalid configuration for release production adapter"
+  case release_adapter do
+    "gcp" ->
+      raise "Configuration not supported"
 
     "s3" ->
       config :deployex, Deployex.Release,
         adapter: Deployex.Release.S3,
-        bucket: bucket
+        bucket: release_bucket
+  end
+
+  secrets_adapter = System.fetch_env!("DEPLOYEX_SECRETS_ADAPTER")
+  secrets_path = System.fetch_env!("DEPLOYEX_SECRETS_PATH")
+
+  case secrets_adapter do
+    "gcp" ->
+      raise "Configuration not supported"
+
+    "aws" ->
+      config :deployex, Deployex.ConfigProvider.Secrets.Manager,
+        adapter: Deployex.ConfigProvider.Secrets.Aws,
+        path: secrets_path
   end
 
   config :deployex, Deployex.Deployment,

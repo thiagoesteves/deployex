@@ -53,9 +53,11 @@ install_deployex() {
     local deployex_hostname="$4"
     local release_adapter="$5"
     local release_bucket="$6"
-    local aws_region="$7"
-    local deploy_timeout_rollback_ms="$8"
-    local deploy_schedule_interval_ms="$9"
+    local secrets_adapter="$7"
+    local secrets_path="$8"
+    local aws_region="$9"
+    local deploy_timeout_rollback_ms="$10"
+    local deploy_schedule_interval_ms="$11"
 
     # Load environment variables from JSON
     local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")
@@ -80,6 +82,8 @@ DEPLOYEX_SYSTEMD_FILE="
   Environment=DEPLOYEX_PHX_HOST=${deployex_hostname}
   Environment=DEPLOYEX_RELEASE_ADAPTER=${release_adapter}
   Environment=DEPLOYEX_RELEASE_BUCKET=${release_bucket}
+  Environment=DEPLOYEX_SECRETS_ADAPTER=${secrets_adapter}
+  Environment=DEPLOYEX_SECRETS_PATH=${secrets_path}
   Environment=DEPLOYEX_MONITORED_REPLICAS=${replicas}
   Environment=DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS=${deploy_timeout_rollback_ms}
   Environment=DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS=${deploy_schedule_interval_ms}
@@ -183,11 +187,13 @@ if ! variables=$(jq -e '. | {
       account_name, 
       deployex_hostname, 
       release_adapter, 
-      release_bucket, 
-      aws_region, 
-      version, 
+      release_bucket,
+      secrets_adapter, 
+      secrets_path, 
+      aws_region,
+      version,
       os_target, 
-      deploy_timeout_rollback_ms, 
+      deploy_timeout_rollback_ms,
       deploy_schedule_interval_ms}' "$config_file"); then
     echo "Failed to parse JSON config file."
     exit 1
@@ -195,16 +201,18 @@ fi
 
 # Assign variables
 eval "$(echo "$variables" | jq -r '@sh "
-  app_name=\(.app_name) 
-  replicas=\(.replicas) 
-  account_name=\(.account_name) 
-  deployex_hostname=\(.deployex_hostname) 
-  release_adapter=\(.release_adapter) 
-  release_bucket=\(.release_bucket) 
-  aws_region=\(.aws_region) 
-  version=\(.version) 
-  os_target=\(.os_target) 
-  deploy_timeout_rollback_ms=\(.deploy_timeout_rollback_ms) 
+  app_name=\(.app_name)
+  replicas=\(.replicas)
+  account_name=\(.account_name)
+  deployex_hostname=\(.deployex_hostname)
+  release_adapter=\(.release_adapter)
+  release_bucket=\(.release_bucket)
+  secrets_adapter=\(.secrets_adapter)
+  secrets_path=\(.secrets_path)
+  aws_region=\(.aws_region)
+  version=\(.version)
+  os_target=\(.os_target)
+  deploy_timeout_rollback_ms=\(.deploy_timeout_rollback_ms)
   deploy_schedule_interval_ms=\(.deploy_schedule_interval_ms)"')"
 
 # Check if all required parameters are provided based on the operation
@@ -215,13 +223,15 @@ if [ "$operation" == "install" ]; then
           -z "$deployex_hostname" || 
           -z "$release_adapter" || 
           -z "$release_bucket" || 
+          -z "$secrets_adapter" || 
+          -z "$secrets_path" || 
           -z "$aws_region" || 
           -z "$deploy_timeout_rollback_ms" || 
           -z "$deploy_schedule_interval_ms" ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$release_adapter" "$release_bucket" "$aws_region" "$deploy_timeout_rollback_ms" "$deploy_schedule_interval_ms"
+    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$release_adapter" "$release_bucket" "$secrets_adapter" "$secrets_path" "$aws_region" "$deploy_timeout_rollback_ms" "$deploy_schedule_interval_ms"
     update_deployex "$version" "$os_target"
 elif [ "$operation" == "update" ]; then
     if [[ -z "$version" || -z "$os_target" ]]; then

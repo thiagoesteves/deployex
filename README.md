@@ -123,6 +123,8 @@ DeployEx application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
 | __DEPLOYEX_RELEASE_ADAPTER__ | s3 | system ENV | -/- | release adapter type |
 | __DEPLOYEX_RELEASE_BUCKET__ | myphoenixapp-prod-distribution | system ENV | -/- | release distribution bucket name |
+| __DEPLOYEX_SECRETS_ADAPTER__ | aws | system ENV | -/- | release adapter type |
+| __DEPLOYEX_SECRETS_PATH__ | deployex-myphoenixapp-prod-secrets | system ENV | -/- | secret path to be retrieved from |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
 | __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
 | __DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS__ | 600000 | system ENV | 600000 | The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back |
