@@ -81,8 +81,7 @@ config :deployex,
   env: "local",
   base_path: "/tmp/deployex/varlib",
   monitored_app_name: monitored_app_name,
-  monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_phx_start_port: 4000
+  monitored_app_log_path: "/tmp/#{monitored_app_name}"
 
 config :deployex, Deployex.Release,
   adapter: Deployex.Release.Local,
