@@ -47,17 +47,17 @@ remove_deployex() {
 }
 
 install_deployex() {
-    local app_name="$1"
-    local replicas="$2"
-    local account_name="$3"
-    local deployex_hostname="$4"
-    local release_adapter="$5"
-    local release_bucket="$6"
-    local secrets_adapter="$7"
-    local secrets_path="$8"
-    local aws_region="$9"
-    local deploy_timeout_rollback_ms="$10"
-    local deploy_schedule_interval_ms="$11"
+    local app_name="${1}"
+    local replicas="${2}"
+    local account_name="${3}"
+    local deployex_hostname="${4}"
+    local release_adapter="${5}"
+    local release_bucket="${6}"
+    local secrets_adapter="${7}"
+    local secrets_path="${8}"
+    local aws_region="${9}"
+    local deploy_timeout_rollback_ms="${10}"
+    local deploy_schedule_interval_ms="${11}"
 
     # Load environment variables from JSON
     local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")

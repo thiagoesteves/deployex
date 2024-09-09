@@ -32,12 +32,12 @@ defmodule Deployex.ConfigProvider.Secrets.Manager do
     secrets_adapter =
       Keyword.get(config, :deployex)
       |> Keyword.get(Deployex.ConfigProvider.Secrets.Manager)
-      |> Keyword.get(:secrets_adapter)
+      |> Keyword.get(:adapter)
 
     secrets_path =
       Keyword.get(config, :deployex)
       |> Keyword.get(Deployex.ConfigProvider.Secrets.Manager)
-      |> Keyword.get(:secrets_path)
+      |> Keyword.get(:path)
 
     if env == "local" do
       Logger.info("  - No secrets retrieved, local environment")
