@@ -56,8 +56,7 @@ if config_env() == :prod do
     "local" ->
       raise "Invalid configuration for release production adapter"
 
-    true ->
-      # Default Release is S3
+    "s3" ->
       config :deployex, Deployex.Release,
         adapter: Deployex.Release.S3,
         bucket: bucket
