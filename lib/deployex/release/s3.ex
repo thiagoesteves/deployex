@@ -63,5 +63,5 @@ defmodule Deployex.Release.S3 do
   defp env, do: Application.get_env(:deployex, :env)
 
   defp bucket,
-    do: Application.get_env(:deployex, Deployex.Release)[:bucket] |> String.replace("_", "-")
+    do: Application.get_env(:deployex, Deployex.Release)[:bucket]
 end

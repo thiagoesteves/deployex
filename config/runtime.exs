@@ -21,14 +21,11 @@ if System.get_env("DEPLOYEX_PHX_SERVER", "true") do
 end
 
 if config_env() == :prod do
-  env = System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT")
-  monitored_app_name = System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME")
-
   # Set the cloud environment flag
   config :deployex,
-    env: env,
+    env: System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT"),
     base_path: "/var/lib/deployex",
-    monitored_app_name: monitored_app_name,
+    monitored_app_name: System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME"),
     monitored_app_log_path: "/var/log",
     phx_start_port: String.to_integer(System.get_env("DEPLOYEX_MONITORED_APP_PORT") || "4000"),
     replicas: String.to_integer(System.get_env("DEPLOYEX_MONITORED_REPLICAS") || "3")

@@ -41,8 +41,7 @@ defmodule Deployex.Release.Local do
   def download_and_unpack(instance, version) do
     monitored_app = Storage.monitored_app()
 
-    download_path =
-      "#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
+    download_path = "#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 
     Status.clear_new(instance)
     new_path = Storage.new_path(instance)
