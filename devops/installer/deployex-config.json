@@ -5,6 +5,8 @@
     "deployex_hostname": "deployex.example.com",
     "release_adapter": "s3",
     "release_bucket": "myapp-prod-distribution",
+    "secrets_adapter": "aws",
+    "secrets_path": "deployex-myapp-prod-secrets",
     "aws_region": "sa-east-1",
     "version": "0.3.0-rc11",
     "os_target": "ubuntu-20.04", // "ubuntu-20.04" or "ubuntu-22.04"

@@ -25,7 +25,7 @@ defmodule Deployex.MixProject do
           include_executable_for: [:unix],
           steps: [:assemble, :tar],
           config_providers: [
-            {Deployex.AwsSecretsManagerProvider, nil}
+            {Deployex.ConfigProvider.Secrets.Manager, nil}
           ]
         ]
       ],

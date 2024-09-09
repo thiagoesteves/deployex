@@ -1,6 +1,6 @@
 {
   "skip_files": [
-    "lib/config_provider/aws_secrets_manager.ex",
+    "lib/config_provider/*",
     "lib/deployex_web/components/core_components.ex",
     "lib/deployex/application.ex",
     "lib/deployex/monitor/adapter.ex",
