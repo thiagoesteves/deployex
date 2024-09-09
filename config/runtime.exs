@@ -21,10 +21,14 @@ if System.get_env("DEPLOYEX_PHX_SERVER", "true") do
 end
 
 if config_env() == :prod do
+  env = System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT")
+  monitored_app_name = System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME")
+
   # Set the cloud environment flag
   config :deployex,
-    env: System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT"),
-    monitored_app_name: System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME"),
+    env: env,
+    base_path: "/var/lib/deployex",
+    monitored_app_name: monitored_app_name,
     monitored_app_log_path: "/var/log",
     phx_start_port: String.to_integer(System.get_env("DEPLOYEX_MONITORED_APP_PORT") || "4000"),
     replicas: String.to_integer(System.get_env("DEPLOYEX_MONITORED_REPLICAS") || "3")
@@ -48,14 +52,19 @@ if config_env() == :prod do
       port: port
     ]
 
-  release_adapter =
-    if System.get_env("DEPLOYEX_RELEASE_ADAPTER") == "local" do
-      Deployex.Release.Local
-    else
-      Deployex.Release.S3
-    end
+  adapter = System.fetch_env!("DEPLOYEX_RELEASE_ADAPTER")
+  bucket = System.fetch_env!("DEPLOYEX_RELEASE_BUCKET")
 
-  config :deployex, Deployex.Release, adapter: release_adapter
+  case adapter do
+    "local" ->
+      raise "Invalid configuration for release production adapter"
+
+    true ->
+      # Default Release is S3
+      config :deployex, Deployex.Release,
+        adapter: Deployex.Release.S3,
+        bucket: bucket
+  end
 
   config :deployex, Deployex.Deployment,
     # Default 10 minutes

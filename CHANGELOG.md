@@ -3,7 +3,7 @@
 ## 0.3.0-rc15 ()
 
 ## Backwards incompatible changes for 0.3.0-rc14
- * None
+ * Changed release adapter to be configurable (adapter and bucket), check new variables to be set in the docs.
 
 ### Bug fixes
  * [[`PR-51`](https://github.com/thiagoesteves/deployex/pull/51)] Terminal copy/paste bug, terminal was pasting when copying code within it.

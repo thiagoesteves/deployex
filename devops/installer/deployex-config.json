@@ -3,6 +3,8 @@
     "replicas": 3,
     "account_name": "prod",
     "deployex_hostname": "deployex.example.com",
+    "release_adapter": "s3",
+    "release_bucket": "myapp-prod-distribution",
     "aws_region": "sa-east-1",
     "version": "0.3.0-rc11",
     "os_target": "ubuntu-20.04", // "ubuntu-20.04" or "ubuntu-22.04"

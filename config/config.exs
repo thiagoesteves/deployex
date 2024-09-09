@@ -14,19 +14,12 @@
 # General application configuration
 import Config
 
-monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
-
 config :deployex,
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
-  env: "local",
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
-  base_path: "/tmp/deployex/varlib",
-  replicas: 3,
-  monitored_app_name: monitored_app_name,
-  monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_phx_start_port: 4000
+  replicas: 3
 
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
@@ -104,8 +97,6 @@ config :ex_aws,
     {:awscli, :system, 30},
     :instance_role
   ]
-
-config :deployex, Deployex.Release, adapter: Deployex.Release.Local
 
 config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Application
 

@@ -79,7 +79,7 @@ The DeployEx app expects a `current.json` file to be available, which contains v
 Expected location in the release folder:
 ```bash
 # production path
-s3://{monitored_app}-{env}-distribution/versions/{monitored_app}/{env}/current.json
+./{bucket}/versions/{monitored_app}/{env}/current.json
 # local test path
 /tmp/{monitored_app}/versions/{monitored_app}/{env}/current.json
 ```
@@ -100,7 +100,7 @@ Once the file is captured, the deployment will start if no app is running or if 
 Expected location in the release folder:
 ```bash
 # production path
-s3://{monitored_app}-{env}-distribution/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
+./{bucket}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 # local test path
 /tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
@@ -121,7 +121,8 @@ DeployEx application typically requires several environment variables to be defi
 | __DEPLOYEX_PHX_HOST__ | example.com | system ENV | -/- | The hostname for your application |
 | __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
-| __DEPLOYEX_RELEASE_ADAPTER__ | local | system ENV | s3 | release adapter type |
+| __DEPLOYEX_RELEASE_ADAPTER__ | s3 | system ENV | -/- | release adapter type |
+| __DEPLOYEX_RELEASE_BUCKET__ | myphoenixapp-prod-distribution | system ENV | -/- | release distribution bucket name |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
 | __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
 | __DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS__ | 600000 | system ENV | 600000 | The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back |
