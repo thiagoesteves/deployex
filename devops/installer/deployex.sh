@@ -78,6 +78,8 @@ DEPLOYEX_SYSTEMD_FILE="
   Environment=DEPLOYEX_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates
   Environment=DEPLOYEX_MONITORED_APP_NAME=${app_name}
   Environment=DEPLOYEX_PHX_HOST=${deployex_hostname}
+  Environment=DEPLOYEX_RELEASE_ADAPTER=${release_adapter}
+  Environment=DEPLOYEX_RELEASE_BUCKET=${release_bucket}
   Environment=DEPLOYEX_MONITORED_REPLICAS=${replicas}
   Environment=DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS=${deploy_timeout_rollback_ms}
   Environment=DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS=${deploy_schedule_interval_ms}
@@ -173,9 +175,6 @@ if [ ! -f "$config_file" ]; then
     echo "Config file '$config_file' not found."
     exit 1
 fi
-
-    "release_adapter": "s3",
-    "release_bucket": "myapp-prod-distribution",
 
 # Load variables from JSON config file
 if ! variables=$(jq -e '. | {
