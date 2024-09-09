@@ -40,14 +40,12 @@ terraform plan # Check if the templates are configured correctly
 terraform apply # Apply the configurations to create the environment
 ```
 
-__PS__: At this point, you may face some issues if the billing is not set properly or the resource is not enabled.
+__PS__: At this point, you may face some issues if the billing is not set properly or the resource is not enabled. The token expires after a time, so you may need to renew it.
 
-Wait for the environment to be created. Once it is created, you can check the instance at this [address](https://console.cloud.google.com/compute/instances). Afterward, update the variables in the *__myappname-prod-secrets__* secret in the [AWS Secrets Manager](https://sa-east-1.console.aws.amazon.com/secretsmanager/listsecrets?region=sa-east-1) with the corresponding values (You may need to configure more secrets if you application requires it):
+Wait for the environment to be created. Once it is created, you can check the instance at this [address](https://console.cloud.google.com/compute/instances). Afterward, update the variables in the *__myappname-prod-secrets__* secret in the [GCP Secrets Manager](https://console.cloud.google.com/security/secret-manager). You will need to add a new version and update the secret with Jason format.
 
 ```bash
-# Update the secrets
-MYAPPNAME_SECRET_KEY_BASE=xxxxxxxxxx
-MYAPPNAME_ERLANG_COOKIE=xxxxxxxxxx
+{"MYAPPNAME_SECRET_KEY_BASE":"xxxxxxxxxx","MYAPPNAME_ERLANG_COOKIE":"xxxxxxxxxx"}
 ```
 
 Additionally, create the TLS certificates for the OTP distribution using the [Following script](../../../devops/scripts/tls-distribution-certs), changing the appropriate names and regions inside it.
@@ -58,17 +56,15 @@ make tls-distribution-certs
 
 *__PS__*: you will also need to add them as plain text as explained [here](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html)
 
-Add the following certificates:
+Add the following certificates as plain text for each of the following secrets:
  - *__myappname-stage-otp-tls-ca__*
  - *__myappname-stage-otp-tls-key__*
  - *__myappname-stage-otp-tls-crt__*
 
-Configure the Deployex secrets, which should be added in the *__deployex-myappname-prod-secrets__* in the [AWS Secrets Manager](https://sa-east-1.console.aws.amazon.com/secretsmanager/listsecrets?region=sa-east-1) with the corresponding values.
+Add the Deployex secrets, which should be added in the *__deployex-myappname-prod-secrets__*  with the corresponding values.
 
  ```bash
-DEPLOYEX_SECRET_KEY_BASE=xxxxxxxxxx
-DEPLOYEX_ERLANG_COOKIE=xxxxxxxxxx
-DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
+{"MYAPPNAME_SECRET_KEY_BASE":"xxxxxxxxxx","MYAPPNAME_ERLANG_COOKIE":"xxxxxxxxxx","DEPLOYEX_ADMIN_HASHED_PASSWORD":"xxxxxxxxxx"}
 ```
 
 *__PS__*: __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match because they will be used by the OTP distribution.
@@ -77,23 +73,28 @@ DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
 
 When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention.
 
-For initial installations or updates to deployex, follow these steps:
-
-*__PS__*: make sure you have the pair myappname-web-ec2.pem saved in `~/.ssh/`
+For initial installations or updates to deployex, access the Google Compute Instance via ssh using the dashboard and after getting access to GCI, you need to grant root permissions:
 
 ```bash
-ssh -i "myappname-web-ec2.pem" ubuntu@ec2-52-67-178-12.sa-east-1.compute.amazonaws.com
-ubuntu@ip-10-0-1-56:~$
+my-user@myfirstapp-prod-instance:~$ sudo su
+root@myfirstapp-prod-instance:/home/my-user# cd ../ubuntu/
+root@myfirstapp-prod-instance:/home/ubuntu# ls
 ```
 
-After getting access to EC2, you need to grant root permissions:
+Authenticate using the CLI:
+```bash
+root@myfirstapp-prod-instance:/home/ubuntu# gcloud auth login
+```
+
+Copy the link passed and paste in your browser, capture the verification and paste it in the terminal.
 
 ```bash
-ubuntu@ip-10-0-1-56:~$ sudo su
-root@ip-10-0-1-56:/home/ubuntu$
+You are now logged in as [my-user@gmail.com].
+Your current project is [deployex-123456].  You can change this setting by running:
+  $ gcloud config set project PROJECT_ID
 ```
 
-Run the script to install the certificates:
+Since the secrets are already updated, we are going to install them in the appropriate addresses
 ```bash
 ./install-otp-certificates.sh 
 

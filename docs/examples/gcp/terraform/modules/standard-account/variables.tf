@@ -32,17 +32,17 @@ variable "machine_type" {
 variable "region" {
    description = "The GCP region to use"
     type = string
-    default = <region> # Example "us-central1"
+    default = "us-central1"
 }
 
 variable "project" {
     type = string
-    default = <project_id> # From deployex-gcp-terraform.json (project_id)
+    default = "deployex-435117"
 }
 
 variable "email" {
     type = string
-    default = <client_email> # From deployex-gcp-terraform.json (client_email)
+    default = "deployex-service@deployex-435117.iam.gserviceaccount.com"
 }
 
 variable "privatekeypath" {

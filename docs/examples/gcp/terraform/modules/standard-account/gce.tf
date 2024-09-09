@@ -27,6 +27,21 @@ resource "google_compute_address" "static" {
   depends_on = [ google_compute_firewall.firewall ]
 }
 
+data "cloudinit_config" "server_config" {
+  gzip          = false
+  base64_encode = false
+  part {
+    content_type = "text/cloud-config"
+    content = templatefile("${path.module}/cloud-config.tpl", {
+      hostname = "${var.server_dns}"
+      deployex_hostname = "${var.deployex_dns}"
+      deployex_version = "${var.deployex_version}"
+      account_name = "${var.account_name}"
+      replicas = "${var.replicas}"
+    })
+  }
+}
+
 resource "google_compute_instance" "dev" {
   name         = "myfirstapp-${var.account_name}-instance"
   machine_type = "${var.machine_type}"
@@ -45,7 +60,10 @@ resource "google_compute_instance" "dev" {
   }
   # Ensure firewall rule is provisioned before server, so SSH doesn't fail.
   depends_on = [ google_compute_firewall.firewall, google_compute_firewall.webserverrule ]
-  metadata_startup_script = "echo 'root:password@54321@123@@' | chpasswd;echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config;echo 'PermitRootLogin yes' >>  /etc/ssh/sshd_config"
+
+  metadata = {
+    user-data = "${data.cloudinit_config.server_config.rendered}"
+  }
 }
 
 output "ad_ip_address" {
