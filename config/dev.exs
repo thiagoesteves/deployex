@@ -73,3 +73,16 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Release configuration
+monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
+
+config :deployex,
+  env: "local",
+  base_path: "/tmp/deployex/varlib",
+  monitored_app_name: monitored_app_name,
+  monitored_app_log_path: "/tmp/#{monitored_app_name}"
+
+config :deployex, Deployex.Release,
+  adapter: Deployex.Release.Local,
+  bucket: "/tmp/#{monitored_app_name}"

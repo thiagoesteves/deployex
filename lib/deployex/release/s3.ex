@@ -62,8 +62,6 @@ defmodule Deployex.Release.S3 do
   ### ==========================================================================
   defp env, do: Application.get_env(:deployex, :env)
 
-  defp bucket do
-    # NOTE: Cloud structures use "-" instead of "_".
-    "#{Storage.monitored_app()}-#{env()}-distribution" |> String.replace("_", "-")
-  end
+  defp bucket,
+    do: Application.get_env(:deployex, Deployex.Release)[:bucket]
 end

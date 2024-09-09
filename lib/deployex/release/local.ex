@@ -22,7 +22,7 @@ defmodule Deployex.Release.Local do
   def get_current_version_map do
     monitored_app = Storage.monitored_app()
 
-    file_path = "/tmp/#{monitored_app}/versions/#{monitored_app}/#{env()}/current.json"
+    file_path = "#{bucket()}/versions/#{monitored_app}/#{env()}/current.json"
 
     case File.read(file_path) do
       {:ok, data} ->
@@ -41,10 +41,7 @@ defmodule Deployex.Release.Local do
   def download_and_unpack(instance, version) do
     monitored_app = Storage.monitored_app()
 
-    release_path =
-      "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
-
-    download_path = "/tmp/#{monitored_app}/" <> release_path
+    download_path = "#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 
     Status.clear_new(instance)
     new_path = Storage.new_path(instance)
@@ -59,4 +56,6 @@ defmodule Deployex.Release.Local do
   ### ==========================================================================
 
   defp env, do: Application.get_env(:deployex, :env)
+
+  defp bucket, do: Application.get_env(:deployex, Deployex.Release)[:bucket]
 end

@@ -1,8 +1,12 @@
 import Config
 
+monitored_app_name = "testapp"
+
 config :deployex,
+  env: "local",
   base_path: "/tmp/deployex/test/varlib",
-  monitored_app_name: "testapp",
+  monitored_app_name: monitored_app_name,
+  monitored_app_log_path: "/tmp/#{monitored_app_name}",
   monitored_app_phx_start_port: 4444
 
 # We don't run a server during test. If one is required,
@@ -22,7 +26,9 @@ config :deployex, Deployex.Monitor, adapter: Deployex.MonitorMock
 config :deployex, Deployex.Status, adapter: Deployex.StatusMock
 
 # Config Mock for Release
-config :deployex, Deployex.Release, adapter: Deployex.ReleaseMock
+config :deployex, Deployex.Release,
+  adapter: Deployex.ReleaseMock,
+  bucket: "/tmp/#{monitored_app_name}"
 
 # Config Mock for Upgrade
 config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock

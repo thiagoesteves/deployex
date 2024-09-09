@@ -86,9 +86,9 @@ defmodule Deployex.Storage do
 
     iex> alias Deployex.Storage
     ...> assert Storage.stdout_path(0) == "/var/log/deployex/deployex-stdout.log"
-    ...> assert Storage.stdout_path(1) == "/tmp/myphoenixapp/testapp/testapp-1-stdout.log"
-    ...> assert Storage.stdout_path(2) == "/tmp/myphoenixapp/testapp/testapp-2-stdout.log"
-    ...> assert Storage.stdout_path(3) == "/tmp/myphoenixapp/testapp/testapp-3-stdout.log"
+    ...> assert Storage.stdout_path(1) == "/tmp/testapp/testapp/testapp-1-stdout.log"
+    ...> assert Storage.stdout_path(2) == "/tmp/testapp/testapp/testapp-2-stdout.log"
+    ...> assert Storage.stdout_path(3) == "/tmp/testapp/testapp/testapp-3-stdout.log"
   """
   @impl true
   @spec stdout_path(integer()) :: binary()
@@ -101,9 +101,9 @@ defmodule Deployex.Storage do
 
     iex> alias Deployex.Storage
     ...> assert Storage.stderr_path(0) == "/var/log/deployex/deployex-stderr.log"
-    ...> assert Storage.stderr_path(1) == "/tmp/myphoenixapp/testapp/testapp-1-stderr.log"
-    ...> assert Storage.stderr_path(2) == "/tmp/myphoenixapp/testapp/testapp-2-stderr.log"
-    ...> assert Storage.stderr_path(3) == "/tmp/myphoenixapp/testapp/testapp-3-stderr.log"
+    ...> assert Storage.stderr_path(1) == "/tmp/testapp/testapp/testapp-1-stderr.log"
+    ...> assert Storage.stderr_path(2) == "/tmp/testapp/testapp/testapp-2-stderr.log"
+    ...> assert Storage.stderr_path(3) == "/tmp/testapp/testapp/testapp-3-stderr.log"
   """
   @impl true
   @spec stderr_path(integer()) :: binary()
