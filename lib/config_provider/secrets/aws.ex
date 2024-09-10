@@ -16,7 +16,7 @@ defmodule Deployex.ConfigProvider.Secrets.Aws do
     - opts is just the return value of init/1.
   """
   @impl true
-  def secrets(path, opts) do
+  def secrets(_config, path, opts) do
     region = System.fetch_env!("AWS_REGION")
     request_opts = Keyword.merge(opts, region: region)
 

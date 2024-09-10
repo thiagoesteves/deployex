@@ -70,7 +70,7 @@ defmodule Deployex.Release.GcpStorage do
   ### ==========================================================================
   defp env, do: Application.get_env(:deployex, :env)
 
-  defp headers() do
+  defp headers do
     token = Goth.fetch!(Deployex.Goth)
     [{"Authorization", "Bearer #{token.token}"}]
   end

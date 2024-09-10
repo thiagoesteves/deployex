@@ -85,6 +85,11 @@ if config_env() == :prod do
       raise "Secret #{adapter} not supported"
   end
 
+  if release_adapter == "gcp-storage" or secrets_adapter == "gcp" do
+    config :goth,
+      file_credentials: System.fetch_env!("GOOGLE_APPLICATION_CREDENTIALS") |> File.read!()
+  end
+
   config :deployex, Deployex.Deployment,
     # Default 10 minutes
     timeout_rollback:

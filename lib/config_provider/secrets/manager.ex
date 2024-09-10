@@ -48,7 +48,7 @@ defmodule Deployex.ConfigProvider.Secrets.Manager do
 
       Logger.info("  - Trying to retrieve secrets: #{secrets_adapter} - #{secrets_path}")
 
-      secrets = secrets_adapter.secrets(secrets_path, opts)
+      secrets = secrets_adapter.secrets(config, secrets_path, opts)
 
       admin_hashed_password =
         keyword(:admin_hashed_password, secrets["DEPLOYEX_ADMIN_HASHED_PASSWORD"])

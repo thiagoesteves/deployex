@@ -55,26 +55,14 @@ defmodule Deployex.Application do
   end
 
   defp gcp_app_credentials do
-    secrets_gcp_adapter? =
-      Application.get_env(:deployex, Deployex.ConfigProvider.Secrets.Manager)[:adapter] ==
-        Deployex.ConfigProvider.Secrets.Gcp
+    case Application.get_env(:goth, :file_credentials) do
+      nil ->
+        []
 
-    release_gcp_adapter? =
-      Application.get_env(:deployex, Deployex.Release)[:adapter] ==
-        Deployex.Release.GcpStorage
+      file_credentials ->
+        source = {:service_account, Jason.decode!(file_credentials)}
 
-    if secrets_gcp_adapter? or release_gcp_adapter? do
-      credentials =
-        "GOOGLE_APPLICATION_CREDENTIALS"
-        |> System.fetch_env!()
-        |> File.read!()
-        |> Jason.decode!()
-
-      source = {:service_account, credentials}
-
-      [{Goth, name: Deployex.Goth, source: source}]
-    else
-      []
+        [{Goth, name: Deployex.Goth, source: source}]
     end
   end
 

@@ -3,5 +3,5 @@ defmodule Deployex.ConfigProvider.Secrets.Adapter do
   Behaviour that defines the secret retrieval
   """
 
-  @callback secrets(String.t(), [Keyword.t()]) :: map()
+  @callback secrets([Keyword.t()], String.t(), [Keyword.t()]) :: map()
 end

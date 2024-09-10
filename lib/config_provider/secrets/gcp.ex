@@ -16,15 +16,14 @@ defmodule Deployex.ConfigProvider.Secrets.Gcp do
     - opts is just the return value of init/1.
   """
   @impl true
-  def secrets(secret_path, _opts) do
+  def secrets(config, secret_path, _opts) do
     goth_name = Deployex.SecretManager.Goth
-
-    credentials =
-      "GOOGLE_APPLICATION_CREDENTIALS" |> System.fetch_env!() |> File.read!() |> Jason.decode!()
 
     {:ok, _} = Application.ensure_all_started(:goth)
 
-    source = {:service_account, credentials}
+    file_credentials = Keyword.get(config, :goth) |> Keyword.get(:file_credentials)
+
+    source = {:service_account, Jason.decode!(file_credentials)}
 
     children = [
       {Finch, name: FinchSecretManagerClient},
