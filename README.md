@@ -118,12 +118,13 @@ DeployEx application typically requires several environment variables to be defi
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
 | __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
+| __GOOGLE_APPLICATION_CREDENTIALS__ | /path/to/file.json | system ENV | -/- | the google application credentials path |
 | __DEPLOYEX_PHX_HOST__ | example.com | system ENV | -/- | The hostname for your application |
 | __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
 | __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
-| __DEPLOYEX_RELEASE_ADAPTER__ | s3 | system ENV | -/- | release adapter type |
+| __DEPLOYEX_RELEASE_ADAPTER__ | __s3__ or __gcp-storage__ | system ENV | -/- | release adapter type |
 | __DEPLOYEX_RELEASE_BUCKET__ | myphoenixapp-prod-distribution | system ENV | -/- | release distribution bucket name |
-| __DEPLOYEX_SECRETS_ADAPTER__ | aws | system ENV | -/- | release adapter type |
+| __DEPLOYEX_SECRETS_ADAPTER__ | __aws__ or __gcp__ | system ENV | -/- | release adapter type |
 | __DEPLOYEX_SECRETS_PATH__ | deployex-myphoenixapp-prod-secrets | system ENV | -/- | secret path to be retrieved from |
 | __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
 | __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |

@@ -28,6 +28,14 @@ write_files:
       gcloud secrets versions access 1 --secret=myappname-${account_name}-otp-tls-crt > /usr/local/share/ca-certificates/deployex.crt
       gcloud secrets versions access 1 --secret=myappname-${account_name}-otp-tls-crt > /usr/local/share/ca-certificates/myappname.crt
       echo "[OK]"
+  - path: /home/ubuntu/gcp-config.json
+    owner: root:root
+    permissions: "0644"
+    content: |
+      {
+        "type": "service_account" # Populate it after installation
+        ...
+      }
   - path: /home/ubuntu/deployex-config.json
     owner: root:root
     permissions: "0644"
@@ -37,11 +45,12 @@ write_files:
         "replicas": ${replicas},
         "account_name": "${account_name}",
         "deployex_hostname": "${deployex_hostname}",
-        "release_adapter": "s3",
+        "release_adapter": "gcp-storage",
         "release_bucket": "myappname-${account_name}-distribution",
         "secrets_adapter": "gcp",
         "secrets_path": "deployex-myappname-${account_name}-secrets",
         "version": "${deployex_version}",
+        "google_credentials": "/home/ubuntu/gcp-config.json",
         "os_target": "ubuntu-20.04",
         "deploy_timeout_rollback_ms": 600000,
         "deploy_schedule_interval_ms": 5000,
@@ -132,7 +141,6 @@ runcmd:
   - /home/ubuntu/install-otp-certificates.sh
   - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/ubuntu
   - chmod a+x /home/ubuntu/deployex.sh
-  - /home/ubuntu/deployex.sh --install /home/ubuntu/deployex-config.json
   - systemctl enable --no-block nginx 
   - systemctl start --no-block nginx
   - reboot

@@ -126,7 +126,9 @@ defmodule Deployex.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
-      {:mock, "~> 0.3.0", only: :test}
+      {:mock, "~> 0.3.0", only: :test},
+      {:goth, "~> 1.3.0"},
+      {:google_api_storage, "~> 0.19.0"}
     ]
   end
 

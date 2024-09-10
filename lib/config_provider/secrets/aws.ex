@@ -12,7 +12,7 @@ defmodule Deployex.ConfigProvider.Secrets.Aws do
   secrets/2.
 
   Args:
-    - secret_path_id: Path to the secret content, e. g. deployex-{app}-stage-secrets
+    - secret_path_id: Path to the secret content, e. g. deployex-{app}-prod-secrets
     - opts is just the return value of init/1.
   """
   @impl true

@@ -62,7 +62,7 @@ Add the following certificates as plain text for each of the following secrets:
 Add the Deployex secrets, which should be added in the *__deployex-myappname-prod-secrets__*  with the corresponding values.
 
  ```bash
-{"MYAPPNAME_SECRET_KEY_BASE":"xxxxxxxxxx","MYAPPNAME_ERLANG_COOKIE":"xxxxxxxxxx","DEPLOYEX_ADMIN_HASHED_PASSWORD":"xxxxxxxxxx"}
+{"DEPLOYEX_SECRET_KEY_BASE":"xxxxxxxxxx","DEPLOYEX_ERLANG_COOKIE":"xxxxxxxxxx","DEPLOYEX_ADMIN_HASHED_PASSWORD":"xxxxxxxxxx"}
 ```
 
 *__PS__*: __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match because they will be used by the OTP distribution.

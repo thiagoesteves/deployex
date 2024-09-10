@@ -20,6 +20,7 @@ defmodule Deployex.Application do
         {Finch, name: Deployex.Finch}
       ] ++
         application_servers() ++
+        gcp_app_credentials() ++
         [
           # Start a worker by calling: Deployex.Worker.start_link(arg)
           # {Deployex.Worker, arg},
@@ -51,6 +52,30 @@ defmodule Deployex.Application do
     end
   else
     defp application_servers, do: []
+  end
+
+  defp gcp_app_credentials do
+    secrets_gcp_adapter? =
+      Application.get_env(:deployex, Deployex.ConfigProvider.Secrets.Manager)[:adapter] ==
+        Deployex.ConfigProvider.Secrets.Gcp
+
+    release_gcp_adapter? =
+      Application.get_env(:deployex, Deployex.Release)[:adapter] ==
+        Deployex.Release.GcpStorage
+
+    if secrets_gcp_adapter? or release_gcp_adapter? do
+      credentials =
+        "GOOGLE_APPLICATION_CREDENTIALS"
+        |> System.fetch_env!()
+        |> File.read!()
+        |> Jason.decode!()
+
+      source = {:service_account, credentials}
+
+      [{Goth, name: Deployex.Goth, source: source}]
+    else
+      []
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

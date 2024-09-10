@@ -56,8 +56,9 @@ install_deployex() {
     local secrets_adapter="${7}"
     local secrets_path="${8}"
     local aws_region="${9}"
-    local deploy_timeout_rollback_ms="${10}"
-    local deploy_schedule_interval_ms="${11}"
+    local google_credentials="${10}"
+    local deploy_timeout_rollback_ms="${11}"
+    local deploy_schedule_interval_ms="${12}"
 
     # Load environment variables from JSON
     local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")
@@ -75,6 +76,7 @@ DEPLOYEX_SYSTEMD_FILE="
   [Service]
   Environment=SHELL=/usr/bin/bash
   Environment=AWS_REGION=${aws_region}
+  Environment=GOOGLE_APPLICATION_CREDENTIALS=${google_credentials}
 "$DEPLOYEX_SYSTEMD_ENV_VARS"
   Environment=DEPLOYEX_CLOUD_ENVIRONMENT=${account_name}
   Environment=DEPLOYEX_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates
@@ -191,6 +193,7 @@ if ! variables=$(jq -e '. | {
       secrets_adapter, 
       secrets_path, 
       aws_region,
+      google_credentials,
       version,
       os_target, 
       deploy_timeout_rollback_ms,
@@ -210,6 +213,7 @@ eval "$(echo "$variables" | jq -r '@sh "
   secrets_adapter=\(.secrets_adapter)
   secrets_path=\(.secrets_path)
   aws_region=\(.aws_region)
+  google_credentials=\(.google_credentials)
   version=\(.version)
   os_target=\(.os_target)
   deploy_timeout_rollback_ms=\(.deploy_timeout_rollback_ms)
@@ -226,12 +230,24 @@ if [ "$operation" == "install" ]; then
           -z "$secrets_adapter" || 
           -z "$secrets_path" || 
           -z "$aws_region" || 
+          -z "$google_credentials" ||
           -z "$deploy_timeout_rollback_ms" || 
           -z "$deploy_schedule_interval_ms" ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$app_name" "$replicas" "$account_name" "$deployex_hostname" "$release_adapter" "$release_bucket" "$secrets_adapter" "$secrets_path" "$aws_region" "$deploy_timeout_rollback_ms" "$deploy_schedule_interval_ms"
+    install_deployex "$app_name" \
+                     "$replicas" \
+                     "$account_name" \
+                     "$deployex_hostname" \
+                     "$release_adapter" \
+                     "$release_bucket" \
+                     "$secrets_adapter" \
+                     "$secrets_path" \
+                     "$aws_region" \
+                     "$google_credentials" \
+                     "$deploy_timeout_rollback_ms" \
+                     "$deploy_schedule_interval_ms"
     update_deployex "$version" "$os_target"
 elif [ "$operation" == "update" ]; then
     if [[ -z "$version" || -z "$os_target" ]]; then

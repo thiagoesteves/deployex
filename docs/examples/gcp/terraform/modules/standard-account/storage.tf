@@ -15,7 +15,7 @@ resource "google_storage_bucket" "distribution" {
 variable "folders_name_set" {
   description = "The folder list name"
   type        = list(string)
-  default     = [  "dist/myappname/empty",  "versions/myappname/empty"]
+  default     = [  "dist/myappname/prod/empty",  "versions/myappname/prod/empty"]
 }
 
 resource "google_storage_bucket_object" "content_folder" {
