@@ -129,8 +129,10 @@ write_files:
           # Add here the letsencrypt paths
       }
 runcmd:
+  - /home/ubuntu/install-otp-certificates.sh
   - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/ubuntu
   - chmod a+x /home/ubuntu/deployex.sh
+  - /home/ubuntu/deployex.sh --install /home/ubuntu/deployex-config.json
   - systemctl enable --no-block nginx 
   - systemctl start --no-block nginx
   - reboot

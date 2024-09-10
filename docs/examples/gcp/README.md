@@ -29,7 +29,7 @@ Ensure you have access to the following secrets for storage in AWS Secrets Manag
 
 ### 3. Variables Configuration
 
-In the file [main.tf](./environments/prod/main.tf) and [variables](./modules/standard-account/variables.tf), verify and set the variables according to the specific environment, such as `myappname.com.br`. This variables will be used in all terraform templates to set-up correctly.
+Rename the file [main_example.tf_](./environments/prod/main_example.tf_) to [main.tf](./environments/prod/main.tf) and verify and set the variables according to the specific environment including the [variables file](./modules/standard-account/variables.tf). These variables will be used in all terraform templates to set-up correctly.
 
 ### 4. Provisioning the Environment
 
@@ -54,8 +54,6 @@ Additionally, create the TLS certificates for the OTP distribution using the [Fo
 make tls-distribution-certs
 ```
 
-*__PS__*: you will also need to add them as plain text as explained [here](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html)
-
 Add the following certificates as plain text for each of the following secrets:
  - *__myappname-stage-otp-tls-ca__*
  - *__myappname-stage-otp-tls-key__*
@@ -71,7 +69,7 @@ Add the Deployex secrets, which should be added in the *__deployex-myappname-pro
 
 ### 5. EC2 Provisioning (Manual Steps)
 
-When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention.
+When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's Instance destroy/create process will no longer require manual intervention.
 
 For initial installations or updates to deployex, access the Google Compute Instance via ssh using the dashboard and after getting access to GCI, you need to grant root permissions:
 
