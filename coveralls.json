@@ -1,6 +1,6 @@
 {
   "skip_files": [
-    "lib/config_provider/*",
+    "lib/config_provider/secrets/adapter.ex",
     "lib/deployex_web/components/core_components.ex",
     "lib/deployex/application.ex",
     "lib/deployex/monitor/adapter.ex",

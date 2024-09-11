@@ -51,8 +51,8 @@ defmodule Deployex.Release.GcpStorage do
       {:ok, %Finch.Response{body: body}} ->
         File.write!(download_path, body)
 
-      _ ->
-        nil
+      reason ->
+        raise "Error while downloading release, reason: #{inspect(reason)}"
     end
 
     Status.clear_new(instance)

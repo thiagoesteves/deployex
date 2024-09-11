@@ -26,12 +26,6 @@ defmodule Deployex.ConfigProvider.Secrets.Aws do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp fetch_aws_secret_id(secret_path_id, opts) do
-    secret_path_id
-    |> build_request()
-    |> ExAws.request(opts)
-    |> parse_secrets()
-  end
 
   defp build_request(secret_name) do
     JSON.new(
@@ -46,12 +40,16 @@ defmodule Deployex.ConfigProvider.Secrets.Aws do
     )
   end
 
-  defp parse_secrets({:ok, %{"SecretString" => json_secret}}) do
-    Jason.decode!(json_secret)
-  end
+  defp fetch_aws_secret_id(secret_path_id, opts) do
+    secret_path_id
+    |> build_request()
+    |> ExAws.request(opts)
+    |> case do
+      {:ok, %{"SecretString" => json_secret}} ->
+        Jason.decode!(json_secret)
 
-  defp parse_secrets({:error, {exception, reason}}) do
-    Logger.error("#{inspect(exception)}: #{inspect(reason)}")
-    %{}
+      reason ->
+        raise "Fail to retrieve secrests with reason #{inspect(reason)}"
+    end
   end
 end

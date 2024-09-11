@@ -57,10 +57,10 @@ defmodule Deployex.ConfigProvider.Secrets.Manager do
       erlang_cookie = secrets["DEPLOYEX_ERLANG_COOKIE"] |> String.to_atom()
 
       # Config Erlang Cookie if the node exist
-      node = :erlang.node()
+      node = Node.self()
 
       if node != :nonode@nohost do
-        :erlang.set_cookie(node, erlang_cookie)
+        Node.set_cookie(node, erlang_cookie)
       end
 
       Config.Reader.merge(
