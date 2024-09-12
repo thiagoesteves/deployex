@@ -8,6 +8,7 @@
     "secrets_adapter": "aws",
     "secrets_path": "deployex-myapp-prod-secrets",
     "aws_region": "sa-east-1",
+    "google_credentials": "/home/ubuntu/gcp-config.json",
     "version": "0.3.0-rc11",
     "os_target": "ubuntu-20.04", // "ubuntu-20.04" or "ubuntu-22.04"
     "deploy_timeout_rollback_ms": 600000,

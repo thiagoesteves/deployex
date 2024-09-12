@@ -53,13 +53,18 @@ if config_env() == :prod do
   release_bucket = System.fetch_env!("DEPLOYEX_RELEASE_BUCKET")
 
   case release_adapter do
-    "gcp" ->
-      raise "Configuration not supported"
+    "gcp-storage" ->
+      config :deployex, Deployex.Release,
+        adapter: Deployex.Release.GcpStorage,
+        bucket: release_bucket
 
     "s3" ->
       config :deployex, Deployex.Release,
         adapter: Deployex.Release.S3,
         bucket: release_bucket
+
+    adapter ->
+      raise "Release #{adapter} not supported"
   end
 
   secrets_adapter = System.fetch_env!("DEPLOYEX_SECRETS_ADAPTER")
@@ -67,12 +72,22 @@ if config_env() == :prod do
 
   case secrets_adapter do
     "gcp" ->
-      raise "Configuration not supported"
+      config :deployex, Deployex.ConfigProvider.Secrets.Manager,
+        adapter: Deployex.ConfigProvider.Secrets.Gcp,
+        path: secrets_path
 
     "aws" ->
       config :deployex, Deployex.ConfigProvider.Secrets.Manager,
         adapter: Deployex.ConfigProvider.Secrets.Aws,
         path: secrets_path
+
+    adapter ->
+      raise "Secret #{adapter} not supported"
+  end
+
+  if release_adapter == "gcp-storage" or secrets_adapter == "gcp" do
+    config :goth,
+      file_credentials: System.fetch_env!("GOOGLE_APPLICATION_CREDENTIALS") |> File.read!()
   end
 
   config :deployex, Deployex.Deployment,

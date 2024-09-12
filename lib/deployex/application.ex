@@ -20,6 +20,7 @@ defmodule Deployex.Application do
         {Finch, name: Deployex.Finch}
       ] ++
         application_servers() ++
+        gcp_app_credentials() ++
         [
           # Start a worker by calling: Deployex.Worker.start_link(arg)
           # {Deployex.Worker, arg},
@@ -51,6 +52,18 @@ defmodule Deployex.Application do
     end
   else
     defp application_servers, do: []
+  end
+
+  defp gcp_app_credentials do
+    case Application.get_env(:goth, :file_credentials) do
+      nil ->
+        []
+
+      file_credentials ->
+        source = {:service_account, Jason.decode!(file_credentials)}
+
+        [{Goth, name: Deployex.Goth, source: source}]
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

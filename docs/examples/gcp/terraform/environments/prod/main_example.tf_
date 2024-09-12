@@ -1,0 +1,17 @@
+# Rename me to main.tf and populated with the corrected values
+
+provider "google" {
+  project = <project_id> # From deployex-gcp-terraform.json (project_id)
+  region  = <region> # Example "us-central1"
+  access_token = <token> # From GCP CLI terminal "gcloud beta auth application-default print-access-token"
+}
+
+module "standard_account" {
+  source           = "../../modules/standard-account"
+  account_name     = "prod"
+  server_dns       = "myappname.com"
+  replicas         = "3"
+  machine_type     = "e2-micro"
+  deployex_dns     = "deployex.myappname.com"
+  deployex_version = "0.3.0-rc14"
+}
