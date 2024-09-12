@@ -9,9 +9,9 @@ provider "google" {
 module "standard_account" {
   source           = "../../modules/standard-account"
   account_name     = "prod"
-  server_dns       = "deployex.pro"
+  server_dns       = "myappname.com"
   replicas         = "3"
   machine_type     = "e2-micro"
-  deployex_dns     = "deployex.deployex.pro"
+  deployex_dns     = "deployex.myappname.com"
   deployex_version = "0.3.0-rc14"
 }
