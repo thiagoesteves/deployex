@@ -55,7 +55,7 @@ Navigate to [GCP Secrets Manager](https://console.cloud.google.com/security/secr
 
  *  *__myappname-prod-secrets__*:
 
-Create a new version of the secret and add the following JSON structure as plain text:
+Create a new version of the secret and add the following JSON structure as plain text (You may need to configure additional secrets if your application requires them):
 ```bash
 {"MYAPPNAME_SECRET_KEY_BASE":"xxxxxxxxxx","MYAPPNAME_ERLANG_COOKIE":"xxxxxxxxxx"}
 ```
@@ -75,7 +75,7 @@ Create the TLS certificates for OTP distribution using the [Following script](..
 make tls-distribution-certs
 ```
 
-The output of the command above will be three files: `ca.crt`, `deployex.key` and `deployex.crt`. Create a new version for each secret and upload each file to its respective secret using the browser's file upload button.
+The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Create a new version for each secret and upload each file to its respective secret using the browser's file upload button.
 
 > [!WARNING]
 > __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match, as they will be used by the OTP distribution.

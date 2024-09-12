@@ -165,11 +165,11 @@ DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
 ```
 
 Within the secrets, the following key-value pairs are required:
-| ENV NAME   |      EXAMPLE      |  SOURCE | DESCRIPTION |
-|----------|-------------|------|------|
-| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | secret key used for encryption |
-| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | erlang cookie |
-| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
+| ENV NAME | EXAMPLE | DESCRIPTION |
+|----------|-------------|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
+| __DEPLOYEX_ERLANG_COOKIE__ | my-cookie | erlang cookie |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
 
 ## Running DeployEx and Monitored app locally
 
@@ -514,9 +514,24 @@ export RELEASE_COOKIE=cookie
 
 ## How DeployEx handles services
 
-### Full deployment
+DeployEx operates by monitoring applications and versions using folders and files, treating the monitored app as a service:
+```bash
+# test environment
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/previous/${monitored_app}
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/new/${monitored_app}
+/tmp/deployex/varlib/service/${monitored_app}/${instance}/current/${monitored_app}
+```
 
-DeployEx operates by monitoring applications and versions using folders and files, treating the monitored app as a service. The deployment process involves several steps to ensure smooth transitions:
+```bash
+# production environment
+/var/lib/deployex/service/${monitored_app}/${instance}/previous/${monitored_app}
+/var/lib/deployex/service/${monitored_app}/${instance}/new/${monitored_app}
+/var/lib/deployex/service/${monitored_app}/${instance}/current/${monitored_app}
+```
+
+The deployment process involves several steps to ensure smooth transitions:
+
+### Full deployment
 
 1. *__Download and Unpack the New Version:__*
  The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
@@ -528,24 +543,12 @@ The currently running application instance is stopped to prepare for the new dep
  The `previous` service folder, containing the previous version of the application, is deleted to make space for the new version.
 5. *__Move the Current Service:__*
  The `current` service folder, representing the current version of the application, is moved to the `previous` service folder. Simultaneously, the `new` service folder is moved to become the new `current` service folder.
-6. *__Start the Application:__*
+6. *__Run pre_commands:__*
+ Before starting the application, DeployEx will attempt to run any pre_commands (if set) using the `current` service folder.
+7. *__Start the Application:__*
  Finally, the application is started using the version now residing in the `current` service folder, ensuring that the latest version is active and operational.
 
 By following this process, DeployEx facilitates deployments, ensuring that applications are updated while minimizing downtime.
-
-For the test environment:
-```bash
-/tmp/deployex/varlib/service/${monitored_app}/${instance}/previous/${monitored_app}
-/tmp/deployex/varlib/service/${monitored_app}/${instance}/new/${monitored_app}
-/tmp/deployex/varlib/service/${monitored_app}/${instance}/current/${monitored_app}
-```
-
-For production environment:
-```bash
-/var/lib/deployex/service/${monitored_app}/${instance}/previous/${monitored_app}
-/var/lib/deployex/service/${monitored_app}/${instance}/new/${monitored_app}
-/var/lib/deployex/service/${monitored_app}/${instance}/current/${monitored_app}
-```
 
 ### Hot-upgrades
 
@@ -555,7 +558,9 @@ For this scenario, there will be no moving files/folders since the target is to 
  The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
 2. *__Check if the release contain a hot-upgrade or full deployment:__*
  DeployEx will check the release file received and if it is a hot-upgrade, goes to the step 3 .
-3. *__Execute the Hotupgrade checks and verification__*
- DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. Inc ase of failure, it tries to execute a full deployment with the same release file.
+3. *__Run pre_commands:__*
+ Before executing the hot-upgrade, DeployEx will attempt to run any pre_commands (if set) using the `new` service folder.
+4. *__Execute the Hotupgrade checks and verification__*
+ DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. In any case of failure, it tries to execute a full deployment with the same release file.
 
 

@@ -1,6 +1,6 @@
-# AWS Deployment (with terraform)
+# AWS Deployment with Terraform
 
-This is an example of how to install deployex in an AWS cloud using terraform to programatically setup the enviromnent.
+This guide demonstrates how to deploy DeployEx in Amazon Web Services (AWS) using Terraform to programmatically set up the environment.
 
 ## Setup
 
@@ -15,17 +15,19 @@ Create an SSH key pair named, e. g. `myappname-web-ec2` by visiting the [AWS Key
 
 ### 2. Environment Secrets
 
-Ensure you have access to the following secrets for storage in AWS Secrets Manager:
+Ensure you have access to the following secrets for storage in Secrets Manager:
 
- - DEPLOYEX_SECRET_KEY_BASE
- - DEPLOYEX_ERLANG_COOKIE
- - DEPLOYEX_ADMIN_HASHED_PASSWORD
- - MYAPPNAME_SECRET_KEY_BASE
- - MYAPPNAME_ERLANG_COOKIE
+| SECRET NAME | EXAMPLE | SOURCE |
+|----------|-------------|------:|
+| DEPLOYEX_SECRET_KEY_BASE | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
+| DEPLOYEX_ERLANG_COOKIE| my-cookie |  |
+| DEPLOYEX_ADMIN_HASHED_PASSWORD | $2b$12$...3Lu6ys538TW | Bcrypt.hash_pwd_salt("my-pass") |
+| MYAPPNAME_SECRET_KEY_BASE | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
+| MYAPPNAME_ERLANG_COOKIE | my-cookie |  |
 
-### 3. MYAPPNAME_PHX_HOST Configuration
+### 3. Variables Configuration
 
-In the file `devops/terraform/environments/prod/main.tf`, verify and set the *__server_dns__* variable according to the specific environment, such as `myappname.com.br`. This variable will be used in all terraform templates to set-up correctly the hostname.
+Rename the file [main_example.tf_](./environments/prod/main_example.tf_) to [main.tf](./environments/prod/main.tf) and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file](./modules/standard-account/variables.tf). These variables will be utilized across all Terraform templates to ensure correct setup.
 
 ### 4. Provisioning the Environment
 
@@ -37,14 +39,22 @@ aws_access_key_id=access_key_id
 aws_secret_access_key=secret_access_key
 ```
 
-Once the key is configured, proceed with provisioning the environment. Navigate to the `devops/terraform/environments/prod` folder and execute the following commands:
+Once the key is configured, proceed with provisioning the environment. Navigate to the `./environments/prod` folder and execute the following commands:
 
 ```bash
 terraform plan # Check if the templates are configured correctly
 terraform apply # Apply the configurations to create the environment
 ```
 
-Wait for the environment to be created. Afterward, update the variables in the *__myappname-prod-secrets__* secret in the [AWS Secrets Manager](https://sa-east-1.console.aws.amazon.com/secretsmanager/listsecrets?region=sa-east-1) with the corresponding values (You may need to configure more secrets if you application requires it):
+Wait for the environment to be created. Once the provisioning is complete, you can check the instance at this [address](https://console.aws.amazon.com/ec2/home).
+
+#### Updating Secret Manager
+
+Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secrets:
+
+ *  *__myappname-prod-secrets__*:
+
+Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs: (You may need to configure additional secrets if your application requires them)
 
 ```bash
 # Update the secrets
@@ -52,20 +62,9 @@ MYAPPNAME_SECRET_KEY_BASE=xxxxxxxxxx
 MYAPPNAME_ERLANG_COOKIE=xxxxxxxxxx
 ```
 
-Additionally, create the TLS certificates for the OTP distribution using the [Following script](../../../devops/scripts/tls-distribution-certs), changing the appropriate names and regions inside it.
+* *__deployex-myappname-prod-secrets__*
 
-```bash
-make tls-distribution-certs
-```
-
-*__PS__*: you will also need to add them as plain text as explained [here](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html)
-
-Add the following certificates:
- - *__myappname-stage-otp-tls-ca__*
- - *__myappname-stage-otp-tls-key__*
- - *__myappname-stage-otp-tls-crt__*
-
-Configure the Deployex secrets, which should be added in the *__deployex-myappname-prod-secrets__* in the [AWS Secrets Manager](https://sa-east-1.console.aws.amazon.com/secretsmanager/listsecrets?region=sa-east-1) with the corresponding values.
+Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs:
 
  ```bash
 DEPLOYEX_SECRET_KEY_BASE=xxxxxxxxxx
@@ -73,7 +72,18 @@ DEPLOYEX_ERLANG_COOKIE=xxxxxxxxxx
 DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
 ```
 
-*__PS__*: __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match because they will be used by the OTP distribution.
+ *  *__myappname-stage-otp-tls-ca__*, *__myappname-stage-otp-tls-key__*, *__myappname-stage-otp-tls-crt__*:
+
+Create the TLS certificates for OTP distribution using the [Following script](../../../devops/scripts/tls-distribution-certs), changing the appropriate names and regions inside it.
+
+```bash
+make tls-distribution-certs
+```
+
+The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Click in each secret in AWS, then select "Retrieve Secret Value" and edit the secret by adding them as plain text, For guidance, you can refer to this [eaxample](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html).
+
+> [!WARNING]
+> __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match, as they will be used by the OTP distribution.
 
 ### 5. EC2 Provisioning (Manual Steps)
 
@@ -95,7 +105,7 @@ ubuntu@ip-10-0-1-56:~$ sudo su
 root@ip-10-0-1-56:/home/ubuntu$
 ```
 
-Run the script to install the certificates:
+Since the secrets are already updated, we are going to install them in the appropriate addresses
 ```bash
 ./install-otp-certificates.sh 
 
@@ -104,12 +114,18 @@ Retrieving and saving ......
 [OK]
 ```
 
-you can check if the certificates were installed correctly:
-
+Check that the certificates are correctly installed:
 ```bash
 ls /usr/local/share/ca-certificates
 ca.crt  myappname.crt myappname.key deployex.crt  deployex.key
 ```
+If you are updating DeployEx, you may need to update the `deployex.sh` script. This step is not necessary during the initial installation, as the script is already installed by default. To update the script, use the following commands:
+
+```bash
+version=0.3.0
+rm deployex.sh
+wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
+chmod a+x deployex.sh
 
 Run the script to install (or update) deployex:
 
@@ -121,10 +137,9 @@ root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex-config.json
 # Start systemd                            #
 # Start new service                        #
 Created symlink /etc/systemd/system/multi-user.target.wants/deployex.service → /etc/systemd/system/deployex.service.
-root@ip-10-0-1-116:/home/ubuntu#
 ```
 
-If the deployex needs to be updated, open the file `deployex-config.json` and update to the new version:
+If you need to update Deployex, follow these steps to ensure that the configuration file reflects the new version:
 
 ```bash
 vi deployex-config.json
@@ -133,6 +148,7 @@ vi deployex-config.json
   "version": "0.3.0-rc15",
   "os_target": "ubuntu-20.04",
   ...
+}
 ```
 
 Once the file is updated, run the update command:
@@ -140,16 +156,22 @@ Once the file is updated, run the update command:
 root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex-config.json
 ```
 
-If deployex is running and still there is no version of the monitored app available, you should see this message in the logs:
+> [!IMPORTANT]
+> Depending on the new version of DeployEx, you may need to update both the `deployex-config.json` file and the `deployex.sh` script
+
+At this point, DeployEx should be running. You can view the logs using the following commands:
 ```bash
 tail -f /var/log/deployex/deployex-stdout.log
-or
 tail -f /var/log/deployex/deployex-stderr.log
 ```
 
 ### 6. Monitored App deployment
 
-Once deployex is running, the monitored app __MUST__ then be deployed, creating the release package and the json file in the appropriate storage. The final `current.json` file should be similar to:
+Once DeployEx is running, you __MUST__ deploy the monitored app. This deployment involves creating the release package and the current version JSON file in the designated storage path.
+
+#### Release Version
+
+The release version file __MUST__ be formatted in JSON and include the following information:
 
 ```bash
 {
@@ -159,4 +181,92 @@ Once deployex is running, the monitored app __MUST__ then be deployed, creating 
 }
 ```
 
-Tracking the `mix.exs` version is essential to allow hot-upgrades.
+The JSON file __MUST__ be stored at the following path: `/versions/{monitored_app}/{env}/current.json`
+
+#### Release package
+
+After DeployEx fetches the release file, it will download the release package for installation. The package should be located at: `/dist/{monitored_app}/{monitored_app}-{version}.tar.gz`
+
+
+#### [CI/CD] Upload files to GCP from Github
+
+Here are some useful resources with suggestions on how to automate the upload of version and release files to your environment using GitHub Actions:
+
+ * [Guthub Actions - S3 Downloader/Uploader](https://github.com/marketplace/actions/s3-cp)
+ * [Calori Webserver Example with AWS](https://github.com/thiagoesteves/calori/tree/main/devops/aws/terraform)
+
+ ### 7. Setting Up HTTPS Certificates with Let's Encrypt
+
+> [!IMPORTANT]
+> Before proceeding, make sure that the DNS is correctly configured to point to the GCP instance.
+
+
+ For HTTPS, you can use free certificates from [Let's encrypt](https://letsencrypt.org/getting-started/). In this example, we'll use [cert bot for ubuntu](https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal) to obtain and configure the certificates:
+
+```bash
+sudo su
+apt update
+apt install snapd
+snap install --classic certbot
+ln -s /snap/bin/certbot /usr/bin/certbot
+```
+
+Before installing the certificate, make a backup of the current Nginx configuration file located at `/etc/nginx/sites-available/default`. Certbot may modify this file, so keeping a local copy ensures you can restore it if needed. Once the backup is created, run the following command:
+```bash
+certbot --nginx
+```
+
+This command will install Certbot and automatically configure Nginx to use the obtained certificates. After Nginx is configured, the certificate paths will be set up and will look something like this:
+
+```bash
+vi /etc/nginx/sites-available/default
+ ...
+           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
+           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
+           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+```
+
+Update your configuration file to include the Let's Encrypt certificate paths. Find the section where it mentions:
+
+```bash
+           # Add here the letsencrypt paths
+```
+replace this comment with the actual certificate paths:
+```bash
+               proxy_set_header Upgrade $http_upgrade;
+               proxy_set_header Connection "upgrade";
+
+               proxy_pass http://deployex;
+           }
+           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
+           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
+           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+       }
+```
+
+Also, ensure that port 443 is enabled for both servers. For example:
+
+```bash
+      server {
+          listen 443 ssl; # managed by Certbot
+```
+
+After modifying the configuration file, save the changes and restart Nginx:
+
+```bash
+sudo su
+vi /etc/nginx/sites-available/default
+# modify and save file
+systemctl reload nginx
+```
+
+> [!NOTE]
+> After the changes, It may require a reboot.
+
+The commands above will configure Nginx for the correct routing. Once this is set up, verify that the monitored app’s configuration file `/config/runtime.exs` points to the correct SCHEME/HOST/PORT, For example:
+
+```elixir
+    url: [host: "myappname.com", port: 443, scheme: "https"],
+```
