@@ -1,11 +1,15 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc15 ()
+## 0.3.0-rc15 (2024-09-12)
 
 ## Backwards incompatible changes for 0.3.0-rc14
  * Changed release adapter to be configurable (adapter and bucket), new variables documentation added to the README.
  * Created secrets adapter (adapter and path) to be able to configure different formats of fetching secrets, new variables documentation added to the README.
  * Added new configuration for google credentials when using GCP, new variables documentation added to the README.
+
+### Installer Actions
+ * Update `deployex-config.json` to suppoer new configuration
+ * Update `deployex.sh` to be able to install using new configuration
 
 ### Bug fixes
  * [[`PR-51`](https://github.com/thiagoesteves/deployex/pull/51)] Terminal copy/paste bug, terminal was pasting when copying code within it.
