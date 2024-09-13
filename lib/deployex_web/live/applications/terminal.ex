@@ -108,26 +108,17 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
       options = [:stdin, :stdout, :pty, :pty_echo]
 
-      case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-             instance: instance,
-             commands: commands,
-             options: options,
-             target: self(),
-             type: :iex_terminal
-           }) do
-        {:ok, _pid} ->
-          socket
-          |> assign(:bin_path, bin_path)
+      {:ok, _pid} =
+        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+          instance: instance,
+          commands: commands,
+          options: options,
+          target: self(),
+          type: :iex_terminal
+        })
 
-        {:error, {:already_started, _pid}} ->
-          message =
-            "Maximum number of terminals achieved for instance: #{instance}"
-
-          Logger.warning(message)
-
-          socket
-          |> assign(:bin_path, message)
-      end
+      socket
+      |> assign(:bin_path, bin_path)
     else
       socket
       |> assign(:bin_path, "Binary not found")

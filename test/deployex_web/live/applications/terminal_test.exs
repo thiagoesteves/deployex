@@ -14,7 +14,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   alias Deployex.Fixture.Binary
   alias Deployex.Fixture.Monitoring
   alias Deployex.Fixture.Status, as: FixtureStatus
-  alias Deployex.Terminal.Server
+  alias Deployex.Fixture.Terminal, as: FixtureTerminal
   alias DeployexWeb.ApplicationsLive.Terminal
 
   test "Access to terminal by instance", %{conn: conn} do
@@ -45,62 +45,13 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert index_live |> element("#app-terminal-1") |> render_click() =~
              "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
 
-    assert :ok =
-             Server.async_terminate(%Deployex.Terminal.Server{instance: "1", type: :iex_terminal})
+    FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Maximum number of terminals reached", %{conn: conn} do
-    topic = "topic-terminal-001"
-
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
-
-    Deployex.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
-
-    Deployex.OpSysMock
-    |> expect(:run, fn _command, _options ->
-      {:ok, test_pid_process, os_pid}
-    end)
-    |> expect(:stop, fn ^os_pid ->
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-      :ok
-    end)
-
-    assert capture_log(fn ->
-             assert {:ok, _pid} =
-                      Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-                        instance: "1",
-                        commands: "",
-                        options: [],
-                        target: self(),
-                        type: :iex_terminal
-                      })
-
-             Binary.create_bin_files(1)
-
-             {:ok, index_live, _html} = live(conn, ~p"/applications")
-
-             assert index_live |> element("#app-terminal-1") |> render_click() =~
-                      "Terminal for testapp [1]"
-
-             assert :ok =
-                      Server.async_terminate(%Deployex.Terminal.Server{
-                        instance: "1",
-                        type: :iex_terminal
-                      })
-
-             assert_receive {:handle_ref_event, ^ref}, 1_000
-           end) =~ "Maximum number of terminals achieved for instance: 1"
-  end
-
   test "Invalid cookie", %{conn: conn} do
-    topic = "topic-terminal-003"
+    topic = "topic-terminal-001"
 
     ref = make_ref()
     test_pid_process = self()
@@ -125,14 +76,12 @@ defmodule DeployexWeb.Applications.TerminalTest do
                       "Terminal for testapp [1]"
 
              assert_receive {:handle_ref_event, ^ref}, 1_000
-
-             assert :undefined == :global.whereis_name(%{type: :iex_terminal, instance: "1"})
            end) =~
              "Error while trying to run the commands for instance: 1, reason: {:error, :invalid_cookie}"
   end
 
   test "Send Character to iex terminal", %{conn: conn} do
-    topic = "topic-terminal-004"
+    topic = "topic-terminal-002"
 
     ref = make_ref()
     test_pid_process = self()
@@ -163,14 +112,13 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> element("#iex-1")
     |> render_hook("key", %{"key" => message})
 
-    assert :ok =
-             Server.async_terminate(%Deployex.Terminal.Server{instance: "1", type: :iex_terminal})
+    FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
   test "Try to execute without binary file", %{conn: conn} do
-    topic = "topic-terminal-005"
+    topic = "topic-terminal-003"
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
@@ -185,7 +133,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Terminal timed out", %{conn: conn} do
-    topic = "topic-terminal-006"
+    topic = "topic-terminal-004"
 
     ref = make_ref()
     test_pid_process = self()
@@ -211,7 +159,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert index_live |> element("#app-terminal-1") |> render_click() =~
              "Bin: /tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
 
-    pid = :global.whereis_name(%{type: :iex_terminal, instance: "1"})
+    assert [pid] = FixtureTerminal.list_children()
+
     send(pid, :session_timeout)
 
     assert_receive {:handle_ref_event, ^ref}, 1_000

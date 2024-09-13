@@ -127,7 +127,7 @@ defmodule Deployex.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
-      {:goth, "~> 1.3.0"}
+      {:goth, "~> 1.4"}
     ]
   end
 

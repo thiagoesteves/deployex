@@ -2,7 +2,6 @@ defmodule DeployexWeb.Applications.LogsTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
-  import ExUnit.CaptureLog
   import Mox
 
   setup [
@@ -13,7 +12,7 @@ defmodule DeployexWeb.Applications.LogsTest do
 
   alias Deployex.Fixture.Monitoring
   alias Deployex.Fixture.Status, as: FixtureStatus
-  alias Deployex.Terminal.Server
+  alias Deployex.Fixture.Terminal, as: FixtureTerminal
 
   test "Access to stdout logs by instance", %{conn: conn} do
     topic = "topic-logs-000"
@@ -41,8 +40,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert index_live |> element("#app-log-stdout-1") |> render_click() =~
              "Application Logs [1]"
 
-    assert :ok =
-             Server.async_terminate(%Deployex.Terminal.Server{instance: "1", type: :logs_stdout})
+    FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
@@ -73,8 +71,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert index_live |> element("#app-log-stderr-1") |> render_click() =~
              "Application Logs [1]"
 
-    assert :ok =
-             Server.async_terminate(%Deployex.Terminal.Server{instance: "1", type: :logs_stderr})
+    FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
@@ -147,60 +144,13 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert render(index_live) =~ message
     assert render(index_live) =~ "text-gray-700"
 
-    assert :ok =
-             Server.async_terminate(%Deployex.Terminal.Server{instance: "1", type: :logs_stdout})
+    FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Maximum number of logs reached", %{conn: conn} do
-    topic = "topic-logs-003"
-
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
-
-    Deployex.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
-
-    Deployex.OpSysMock
-    |> expect(:run, fn _command, _options ->
-      {:ok, test_pid_process, os_pid}
-    end)
-    |> expect(:stop, fn ^os_pid ->
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-      :ok
-    end)
-
-    assert capture_log(fn ->
-             assert {:ok, _pid} =
-                      Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-                        instance: "1",
-                        commands: "",
-                        options: [],
-                        target: self(),
-                        type: :logs_stdout
-                      })
-
-             {:ok, index_live, _html} = live(conn, ~p"/applications")
-
-             assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-                      "Application Logs [1]"
-
-             assert :ok =
-                      Server.async_terminate(%Deployex.Terminal.Server{
-                        instance: "1",
-                        type: :logs_stdout
-                      })
-
-             assert_receive {:handle_ref_event, ^ref}, 1_000
-           end) =~ "Maximum number of log terminals achieved for instance: 1 type: logs_stdout"
-  end
-
   test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
-    topic = "topic-logs-004"
+    topic = "topic-logs-003"
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
@@ -215,7 +165,7 @@ defmodule DeployexWeb.Applications.LogsTest do
   end
 
   defp update_log_message(os_pid, message) do
-    pid = :global.whereis_name(%{type: :logs_stdout, instance: "1"})
+    [pid] = FixtureTerminal.list_children()
     send(pid, {:stdout, os_pid, "\rtime #{message}"})
     # Wait the page for the update
     :timer.sleep(10)
