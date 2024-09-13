@@ -1,5 +1,9 @@
 # DeployEx
 
+> Who supervises the supervisor (of your application)?
+
+[![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml)
+
 DeployEx is a lightweight tool designed for managing deployments in Elixir applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
 DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
@@ -562,5 +566,16 @@ For this scenario, there will be no moving files/folders since the target is to 
  Before executing the hot-upgrade, DeployEx will attempt to run any pre_commands (if set) using the `new` service folder.
 4. *__Execute the Hotupgrade checks and verification__*
  DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. In any case of failure, it tries to execute a full deployment with the same release file.
+
+## Getting involved
+
+🗨️ **Contact us:**
+Feel free to contact me on [Linkedin](https://www.linkedin.com/in/thiago-cesar-calori-esteves-972368115/).
+
+## Copyright and License
+
+Copyright (c) 2024, Thiago Esteves.
+
+DeployEx source code is licensed under the [MIT License](LICENSE.md).
 
 

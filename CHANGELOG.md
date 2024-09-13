@@ -1,5 +1,19 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc16 (2024-09-13)
+
+## Backwards incompatible changes for 0.3.0-rc15
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-58`](https://github.com/thiagoesteves/deployex/pull/5)] Updated terminal to allow more than one connection since authentication is required.
+
 ## 0.3.0-rc15 (2024-09-12)
 
 ## Backwards incompatible changes for 0.3.0-rc14
