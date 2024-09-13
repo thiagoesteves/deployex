@@ -33,7 +33,7 @@ defmodule Deployex.Terminal.Server do
 
   defmodule Message do
     @moduledoc """
-    Structure to encapsulate the message taht will be sent to the target process
+    Structure to encapsulate the message that will be sent to the target process
     """
     @type t :: %__MODULE__{
             type: :iex_terminal | :logs_stdout | :logs_stderr,
