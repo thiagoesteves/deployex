@@ -7,7 +7,7 @@ defmodule Deployex.TerminalTest do
   setup :verify_on_exit!
 
   alias Deployex.Fixture.Storage
-  alias Deployex.Terminal.Server, as: TerminalServer
+  alias Deployex.Fixture.Terminal, as: FixtureTerminal
   alias Deployex.Terminal.Supervisor, as: TerminalSup
 
   setup do
@@ -42,9 +42,9 @@ defmodule Deployex.TerminalTest do
 
       assert {:ok, _pid} = TerminalSup.new(state)
 
-      assert_receive {:terminal_update, state}, 1_000
+      assert_receive {:terminal_update, _state}, 1_000
 
-      assert :ok = TerminalServer.async_terminate(state)
+      FixtureTerminal.terminate_all()
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end
@@ -76,9 +76,9 @@ defmodule Deployex.TerminalTest do
 
       assert {:ok, _pid} = TerminalSup.new(state)
 
-      assert_receive {:terminal_update, state}, 1_000
+      assert_receive {:terminal_update, _state}, 1_000
 
-      assert :ok = TerminalServer.async_terminate(state)
+      FixtureTerminal.terminate_all()
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end
@@ -160,7 +160,7 @@ defmodule Deployex.TerminalTest do
       assert state.message == received_msg2
       assert state.msg_sequence == 2
 
-      assert :ok = TerminalServer.async_terminate(state)
+      FixtureTerminal.terminate_all()
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end

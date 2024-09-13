@@ -184,8 +184,9 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:versions, versions)
   end
 
+  # NOTE: A terminal message was received without any configured terminal
   defp apply_action(%{assigns: %{terminal_message: terminal_message}} = socket, :index, _params) do
-    Server.async_terminate(terminal_message)
+    Server.async_terminate(terminal_message.myself)
 
     socket
     |> assign(:page_title, "Listing Applications")

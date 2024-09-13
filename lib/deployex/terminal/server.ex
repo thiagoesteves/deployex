@@ -5,8 +5,23 @@ defmodule Deployex.Terminal.Server do
 
   alias Deployex.OpSys
 
+  @type t :: %__MODULE__{
+          commands: String.t(),
+          type: :iex_terminal | :logs_stdout | :logs_stderr,
+          myself: nil | pid(),
+          process: pid(),
+          msg_sequence: integer(),
+          target: pid(),
+          instance: String.t(),
+          status: :open | :closed,
+          message: String.t(),
+          options: list(),
+          timeout_session: nil | integer()
+        }
+
   defstruct commands: nil,
             type: nil,
+            myself: nil,
             process: nil,
             msg_sequence: 0,
             instance: "",
@@ -16,24 +31,50 @@ defmodule Deployex.Terminal.Server do
             options: [],
             timeout_session: nil
 
+  defmodule Message do
+    @moduledoc """
+    Structure to encapsulate the message that will be sent to the target process
+    """
+    @type t :: %__MODULE__{
+            type: :iex_terminal | :logs_stdout | :logs_stderr,
+            myself: nil | pid(),
+            process: pid(),
+            msg_sequence: integer(),
+            instance: String.t(),
+            status: :open | :closed,
+            message: String.t()
+          }
+
+    @derive Jason.Encoder
+
+    defstruct type: nil,
+              myself: nil,
+              process: nil,
+              msg_sequence: 0,
+              instance: "",
+              status: :open,
+              message: nil
+  end
+
   @default_terminal_timeout_session_ms 300_000
 
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: global_name(args))
+    GenServer.start_link(__MODULE__, args)
   end
 
   @impl true
   @spec init(any()) :: {:ok, any(), {:continue, :open_erlexec_connection}}
   def init(state) do
     state =
-      Map.put(
-        state,
+      state
+      |> Map.put(
         :timeout_session,
         state.timeout_session || @default_terminal_timeout_session_ms
       )
+      |> Map.put(:myself, self())
 
     Process.send_after(self(), :session_timeout, state.timeout_session)
 
@@ -138,17 +179,27 @@ defmodule Deployex.Terminal.Server do
   ### Public APIs
   ### ==========================================================================
 
-  def async_terminate(%__MODULE__{} = args) do
-    GenServer.cast(global_name(args), :terminate)
+  @spec async_terminate(pid()) :: :ok
+  def async_terminate(pid) do
+    GenServer.cast(pid, :terminate)
   end
 
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
   defp notify_target(state) do
-    send(state.target, {:terminal_update, state})
+    send(
+      state.target,
+      {:terminal_update,
+       %Deployex.Terminal.Server.Message{
+         type: state.type,
+         myself: state.myself,
+         process: state.process,
+         msg_sequence: state.msg_sequence,
+         instance: state.instance,
+         status: state.status,
+         message: state.message
+       }}
+    )
   end
-
-  defp global_name(%{instance: instance, type: type}),
-    do: {:global, %{instance: instance, type: type}}
 end

@@ -103,24 +103,17 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       commands = "tail -f -n 10 #{path}"
       options = [:stdout]
 
-      case Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-             instance: id,
-             commands: commands,
-             options: options,
-             target: self(),
-             type: action
-           }) do
-        {:ok, _pid} ->
-          socket
-          |> assign(:subtitle, "File: " <> path)
+      {:ok, _pid} =
+        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+          instance: id,
+          commands: commands,
+          options: options,
+          target: self(),
+          type: action
+        })
 
-        {:error, {:already_started, _pid}} ->
-          message = "Maximum number of log terminals achieved for instance: #{id} type: #{action}"
-          Logger.warning(message)
-
-          socket
-          |> assign(:subtitle, message)
-      end
+      socket
+      |> assign(:subtitle, "File: " <> path)
     else
       socket
       |> assign(:subtitle, "File not found")

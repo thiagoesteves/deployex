@@ -188,7 +188,7 @@ The JSON file __MUST__ be stored at the following path: `/versions/{monitored_ap
 After DeployEx fetches the release file, it will download the release package for installation. The package should be located at: `/dist/{monitored_app}/{monitored_app}-{version}.tar.gz`
 
 
-#### [CI/CD] Upload files to GCP from Github
+#### [CI/CD] Upload files to AWS from Github
 
 Here are some useful resources with suggestions on how to automate the upload of version and release files to your environment using GitHub Actions:
 
@@ -198,7 +198,7 @@ Here are some useful resources with suggestions on how to automate the upload of
  ### 7. Setting Up HTTPS Certificates with Let's Encrypt
 
 > [!IMPORTANT]
-> Before proceeding, make sure that the DNS is correctly configured to point to the GCP instance.
+> Before proceeding, make sure that the DNS is correctly configured to point to the AWS instance.
 
 
  For HTTPS, you can use free certificates from [Let's encrypt](https://letsencrypt.org/getting-started/). In this example, we'll use [cert bot for ubuntu](https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal) to obtain and configure the certificates:
