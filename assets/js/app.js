@@ -39,16 +39,15 @@ hooks.IexTerminal = {
       this.pushEventTo(this.el, "key", key);
     });
 
-    term.attachCustomKeyEventHandler(key => {
-
-      if (key.code === 'KeyV') {
-        if (key.ctrlKey && key.shiftKey) {
-          return false;
-        }
+    term.attachCustomKeyEventHandler(event => {
+      // From: https://stackoverflow.com/questions/2903991/how-to-detect-ctrlv-ctrlc-using-javascript
+      // Ctrl+V or Cmd+V pressed?
+      if ((event.ctrlKey || event.metaKey) && event.keyCode == 86) {
         navigator.clipboard.readText()
           .then(text => {
             this.pushEventTo(this.el, "key", { key: text });
           })
+        return false;
       }
       return true;
     });
