@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc17 (2024-09-16)
+
+## Backwards incompatible changes for 0.3.0-rc16
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * [[`PR-59`](https://github.com/thiagoesteves/deployex/pull/59)] Fixing bug that was capturing letter v as Ctrl+v.
+
 ## 0.3.0-rc16 (2024-09-13)
 
 ## Backwards incompatible changes for 0.3.0-rc15
@@ -12,7 +23,7 @@
  * None
 
 ### Enhancements
- * [[`PR-58`](https://github.com/thiagoesteves/deployex/pull/5)] Updated terminal to allow more than one connection since authentication is required.
+ * [[`PR-58`](https://github.com/thiagoesteves/deployex/pull/58)] Updated terminal to allow more than one connection since authentication is required.
 
 ## 0.3.0-rc15 (2024-09-12)
 
