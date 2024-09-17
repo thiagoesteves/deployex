@@ -46,6 +46,7 @@ defmodule DeployexWeb.ApplicationsLive do
     <.modal
       :if={@live_action in [:logs_stdout, :logs_stderr]}
       id="app-log-modal"
+      max_size="max-w-4xl"
       show
       on_cancel={JS.patch(~p"/applications")}
     >

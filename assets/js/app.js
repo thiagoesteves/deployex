@@ -29,8 +29,8 @@ let hooks = {}
 hooks.IexTerminal = {
   mounted() {
     let term = new Terminal({
-      fontSize: 15,
-      cols: 80,
+      fontSize: 14,
+      cols: 100,
       rows: 24,
       cursorBlink: true
     });

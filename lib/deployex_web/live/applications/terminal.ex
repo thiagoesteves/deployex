@@ -66,9 +66,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   defp handle_terminal_update(
          %{assigns: %{id: id, terminal_message: %{message: message}}} = socket
        ) do
-    # Xterm only allows "\e" as escape character
-    message = String.replace(message, "^[", "\e")
-
     socket
     |> push_event("print-iex-#{id}", %{data: message})
   end
