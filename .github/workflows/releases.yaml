@@ -22,6 +22,9 @@ jobs:
           version-file: .tool-versions
           version-type: strict
 
+      - name: Install libcap-dev [recommended by erlexec]
+        run: sudo apt-get install libcap-dev -y
+
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
 
@@ -50,6 +53,9 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
+
+      - name: Install libcap-dev [recommended by erlexec]
+        run: sudo apt-get install libcap-dev -y
 
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors

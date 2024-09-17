@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc18 ()
+
+## Backwards incompatible changes for 0.3.0-rc17
+ * A sew set of env vars were introduced in the installer, it requires update.
+
+### Installer Actions
+ * Update `deployex.sh` to be able to install using new configuration
+
+### Bug fixes
+ * [[`PR-60`](https://github.com/thiagoesteves/deployex/pull/60)] Fixing auto-complete problems within iex terminal and increased log and terminal size.
+
 ## 0.3.0-rc17 (2024-09-16)
 
 ## Backwards incompatible changes for 0.3.0-rc16

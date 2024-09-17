@@ -39,6 +39,7 @@ defmodule DeployexWeb.CoreComponents do
   """
   attr :id, :string, required: true
   attr :show, :boolean, default: false
+  attr :max_size, :string, default: "max-w-3xl"
   attr :on_cancel, JS, default: %JS{}
   slot :inner_block, required: true
 
@@ -61,7 +62,7 @@ defmodule DeployexWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center">
-          <div class="w-full max-w-3xl p-4 sm:p-6 lg:py-8">
+          <div class={["w-full", "#{@max_size}", "p-4 sm:p-6 lg:py-8"]}>
             <.focus_wrap
               id={"#{@id}-container"}
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
@@ -130,7 +131,7 @@ defmodule DeployexWeb.CoreComponents do
         tabindex="0"
       >
         <div class="flex min-h-full items-center justify-center">
-          <div class="w-full max-w-4xl p-4 sm:p-6 lg:py-8">
+          <div class="w-full max-w-6xl p-4 sm:p-6 lg:py-8">
             <.focus_wrap
               id={"#{@id}-container"}
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
