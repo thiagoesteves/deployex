@@ -221,7 +221,7 @@ Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if 
 ```elixir
 def deps do
   [
-    {:jellyfish, "~> 0.1.2"}
+    {:jellyfish, "~> 0.1.3"}
   ]
 end
 ```
@@ -465,7 +465,8 @@ After making these changes, create and publish a new version `0.1.3` for `myphoe
 
 ![mTLS Dashboard](/docs/deployex_monitoring_app_tls.png)
 
-*__ATTENTION: Ensure that the cookie is properly set__*
+> [!ATTENTION]
+> Ensure that the cookie is properly set
 
 ## Throubleshooting
 

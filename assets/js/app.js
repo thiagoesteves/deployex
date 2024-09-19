@@ -32,7 +32,8 @@ hooks.IexTerminal = {
       fontSize: 14,
       cols: 100,
       rows: 24,
-      cursorBlink: true
+      cursorBlink: true,
+      fontFamily: 'Monospace'
     });
     term.open(this.el.querySelector(".xtermjs_container"));
     term.onKey(key => {
