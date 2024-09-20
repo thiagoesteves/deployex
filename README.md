@@ -2,7 +2,7 @@
 
 > Who supervises the supervisor (of your application)?
 
-[![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml)
+![Development](https://img.shields.io/badge/STATUS-Development_v0.3.0-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
 
 DeployEx is a lightweight tool designed for managing deployments in Elixir applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
@@ -16,7 +16,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 [![Running with no monitored apps](/docs/deployex_monitoring_app_tls.png)](/docs/deployex.mov)
 
-## Features
+## 🔉 Features
 
  * Monitors multiple Elixir application instances and automatically restarts them if they crash for any reason.
  * Includes a backoff delay restart mechanism to prevent excessive restarts.
@@ -44,13 +44,16 @@ Upon deployment, the following dashboard becomes available, offering access to l
 > [!NOTE]
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.
 
-## Next steps
+## ⚠️ Next steps
 
-- [ ] Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
-- [ ] Integrate CPU utilization monitoring from the OTP distribution.
-- [ ] Continuous improvement in UI design.
+- [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
+- [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
+- [ ] 💤 Health checks via OTP distribution
+- [ ] 💤 Orchestrate distributed databasses like [Khepri](https://github.com/rabbitmq/khepri)
+- [ ] 💤 Enhance installer to become an elixir app capable of hotupgrade DeployEx
+- [ ] 💤 Continuous improvement in UI design.
 
-## Getting Started
+## 📁 Getting Started
 
 ### Running the application
 
@@ -113,7 +116,7 @@ Expected location in the release folder:
 # local test path
 /tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
-## Production Information
+## 🛠️ Production Information
 
 ### Environment Variables
 
@@ -142,7 +145,7 @@ DeployEx application typically requires several environment variables to be defi
 
 For local testing, these variables are not expected or set to default values.
 
-### Cloud Providers
+### ☁️ Cloud Providers
 
 DeployEx offers a comprehensive set of Terraform examples for programmatically deploying in AWS and GCP, including detailed step-by-step setup instructions:
 
@@ -159,7 +162,7 @@ Currently, the release and installation process supports Ubuntu versions 20.04 a
 
 Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
-### Secrets Requirements
+### 🔐 Secrets Requirements
 
 DeployEx uses Secret Manager (AWS or GCP) to fetch its secrets via the config provider. The following environment variable configuration is expected for Secret Manager:
 
@@ -175,7 +178,7 @@ Within the secrets, the following key-value pairs are required:
 | __DEPLOYEX_ERLANG_COOKIE__ | my-cookie | erlang cookie |
 | __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
 
-## Running DeployEx and Monitored app locally
+## 🏠 Running DeployEx and Monitored app locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
@@ -401,7 +404,7 @@ you can check that the version and the deployment status has changed in the dash
 ![No mTLS Dashboard](/docs/deployex_monitoring_app_hot_upgrade.png)
 
 
-### Enhancing OTP Distribution Security with mTLS
+### 🔑 Enhancing OTP Distribution Security with mTLS
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 
@@ -468,7 +471,7 @@ After making these changes, create and publish a new version `0.1.3` for `myphoe
 > [!ATTENTION]
 > Ensure that the cookie is properly set
 
-## Throubleshooting
+## 🔨 Throubleshooting
 
 ### Accessing DeployEx logs
 
@@ -568,12 +571,12 @@ For this scenario, there will be no moving files/folders since the target is to 
 4. *__Execute the Hotupgrade checks and verification__*
  DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. In any case of failure, it tries to execute a full deployment with the same release file.
 
-## Getting involved
+## 🗨️ Getting involved
 
-🗨️ **Contact us:**
+☎️ **Contact us:**
 Feel free to contact me on [Linkedin](https://www.linkedin.com/in/thiago-cesar-calori-esteves-972368115/).
 
-## Copyright and License
+## ©️ Copyright and License
 
 Copyright (c) 2024, Thiago Esteves.
 
