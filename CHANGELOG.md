@@ -1,6 +1,6 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc18 ()
+## 0.3.0-rc18 (2024-09-20)
 
 ## Backwards incompatible changes for 0.3.0-rc17
  * A sew set of env vars were introduced in the installer, it requires update.
