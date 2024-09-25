@@ -140,6 +140,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
     socket =
       socket
+      |> assign(:node, Node.self())
       |> assign(:monitoring_apps_data, monitoring)
       |> assign(:selected_instance, nil)
       |> assign(:terminal_message, nil)
@@ -157,6 +158,7 @@ defmodule DeployexWeb.ApplicationsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
+     |> assign(:node, Node.self())
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_instance, nil)
      |> assign(:terminal_message, nil)
@@ -221,8 +223,18 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_info({:monitoring_app_updated, monitoring_apps_data}, socket) do
+  def handle_info(
+        {:monitoring_app_updated, source_node, monitoring_apps_data},
+        %{assigns: %{node: node}} = socket
+      )
+      when source_node == node do
     {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
+  end
+
+  def handle_info({:monitoring_app_updated, _source_node, _monitoring_apps_data}, socket) do
+    # NOTE: In future implementations, this will pattern match against other nodes
+    #       to enable DeployEx to present its data.
+    {:noreply, socket}
   end
 
   def handle_info({:terminal_update, %{type: type, status: :closed}}, socket)
