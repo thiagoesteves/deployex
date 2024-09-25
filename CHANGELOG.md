@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc19 ()
+
+## Backwards incompatible changes for 0.3.0-rc18
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * [[`PR-62`](https://github.com/thiagoesteves/deployex/pull/62)] Modified application index to handle only its own node monitoring data
+
 ## 0.3.0-rc18 (2024-09-20)
 
 ## Backwards incompatible changes for 0.3.0-rc17
