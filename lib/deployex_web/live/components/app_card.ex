@@ -313,14 +313,14 @@ defmodule DeployexWeb.Components.AppCard do
           />
           <%= @version %> [running]
         </div>
-      <% @status == :pre_commands and @version != nil -> %>
+      <% @status == :pre_commands -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
           <.restart_buttom
             :if={@supervisor == false}
             instance={@instance}
             restart_path={@restart_path}
           />
-          <%= @version %> [pre-commands]
+          [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>

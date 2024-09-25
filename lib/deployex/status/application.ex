@@ -52,7 +52,7 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def handle_info(:update_apps, %{monitoring: monitoring} = state) do
+  def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
     monitoring_apps =
@@ -63,13 +63,11 @@ defmodule Deployex.Status.Application do
 
     new_monitoring = [deployex] ++ monitoring_apps
 
-    if new_monitoring != monitoring do
-      Phoenix.PubSub.broadcast(
-        Deployex.PubSub,
-        @apps_data_updated_topic,
-        {:monitoring_app_updated, Node.self(), new_monitoring}
-      )
-    end
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      @apps_data_updated_topic,
+      {:monitoring_app_updated, Node.self(), new_monitoring}
+    )
 
     {:noreply, %{state | monitoring: new_monitoring}}
   end
@@ -232,11 +230,7 @@ defmodule Deployex.Status.Application do
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       start_time: start_time
-    } =
-      case Monitor.state(instance) do
-        {:ok, state} -> state
-        _error -> %Deployex.Monitor{}
-      end
+    } = Monitor.state(instance)
 
     check_otp_monitored_app = fn
       instance, :running ->

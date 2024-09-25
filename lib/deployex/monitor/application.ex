@@ -13,6 +13,8 @@ defmodule Deployex.Monitor.Application do
 
   @behaviour Deployex.Monitor.Adapter
 
+  @monitor_table "monitor-table"
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
@@ -32,28 +34,30 @@ defmodule Deployex.Monitor.Application do
       ) do
     Process.flag(:trap_exit, true)
 
-    Logger.info("Initialising monitor server for instance: #{instance}")
+    # This ETS Table will allow data unblocked data access
+    instance
+    |> table_name()
+    |> String.to_atom()
+    |> :ets.new([:set, :protected, :named_table])
 
-    Logger.metadata(instance: instance)
+    Logger.info("Initialising monitor server for instance: #{instance}")
 
     trigger_run_service(deploy_ref)
 
-    {:ok,
-     reset_state(
-       %Deployex.Monitor{
-         instance: instance,
-         timeout_app_ready: timeout_app_ready,
-         retry_delay_pre_commands: retry_delay_pre_commands
-       },
-       deploy_ref
-     )}
+    initial_state =
+      reset_state(
+        %Deployex.Monitor{
+          instance: instance,
+          timeout_app_ready: timeout_app_ready,
+          retry_delay_pre_commands: retry_delay_pre_commands
+        },
+        deploy_ref
+      )
+
+    {:ok, update_non_blocking_state(initial_state)}
   end
 
   @impl true
-  def handle_call(:state, _from, state) do
-    {:reply, {:ok, state}, state}
-  end
-
   def handle_call(
         :stop_service,
         _from,
@@ -79,13 +83,15 @@ defmodule Deployex.Monitor.Application do
     #       and the bin/beam.smp process
     cleanup_beam_process(state.instance)
 
-    {:reply, :ok, reset_state(state)}
+    state = reset_state(state)
+
+    {:reply, :ok, update_non_blocking_state(state)}
   end
 
   # This command is available during the hot upgrade. If it fails, the process will
   # restart and attempt a full deployment.
   def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
-    :ok = execute_pre_commands(state.instance, pre_commands, app_bin_path)
+    :ok = execute_pre_commands(state, pre_commands, app_bin_path)
 
     {:reply, {:ok, pre_commands}, state}
   end
@@ -108,7 +114,7 @@ defmodule Deployex.Monitor.Application do
     # Retry with backoff pattern
     trigger_run_service(state.deploy_ref)
 
-    {:reply, :ok, %{state | force_restart_count: force_restart_count}}
+    {:reply, :ok, update_non_blocking_state(%{state | force_restart_count: force_restart_count})}
   end
 
   @impl true
@@ -127,7 +133,7 @@ defmodule Deployex.Monitor.Application do
         run_service(state, version_map)
       end
 
-    {:noreply, state}
+    {:noreply, update_non_blocking_state(state)}
   end
 
   def handle_info({:check_running, pid, deploy_ref}, state)
@@ -136,7 +142,7 @@ defmodule Deployex.Monitor.Application do
 
     Deployment.notify_application_running(state.instance, deploy_ref)
 
-    {:noreply, %{state | status: :running}}
+    {:noreply, update_non_blocking_state(%{state | status: :running})}
   end
 
   def handle_info({:check_running, _pid, _deploy_ref}, state) do
@@ -164,7 +170,7 @@ defmodule Deployex.Monitor.Application do
     # Retry with backoff pattern
     trigger_run_service(state.deploy_ref, 2 * crash_restart_count * 1000)
 
-    {:noreply, %{state | crash_restart_count: crash_restart_count}}
+    {:noreply, update_non_blocking_state(%{state | crash_restart_count: crash_restart_count})}
   end
 
   def handle_info({:EXIT, pid, reason}, state) do
@@ -180,9 +186,16 @@ defmodule Deployex.Monitor.Application do
   ### ==========================================================================
   @impl true
   def state(instance) do
-    instance
-    |> global_name()
-    |> Common.call_gen_server(:state)
+    [{_, value}] =
+      instance
+      |> table_name()
+      |> String.to_existing_atom()
+      |> :ets.lookup(instance)
+
+    value
+  rescue
+    _ ->
+      %Deployex.Monitor{}
   end
 
   @impl true
@@ -206,7 +219,7 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  def global_name(instance), do: %{module: __MODULE__, instance: instance}
+  def global_name(instance), do: %{node: Node.self(), module: __MODULE__, instance: instance}
 
   ### ==========================================================================
   ### Private functions
@@ -228,7 +241,7 @@ defmodule Deployex.Monitor.Application do
 
     with true <- File.exists?(app_exec),
          :ok <- Logger.info(" # Identified executable: #{app_exec}"),
-         :ok <- execute_pre_commands(instance, version_map.pre_commands, :current) do
+         :ok <- execute_pre_commands(state, version_map.pre_commands, :current) do
       Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
@@ -272,6 +285,7 @@ defmodule Deployex.Monitor.Application do
     export RELEASE_NODE_SUFFIX=-#{instance}
     export PORT=#{phx_port}
     #{executable_path} #{command}
+    sleep 3
     """
   end
 
@@ -284,15 +298,19 @@ defmodule Deployex.Monitor.Application do
   end
 
   # credo:disable-for-lines:28
-  defp execute_pre_commands(_instance, pre_commands, _bin_path) when pre_commands == [], do: :ok
+  defp execute_pre_commands(_state, pre_commands, _bin_path) when pre_commands == [], do: :ok
 
-  defp execute_pre_commands(instance, pre_commands, bin_path) do
+  defp execute_pre_commands(%{instance: instance, status: status} = state, pre_commands, bin_path) do
     migration_exec = executable_path(instance, bin_path)
+
+    update_non_blocking_state(%{state | status: :pre_commands})
 
     if File.exists?(migration_exec) do
       Logger.info(" # Migration executable: #{migration_exec}")
 
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
+        Logger.info(" # Executing: #{pre_command}")
+
         OpSys.run(run_app_bin(instance, migration_exec, pre_command), [
           :sync,
           {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
@@ -313,6 +331,7 @@ defmodule Deployex.Monitor.Application do
     else
       {:error, :migration_exec_non_available}
     end
+    |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
   end
 
   defp cleanup_beam_process(instance) do
@@ -341,4 +360,15 @@ defmodule Deployex.Monitor.Application do
         start_time: nil,
         deploy_ref: deploy_ref
     }
+
+  defp table_name(instance), do: @monitor_table <> "-#{instance}"
+
+  defp update_non_blocking_state(%{instance: instance} = state) do
+    instance
+    |> table_name()
+    |> String.to_existing_atom()
+    |> :ets.insert({instance, state})
+
+    state
+  end
 end

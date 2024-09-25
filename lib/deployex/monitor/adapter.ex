@@ -7,7 +7,7 @@ defmodule Deployex.Monitor.Adapter do
               {:ok, pid} | {:error, pid(), :already_started}
   @callback stop_service(integer()) :: :ok
   @callback restart(integer()) :: :ok | {:error, :application_is_not_running}
-  @callback state(integer()) :: {:ok, Deployex.Monitor.t()} | {:error, :rescued}
+  @callback state(integer()) :: Deployex.Monitor.t()
   @callback run_pre_commands(integer(), list(), :new | :current) ::
               {:ok, list()} | {:error, :rescued}
   @callback global_name(integer()) :: map()
