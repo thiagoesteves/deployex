@@ -67,7 +67,7 @@ defmodule Deployex.Status.Application do
       Phoenix.PubSub.broadcast(
         Deployex.PubSub,
         @apps_data_updated_topic,
-        {:monitoring_app_updated, new_monitoring}
+        {:monitoring_app_updated, Node.self(), new_monitoring}
       )
     end
 

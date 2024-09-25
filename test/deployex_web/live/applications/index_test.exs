@@ -50,7 +50,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{last_deployment: "hot_upgrade"})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     assert render(view) =~ "HOT UPGRADE"
   end
@@ -78,7 +82,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{crash_restart_count: 1, force_restart_count: 1})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     assert render(view) =~
              "Crash Restart</span><span class=\"bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse\">\n      1"
@@ -106,7 +114,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{otp: :not_connected})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     assert render(view) =~ "NOT CONNECTED"
   end
@@ -130,7 +142,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application()
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     assert render(view) =~ "NOT SUPPORTED"
   end
@@ -160,7 +176,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{status: :starting, version: "1.0.0"})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     html = render(view)
     assert html =~ "1.0.0 [starting]"
@@ -171,7 +191,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{status: :pre_commands, version: "1.0.0"})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     html = render(view)
     assert html =~ "1.0.0 [pre-commands]"
@@ -182,11 +206,50 @@ defmodule DeployexWeb.Applications.IndexTest do
       Monitoring.application(%{status: :running, version: "1.0.0"})
     ]
 
-    Phoenix.PubSub.broadcast(Deployex.PubSub, topic, {:monitoring_app_updated, new_state})
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
 
     html = render(view)
     assert html =~ "1.0.0 [running]"
     refute html =~ "bg-gray-400"
     assert html =~ "bg-gradient-to-r from-cyan-200 to-yellow-100"
+  end
+
+  test "GET /applications with no updates when receiving from other nodes", %{conn: conn} do
+    topic = "topic-index-006"
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         Monitoring.deployex(),
+         Monitoring.application(%{status: :idle, version: nil})
+       ]}
+    end)
+    |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "Listing Applications"
+    assert html =~ "version not set"
+    assert html =~ "bg-gray-400"
+
+    new_state = [
+      Monitoring.deployex(),
+      Monitoring.application(%{status: :starting, version: "1.0.0"})
+    ]
+
+    Phoenix.PubSub.broadcast(
+      Deployex.PubSub,
+      topic,
+      {:monitoring_app_updated, :invalid@nohost, new_state}
+    )
+
+    html = render(view)
+    refute html =~ "1.0.0 [starting]"
   end
 end
