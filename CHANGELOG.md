@@ -1,6 +1,6 @@
 # Changelog for version v0.3.0
 
-## 0.3.0-rc19 ()
+## 0.3.0-rc19 (2024-09-26)
 
 ## Backwards incompatible changes for 0.3.0-rc18
  * None
@@ -10,6 +10,7 @@
 
 ### Bug fixes
  * [[`PR-62`](https://github.com/thiagoesteves/deployex/pull/62)] Modified application index to handle only its own node monitoring data
+ * [[`PR-63`](https://github.com/thiagoesteves/deployex/pull/63)] Fixed blocking state for Monitor GenServer, when migrations were too long, the system couldn't fetch its state anymore. It is now under an ETS table and can be accessed without going to the Monitor GenServer.
 
 ## 0.3.0-rc18 (2024-09-20)
 
