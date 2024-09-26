@@ -34,7 +34,7 @@ defmodule Deployex.Monitor.Application do
       ) do
     Process.flag(:trap_exit, true)
 
-    # This ETS Table will allow data unblocked state access
+    # NOTE: This ETS table provides non-blocking access to the state.
     instance
     |> table_name()
     |> String.to_atom()
@@ -285,7 +285,6 @@ defmodule Deployex.Monitor.Application do
     export RELEASE_NODE_SUFFIX=-#{instance}
     export PORT=#{phx_port}
     #{executable_path} #{command}
-    sleep 3
     """
   end
 

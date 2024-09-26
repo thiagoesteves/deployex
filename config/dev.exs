@@ -75,7 +75,7 @@ config :phoenix_live_view,
 config :swoosh, :api_client, false
 
 # Release configuration
-monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "ectoapp")
+monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
 
 config :deployex,
   env: "local",
