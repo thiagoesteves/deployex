@@ -151,13 +151,6 @@ defmodule Deployex.Status do
   def update(instance), do: default().update(instance)
 
   @doc """
-  Retrieve the current mode configuration
-  """
-  @impl true
-  @spec mode() :: {:ok, map()} | {:error, :rescued}
-  def mode, do: default().mode()
-
-  @doc """
   Set the configuration mode
   """
   @impl true

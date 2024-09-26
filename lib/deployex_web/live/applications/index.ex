@@ -136,16 +136,28 @@ defmodule DeployexWeb.ApplicationsLive do
   def mount(_params, _session, socket) when is_connected?(socket) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, Status.listener_topic())
 
-    {:ok, default_data(socket)}
+    {:ok, monitoring} = Deployex.Status.monitoring()
+
+    socket =
+      socket
+      |> assign(:node, Node.self())
+      |> assign(:monitoring_apps_data, monitoring)
+      |> assign(:selected_instance, nil)
+      |> assign(:terminal_message, nil)
+      |> assign(:terminal_process, nil)
+      |> assign(:versions, [])
+      |> assign(:mode_confirmation, %{
+        enabled: false,
+        mode_or_version: nil
+      })
+
+    {:ok, socket}
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, default_data(socket)}
-  end
-
-  defp default_data(socket) do
-    socket
+    {:ok,
+     socket
      |> assign(:node, Node.self())
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_instance, nil)
@@ -155,7 +167,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:mode_confirmation, %{
        enabled: false,
        mode_or_version: nil
-     })
+     })}
   end
 
   @impl true

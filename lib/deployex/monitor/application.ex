@@ -34,7 +34,7 @@ defmodule Deployex.Monitor.Application do
       ) do
     Process.flag(:trap_exit, true)
 
-    # This ETS Table will allow data unblocked data access
+    # This ETS Table will allow data unblocked state access
     instance
     |> table_name()
     |> String.to_atom()

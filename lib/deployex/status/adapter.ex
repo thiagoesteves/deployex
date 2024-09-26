@@ -17,6 +17,5 @@ defmodule Deployex.Status.Adapter do
   @callback history_version_list(integer() | binary()) :: list()
   @callback clear_new(integer()) :: :ok
   @callback update(integer()) :: :ok
-  @callback mode() :: {:ok, map()} | {:error, :rescued}
   @callback set_mode(:automatic | :manual, String.t()) :: {:ok, map()}
 end

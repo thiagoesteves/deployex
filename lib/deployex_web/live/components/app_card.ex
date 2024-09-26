@@ -319,8 +319,7 @@ defmodule DeployexWeb.Components.AppCard do
             :if={@supervisor == false}
             instance={@instance}
             restart_path={@restart_path}
-          />
-          [pre-commands]
+          /> [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
