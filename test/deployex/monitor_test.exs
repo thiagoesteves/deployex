@@ -119,7 +119,7 @@ defmodule Deployex.MonitorTest do
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert {:ok, %{status: :running}} = Deployex.Monitor.Application.state(instance)
+      assert %{status: :running} = Deployex.Monitor.Application.state(instance)
 
       assert :ok = MonitorApp.stop_service(instance)
     end
@@ -221,7 +221,7 @@ defmodule Deployex.MonitorTest do
 
       send(pid, {:check_running, test_pid_process, make_ref()})
 
-      assert {:ok, %{status: :starting}} = Deployex.Monitor.Application.state(instance)
+      assert %{status: :starting} = Deployex.Monitor.Application.state(instance)
 
       assert :ok = MonitorApp.stop_service(instance)
     end
@@ -260,7 +260,7 @@ defmodule Deployex.MonitorTest do
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert {:ok, %{status: :running}} = Deployex.Monitor.Application.state(instance)
+      assert %{status: :running} = Deployex.Monitor.Application.state(instance)
 
       {:ok, _pre_commands} =
         Deployex.Monitor.Application.run_pre_commands(instance, pre_commands, :new)
@@ -289,20 +289,25 @@ defmodule Deployex.MonitorTest do
         Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
         {:ok, test_pid_process, os_pid}
       end)
-      |> stub(:run, fn _commands, _options -> {:ok, test_pid_process} end)
+      |> expect(:run, 2, fn _commands, _options ->
+        Process.send_after(test_pid_process, {:handle_restart_event, ref}, 100)
+        {:ok, test_pid_process}
+      end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, pid} = MonitorApp.start_service(instance, ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert {:ok, %{status: :running, crash_restart_count: 0}} =
+      assert %{status: :running, crash_restart_count: 0} =
                Deployex.Monitor.Application.state(instance)
 
       send(pid, {:EXIT, test_pid_process, :forcing_restart})
 
+      assert_receive {:handle_restart_event, ^ref}, 1_000
+
       # Check restart was increased
-      assert {:ok, %{status: :running, crash_restart_count: 1}} =
+      assert %{status: :running, crash_restart_count: 1} =
                Deployex.Monitor.Application.state(instance)
 
       assert :ok = MonitorApp.stop_service(instance)
@@ -336,14 +341,14 @@ defmodule Deployex.MonitorTest do
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert {:ok, %{status: :running, crash_restart_count: 0}} =
+      assert %{status: :running, crash_restart_count: 0} =
                Deployex.Monitor.Application.state(instance)
 
       send(pid, {:EXIT, nil, :forcing_restart})
       send(pid, {:EXIT, nil, :normal})
 
       # Check restart was NOT incremented
-      assert {:ok, %{status: :running, crash_restart_count: 0}} =
+      assert %{status: :running, crash_restart_count: 0} =
                Deployex.Monitor.Application.state(instance)
 
       assert :ok = MonitorApp.stop_service(instance)
@@ -418,7 +423,7 @@ defmodule Deployex.MonitorTest do
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert {:ok, %{status: :running}} = Deployex.Monitor.Application.state(instance)
+      assert %{status: :running} = Deployex.Monitor.Application.state(instance)
 
       assert :ok = MonitorApp.stop_service(instance)
     end

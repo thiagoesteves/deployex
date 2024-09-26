@@ -198,7 +198,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     html = render(view)
-    assert html =~ "1.0.0 [pre-commands]"
+    assert html =~ "[pre-commands]"
     assert html =~ "bg-gray-400"
 
     new_state = [

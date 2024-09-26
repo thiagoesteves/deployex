@@ -7,7 +7,7 @@ defmodule Deployex.Monitor do
 
   @type t :: %__MODULE__{
           current_pid: pid() | nil,
-          instance: integer(),
+          instance: integer() | nil,
           status: :idle | :running | :starting,
           crash_restart_count: integer(),
           force_restart_count: integer(),
@@ -18,7 +18,7 @@ defmodule Deployex.Monitor do
         }
 
   defstruct current_pid: nil,
-            instance: 0,
+            instance: nil,
             status: :idle,
             crash_restart_count: 0,
             force_restart_count: 0,
@@ -61,7 +61,7 @@ defmodule Deployex.Monitor do
   Retrieve the expected current version for the application
   """
   @impl true
-  @spec state(integer()) :: {:ok, Deployex.Monitor.t()} | {:error, :rescued}
+  @spec state(integer()) :: Deployex.Monitor.t()
   def state(instance), do: default().state(instance)
 
   @doc """

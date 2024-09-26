@@ -123,16 +123,15 @@ defmodule Deployex.StatusAppTest do
   test "update monitoring apps" do
     Deployex.MonitorMock
     |> expect(:state, 3, fn instance ->
-      {:ok,
-       %Deployex.Monitor{
-         current_pid: nil,
-         instance: instance,
-         status: :idle,
-         crash_restart_count: 0,
-         force_restart_count: 0,
-         start_time: nil,
-         deploy_ref: :init
-       }}
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :idle,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
     end)
 
     # No info, update needed
@@ -186,16 +185,15 @@ defmodule Deployex.StatusAppTest do
         send(pid, {:handle_ref_event, ref})
       end
 
-      {:ok,
-       %Deployex.Monitor{
-         current_pid: nil,
-         instance: instance,
-         status: :idle,
-         crash_restart_count: 0,
-         force_restart_count: 0,
-         start_time: nil,
-         deploy_ref: :init
-       }}
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :idle,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
     end)
 
     assert {:ok, _pid} =
@@ -208,16 +206,14 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
 
-    assert {:ok,
-            %{
-              mode: :manual,
-              manual_version: %Deployex.Status.Version{
-                hash: "ABC",
-                pre_commands: [],
-                version: "1.0.1"
-              }
-            }} =
-             Deployex.Status.Application.mode(name)
+    assert %{
+             mode: :manual,
+             manual_version: %Deployex.Status.Version{
+               hash: "ABC",
+               pre_commands: [],
+               version: "1.0.1"
+             }
+           } = Storage.config()
   end
 
   test "Test set mode configuration to manual [invalid version]" do
@@ -235,16 +231,15 @@ defmodule Deployex.StatusAppTest do
         send(pid, {:handle_ref_event, ref})
       end
 
-      {:ok,
-       %Deployex.Monitor{
-         current_pid: nil,
-         instance: instance,
-         status: :idle,
-         crash_restart_count: 0,
-         force_restart_count: 0,
-         start_time: nil,
-         deploy_ref: :init
-       }}
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :idle,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
     end)
 
     assert {:ok, _pid} =
@@ -257,8 +252,7 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
 
-    assert {:ok, %{mode: :manual, manual_version: nil}} =
-             Deployex.Status.Application.mode(name)
+    assert %{mode: :manual, manual_version: nil} = Storage.config()
   end
 
   test "Test set mode configuration to automatic" do
@@ -276,16 +270,15 @@ defmodule Deployex.StatusAppTest do
         send(pid, {:handle_ref_event, ref})
       end
 
-      {:ok,
-       %Deployex.Monitor{
-         current_pid: nil,
-         instance: instance,
-         status: :idle,
-         crash_restart_count: 0,
-         force_restart_count: 0,
-         start_time: nil,
-         deploy_ref: :init
-       }}
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :idle,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
     end)
 
     assert {:ok, _pid} =
@@ -298,8 +291,7 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
 
-    assert {:ok, %{mode: :automatic, manual_version: nil}} =
-             Deployex.Status.Application.mode(name)
+    assert %{mode: :automatic, manual_version: nil} = Storage.config()
   end
 
   test "update" do

@@ -6,7 +6,7 @@ defmodule Deployex.Release do
   @behaviour Deployex.Release.Adapter
 
   alias Deployex.Common
-  alias Deployex.Status
+  alias Deployex.Storage
 
   defmodule Version do
     @moduledoc """
@@ -38,11 +38,11 @@ defmodule Deployex.Release do
   @spec get_current_version_map :: Deployex.Release.Version.t()
   def get_current_version_map do
     # Check if the manual or automatic mode is enabled
-    case Status.mode() do
-      {:ok, %{mode: :automatic}} ->
+    case Storage.config() do
+      %{mode: :automatic} ->
         default().get_current_version_map()
 
-      {:ok, %{mode: :manual, manual_version: version}} ->
+      %{mode: :manual, manual_version: version} ->
         version
     end
     |> Common.cast_schema_fields(%Deployex.Release.Version{})
