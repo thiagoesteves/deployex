@@ -109,14 +109,23 @@ defmodule DeployexWeb.Applications.ModeTest do
     pid = self()
 
     Deployex.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         Monitoring.deployex(%{
+           mode: :manual,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"})
+         }),
+         Monitoring.application()
+       ]}
+    end)
     |> expect(:listener_topic, fn -> topic end)
     |> expect(:set_mode, fn :automatic, _version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
       {:ok,
        %Deployex.Storage.Config{
-         mode: :manual,
+         mode: :automatic,
          manual_version: FixtureStatus.version(%{version: "1.0.1"})
        }}
     end)
@@ -135,9 +144,6 @@ defmodule DeployexWeb.Applications.ModeTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     refute has_element?(index_live, "#confirm-button-mode")
-
-    assert render(index_live) =~
-             "<option selected=\"selected\" value=\"automatic\">automatic</option>"
   end
 
   test "Check manual mode is set", %{conn: conn} do
@@ -164,5 +170,52 @@ defmodule DeployexWeb.Applications.ModeTest do
     {:ok, _index_live, html} = live(conn, ~p"/applications")
 
     assert html =~ "<option selected=\"selected\" value=\"1.0.2\">1.0.2</option>"
+  end
+
+  test "Check setting the same version is not possible", %{conn: conn} do
+    topic = "topic-mode-004"
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         Monitoring.deployex(%{
+           mode: :manual,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"})
+         }),
+         Monitoring.application()
+       ]}
+    end)
+    |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn ->
+      Enum.map(1..3, fn index ->
+        FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
+      end)
+    end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    refute render_change(index_live, "app-mode-select", %{
+             "select-mode" => "1.0.2"
+           }) =~ "Are you sure you want to set"
+  end
+
+  test "Check setting the same mode is not possible", %{conn: conn} do
+    topic = "topic-mode-004"
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:listener_topic, fn -> topic end)
+    |> stub(:history_version_list, fn ->
+      Enum.map(1..3, fn index ->
+        FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
+      end)
+    end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    refute render_change(index_live, "app-mode-select", %{
+             "select-mode" => "automatic"
+           }) =~ "Are you sure you want to set"
   end
 end

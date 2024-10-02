@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc20 (2024-10-02)
+
+## Backwards incompatible changes for 0.3.0-rc19
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * [[`PR-64`](https://github.com/thiagoesteves/deployex/pull/64)] Fixed bug that was rendering mode set when not required
+
 ## 0.3.0-rc19 (2024-09-26)
 
 ## Backwards incompatible changes for 0.3.0-rc18
