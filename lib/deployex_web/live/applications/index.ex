@@ -138,6 +138,14 @@ defmodule DeployexWeb.ApplicationsLive do
 
     {:ok, monitoring} = Deployex.Status.monitoring()
 
+    mode_or_version =
+      monitoring
+      |> Enum.find(&(&1.name == "deployex"))
+      |> case do
+        %{mode: :automatic} -> "automatic"
+        app -> app.manual_version.version
+      end
+
     socket =
       socket
       |> assign(:node, Node.self())
@@ -148,7 +156,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:versions, [])
       |> assign(:mode_confirmation, %{
         enabled: false,
-        mode_or_version: nil
+        mode_or_version: mode_or_version
       })
 
     {:ok, socket}
@@ -290,6 +298,15 @@ defmodule DeployexWeb.ApplicationsLive do
      socket
      |> assign(:mode_confirmation, %{socket.assigns.mode_confirmation | enabled: false})
      |> push_patch(to: ~p"/applications")}
+  end
+
+  def handle_event(
+        "app-mode-select",
+        %{"select-mode" => rcv_mode_or_version},
+        %{assigns: %{mode_confirmation: %{mode_or_version: mode_or_version}}} = socket
+      )
+      when rcv_mode_or_version == mode_or_version or mode_or_version == nil do
+    {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
   def handle_event("app-mode-select", %{"select-mode" => mode_or_version}, socket) do
