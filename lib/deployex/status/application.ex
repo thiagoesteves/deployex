@@ -76,7 +76,7 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def listener_topic, do: @apps_data_updated_topic
+  def subscribe, do: Phoenix.PubSub.subscribe(Deployex.PubSub, @apps_data_updated_topic)
 
   @impl true
   def current_version(instance) do

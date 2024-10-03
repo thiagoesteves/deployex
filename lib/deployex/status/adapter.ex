@@ -9,7 +9,7 @@ defmodule Deployex.Status.Adapter do
   @callback monitoring :: {:ok, list()} | {:error, :rescued}
   @callback current_version(integer()) :: String.t() | nil
   @callback current_version_map(integer()) :: Status.Version.t()
-  @callback listener_topic() :: String.t()
+  @callback subscribe() :: :ok
   @callback set_current_version_map(integer(), Release.Version.t(), Keyword.t()) :: :ok
   @callback add_ghosted_version(Status.Version.t()) :: {:ok, list()}
   @callback ghosted_version_list :: list()

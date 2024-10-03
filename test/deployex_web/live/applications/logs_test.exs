@@ -15,15 +15,13 @@ defmodule DeployexWeb.Applications.LogsTest do
   alias Deployex.Fixture.Terminal, as: FixtureTerminal
 
   test "Access to stdout logs by instance", %{conn: conn} do
-    topic = "topic-logs-000"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -46,15 +44,13 @@ defmodule DeployexWeb.Applications.LogsTest do
   end
 
   test "Access to stderr logs by instance", %{conn: conn} do
-    topic = "topic-logs-001"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -77,15 +73,13 @@ defmodule DeployexWeb.Applications.LogsTest do
   end
 
   test "Redirect received string to JS", %{conn: conn} do
-    topic = "topic-logs-002"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -150,11 +144,9 @@ defmodule DeployexWeb.Applications.LogsTest do
   end
 
   test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
-    topic = "topic-logs-003"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")

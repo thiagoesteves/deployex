@@ -18,15 +18,13 @@ defmodule DeployexWeb.Applications.TerminalTest do
   alias DeployexWeb.ApplicationsLive.Terminal
 
   test "Access to terminal by instance", %{conn: conn} do
-    topic = "topic-terminal-000"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -51,14 +49,12 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Invalid cookie", %{conn: conn} do
-    topic = "topic-terminal-001"
-
     ref = make_ref()
     test_pid_process = self()
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -81,8 +77,6 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Send Character to iex terminal", %{conn: conn} do
-    topic = "topic-terminal-002"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
@@ -90,7 +84,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock
@@ -118,11 +112,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Try to execute without binary file", %{conn: conn} do
-    topic = "topic-terminal-003"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Binary.remove_bin_files(1)
@@ -133,15 +125,13 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Terminal timed out", %{conn: conn} do
-    topic = "topic-terminal-004"
-
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock

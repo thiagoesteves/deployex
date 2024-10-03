@@ -1,5 +1,16 @@
 # Changelog for version v0.3.0
 
+## 0.3.0-rc21 ()
+
+## Backwards incompatible changes for 0.3.0-rc20
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * [[`PR-65`](https://github.com/thiagoesteves/deployex/pull/65)] Changed function listener to subscribe
+
 ## 0.3.0-rc20 (2024-10-02)
 
 ## Backwards incompatible changes for 0.3.0-rc19

@@ -14,11 +14,9 @@ defmodule DeployexWeb.Applications.VersionsTest do
   ]
 
   test "GET /versions full list", %{conn: conn} do
-    topic = "topic-version-000"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       [
         FixtureStatus.version(%{
@@ -54,8 +52,6 @@ defmodule DeployexWeb.Applications.VersionsTest do
   end
 
   test "GET /versions list by instance", %{conn: conn} do
-    topic = "topic-version-001"
-
     full_list = [
       FixtureStatus.version(%{
         version: "10.11.16",
@@ -73,7 +69,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> full_list end)
     |> stub(:history_version_list, fn "1" -> full_list end)
 
