@@ -92,11 +92,11 @@ defmodule Deployex.Status do
   def current_version_map(instance), do: default().current_version_map(instance)
 
   @doc """
-  Retrieve the topic in which the module is publishing its status
+  Subscribe to receive status update
   """
   @impl true
-  @spec listener_topic() :: String.t()
-  def listener_topic, do: default().listener_topic
+  @spec subscribe() :: :ok
+  def subscribe, do: default().subscribe
 
   @doc """
   Set the current version map

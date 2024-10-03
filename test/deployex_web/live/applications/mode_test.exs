@@ -14,11 +14,9 @@ defmodule DeployexWeb.Applications.ModeTest do
   alias Deployex.Fixture.Status, as: FixtureStatus
 
   test "Check all versions are available", %{conn: conn} do
-    topic = "topic-mode-000"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..40, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -44,11 +42,9 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Set manual mode - cancel operation", %{conn: conn} do
-    topic = "topic-mode-001"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -67,15 +63,13 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Set manual mode - confirm operation", %{conn: conn} do
-    topic = "topic-mode-001"
-
     ref = make_ref()
     pid = self()
     expected_manual_version = "1.0.1"
 
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> expect(:set_mode, fn :manual, ^expected_manual_version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -103,8 +97,6 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Set automatic mode - confirm operation", %{conn: conn} do
-    topic = "topic-mode-002"
-
     ref = make_ref()
     pid = self()
 
@@ -119,7 +111,7 @@ defmodule DeployexWeb.Applications.ModeTest do
          Monitoring.application()
        ]}
     end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> expect(:set_mode, fn :automatic, _version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -147,8 +139,6 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Check manual mode is set", %{conn: conn} do
-    topic = "topic-mode-003"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn ->
       {:ok,
@@ -160,7 +150,7 @@ defmodule DeployexWeb.Applications.ModeTest do
          Monitoring.application()
        ]}
     end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -173,8 +163,6 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Check setting the same version is not possible", %{conn: conn} do
-    topic = "topic-mode-004"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn ->
       {:ok,
@@ -186,7 +174,7 @@ defmodule DeployexWeb.Applications.ModeTest do
          Monitoring.application()
        ]}
     end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -201,11 +189,9 @@ defmodule DeployexWeb.Applications.ModeTest do
   end
 
   test "Check setting the same mode is not possible", %{conn: conn} do
-    topic = "topic-mode-004"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})

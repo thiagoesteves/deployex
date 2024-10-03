@@ -79,8 +79,8 @@ defmodule Deployex.StatusAppTest do
            } = StatusApp.current_version_map(3)
   end
 
-  test "listener_topic/0" do
-    assert StatusApp.listener_topic() == "monitoring_app_updated"
+  test "subscribe/0" do
+    assert :ok == "monitoring_app_updated"
   end
 
   test "ghosted_version" do

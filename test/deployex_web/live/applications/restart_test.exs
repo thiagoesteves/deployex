@@ -14,11 +14,9 @@ defmodule DeployexWeb.Applications.RestartTest do
   alias Deployex.Fixture.Status, as: FixtureStatus
 
   test "Click restart Button, but cancel the operation", %{conn: conn} do
-    topic = "topic-restart-000"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -32,11 +30,9 @@ defmodule DeployexWeb.Applications.RestartTest do
   end
 
   test "Click restart Button, confirm the operation", %{conn: conn} do
-    topic = "topic-restart-001"
-
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:listener_topic, fn -> topic end)
+    |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.MonitorMock
