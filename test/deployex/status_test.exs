@@ -80,7 +80,7 @@ defmodule Deployex.StatusAppTest do
   end
 
   test "subscribe/0" do
-    assert :ok == "monitoring_app_updated"
+    assert StatusApp.subscribe() == :ok
   end
 
   test "ghosted_version" do

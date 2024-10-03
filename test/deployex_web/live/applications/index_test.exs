@@ -33,9 +33,11 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications deployment: hot-upgrade", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -50,7 +52,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -58,9 +60,11 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications restarts (crash and force)", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -80,7 +84,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -92,9 +96,11 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications OTP not connected", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -110,7 +116,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -118,9 +124,11 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications TLS not supported", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -136,7 +144,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -144,6 +152,8 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications application states", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn ->
       {:ok,
@@ -152,7 +162,7 @@ defmodule DeployexWeb.Applications.IndexTest do
          Monitoring.application(%{status: :idle, version: nil})
        ]}
     end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -168,7 +178,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -183,7 +193,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -198,7 +208,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
@@ -209,6 +219,8 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   test "GET /applications with no updates when receiving from other nodes", %{conn: conn} do
+    topic = "test-topic"
+
     Deployex.StatusMock
     |> expect(:monitoring, fn ->
       {:ok,
@@ -217,7 +229,7 @@ defmodule DeployexWeb.Applications.IndexTest do
          Monitoring.application(%{status: :idle, version: nil})
        ]}
     end)
-    |> expect(:subscribe, fn -> :ok end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -233,7 +245,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     Phoenix.PubSub.broadcast(
       Deployex.PubSub,
-      "monitoring_app_updated",
+      topic,
       {:monitoring_app_updated, :invalid@nohost, new_state}
     )
 
