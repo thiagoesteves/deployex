@@ -1,4 +1,4 @@
-name: Publishing Releases
+name: Publishing Testing Releases
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
 
 jobs:
   buildUbuntu2004:
-    if: github.event.base_ref == 'refs/heads/main'
+    if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-20.04
     permissions:
       contents: write
@@ -44,7 +44,7 @@ jobs:
           path: .
 
   buildUbuntu2204:
-    if: github.event.base_ref == 'refs/heads/main'
+    if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -74,7 +74,7 @@ jobs:
           path: .
 
   copyInstaller:
-    if: github.event.base_ref == 'refs/heads/main'
+    if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-22.04
     permissions:
       contents: write
@@ -89,11 +89,11 @@ jobs:
           name: deployex.sh
           path: .
 
-  build3:
-    if: github.event.base_ref == 'refs/heads/main'
-    name: Publish artifacts to the release
+  upload_aws:
+    if: github.event.base_ref != 'refs/heads/main'
+    name: Upload files to AWS environment
     needs: [buildUbuntu2004, buildUbuntu2204, copyInstaller]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     permissions:
       contents: write
     steps:
@@ -114,9 +114,30 @@ jobs:
        with:
          name: deployex.sh
          path: .
-
-     - name: Release the files
-       uses: ncipollo/release-action@v1
+ 
+     - name: Upload ubuntu-20.04 artefact
+       uses: prewk/s3-cp-action@v2
        with:
-         artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz, deployex.sh"
-         bodyFile: "CHANGELOG.md"
+         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws_region: "sa-east-1"
+         source: "deployex-ubuntu-20.04.tar.gz"
+         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+
+     - name: Upload ubuntu-22.04 artefact
+       uses: prewk/s3-cp-action@v2
+       with:
+         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws_region: "sa-east-1"
+         source: "deployex-ubuntu-22.04.tar.gz"
+         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+
+     - name: Upload installer artefact
+       uses: prewk/s3-cp-action@v2
+       with:
+         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws_region: "sa-east-1"
+         source: "deployex.sh"
+         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
