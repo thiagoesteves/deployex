@@ -65,7 +65,7 @@ defmodule Deployex.MixProject do
 
   defp package do
     [
-      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md", ".formatter.exs"],
+      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md", "CHANGELOG", ".formatter.exs"],
       maintainers: ["Thiago Esteves"],
       licenses: ["MIT"],
       links: %{
@@ -79,7 +79,7 @@ defmodule Deployex.MixProject do
   defp docs do
     [
       main: "Deployex",
-      extras: ["README.md", "LICENSE.md"]
+      extras: ["README.md", "LICENSE.md", "CHANGELOG.md"]
     ]
   end
 
