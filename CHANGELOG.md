@@ -9,8 +9,8 @@
  * None
 
 ### Bug fixes
- * [[`PR-65`](https://github.com/thiagoesteves/deployex/pull/65)] Changed function listener to subscribe
- * [[`PR-66`](https://github.com/thiagoesteves/deployex/pull/66)] Added ex_docs and enhanced documentation
+ * [[`PR-70`](https://github.com/thiagoesteves/deployex/pull/70)] Changed function listener to subscribe
+ * [[`PR-71`](https://github.com/thiagoesteves/deployex/pull/71)] Added ex_docs and enhanced documentation
 
 ## 0.3.0-rc20 (2024-10-02)
 
@@ -21,7 +21,7 @@
  * None
 
 ### Bug fixes
- * [[`PR-64`](https://github.com/thiagoesteves/deployex/pull/64)] Fixed bug that was rendering mode set when not required
+ * [[`PR-69`](https://github.com/thiagoesteves/deployex/pull/69)] Fixed bug that was rendering mode set when not required
 
 ## 0.3.0-rc19 (2024-09-26)
 
