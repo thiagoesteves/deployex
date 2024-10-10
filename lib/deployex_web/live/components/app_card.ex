@@ -35,7 +35,6 @@ defmodule DeployexWeb.Components.AppCard do
           status={@status}
           version={@version}
           instance={@instance}
-          supervisor={@supervisor}
           restart_path={@restart_path}
         />
 
@@ -291,11 +290,7 @@ defmodule DeployexWeb.Components.AppCard do
     default_spec_class = "font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
 
     class =
-      if assigns.supervisor do
-        default_spec_class
-      else
-        "flex items-center justify-between font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
-      end
+      "flex items-center justify-between font-mono text-sm text-center p-2 border-b-2 border-black rounded-t-lg"
 
     assigns =
       assigns
@@ -306,28 +301,16 @@ defmodule DeployexWeb.Components.AppCard do
     <%= cond do %>
       <% @status == :running and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
-          <.restart_buttom
-            :if={@supervisor == false}
-            instance={@instance}
-            restart_path={@restart_path}
-          />
+          <.restart_buttom instance={@instance} restart_path={@restart_path} />
           <%= @version %> [running]
         </div>
       <% @status == :pre_commands -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
-          <.restart_buttom
-            :if={@supervisor == false}
-            instance={@instance}
-            restart_path={@restart_path}
-          /> [pre-commands]
+          <.restart_buttom instance={@instance} restart_path={@restart_path} /> [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
-          <.restart_buttom
-            :if={@supervisor == false}
-            instance={@instance}
-            restart_path={@restart_path}
-          />
+          <.restart_buttom instance={@instance} restart_path={@restart_path} />
           <%= @version %> [starting]
         </div>
       <% true -> %>
