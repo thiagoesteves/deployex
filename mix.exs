@@ -6,6 +6,9 @@ defmodule Deployex.MixProject do
       app: :deployex,
       version: "0.3.0-rc21",
       elixir: "~> 1.15",
+      name: "DeployEx",
+      source_url: "https://github.com/thiagoesteves/deployex",
+      homepage_url: "https://github.com/thiagoesteves/deployex",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -75,9 +78,8 @@ defmodule Deployex.MixProject do
 
   defp docs do
     [
-      source_url: "https://github.com/thiagoesteves/deployex",
-      homepage_url: "https://github.com/thiagoesteves/deployex",
-      main: "home"
+      main: "Deployex",
+      extras: ["README.md", "LICENSE.md"]
     ]
   end
 
@@ -124,6 +126,7 @@ defmodule Deployex.MixProject do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},

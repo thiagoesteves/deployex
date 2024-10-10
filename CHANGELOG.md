@@ -10,6 +10,7 @@
 
 ### Bug fixes
  * [[`PR-65`](https://github.com/thiagoesteves/deployex/pull/65)] Changed function listener to subscribe
+ * [[`PR-66`](https://github.com/thiagoesteves/deployex/pull/66)] Added ex_docs and enhanced documentation
 
 ## 0.3.0-rc20 (2024-10-02)
 

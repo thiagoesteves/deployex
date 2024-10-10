@@ -46,12 +46,18 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ## ⚠️ Next steps
 
+### Version 0.4.0
+
 - [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
+- [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
+- [ ] 💤 Continuous improvement in UI design.
+
+### No version defined yet
+
 - [ ] 💤 Health checks via OTP distribution
 - [ ] 💤 Orchestrate distributed databasses like [Khepri](https://github.com/rabbitmq/khepri)
 - [ ] 💤 Enhance installer to become an elixir app capable of hotupgrade DeployEx
-- [ ] 💤 Continuous improvement in UI design.
 
 ## 📁 Getting Started
 
