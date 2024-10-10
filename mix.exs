@@ -6,6 +6,9 @@ defmodule Deployex.MixProject do
       app: :deployex,
       version: "0.3.0-rc21",
       elixir: "~> 1.15",
+      name: "DeployEx",
+      source_url: "https://github.com/thiagoesteves/deployex",
+      homepage_url: "https://github.com/thiagoesteves/deployex",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -62,7 +65,7 @@ defmodule Deployex.MixProject do
 
   defp package do
     [
-      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md", ".formatter.exs"],
+      files: ["lib", "priv", "mix.exs", "README.md", "LICENSE.md", "CHANGELOG", ".formatter.exs"],
       maintainers: ["Thiago Esteves"],
       licenses: ["MIT"],
       links: %{
@@ -75,9 +78,8 @@ defmodule Deployex.MixProject do
 
   defp docs do
     [
-      source_url: "https://github.com/thiagoesteves/deployex",
-      homepage_url: "https://github.com/thiagoesteves/deployex",
-      main: "home"
+      main: "Deployex",
+      extras: ["README.md", "LICENSE.md", "CHANGELOG.md"]
     ]
   end
 
@@ -124,11 +126,18 @@ defmodule Deployex.MixProject do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
       {:goth, "~> 1.4"}
     ]
+  end
+
+  defp copy_static_ex_doc(_) do
+    destination_path = "./doc/docs/static"
+    File.mkdir_p!(destination_path)
+    File.cp_r("./docs/static", destination_path)
   end
 
   # Aliases are shortcuts or tasks specific to the current project.
@@ -139,6 +148,7 @@ defmodule Deployex.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      docs: ["docs", &copy_static_ex_doc/1],
       setup: ["deps.get", "assets.setup", "assets.build"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["tailwind deployex", "esbuild deployex"],

@@ -1,30 +1,31 @@
-# Changelog for version v0.3.0
+# CHANGELOG (v0.3.0)
 
 ## 0.3.0-rc21 ()
 
-## Backwards incompatible changes for 0.3.0-rc20
+### Backwards incompatible changes for 0.3.0-rc20
  * None
 
 ### Installer Actions
  * None
 
 ### Bug fixes
- * [[`PR-65`](https://github.com/thiagoesteves/deployex/pull/65)] Changed function listener to subscribe
+ * [[`PR-70`](https://github.com/thiagoesteves/deployex/pull/70)] Changed function listener to subscribe
+ * [[`PR-71`](https://github.com/thiagoesteves/deployex/pull/71)] Added ex_docs and enhanced documentation
 
 ## 0.3.0-rc20 (2024-10-02)
 
-## Backwards incompatible changes for 0.3.0-rc19
+### Backwards incompatible changes for 0.3.0-rc19
  * None
 
 ### Installer Actions
  * None
 
 ### Bug fixes
- * [[`PR-64`](https://github.com/thiagoesteves/deployex/pull/64)] Fixed bug that was rendering mode set when not required
+ * [[`PR-69`](https://github.com/thiagoesteves/deployex/pull/69)] Fixed bug that was rendering mode set when not required
 
 ## 0.3.0-rc19 (2024-09-26)
 
-## Backwards incompatible changes for 0.3.0-rc18
+### Backwards incompatible changes for 0.3.0-rc18
  * None
 
 ### Installer Actions
@@ -36,7 +37,7 @@
 
 ## 0.3.0-rc18 (2024-09-20)
 
-## Backwards incompatible changes for 0.3.0-rc17
+### Backwards incompatible changes for 0.3.0-rc17
  * A sew set of env vars were introduced in the installer, it requires update.
 
 ### Installer Actions
@@ -47,7 +48,7 @@
 
 ## 0.3.0-rc17 (2024-09-16)
 
-## Backwards incompatible changes for 0.3.0-rc16
+### Backwards incompatible changes for 0.3.0-rc16
  * None
 
 ### Installer Actions
@@ -58,7 +59,7 @@
 
 ## 0.3.0-rc16 (2024-09-13)
 
-## Backwards incompatible changes for 0.3.0-rc15
+### Backwards incompatible changes for 0.3.0-rc15
  * None
 
 ### Installer Actions
@@ -72,7 +73,7 @@
 
 ## 0.3.0-rc15 (2024-09-12)
 
-## Backwards incompatible changes for 0.3.0-rc14
+### Backwards incompatible changes for 0.3.0-rc14
  * Changed release adapter to be configurable (adapter and bucket), new variables documentation added to the README.
  * Created secrets adapter (adapter and path) to be able to configure different formats of fetching secrets, new variables documentation added to the README.
  * Added new configuration for google credentials when using GCP, new variables documentation added to the README.
@@ -89,7 +90,7 @@
 
 ## 0.3.0-rc14 (2024-09-03)
 
-## Backwards incompatible changes for 0.3.0-rc13
+### Backwards incompatible changes for 0.3.0-rc13
  * Changed storage to use term files instead jason format, updating to this version will require losing previous data.
  * New secret needs to be set to allow authentication __DEPLOYEX_ADMIN_HASHED_PASSWORD__
 
@@ -106,7 +107,7 @@
 
 ## 0.3.0-rc13 (2024-08-02)
 
-## Backwards incompatible changes for 0.3.0-rc12
+### Backwards incompatible changes for 0.3.0-rc12
  * A new folder was created (`storage/{app-name}`) and this will represent the persistent data for deployex, updating to this version will require losing previous data.
 
 ### Bug fixes
@@ -118,7 +119,7 @@
 
 ## 0.3.0-rc12 (2024-07-29)
 
-## Backwards incompatible changes for 0.3.0-rc11
+### Backwards incompatible changes for 0.3.0-rc11
  * None
 
 ### Bug fixes
@@ -130,7 +131,7 @@
 
 ## 0.3.0-rc11 (2024-07-09)
 
-## Backwards incompatible changes for 0.3.0-rc10
+### Backwards incompatible changes for 0.3.0-rc10
  * Modified aws secret manager name which requires an update from the previous version
  * Modified installer script to use a configuration json file instead arguments
 
@@ -143,7 +144,7 @@
 
 ## 0.3.0-rc10 (2024-07-02)
 
-## Backwards incompatible changes for 0.3.0-rc9
+### Backwards incompatible changes for 0.3.0-rc9
  * None
 
 ### Bug fixes
@@ -154,7 +155,7 @@
 
 ## 0.3.0-rc9 (2024-06-27)
 
-## Backwards incompatible changes for 0.3.0-rc8
+### Backwards incompatible changes for 0.3.0-rc8
  * None
 
 ### Bug fixes
@@ -165,7 +166,7 @@
 
 ## 0.3.0-rc8 (2024-06-26)
 
-## Backwards incompatible changes for 0.3.0-rc7
+### Backwards incompatible changes for 0.3.0-rc7
  * None
 
 ### Bug fixes
@@ -176,7 +177,7 @@
 
 ## 0.3.0-rc7 (2024-06-26)
 
-## Backwards incompatible changes for 0.3.0-rc6
+### Backwards incompatible changes for 0.3.0-rc6
  * None
 
 ### Bug fixes
@@ -187,7 +188,7 @@
 
 ## 0.3.0-rc6 (2024-06-25)
 
-## Backwards incompatible changes for 0.3.0-rc5
+### Backwards incompatible changes for 0.3.0-rc5
  * None
 
 ### Bug fixes
@@ -198,7 +199,7 @@
 
 ## 0.3.0-rc5 (2024-06-24)
 
-## Backwards incompatible changes for 0.3.0-rc4
+### Backwards incompatible changes for 0.3.0-rc4
  * None
 
 ### Bug fixes
@@ -209,7 +210,7 @@
 
 ## 0.3.0-rc4 (2024-06-10)
 
-## Backwards incompatible changes for 0.3.0-rc3
+### Backwards incompatible changes for 0.3.0-rc3
  * None
 
 ### Bug fixes
@@ -220,7 +221,7 @@
 
 ## 0.3.0-rc3 (2024-06-02)
 
-## Backwards incompatible changes for 0.3.0-rc2
+### Backwards incompatible changes for 0.3.0-rc2
  * None
 
 ### Bug fixes
@@ -232,7 +233,7 @@
 
 ## 0.3.0-rc2 (2024-06-01)
 
-## Backwards incompatible changes for 0.3.0-rc1
+### Backwards incompatible changes for 0.3.0-rc1
  * None
 
 ### Bug fixes
@@ -244,7 +245,7 @@
 
 ## 0.3.0-rc1 (2024-05-29)
 
-## Backwards incompatible changes for 0.2.1-rc1
+### Backwards incompatible changes for 0.2.1-rc1
  * This version requires new environment variables to be defined. Please ensure the following environment variables are set.
 
 ### Bug fixes

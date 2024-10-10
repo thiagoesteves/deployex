@@ -95,6 +95,9 @@ jobs:
       - name: Credo
         run: mix credo --strict
 
+      - name: Ex Doc
+        run: mix docs --failed
+
       - name: Mix Audit
         run: mix deps.audit
 
