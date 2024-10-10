@@ -75,7 +75,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:current_version, fn _instance -> "1.2.3" end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn _instance, _ref, _options ->
+      |> expect(:start_service, 1, fn _instance, _deploy_ref, _options ->
         send(pid, {:handle_ref_event, ref})
         {:ok, self()}
       end)
@@ -109,7 +109,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -156,7 +156,7 @@ defmodule Deployex.DeploymentTest do
       |> stub(:current_version, fn _instance -> "1.0.0" end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn _instance, _deploy_ref, _options -> {:ok, self()} end)
       |> expect(:stop_service, 0, fn _instance -> :ok end)
       |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
 
@@ -214,7 +214,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn _instance, _deploy_ref, _options -> {:ok, self()} end)
       |> expect(:stop_service, 0, fn _instance -> :ok end)
       |> expect(:run_pre_commands, 1, fn _instance, _release, :new -> {:ok, []} end)
 
@@ -255,7 +255,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: new deployment, after hotupgrade fails
         called = Process.get("start_service", 0)
@@ -320,7 +320,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -365,7 +365,7 @@ defmodule Deployex.DeploymentTest do
     test "Check deployment won't move to the next instance with invalid notification" do
       name = "#{__MODULE__}-status-001" |> String.to_atom()
 
-      ref = make_ref()
+      test_event_ref = make_ref()
       pid = self()
 
       Deployex.StatusMock
@@ -386,14 +386,14 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
         Process.put("start_service", called + 1)
 
         if called > 0 do
-          send(pid, {:handle_ref_event, ref})
+          send(pid, {:handle_ref_event, test_event_ref})
         end
 
         {:ok, self()}
@@ -417,14 +417,14 @@ defmodule Deployex.DeploymentTest do
                  mStatus: Deployex.StatusMock
                )
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       state = :sys.get_state(name)
       deploy_ref = state.deployments[1].deploy_ref
       # Send multiple invalid data combination
       Deployex.Deployment.notify_application_running(name, 99, deploy_ref)
-      Deployex.Deployment.notify_application_running(name, 1, ref)
-      Deployex.Deployment.notify_application_running(name, 99, ref)
+      Deployex.Deployment.notify_application_running(name, 1, "123456")
+      Deployex.Deployment.notify_application_running(name, 99, "123456")
       state = :sys.get_state(name)
 
       assert state.current == 1
@@ -467,7 +467,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -537,7 +537,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -595,7 +595,7 @@ defmodule Deployex.DeploymentTest do
       end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 2, fn _instance, _ref, _options ->
+      |> expect(:start_service, 2, fn _instance, _deploy_ref, _options ->
         # First time: initialization
         # Second time: rolling back
         called = Process.get("start_service", 0)
@@ -653,7 +653,7 @@ defmodule Deployex.DeploymentTest do
       |> expect(:history_version_list, 1, fn _instance -> [] end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn _instance, _ref, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn _instance, _deploy_ref, _options -> {:ok, self()} end)
       |> stub(:stop_service, fn 1 -> :ok end)
       |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
 
@@ -701,7 +701,7 @@ defmodule Deployex.DeploymentTest do
       |> stub(:current_version, fn _instance -> "1.2.3" end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn _instance, _ref, _options ->
+      |> expect(:start_service, 1, fn _instance, _deploy_ref, _options ->
         send(pid, {:handle_ref_event, start_service_ref})
         {:ok, self()}
       end)
@@ -764,7 +764,7 @@ defmodule Deployex.DeploymentTest do
       end)
 
       Deployex.MonitorMock
-      |> expect(:start_service, 1, fn 1, _ref, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn 1, _deploy_ref, _options -> {:ok, self()} end)
       |> stub(:stop_service, fn 1 -> :ok end)
       |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
 

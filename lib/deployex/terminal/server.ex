@@ -146,7 +146,7 @@ defmodule Deployex.Terminal.Server do
 
   # NOTE: Target process was terminated
   def handle_info(
-        {:DOWN, _ref, :process, target_pid, reason},
+        {:DOWN, _os_pid, :process, target_pid, reason},
         %{process: process, target: target} = state
       )
       when target_pid == target do

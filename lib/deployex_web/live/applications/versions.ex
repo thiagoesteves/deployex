@@ -24,10 +24,10 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                 Instance
               </th>
               <th scope="col" class="px-6 py-1">
-                Deploy
+                Deploy Type
               </th>
               <th scope="col" class="px-6 py-1">
-                Ref
+                Deploy Ref
               </th>
               <th scope="col" class="px-6 py-1">
                 Date
@@ -50,7 +50,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                   <%= version.deployment %>
                 </td>
                 <td class="px-6 py-2">
-                  <%= String.slice(version.deploy_ref, -6..-2) %>
+                  <%= version.deploy_ref %>
                 </td>
                 <td class="px-6 py-2">
                   <%= "#{NaiveDateTime.to_string(version.inserted_at)}" %>
