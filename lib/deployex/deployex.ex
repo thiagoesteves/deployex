@@ -16,13 +16,14 @@ defmodule Deployex do
   ### ==========================================================================
   @doc """
   This function forces DeployEx to terminate. If DeployEx is installed as a
-  systemd service, it will automatically restart.
+  systemd service, it will automatically restart. This function has not effect
+  when running locally.
   """
-  @spec force_terminate() :: :ok
-  def force_terminate do
+  @spec force_terminate(non_neg_integer()) :: :ok
+  def force_terminate(sleep_time \\ 300) do
     Logger.warning("Deployex was requested to terminate, see you soon!!!")
 
-    :timer.sleep(300)
+    :timer.sleep(sleep_time)
 
     OpSys.run(
       "kill -9 $(ps -ax | grep \"/opt/deployex/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
