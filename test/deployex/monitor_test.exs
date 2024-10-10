@@ -19,21 +19,22 @@ defmodule Deployex.MonitorTest do
   describe "Initialization tests" do
     @tag :capture_log
     test "init/1" do
-      ref = make_ref()
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
       instance = 1000
 
       Deployex.StatusMock
       |> expect(:current_version_map, fn ^instance ->
-        send(test_pid_process, {:handle_ref_event, ref})
+        send(test_pid_process, {:handle_ref_event, test_event_ref})
         %Deployex.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, ref)
+      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref)
 
       assert Process.alive?(pid)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert :ok = MonitorApp.stop_service(instance)
 
@@ -42,21 +43,22 @@ defmodule Deployex.MonitorTest do
 
     @tag :capture_log
     test "Stop a monitor that is not running" do
-      ref = make_ref()
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
       instance = 1001
 
       Deployex.StatusMock
       |> expect(:current_version_map, fn ^instance ->
-        send(test_pid_process, {:handle_ref_event, ref})
+        send(test_pid_process, {:handle_ref_event, test_event_ref})
         %Deployex.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, ref)
+      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref)
 
       assert Process.alive?(pid)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert :ok = MonitorApp.stop_service(instance)
       assert :ok = MonitorApp.stop_service(instance)

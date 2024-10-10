@@ -53,6 +53,7 @@ defmodule Deployex.Monitor.Supervisor do
   def stop_service(instance) do
     instance
     |> Deployex.Monitor.Application.global_name()
+    |> Enum.at(0)
     |> :global.whereis_name()
     |> case do
       :undefined ->

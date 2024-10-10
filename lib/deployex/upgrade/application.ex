@@ -279,6 +279,8 @@ defmodule Deployex.Upgrade.Application do
   def connect(instance) do
     {:ok, hostname} = :inet.gethostname()
     app_sname = Storage.sname(instance)
+    # NOTE: The command below represents the creation of an atom. However, with OTP distribution,
+    #       all connected nodes share the same atoms, including its name.
     node = :"#{app_sname}@#{hostname}"
 
     case Node.connect(node) do
