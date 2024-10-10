@@ -126,7 +126,7 @@ defmodule Deployex.MixProject do
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
