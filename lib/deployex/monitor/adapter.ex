@@ -3,7 +3,7 @@ defmodule Deployex.Monitor.Adapter do
   Behaviour that defines the monitor adapter callback
   """
 
-  @callback start_service(integer(), reference(), list()) ::
+  @callback start_service(integer(), String.t(), list()) ::
               {:ok, pid} | {:error, pid(), :already_started}
   @callback stop_service(integer()) :: :ok
   @callback restart(integer()) :: :ok | {:error, :application_is_not_running}

@@ -13,17 +13,17 @@ defmodule Deployex.Common do
   ### ==========================================================================
 
   @doc """
-  Return the short ref
+  Return the random alphanumeric string
 
   ## Examples
 
     iex> alias Deployex.Common
-    ...> ref = make_ref()
-    ...> assert String.length(Common.short_ref(ref)) == 5
+    ...> n = 20
+    ...> assert Common.random_small_alphanum(n) |> String.length() == n
   """
-  @spec short_ref(reference()) :: String.t()
-  def short_ref(reference) do
-    String.slice(inspect(reference), -6..-2)
+  @spec random_small_alphanum(integer()) :: String.t()
+  def random_small_alphanum(n \\ 6) do
+    Enum.map(1..n, fn _ -> Enum.random(Enum.concat(?0..?9, ?a..?z)) end) |> to_string
   end
 
   @doc """

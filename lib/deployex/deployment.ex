@@ -1,8 +1,16 @@
 defmodule Deployex.Deployment do
   @moduledoc """
-  GenServer to trigger the deployment when a new version is available in the current.json
-  file. It also executes the deployment in sequence, avoiding a new deployment if the
-  previous was not completed yet.
+  A GenServer responsible for managing deployments when a new version is available in the `current.json` file.
+  It ensures deployments occur sequentially and prevents new deployments while a previous one is still in progress.
+
+  ## Architecture
+  This module follows a specific architecture for deployment management. It translates the expected behavior
+  for the Deployment server.
+
+  ![Deployment Architecture](docs/static/deployment_architecture.png)
+
+  ## Usage
+  To start the server, use `Deployex.Deployment.start_link/1` with appropriate options.
   """
 
   @wait_time_from_stop_ms 500
@@ -116,7 +124,7 @@ defmodule Deployex.Deployment do
         %{state | current: new_current}
       else
         Logger.warning(
-          "Received instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)} that doesn't match the expected one: #{state.current} deploy_ref: #{Common.short_ref(current_deployment.deploy_ref)}"
+          "Received instance: #{instance} deploy_ref: #{deploy_ref} that doesn't match the expected one: #{state.current} deploy_ref: #{current_deployment.deploy_ref}"
         )
 
         state
@@ -129,7 +137,15 @@ defmodule Deployex.Deployment do
   ### Public API
   ### ==========================================================================
 
-  @spec notify_application_running(integer(), reference()) :: :ok
+  @doc """
+  Notifies the server that a specific application instance is now running.
+
+  ## Examples
+
+      iex> Deployex.Deployment.notify_application_running(instance, deploy_ref)
+      :ok
+  """
+  @spec notify_application_running(integer(), String.t()) :: :ok
   def notify_application_running(name \\ __MODULE__, instance, deploy_ref) do
     GenServer.cast(name, {:application_running, instance, deploy_ref})
   end
@@ -179,7 +195,7 @@ defmodule Deployex.Deployment do
 
   defp initialize_version(state) do
     current_app_version = Status.current_version(state.current)
-    new_deploy_ref = :erlang.make_ref()
+    new_deploy_ref = Common.random_small_alphanum()
 
     if current_app_version != nil do
       {:ok, _} = Monitor.start_service(state.current, new_deploy_ref)
@@ -242,11 +258,11 @@ defmodule Deployex.Deployment do
   end
 
   defp full_deployment(%{current: instance} = state, release) do
-    new_deploy_ref = :erlang.make_ref()
+    new_deploy_ref = Common.random_small_alphanum()
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       log_message =
-        "Full deploy instance: #{instance} deploy_ref: #{Common.short_ref(new_deploy_ref)}."
+        "Full deploy instance: #{instance} deploy_ref: #{new_deploy_ref}."
 
       Logger.info(log_message)
 
@@ -275,7 +291,7 @@ defmodule Deployex.Deployment do
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       log_message =
-        "Hot upgrade instance: #{instance} deploy_ref: #{Common.short_ref(deploy_ref)}."
+        "Hot upgrade instance: #{instance} deploy_ref: #{deploy_ref}."
 
       Logger.info(log_message)
 

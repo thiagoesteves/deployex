@@ -12,7 +12,7 @@ defmodule Deployex.Monitor do
           crash_restart_count: integer(),
           force_restart_count: integer(),
           start_time: nil | integer(),
-          deploy_ref: :init | reference(),
+          deploy_ref: :init | String.t(),
           timeout_app_ready: integer(),
           retry_delay_pre_commands: integer()
         }
@@ -37,7 +37,7 @@ defmodule Deployex.Monitor do
   Starts monitor service for an specific instance
   """
   @impl true
-  @spec start_service(integer(), reference(), list()) ::
+  @spec start_service(integer(), String.t(), list()) ::
           {:ok, pid} | {:error, pid(), :already_started}
   def start_service(instance, deploy_ref, options \\ []) do
     default().start_service(instance, deploy_ref, options)

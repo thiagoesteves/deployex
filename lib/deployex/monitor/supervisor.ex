@@ -22,7 +22,7 @@ defmodule Deployex.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-  @spec start_service(integer(), reference(), [Keyword.t()]) ::
+  @spec start_service(integer(), String.t(), [Keyword.t()]) ::
           {:ok, pid} | {:error, pid(), :already_started}
   def start_service(instance, deploy_ref, options) do
     timeout_app_ready =

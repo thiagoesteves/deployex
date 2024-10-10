@@ -50,7 +50,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                   <%= version.deployment %>
                 </td>
                 <td class="px-6 py-2">
-                  <%= String.slice(version.deploy_ref, -6..-2) %>
+                  <%= version.deploy_ref %>
                 </td>
                 <td class="px-6 py-2">
                   <%= "#{NaiveDateTime.to_string(version.inserted_at)}" %>

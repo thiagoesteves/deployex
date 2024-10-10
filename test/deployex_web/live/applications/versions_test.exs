@@ -22,13 +22,13 @@ defmodule DeployexWeb.Applications.VersionsTest do
         FixtureStatus.version(%{
           version: "10.11.12",
           instance: 1,
-          deploy_ref: "#Reference<0.3456702894.2351693834.66666>",
+          deploy_ref: "abc123",
           deployment: :full_deployment
         }),
         FixtureStatus.version(%{
           version: "10.11.13",
           instance: 2,
-          deploy_ref: "#Reference<0.3456702894.2351693834.99999>",
+          deploy_ref: "def456",
           deployment: :hot_upgrade
         })
       ]
@@ -41,12 +41,12 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.12"
     assert html =~ :full_deployment |> to_string
-    assert html =~ "66666"
+    assert html =~ "abc123"
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.13"
     assert html =~ :hot_upgrade |> to_string
-    assert html =~ "99999"
+    assert html =~ "def456"
 
     refute html =~ "0.3456702894.2351693834"
   end
@@ -56,13 +56,13 @@ defmodule DeployexWeb.Applications.VersionsTest do
       FixtureStatus.version(%{
         version: "10.11.16",
         instance: 1,
-        deploy_ref: "#Reference<0.3456702894.2351693834.55555>",
+        deploy_ref: "555555",
         deployment: :full_deployment
       }),
       FixtureStatus.version(%{
         version: "10.11.17",
         instance: 1,
-        deploy_ref: "#Reference<0.3456702894.2351693834.88888>",
+        deploy_ref: "888888",
         deployment: :hot_upgrade
       })
     ]
