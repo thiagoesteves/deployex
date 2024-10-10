@@ -96,8 +96,16 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <%= if @live_action in [:restart] do %>
       <Confirm.content id={"app-restart-modal-#{@selected_instance}"}>
-        <:header>Attention</:header>
-        <p>
+        <:header :if={@selected_instance == "0"}>
+          <p class="text-red-500 text-center italic-text">Attention - All apps will be terminated</p>
+        </:header>
+        <:header :if={@selected_instance != "0"}>
+          <p>Attention</p>
+        </:header>
+        <p :if={@selected_instance == "0"}>
+          Are you sure you want to restart deployex?
+        </p>
+        <p :if={@selected_instance != "0"}>
           Are you sure you want to restart instance <%= "#{@selected_instance}" %>?
         </p>
         <:footer>
@@ -272,6 +280,12 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("app-versions-click", %{"instance" => instance}, socket) do
     {:noreply, push_patch(socket, to: ~p"/applications/#{instance}/versions")}
+  end
+
+  def handle_event("restart", %{"id" => "0"}, socket) do
+    # NOTE: Say goodbye to your monitored applications
+    Deployex.force_terminate()
+    {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
   def handle_event("restart", %{"id" => instance}, socket) do
