@@ -72,11 +72,19 @@ defmodule Deployex.Monitor do
     do: default().run_pre_commands(instance, pre_commands, app_bin_path)
 
   @doc """
-  Return the global name used by this module to register the precesses
+  Return a list of global names registered for the respective instance
+  in this node
   """
   @impl true
-  @spec global_name(integer()) :: map()
+  @spec global_name(integer()) :: [map()]
   def global_name(instance), do: default().global_name(instance)
+
+  @doc """
+  Return the global name used by this module to register the process
+  """
+  @impl true
+  @spec global_name(integer(), String.t()) :: map()
+  def global_name(instance, deploy_ref), do: default().global_name(instance, deploy_ref)
 
   ### ==========================================================================
   ### Private functions
