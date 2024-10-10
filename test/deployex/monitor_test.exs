@@ -444,7 +444,7 @@ defmodule Deployex.MonitorTest do
 
   test "Adapter function test" do
     Deployex.MonitorMock
-    |> expect(:start_service, fn _instance, _reference, _list -> {:ok, self()} end)
+    |> expect(:start_service, fn _instance, _deploy_ref, _list -> {:ok, self()} end)
     |> expect(:stop_service, fn _instance -> :ok end)
     |> expect(:state, fn _instance -> {:ok, %{}} end)
     |> expect(:restart, fn _instance -> :ok end)

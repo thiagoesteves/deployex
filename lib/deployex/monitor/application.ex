@@ -254,7 +254,7 @@ defmodule Deployex.Monitor.Application do
         )
 
       log_message =
-        " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{deploy_ref}."
+        " # Running instance: #{instance}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} deploy_ref: #{deploy_ref}"
 
       Logger.info(log_message)
 

@@ -226,7 +226,7 @@ defmodule Deployex.Deployment do
 
     if release.version != nil and release.version != current_app_version and not ghosted_version? do
       log_message =
-        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release.version}."
+        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release.version}"
 
       Logger.info(log_message)
 
@@ -262,7 +262,7 @@ defmodule Deployex.Deployment do
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       log_message =
-        "Full deploy instance: #{instance} deploy_ref: #{new_deploy_ref}."
+        "Full deploy instance: #{instance} deploy_ref: #{new_deploy_ref}"
 
       Logger.info(log_message)
 
@@ -291,7 +291,7 @@ defmodule Deployex.Deployment do
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       log_message =
-        "Hot upgrade instance: #{instance} deploy_ref: #{deploy_ref}."
+        "Hot upgrade instance: #{instance} deploy_ref: #{deploy_ref}"
 
       Logger.info(log_message)
 

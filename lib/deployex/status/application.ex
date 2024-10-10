@@ -105,7 +105,7 @@ defmodule Deployex.Status.Application do
       pre_commands: release.pre_commands,
       instance: instance,
       deployment: Keyword.get(attrs, :deployment),
-      deploy_ref: inspect(Keyword.get(attrs, :deploy_ref)),
+      deploy_ref: Keyword.get(attrs, :deploy_ref),
       inserted_at: NaiveDateTime.utc_now()
     }
 

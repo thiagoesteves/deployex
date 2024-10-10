@@ -24,10 +24,10 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                 Instance
               </th>
               <th scope="col" class="px-6 py-1">
-                Deploy
+                Deploy Type
               </th>
               <th scope="col" class="px-6 py-1">
-                Ref
+                Deploy Ref
               </th>
               <th scope="col" class="px-6 py-1">
                 Date
