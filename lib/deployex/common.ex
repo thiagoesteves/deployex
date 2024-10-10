@@ -8,12 +8,14 @@ defmodule Deployex.Common do
   @sec_in_day 86_400
   @sec_in_months 2_628_000
 
+  @deploy_ref_size 6
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
 
   @doc """
-  Return the random alphanumeric string
+  Return a random alphanumeric string
 
   ## Examples
 
@@ -22,7 +24,7 @@ defmodule Deployex.Common do
     ...> assert Common.random_small_alphanum(n) |> String.length() == n
   """
   @spec random_small_alphanum(integer()) :: String.t()
-  def random_small_alphanum(n \\ 6) do
+  def random_small_alphanum(n \\ @deploy_ref_size) do
     Enum.map(1..n, fn _ -> Enum.random(Enum.concat(?0..?9, ?a..?z)) end) |> to_string
   end
 
