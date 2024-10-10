@@ -10,11 +10,11 @@ DeployEx acts as a central deployment runner, gathering crucial deployment data 
 
 DeployEx is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
 
-![Deployment Architecture](/docs/deployex.png)
+![Deployment Architecture](docs/static/deployex.png)
 
 Upon deployment, the following dashboard becomes available, offering access to logs for both DeployEx and monitored applications, along with an IEX terminal."
 
-[![Running with no monitored apps](/docs/deployex_monitoring_app_tls.png)](/docs/deployex.mov)
+[![Running with no monitored apps](docs/static/deployex_monitoring_app_tls.png)](docs/static/deployex.mov)
 
 ## 🔉 Features
 
@@ -83,7 +83,7 @@ Done in 390ms.
 
 Now you can visit [`localhost:5001`](http://localhost:5001) from your browser and enter the credentials for the admin user, *__username: admin password: deployex__*. You should expect the following dashboard:
 
-![Empty Dashboard](/docs/deployex_no_monitoring_app.png)
+![Empty Dashboard](docs/static/deployex_no_monitoring_app.png)
 
 > [!NOTE]
 > The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running DeployEx and Monitored app locally](##_running_deployex_and_monitored_app_locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command
@@ -155,8 +155,8 @@ For local testing, these variables are not expected or set to default values.
 
 DeployEx offers a comprehensive set of Terraform examples for programmatically deploying in AWS and GCP, including detailed step-by-step setup instructions:
 
- * [AWS deployment](/docs/examples/aws/README.md)
- * [GCP deployment](/docs/examples/gcp/README.md)
+ * [AWS deployment](docs/examples/aws/README.md)
+ * [GCP deployment](docs/examples/gcp/README.md)
 
 ### Installation
 
@@ -314,7 +314,7 @@ iex(deployex@hostname)1>
 
 You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should look like this:
 
-![No mTLS Dashboard](/docs/deployex_monitoring_app_no_tls.png)
+![No mTLS Dashboard](docs/static/deployex_monitoring_app_no_tls.png)
 
 Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
@@ -407,7 +407,7 @@ You can then check that DeployEx had executed a hot upgrade in the application:
 
 you can check that the version and the deployment status has changed in the dashboard:
 
-![No mTLS Dashboard](/docs/deployex_monitoring_app_hot_upgrade.png)
+![No mTLS Dashboard](docs/static/deployex_monitoring_app_hot_upgrade.png)
 
 
 ### 🔑 Enhancing OTP Distribution Security with mTLS
@@ -472,7 +472,7 @@ ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -s
 
 After making these changes, create and publish a new version `0.1.3` for `myphoenixapp` and run the DeployEx with the command from item 5. After the deployment, you should see the follwoing dashboard:
 
-![mTLS Dashboard](/docs/deployex_monitoring_app_tls.png)
+![mTLS Dashboard](docs/static/deployex_monitoring_app_tls.png)
 
 > [!ATTENTION]
 > Ensure that the cookie is properly set
@@ -526,7 +526,7 @@ export RELEASE_COOKIE=cookie
 /tmp/deployex/varlib/service/${monitored_app_name}/${instance}/current/bin/${monitored_app_name} remote
 ```
 
-## How DeployEx handles services
+## ❓How DeployEx handles services
 
 DeployEx operates by monitoring applications and versions using folders and files, treating the monitored app as a service:
 ```bash

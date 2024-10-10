@@ -134,6 +134,12 @@ defmodule Deployex.MixProject do
     ]
   end
 
+  defp copy_static_ex_doc(_) do
+    destination_path = "./doc/docs/static"
+    File.mkdir_p!(destination_path)
+    File.cp_r("./docs/static", destination_path)
+  end
+
   # Aliases are shortcuts or tasks specific to the current project.
   # For example, to install project dependencies and perform other setup tasks, run:
   #
@@ -142,6 +148,7 @@ defmodule Deployex.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      docs: ["docs", &copy_static_ex_doc/1],
       setup: ["deps.get", "assets.setup", "assets.build"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["tailwind deployex", "esbuild deployex"],
