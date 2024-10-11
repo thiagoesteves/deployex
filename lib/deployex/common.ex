@@ -25,7 +25,12 @@ defmodule Deployex.Common do
   """
   @spec random_small_alphanum(integer()) :: String.t()
   def random_small_alphanum(n \\ @deploy_ref_size) do
-    Enum.map(1..n, fn _ -> Enum.random(Enum.concat(?0..?9, ?a..?z)) end) |> to_string
+    Enum.map(1..n, fn _ ->
+      Enum.concat(?0..?9, ?a..?z)
+      |> Enum.shuffle()
+      |> Enum.random()
+    end)
+    |> to_string
   end
 
   @doc """
