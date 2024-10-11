@@ -9,6 +9,9 @@
  * None
 
 ### Bug fixes
+ * None
+
+### Enhancements
  * [[`PR-70`](https://github.com/thiagoesteves/deployex/pull/70)] Changed function listener to subscribe
  * [[`PR-71`](https://github.com/thiagoesteves/deployex/pull/71)] Added ex_docs and enhanced documentation
  * [[`PR-72`](https://github.com/thiagoesteves/deployex/pull/72)] Change deploy reference to string instead erlang reference
