@@ -15,28 +15,38 @@ defmodule Deployex.Monitor.Application do
 
   @monitor_table "monitor-table"
 
+  @default_timeout_app_ready :timer.seconds(30)
+  @default_retry_delay_pre_commands :timer.seconds(1)
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
 
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(args) do
-    name = global_name(Keyword.get(args, :instance))
+    instance = Keyword.fetch!(args, :instance)
+    deploy_ref = Keyword.fetch!(args, :deploy_ref)
+    name = global_name(instance, deploy_ref)
     GenServer.start_link(__MODULE__, args, name: {:global, name})
   end
 
   @impl true
-  def init(
-        instance: instance,
-        deploy_ref: deploy_ref,
-        timeout_app_ready: timeout_app_ready,
-        retry_delay_pre_commands: retry_delay_pre_commands
-      ) do
+  def init(args) do
     Process.flag(:trap_exit, true)
+
+    instance = Keyword.fetch!(args, :instance)
+    deploy_ref = Keyword.fetch!(args, :deploy_ref)
+    options = Keyword.fetch!(args, :options)
+
+    timeout_app_ready =
+      Keyword.get(options, :timeout_app_ready, @default_timeout_app_ready)
+
+    retry_delay_pre_commands =
+      Keyword.get(options, :retry_delay_pre_commands, @default_retry_delay_pre_commands)
 
     # NOTE: This ETS table provides non-blocking access to the state.
     instance
-    |> table_name()
+    |> table_name(deploy_ref)
     |> String.to_atom()
     |> :ets.new([:set, :protected, :named_table])
 
@@ -44,17 +54,13 @@ defmodule Deployex.Monitor.Application do
 
     trigger_run_service(deploy_ref)
 
-    initial_state =
-      reset_state(
-        %Deployex.Monitor{
-          instance: instance,
-          timeout_app_ready: timeout_app_ready,
-          retry_delay_pre_commands: retry_delay_pre_commands
-        },
-        deploy_ref
-      )
-
-    {:ok, update_non_blocking_state(initial_state)}
+    {:ok,
+     update_non_blocking_state(%Deployex.Monitor{
+       instance: instance,
+       timeout_app_ready: timeout_app_ready,
+       retry_delay_pre_commands: retry_delay_pre_commands,
+       deploy_ref: deploy_ref
+     })}
   end
 
   @impl true
@@ -83,9 +89,7 @@ defmodule Deployex.Monitor.Application do
     #       and the bin/beam.smp process
     cleanup_beam_process(state.instance)
 
-    state = reset_state(state)
-
-    {:reply, :ok, update_non_blocking_state(state)}
+    {:reply, :ok, state}
   end
 
   # This command is available during the hot upgrade. If it fails, the process will
@@ -186,9 +190,11 @@ defmodule Deployex.Monitor.Application do
   ### ==========================================================================
   @impl true
   def state(instance) do
+    global = global_filter_by_instance(instance) |> Enum.at(0)
+
     [{_, value}] =
       instance
-      |> table_name()
+      |> table_name(global.deploy_ref)
       |> String.to_existing_atom()
       |> :ets.lookup(instance)
 
@@ -202,6 +208,7 @@ defmodule Deployex.Monitor.Application do
   def run_pre_commands(instance, pre_commands, app_bin_path) do
     instance
     |> global_name()
+    |> Enum.at(0)
     |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_path})
   end
 
@@ -215,11 +222,18 @@ defmodule Deployex.Monitor.Application do
   def restart(instance) do
     instance
     |> global_name()
+    |> Enum.at(0)
     |> Common.call_gen_server(:restart)
   end
 
   @impl true
-  def global_name(instance), do: %{node: Node.self(), module: __MODULE__, instance: instance}
+  def global_name(instance) do
+    global_filter_by_instance(instance)
+  end
+
+  @impl true
+  def global_name(instance, deploy_ref),
+    do: %{node: Node.self(), module: __MODULE__, instance: instance, deploy_ref: deploy_ref}
 
   ### ==========================================================================
   ### Private functions
@@ -349,25 +363,25 @@ defmodule Deployex.Monitor.Application do
 
   defp now, do: System.monotonic_time()
 
-  defp reset_state(state, deploy_ref \\ nil),
-    do: %{
-      state
-      | status: :idle,
-        current_pid: nil,
-        crash_restart_count: 0,
-        force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: deploy_ref
-    }
+  defp table_name(instance, deploy_ref), do: @monitor_table <> "-#{instance}-#{deploy_ref}"
 
-  defp table_name(instance), do: @monitor_table <> "-#{instance}"
-
-  defp update_non_blocking_state(%{instance: instance} = state) do
+  defp update_non_blocking_state(%{instance: instance, deploy_ref: deploy_ref} = state) do
     instance
-    |> table_name()
+    |> table_name(deploy_ref)
     |> String.to_existing_atom()
     |> :ets.insert({instance, state})
 
     state
+  end
+
+  defp global_filter_by_instance(instance) do
+    node = Node.self()
+
+    filter_by_instance = fn
+      %{instance: ^instance, node: ^node} -> true
+      _ -> false
+    end
+
+    Enum.filter(:global.registered_names(), &filter_by_instance.(&1))
   end
 end

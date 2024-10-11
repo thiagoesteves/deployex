@@ -4,9 +4,6 @@ defmodule Deployex.Monitor.Supervisor do
   use DynamicSupervisor
   require Logger
 
-  @default_timeout_app_ready :timer.seconds(30)
-  @default_retry_delay_pre_commands :timer.seconds(1)
-
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
@@ -25,12 +22,6 @@ defmodule Deployex.Monitor.Supervisor do
   @spec start_service(integer(), String.t(), [Keyword.t()]) ::
           {:ok, pid} | {:error, pid(), :already_started}
   def start_service(instance, deploy_ref, options) do
-    timeout_app_ready =
-      Keyword.get(options, :timeout_app_ready, @default_timeout_app_ready)
-
-    retry_delay_pre_commands =
-      Keyword.get(options, :retry_delay_pre_commands, @default_retry_delay_pre_commands)
-
     spec = %{
       id: Deployex.Monitor.Application,
       start:
@@ -39,8 +30,7 @@ defmodule Deployex.Monitor.Supervisor do
            [
              instance: instance,
              deploy_ref: deploy_ref,
-             timeout_app_ready: timeout_app_ready,
-             retry_delay_pre_commands: retry_delay_pre_commands
+             options: options
            ]
          ]},
       restart: :transient
@@ -53,6 +43,7 @@ defmodule Deployex.Monitor.Supervisor do
   def stop_service(instance) do
     instance
     |> Deployex.Monitor.Application.global_name()
+    |> Enum.at(0)
     |> :global.whereis_name()
     |> case do
       :undefined ->
