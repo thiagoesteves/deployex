@@ -15,26 +15,34 @@ defmodule Deployex.Monitor.Application do
 
   @monitor_table "monitor-table"
 
+  @default_timeout_app_ready :timer.seconds(30)
+  @default_retry_delay_pre_commands :timer.seconds(1)
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
 
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(args) do
-    instance = Keyword.get(args, :instance)
-    deploy_ref = Keyword.get(args, :deploy_ref)
+    instance = Keyword.fetch!(args, :instance)
+    deploy_ref = Keyword.fetch!(args, :deploy_ref)
     name = global_name(instance, deploy_ref)
     GenServer.start_link(__MODULE__, args, name: {:global, name})
   end
 
   @impl true
-  def init(
-        instance: instance,
-        deploy_ref: deploy_ref,
-        timeout_app_ready: timeout_app_ready,
-        retry_delay_pre_commands: retry_delay_pre_commands
-      ) do
+  def init(args) do
     Process.flag(:trap_exit, true)
+
+    instance = Keyword.fetch!(args, :instance)
+    deploy_ref = Keyword.fetch!(args, :deploy_ref)
+    options = Keyword.fetch!(args, :options)
+
+    timeout_app_ready =
+      Keyword.get(options, :timeout_app_ready, @default_timeout_app_ready)
+
+    retry_delay_pre_commands =
+      Keyword.get(options, :retry_delay_pre_commands, @default_retry_delay_pre_commands)
 
     # NOTE: This ETS table provides non-blocking access to the state.
     instance
