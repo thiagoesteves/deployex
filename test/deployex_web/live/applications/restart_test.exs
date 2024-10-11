@@ -79,9 +79,9 @@ defmodule DeployexWeb.Applications.RestartTest do
     assert index_live |> element("#app-restart-0") |> render_click() =~
              "Are you sure you want to restart deployex?"
 
-             assert capture_log(fn ->
-    assert index_live |> element("#confirm-button-0", "Confirm") |> render_click()
-    end) =~ "Deployex was requested to terminate, see you soon!!!"
+    assert capture_log(fn ->
+             assert index_live |> element("#confirm-button-0", "Confirm") |> render_click()
+           end) =~ "Deployex was requested to terminate, see you soon!!!"
 
     refute has_element?(index_live, "#cancel-button-0")
   end
