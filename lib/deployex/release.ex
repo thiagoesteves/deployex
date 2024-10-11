@@ -25,8 +25,6 @@ defmodule Deployex.Release do
               pre_commands: []
   end
 
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
-
   ### ==========================================================================
   ### Callback function implementation
   ### ==========================================================================
@@ -55,4 +53,9 @@ defmodule Deployex.Release do
   @spec download_and_unpack(integer(), String.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   def download_and_unpack(instance, version), do: default().download_and_unpack(instance, version)
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end

@@ -1,11 +1,15 @@
 defmodule Deployex.Upgrade do
   @moduledoc """
-  This module will provide module abstraction
+   Provides functions for upgrading the application using appup files.
+
+  ## References
+
+  - Appup Files Generation: [Distillery GitHub](https://github.com/bitwalker/distillery)
+  - Relup and Release Installations: [Relx GitHub](https://github.com/erlware/relx/blob/main/priv/templates/install_upgrade_escript)
+  - Updating the Config: [Castle GitHub](https://github.com/ausimian/castle/blob/main/lib/castle.ex)
   """
 
   @behaviour Deployex.Upgrade.Adapter
-
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 
   ### ==========================================================================
   ### Callback function implementation
@@ -41,4 +45,5 @@ defmodule Deployex.Upgrade do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end

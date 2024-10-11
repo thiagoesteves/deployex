@@ -5,8 +5,6 @@ defmodule Deployex.OpSys do
 
   @behaviour Deployex.OpSys.Adapter
 
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
-
   ### ==========================================================================
   ### Callback function implementation
   ### ==========================================================================
@@ -41,4 +39,9 @@ defmodule Deployex.OpSys do
   @impl true
   @spec send(integer(), String.t()) :: :ok
   def send(process_pid, message), do: default().send(process_pid, message)
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end

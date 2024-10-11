@@ -27,8 +27,6 @@ defmodule Deployex.Monitor do
             timeout_app_ready: nil,
             retry_delay_pre_commands: nil
 
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
-
   ### ==========================================================================
   ### Callback function implementation
   ### ==========================================================================
@@ -83,4 +81,5 @@ defmodule Deployex.Monitor do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end

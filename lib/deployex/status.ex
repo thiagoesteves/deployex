@@ -64,8 +64,6 @@ defmodule Deployex.Status do
 
   @behaviour Deployex.Status.Adapter
 
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
-
   ### ==========================================================================
   ### Callback function implementation
   ### ==========================================================================
@@ -156,4 +154,9 @@ defmodule Deployex.Status do
   @impl true
   @spec set_mode(:automatic | :manual, String.t()) :: {:ok, map()}
   def set_mode(mode, version), do: default().set_mode(mode, version)
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end

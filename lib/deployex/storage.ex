@@ -5,8 +5,6 @@ defmodule Deployex.Storage do
 
   @behaviour Deployex.Storage.Adapter
 
-  def default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
-
   defmodule Config do
     @moduledoc """
     Structure to handle the deployex configuration
@@ -258,4 +256,9 @@ defmodule Deployex.Storage do
   @impl true
   @spec config_update(Deployex.Storage.Config.t()) :: {:ok, Deployex.Storage.Config.t()}
   def config_update(config), do: default().config_update(config)
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+  defp default, do: Application.fetch_env!(:deployex, __MODULE__)[:adapter]
 end
