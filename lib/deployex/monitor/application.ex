@@ -115,8 +115,8 @@ defmodule Deployex.Monitor.Application do
     # Update the number of force restarts
     force_restart_count = state.force_restart_count + 1
 
-    # Retry with backoff pattern
-    trigger_run_service(state.deploy_ref)
+    # Trigger restart with backoff time of 1 second
+    trigger_run_service(state.deploy_ref, 1_000)
 
     {:reply, :ok, update_non_blocking_state(%{state | force_restart_count: force_restart_count})}
   end
