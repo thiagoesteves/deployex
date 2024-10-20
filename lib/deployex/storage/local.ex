@@ -89,6 +89,9 @@ defmodule Deployex.Storage.Local do
   def monitored_app, do: Application.fetch_env!(:deployex, :monitored_app_name)
 
   @impl true
+  def monitored_app_lang, do: Application.fetch_env!(:deployex, :monitored_app_lang)
+
+  @impl true
   def phx_start_port, do: Application.get_env(:deployex, :monitored_app_phx_start_port)
 
   @impl true
@@ -119,13 +122,17 @@ defmodule Deployex.Storage.Local do
   def sname(instance), do: "#{monitored_app()}-#{instance}"
 
   @impl true
-  def bin_path(@deployex_instance) do
+  def bin_path(@deployex_instance, _monitored_app_lang) do
     Application.fetch_env!(:deployex, :bin_path)
   end
 
-  def bin_path(instance) do
+  def bin_path(instance, "elixir") do
     monitored_app = monitored_app()
     "#{current_path(instance)}/bin/#{monitored_app}"
+  end
+
+  def bin_path(instance, "gleam") do
+    "#{current_path(instance)}/erlang-shipment"
   end
 
   @impl true

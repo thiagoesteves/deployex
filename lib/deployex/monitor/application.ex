@@ -250,7 +250,8 @@ defmodule Deployex.Monitor.Application do
          } = state,
          version_map
        ) do
-    app_exec = executable_path(instance, :current)
+    monitore_app_lang = Storage.monitored_app_lang()
+    app_exec = executable_path(monitore_app_lang, instance, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -260,7 +261,7 @@ defmodule Deployex.Monitor.Application do
 
       {:ok, pid, os_pid} =
         OpSys.run_link(
-          run_app_bin(instance, app_exec, "start"),
+          run_app_bin(monitore_app_lang, instance, app_exec, "start"),
           [
             {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
             {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
@@ -291,7 +292,9 @@ defmodule Deployex.Monitor.Application do
   #       - Unset env vars from the deployex release to not mix with the monitored app release
   #       - Export suffix to add different snames to the apps
   #       - Export phoenix listening port taht needs to be one per app
-  defp run_app_bin(instance, executable_path, command) do
+  defp run_app_bin(language, instance, executable_path, command)
+
+  defp run_app_bin("elixir", instance, executable_path, command) do
     phx_port = Storage.phx_start_port() + (instance - 1)
 
     """
@@ -302,19 +305,46 @@ defmodule Deployex.Monitor.Application do
     """
   end
 
-  defp executable_path(instance, :current) do
+  defp run_app_bin("gleam", instance, executable_path, _command) do
+    phx_port = Storage.phx_start_port() + (instance - 1)
+    app_name = Storage.monitored_app()
+
+    """
+    unset $(env | grep RELEASE | awk -F'=' '{print $1}')
+    export PORT=#{phx_port}
+    PACKAGE=#{app_name}
+    BASE=#{executable_path}
+    erl \
+      -pa "$BASE"/*/ebin \
+      -eval "$PACKAGE@@main:run($PACKAGE)" \
+      -noshell \
+      -proto_dist inet_tls \
+      -ssl_dist_optfile /tmp/inet_tls.conf \
+      -sname #{app_name}-#{instance} \
+      -setcookie cookie
+    """
+  end
+
+  defp executable_path(language, instance, path)
+
+  defp executable_path("elixir", instance, :current) do
     "#{Storage.current_path(instance)}/bin/#{Storage.monitored_app()}"
   end
 
-  defp executable_path(instance, :new) do
+  defp executable_path("elixir", instance, :new) do
     "#{Storage.new_path(instance)}/bin/#{Storage.monitored_app()}"
+  end
+
+  defp executable_path("gleam", instance, _path) do
+    "#{Storage.current_path(instance)}/erlang-shipment"
   end
 
   # credo:disable-for-lines:28
   defp execute_pre_commands(_state, pre_commands, _bin_path) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(%{instance: instance, status: status} = state, pre_commands, bin_path) do
-    migration_exec = executable_path(instance, bin_path)
+    monitore_app_lang = Storage.monitored_app_lang()
+    migration_exec = executable_path(monitore_app_lang, instance, bin_path)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
@@ -324,7 +354,7 @@ defmodule Deployex.Monitor.Application do
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
         Logger.info(" # Executing: #{pre_command}")
 
-        OpSys.run(run_app_bin(instance, migration_exec, pre_command), [
+        OpSys.run(run_app_bin(monitore_app_lang, instance, migration_exec, pre_command), [
           :sync,
           {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
           {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}

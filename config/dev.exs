@@ -75,12 +75,13 @@ config :phoenix_live_view,
 config :swoosh, :api_client, false
 
 # Release configuration
-monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
+monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "cochito")
 
 config :deployex,
   env: "local",
   base_path: "/tmp/deployex/varlib",
   monitored_app_name: monitored_app_name,
+  monitored_app_lang: "gleam",
   monitored_app_log_path: "/tmp/#{monitored_app_name}"
 
 config :deployex, Deployex.Release,
