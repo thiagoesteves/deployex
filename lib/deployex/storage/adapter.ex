@@ -8,7 +8,7 @@ defmodule Deployex.Storage.Adapter do
   @callback replicas_list() :: list()
   @callback monitored_app() :: String.t()
   @callback monitored_app_lang() :: String.t()
-  @callback phx_start_port() :: integer()
+  @callback monitored_app_start_port() :: integer()
   @callback stdout_path(integer()) :: binary()
   @callback stderr_path(integer()) :: binary()
   @callback sname(integer()) :: String.t()

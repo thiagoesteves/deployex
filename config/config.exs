@@ -20,7 +20,7 @@ config :deployex,
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
   replicas: 3,
-  monitored_app_phx_start_port: 4000,
+  monitored_app_start_port: 4000,
   monitored_app_lang: "elixir"
 
 # NOTE: The default username/pass is admin/admin and in order to generate

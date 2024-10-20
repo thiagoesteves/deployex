@@ -92,7 +92,7 @@ defmodule Deployex.Storage.Local do
   def monitored_app_lang, do: Application.fetch_env!(:deployex, :monitored_app_lang)
 
   @impl true
-  def phx_start_port, do: Application.get_env(:deployex, :monitored_app_phx_start_port)
+  def monitored_app_start_port, do: Application.get_env(:deployex, :monitored_app_start_port)
 
   @impl true
   def stdout_path(@deployex_instance) do

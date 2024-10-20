@@ -295,23 +295,23 @@ defmodule Deployex.Monitor.Application do
   defp run_app_bin(language, instance, executable_path, command)
 
   defp run_app_bin("elixir", instance, executable_path, command) do
-    phx_port = Storage.phx_start_port() + (instance - 1)
+    server_port = Storage.monitored_app_start_port() + (instance - 1)
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
     export RELEASE_NODE_SUFFIX=-#{instance}
-    export PORT=#{phx_port}
+    export PORT=#{server_port}
     #{executable_path} #{command}
     """
   end
 
   defp run_app_bin("gleam", instance, executable_path, _command) do
-    phx_port = Storage.phx_start_port() + (instance - 1)
+    server_port = Storage.monitored_app_start_port() + (instance - 1)
     app_name = Storage.monitored_app()
 
     """
     unset $(env | grep RELEASE | awk -F'=' '{print $1}')
-    export PORT=#{phx_port}
+    export PORT=#{server_port}
     PACKAGE=#{app_name}
     BASE=#{executable_path}
     erl \

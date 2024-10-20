@@ -83,11 +83,11 @@ defmodule Deployex.Storage do
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.phx_start_port() == 4444
+    ...> assert Storage.monitored_app_start_port() == 4444
   """
   @impl true
-  @spec phx_start_port() :: integer()
-  def phx_start_port, do: default().phx_start_port()
+  @spec monitored_app_start_port() :: integer()
+  def monitored_app_start_port, do: default().monitored_app_start_port()
 
   @doc """
   Return the path for the stdout log file
