@@ -4,7 +4,7 @@
 
 ![Development](https://img.shields.io/badge/STATUS-Development_v0.3.0-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
 
-DeployEx is a lightweight tool designed for managing deployments in Elixir applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
+DeployEx is a lightweight tool designed for managing deployments in Elixir and Gleam applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
 DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
 
@@ -45,6 +45,10 @@ Upon deployment, the following dashboard becomes available, offering access to l
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.
 
 ## ⚠️ Next steps
+
+### Version 0.3.0
+
+- [ ] 🚧 Add Gleam support.
 
 ### Version 0.4.0
 
@@ -190,7 +194,7 @@ For local testing, the root path used for distribution releases and versions is 
 
 Create the required release folders:
 ```bash
-export monitored_app_name=myphoenixapp
+export monitored_app_name=cochito
 mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
