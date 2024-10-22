@@ -34,6 +34,27 @@ defmodule Deployex.Common do
   end
 
   @doc """
+  Return the PATH without deployex bin/erts
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.remove_deployex_from_path != ""
+  """
+  @spec remove_deployex_from_path :: String.t()
+  def remove_deployex_from_path do
+    bindir = System.get_env("BINDIR", "")
+    deployex_bin_dir = Application.fetch_env!(:deployex, :bin_dir)
+
+    paths =
+      "PATH"
+      |> System.get_env("")
+      |> String.split([":"])
+
+    Enum.join(paths -- [bindir, deployex_bin_dir], ":")
+  end
+
+  @doc """
   This function converts diff time to string
 
   ## Examples

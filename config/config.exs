@@ -17,6 +17,7 @@ import Config
 config :deployex,
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
+  bin_dir: "/opt/deployex/bin",
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
   replicas: 3,

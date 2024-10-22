@@ -26,6 +26,7 @@ if config_env() == :prod do
     env: System.fetch_env!("DEPLOYEX_CLOUD_ENVIRONMENT"),
     base_path: "/var/lib/deployex",
     monitored_app_name: System.fetch_env!("DEPLOYEX_MONITORED_APP_NAME"),
+    monitored_app_lang: System.fetch_env!("DEPLOYEX_MONITORED_APP_LANG"),
     monitored_app_log_path: "/var/log",
     monitored_app_start_port:
       String.to_integer(System.get_env("DEPLOYEX_MONITORED_APP_PORT") || "4000"),

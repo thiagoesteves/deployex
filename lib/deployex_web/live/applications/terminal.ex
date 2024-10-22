@@ -9,6 +9,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   """
   use DeployexWeb, :live_component
 
+  alias Deployex.Common
   alias Deployex.OpSys
 
   require Logger
@@ -97,18 +98,24 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     suffix = if instance == "0", do: "", else: "-#{instance}"
 
     if File.exists?(bin_path) do
+      path = Common.remove_deployex_from_path()
+
       commands =
         if app_lang == "gleam" and instance != "0" do
           {:ok, hostname} = :inet.gethostname()
           app_name = Deployex.Storage.monitored_app()
 
           """
-          unset $(env | grep RELEASE | awk -F'=' '{print $1}')
+          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+          export PATH=#{path}
           erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} -proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf
           """
         else
           """
-          unset $(env | grep RELEASE | awk -F'=' '{print $1}')
+          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+          export PATH=#{path}
           export RELEASE_NODE_SUFFIX=#{suffix}
           export RELEASE_COOKIE=#{cookie}
           #{bin_path} remote
