@@ -1,17 +1,21 @@
-# AWS Deployment with Terraform
+# GCP Deployment for Elixir with Terraform
 
-This guide demonstrates how to deploy DeployEx in Amazon Web Services (AWS) using Terraform to programmatically set up the environment.
+This guide demonstrates how to deploy DeployEx in Google Cloud Platform (GCP) using Terraform to programmatically set up the environment.
 
 ## Setup
 
 To begin, ensure the following applications are installed:
 
  * Terraform
- * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+ * [Google Cloud SDK](https://cloud.google.com/sdk/docs/install-sdk?hl=pt-br)
 
-### 1. SSH Key Pair
+### 1. Create a Project in GCP and populate the terraform variables
 
-Create an SSH key pair named, e. g. `myappname-web-ec2` by visiting the [AWS Key Pair page](https://sa-east-1.console.aws.amazon.com/ec2/home?region=sa-east-1#KeyPairs:). Save the private key in your local SSH folder (`~/.ssh`). The name `myappname-web-ec2` will be used by this file `devops/terraform/modules/standard-account/variables.tf` within terraform templates.
+Using the Google Cloud Dashboard:
+ * [Create a project](https://developers.google.com/workspace/guides/create-project), e. g.,`deployex`
+ * [Create a service account](https://console.cloud.google.com/iam-admin/serviceaccounts) and generate keys. The JSON file with the keys will be downloaded to your local machine. In this example, save the file as `deployex-gcp-terraform.json`.
+ * Retrieve access token using the [google cloud terminal](https://shell.cloud.google.com/?pli=1&show=ide%2Cterminal) and the command: `gcloud beta auth application-default print-access-token`
+ * Enable the following resources in GCP: Google Compute Engine (GCE) and Secret Manager.
 
 ### 2. Environment Secrets
 
@@ -31,45 +35,36 @@ Rename the file [main_example.tf_](./environments/prod/main_example.tf_) to [mai
 
 ### 4. Provisioning the Environment
 
-Check you have the correct credentials to create/update resources in aws:
-```bash
-cat ~/.aws/credentials 
-[default]
-aws_access_key_id=access_key_id
-aws_secret_access_key=secret_access_key
-```
+#### Creating the Environment
 
-Once the key is configured, proceed with provisioning the environment. Navigate to the `./environments/prod` folder and execute the following commands:
+Once the variables are configured, proceed with provisioning the environment. Navigate to the `./environments/prod` folder and execute the following commands:
 
 ```bash
 terraform plan # Check if the templates are configured correctly
 terraform apply # Apply the configurations to create the environment
 ```
 
-Wait for the environment to be created. Once the provisioning is complete, you can check the instance at this [address](https://console.aws.amazon.com/ec2/home).
+> [!IMPORTANT]
+> At this stage, you might encounter issues if billing is not properly set up or if required resources are not enabled. Additionally, the access token may expire over time, so you might need to renew it.
+
+Wait for the environment to be created. Once the provisioning is complete, you can check the instance at this [address](https://console.cloud.google.com/compute/instances).
 
 #### Updating Secret Manager
 
-Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secrets:
+Navigate to [GCP Secrets Manager](https://console.cloud.google.com/security/secret-manager), locate and update the following secrets:
 
  *  *__myappname-prod-secrets__*:
 
-Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs: (You may need to configure additional secrets if your application requires them)
-
+Create a new version of the secret and add the following JSON structure as plain text (You may need to configure additional secrets if your application requires them):
 ```bash
-# Update the secrets
-MYAPPNAME_SECRET_KEY_BASE=xxxxxxxxxx
-MYAPPNAME_ERLANG_COOKIE=xxxxxxxxxx
+{"MYAPPNAME_SECRET_KEY_BASE":"xxxxxxxxxx","MYAPPNAME_ERLANG_COOKIE":"xxxxxxxxxx"}
 ```
 
 * *__deployex-myappname-prod-secrets__*
 
-Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs:
-
+Create a new version of the secret and add the following JSON structure as plain text:
  ```bash
-DEPLOYEX_SECRET_KEY_BASE=xxxxxxxxxx
-DEPLOYEX_ERLANG_COOKIE=xxxxxxxxxx
-DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
+{"DEPLOYEX_SECRET_KEY_BASE":"xxxxxxxxxx","DEPLOYEX_ERLANG_COOKIE":"xxxxxxxxxx","DEPLOYEX_ADMIN_HASHED_PASSWORD":"xxxxxxxxxx"}
 ```
 
  *  *__myappname-stage-otp-tls-ca__*, *__myappname-stage-otp-tls-key__*, *__myappname-stage-otp-tls-crt__*:
@@ -80,29 +75,37 @@ Create the TLS certificates for OTP distribution using the [Following script](..
 make tls-distribution-certs
 ```
 
-The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Click in each secret in AWS, then select "Retrieve Secret Value" and edit the secret by adding them as plain text, For guidance, you can refer to this [eaxample](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html).
+The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Create a new version for each secret and upload each file to its respective secret using the browser's file upload button.
 
 > [!WARNING]
 > __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match, as they will be used by the OTP distribution.
 
-### 5. EC2 Provisioning (Manual Steps)
+### 5. GCI Provisioning (Manual Steps)
 
-When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention.
-
-For initial installations or updates to deployex, follow these steps:
-
-*__PS__*: make sure you have the pair myappname-web-ec2.pem saved in `~/.ssh/`
+For initial installations or updates to deployex, access the Google Compute Instance via SSH using the dashboard. After gaining access to the GCI, you need to grant root permissions:
 
 ```bash
-ssh -i "myappname-web-ec2.pem" ubuntu@ec2-52-67-178-12.sa-east-1.compute.amazonaws.com
-ubuntu@ip-10-0-1-56:~$
+my-user@myfirstapp-prod-instance:~$ sudo su
+root@myfirstapp-prod-instance:/home/my-user# cd ../ubuntu/
+root@myfirstapp-prod-instance:/home/ubuntu# ls
 ```
 
-After getting access to EC2, you need to grant root permissions:
+Check the configuration for DeployEx and your target app by editing the `deployex-config.json` file:
+```bash
+vi deployex-config.json
+```
+
+Authenticate using the Google Cloud CLI:
+```bash
+gcloud auth login
+```
+
+Follow the instructions: Copy the link provided, open it in your browser, authenticate, and then paste the verification code back into the terminal. You should see a confirmation message similar to:
 
 ```bash
-ubuntu@ip-10-0-1-56:~$ sudo su
-root@ip-10-0-1-56:/home/ubuntu$
+You are now logged in as [my-user@gmail.com].
+Your current project is [xxxxx].  You can change this setting by running:
+...
 ```
 
 Since the secrets are already updated, we are going to install them in the appropriate addresses
@@ -119,6 +122,16 @@ Check that the certificates are correctly installed:
 ls /usr/local/share/ca-certificates
 ca.crt  myappname.crt myappname.key deployex.crt  deployex.key
 ```
+
+Edit the `gcp-config.json` file to add your credentials:
+```bash
+vi gcp-config.json
+{
+  "type": "service_account" # Populate it after installation
+  ...
+}
+```
+
 If you are updating DeployEx, you may need to update the `deployex.sh` script. This step is not necessary during the initial installation, as the script is already installed by default. To update the script, use the following commands:
 
 ```bash
@@ -126,6 +139,7 @@ version=0.3.0
 rm deployex.sh
 wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
 chmod a+x deployex.sh
+```
 
 Run the script to install (or update) deployex:
 
@@ -188,17 +202,19 @@ The JSON file __MUST__ be stored at the following path: `/versions/{monitored_ap
 After DeployEx fetches the release file, it will download the release package for installation. The package should be located at: `/dist/{monitored_app}/{monitored_app}-{version}.tar.gz`
 
 
-#### [CI/CD] Upload files to AWS from Github
+#### [CI/CD] Upload files to GCP from Github
 
 Here are some useful resources with suggestions on how to automate the upload of version and release files to your environment using GitHub Actions:
 
- * [Guthub Actions - S3 Downloader/Uploader](https://github.com/marketplace/actions/s3-cp)
- * [Calori Webserver Example with AWS](https://github.com/thiagoesteves/calori/tree/main/devops/aws/terraform)
+ * [Gcp Workload Identity](https://mahendranp.medium.com/gcp-workload-identity-federation-with-github-actions-1d320f62417c)
+ * [Guthub Actions - Cloud Storage Uploader](https://github.com/marketplace/actions/cloud-storage-uploader)
+ * [Configuring OpenID Connect in Google Cloud Platform](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-google-cloud-platform)
+ * [Calori Webserver Example with GCP](https://github.com/thiagoesteves/calori/tree/main/devops/gcp/terraform)
 
  ### 7. Setting Up HTTPS Certificates with Let's Encrypt
 
 > [!IMPORTANT]
-> Before proceeding, make sure that the DNS is correctly configured to point to the AWS instance.
+> Before proceeding, make sure that the DNS is correctly configured to point to the GCP instance.
 
 
  For HTTPS, you can use free certificates from [Let's encrypt](https://letsencrypt.org/getting-started/). In this example, we'll use [cert bot for ubuntu](https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal) to obtain and configure the certificates:

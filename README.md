@@ -159,8 +159,9 @@ For local testing, these variables are not expected or set to default values.
 
 DeployEx offers a comprehensive set of Terraform examples for programmatically deploying in AWS and GCP, including detailed step-by-step setup instructions:
 
- * [AWS deployment](docs/examples/aws/README.md)
- * [GCP deployment](docs/examples/gcp/README.md)
+ * [AWS deployment for Elixir](docs/examples/aws-elixir/README.md)
+ * [GCP deployment for Elixir](docs/examples/gcp-elixir/README.md)
+ * [AWS deployment for Gleam](docs/examples/aws-gleam/README.md)
 
 ### Installation
 
