@@ -133,7 +133,7 @@ defmodule Deployex.Upgrade.Application do
   end
 
   def check(instance, download_path, from_version, to_version) do
-    monitored_app = Storage.monitored_app()
+    monitored_app = Storage.monitored_app_name()
 
     with [file_path] <-
            Path.wildcard("#{Storage.new_path(instance)}/lib/#{monitored_app}-*/ebin/*.appup"),
@@ -179,7 +179,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec unpack_release(atom(), charlist()) :: :ok | {:error, any()}
   def unpack_release(node, to_version) do
-    release_link = "#{to_version}/#{Storage.monitored_app()}" |> to_charlist
+    release_link = "#{to_version}/#{Storage.monitored_app_name()}" |> to_charlist
 
     case :rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
       {:ok, version} ->
@@ -204,11 +204,12 @@ defmodule Deployex.Upgrade.Application do
       :systools,
       :make_relup,
       [
-        root ++ ~c"/releases/#{Storage.monitored_app()}-" ++ to_version,
-        [root ++ ~c"/releases/#{Storage.monitored_app()}-" ++ from_version],
-        [root ++ ~c"/releases/#{Storage.monitored_app()}-" ++ from_version],
+        root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ to_version,
+        [root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ from_version],
+        [root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ from_version],
         [
-          {:path, [root ++ ~c"/lib/*/ebin", root ++ ~c"/releases/*/#{Storage.monitored_app()}"]},
+          {:path,
+           [root ++ ~c"/lib/*/ebin", root ++ ~c"/releases/*/#{Storage.monitored_app_name()}"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
       ],

@@ -52,7 +52,7 @@ defmodule Deployex.Status.Application do
     monitoring_apps =
       Storage.replicas_list()
       |> Enum.map(fn instance ->
-        update_monitored_app(instance)
+        update_monitored_app_name(instance)
       end)
 
     new_monitoring = [deployex] ++ monitoring_apps
@@ -213,7 +213,7 @@ defmodule Deployex.Status.Application do
     }
   end
 
-  defp update_monitored_app(instance) do
+  defp update_monitored_app_name(instance) do
     %{
       status: status,
       crash_restart_count: crash_restart_count,

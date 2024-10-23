@@ -7,7 +7,7 @@ defmodule Deployex.Fixture.Storage do
     Application.get_env(:deployex, :base_path) |> File.rm_rf()
 
     # Remove any current.json file
-    monitored_app = Deployex.Storage.monitored_app()
+    monitored_app = Deployex.Storage.monitored_app_name()
     current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
     File.rm_rf(current_json_dir)
 
@@ -15,7 +15,7 @@ defmodule Deployex.Fixture.Storage do
   end
 
   def create_current_json(map \\ %{version: "1.0.0", hash: "local"}) do
-    monitored_app = Deployex.Storage.monitored_app()
+    monitored_app = Deployex.Storage.monitored_app_name()
     current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
     file = Jason.encode!(map)
     File.mkdir_p(current_json_dir)

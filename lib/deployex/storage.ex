@@ -59,11 +59,11 @@ defmodule Deployex.Storage do
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.monitored_app() == "testapp"
+    ...> assert Storage.monitored_app_name() == "testapp"
   """
   @impl true
-  @spec monitored_app() :: binary()
-  def monitored_app, do: default().monitored_app()
+  @spec monitored_app_name() :: binary()
+  def monitored_app_name, do: default().monitored_app_name()
 
   @doc """
   Return the app language that will be monitored

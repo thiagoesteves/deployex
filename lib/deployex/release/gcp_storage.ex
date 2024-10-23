@@ -21,7 +21,7 @@ defmodule Deployex.Release.GcpStorage do
   @impl true
   def get_current_version_map do
     path =
-      "https://storage.googleapis.com/#{bucket()}/versions/#{Storage.monitored_app()}/#{env()}/current.json"
+      "https://storage.googleapis.com/#{bucket()}/versions/#{Storage.monitored_app_name()}/#{env()}/current.json"
 
     :get
     |> Finch.build(path, headers(), [])
@@ -39,7 +39,7 @@ defmodule Deployex.Release.GcpStorage do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = Storage.monitored_app()
+    monitored_app = Storage.monitored_app_name()
 
     gcp_path =
       "https://storage.googleapis.com/#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"

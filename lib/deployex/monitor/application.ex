@@ -310,7 +310,7 @@ defmodule Deployex.Monitor.Application do
 
   defp run_app_bin("gleam", instance, executable_path, _command) do
     server_port = Storage.monitored_app_start_port() + (instance - 1)
-    app_name = Storage.monitored_app()
+    app_name = Storage.monitored_app_name()
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
 
@@ -341,11 +341,11 @@ defmodule Deployex.Monitor.Application do
   defp executable_path(language, instance, path)
 
   defp executable_path("elixir", instance, :current) do
-    "#{Storage.current_path(instance)}/bin/#{Storage.monitored_app()}"
+    "#{Storage.current_path(instance)}/bin/#{Storage.monitored_app_name()}"
   end
 
   defp executable_path("elixir", instance, :new) do
-    "#{Storage.new_path(instance)}/bin/#{Storage.monitored_app()}"
+    "#{Storage.new_path(instance)}/bin/#{Storage.monitored_app_name()}"
   end
 
   defp executable_path("gleam", instance, _path) do
@@ -392,7 +392,7 @@ defmodule Deployex.Monitor.Application do
 
   defp cleanup_beam_process(instance) do
     case OpSys.run(
-           "kill -9 $(ps -ax | grep \"#{Storage.monitored_app()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+           "kill -9 $(ps -ax | grep \"#{Storage.monitored_app_name()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
            [:sync, :stdout, :stderr]
          ) do
       {:ok, _} ->

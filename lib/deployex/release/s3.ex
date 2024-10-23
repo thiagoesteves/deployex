@@ -20,7 +20,7 @@ defmodule Deployex.Release.S3 do
   """
   @impl true
   def get_current_version_map do
-    path = "versions/#{Storage.monitored_app()}/#{env()}/current.json"
+    path = "versions/#{Storage.monitored_app_name()}/#{env()}/current.json"
 
     bucket()
     |> ExAws.S3.get_object(path)
@@ -38,7 +38,7 @@ defmodule Deployex.Release.S3 do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = Storage.monitored_app()
+    monitored_app = Storage.monitored_app_name()
 
     s3_path = "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 

@@ -20,7 +20,7 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def get_current_version_map do
-    monitored_app = Storage.monitored_app()
+    monitored_app = Storage.monitored_app_name()
 
     file_path = "#{bucket()}/versions/#{monitored_app}/#{env()}/current.json"
 
@@ -39,7 +39,7 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def download_and_unpack(instance, version) do
-    monitored_app = Storage.monitored_app()
+    monitored_app = Storage.monitored_app_name()
 
     download_path = "#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
 

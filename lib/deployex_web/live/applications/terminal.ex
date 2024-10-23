@@ -37,7 +37,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   @impl true
   def mount(socket) do
-    monitored_app = Deployex.Storage.monitored_app()
+    monitored_app = Deployex.Storage.monitored_app_name()
 
     socket =
       socket
@@ -97,7 +97,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
     path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
-    app_name = Deployex.Storage.monitored_app()
+    app_name = Deployex.Storage.monitored_app_name()
     {:ok, hostname} = :inet.gethostname()
 
     ssl_options =

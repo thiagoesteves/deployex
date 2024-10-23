@@ -66,7 +66,7 @@ defmodule Deployex.Storage.Local do
       |> Enum.each(&File.mkdir_p!/1)
 
       # Create folder and Log message files (If they don't exist)
-      File.mkdir_p!("#{log_path()}/#{monitored_app()}")
+      File.mkdir_p!("#{log_path()}/#{monitored_app_name()}")
       File.touch(stdout_path(instance))
       File.touch(stderr_path(instance))
     end)
@@ -86,7 +86,7 @@ defmodule Deployex.Storage.Local do
   def replicas_list, do: Enum.to_list(1..replicas())
 
   @impl true
-  def monitored_app, do: Application.fetch_env!(:deployex, :monitored_app_name)
+  def monitored_app_name, do: Application.fetch_env!(:deployex, :monitored_app_name)
 
   @impl true
   def monitored_app_lang, do: Application.fetch_env!(:deployex, :monitored_app_lang)
@@ -102,7 +102,7 @@ defmodule Deployex.Storage.Local do
 
   def stdout_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
-    monitored_app = monitored_app()
+    monitored_app = monitored_app_name()
     "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stdout.log"
   end
 
@@ -114,12 +114,12 @@ defmodule Deployex.Storage.Local do
 
   def stderr_path(instance) do
     log_path = Application.fetch_env!(:deployex, :monitored_app_log_path)
-    monitored_app = monitored_app()
+    monitored_app = monitored_app_name()
     "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stderr.log"
   end
 
   @impl true
-  def sname(instance), do: "#{monitored_app()}-#{instance}"
+  def sname(instance), do: "#{monitored_app_name()}-#{instance}"
 
   @impl true
   def bin_path(@deployex_instance, _monitored_app_lang) do
@@ -127,7 +127,7 @@ defmodule Deployex.Storage.Local do
   end
 
   def bin_path(instance, "elixir") do
-    monitored_app = monitored_app()
+    monitored_app = monitored_app_name()
     "#{current_path(instance)}/bin/#{monitored_app}"
   end
 
@@ -202,17 +202,17 @@ defmodule Deployex.Storage.Local do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp service_path, do: "#{base_path()}/service/#{monitored_app()}"
+  defp service_path, do: "#{base_path()}/service/#{monitored_app_name()}"
   defp log_path, do: Application.fetch_env!(:deployex, :monitored_app_log_path)
 
   defp config_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/deployex/config"
+    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/config"
 
   defp history_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/deployex/history"
+    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/history"
 
   defp ghosted_version_path,
-    do: "#{base_path()}/storage/#{monitored_app()}/deployex/ghosted"
+    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/ghosted"
 
   defp insert_by_timestamp(path, data) do
     file = "#{System.os_time(:microsecond)}.term"

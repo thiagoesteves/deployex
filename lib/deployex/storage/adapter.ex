@@ -6,7 +6,7 @@ defmodule Deployex.Storage.Adapter do
   @callback setup() :: :ok
   @callback replicas() :: integer()
   @callback replicas_list() :: list()
-  @callback monitored_app() :: String.t()
+  @callback monitored_app_name() :: String.t()
   @callback monitored_app_lang() :: String.t()
   @callback monitored_app_start_port() :: integer()
   @callback stdout_path(integer()) :: binary()
