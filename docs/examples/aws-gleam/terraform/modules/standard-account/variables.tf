@@ -25,7 +25,7 @@ variable "aws_key_name" {
 
 variable "aws_region" {
   description = "The AWS region to use"
-  default     = "sa-east-1"
+  default     = "us-east-1"
 }
 
 variable "deployex_version" {

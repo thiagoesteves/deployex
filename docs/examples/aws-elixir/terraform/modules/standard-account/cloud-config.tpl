@@ -34,6 +34,7 @@ write_files:
     content: |
       {
         "app_name": "myappname",
+        "app_lang": "elixir",
         "replicas": ${replicas},
         "account_name": "${account_name}",
         "deployex_hostname": "${deployex_hostname}",

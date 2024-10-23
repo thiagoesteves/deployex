@@ -1,7 +1,7 @@
 # Rename me to main.tf and populated with the corrected values
 
 provider "aws" {
-  region              = "sa-east-1"
+  region              = "us-east-1"
   allowed_account_ids = ["921999999999"]
 }
 
