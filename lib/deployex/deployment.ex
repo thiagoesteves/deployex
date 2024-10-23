@@ -13,8 +13,6 @@ defmodule Deployex.Deployment do
   To start the server, use `Deployex.Deployment.start_link/1` with appropriate options.
   """
 
-  @wait_time_from_stop_ms 500
-
   use GenServer
   require Logger
 
@@ -270,7 +268,7 @@ defmodule Deployex.Deployment do
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
-      :timer.sleep(@wait_time_from_stop_ms)
+      :timer.sleep(Application.fetch_env!(:deployex, __MODULE__)[:delay_between_deploys_ms])
 
       Status.update(instance)
 

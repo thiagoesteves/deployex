@@ -37,4 +37,13 @@ defmodule Deployex.Macros do
         end
     end
   end
+
+  defmacro if_not_test(do: tBlock) do
+    if :test != Mix.env() do
+      # If this is a dev block
+      quote do
+        unquote(tBlock)
+      end
+    end
+  end
 end

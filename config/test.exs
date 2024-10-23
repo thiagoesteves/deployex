@@ -37,6 +37,8 @@ config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock
 # Config Mock for Operational System
 config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
 
+config :deployex, Deployex.Deployment, delay_between_deploys_ms: 10
+
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 

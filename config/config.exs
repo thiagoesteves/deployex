@@ -35,7 +35,8 @@ config :deployex, Deployex.Accounts,
 
 config :deployex, Deployex.Deployment,
   timeout_rollback: :timer.minutes(10),
-  schedule_interval: :timer.seconds(5)
+  schedule_interval: :timer.seconds(5),
+  delay_between_deploys_ms: :timer.seconds(1)
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,
