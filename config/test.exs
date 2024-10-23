@@ -6,6 +6,7 @@ config :deployex,
   env: "local",
   base_path: "/tmp/deployex/test/varlib",
   monitored_app_name: monitored_app_name,
+  monitored_app_lang: "elixir",
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
   monitored_app_start_port: 4444
 

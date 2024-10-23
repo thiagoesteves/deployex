@@ -105,11 +105,17 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
           {:ok, hostname} = :inet.gethostname()
           app_name = Deployex.Storage.monitored_app()
 
+          ssl_options =
+            if Common.check_mtls() == :supported do
+              "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
+            else
+              ""
+            end
+
           """
           unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
           unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
-          export PATH=#{path}
-          erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} -proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf
+          erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
           """
         else
           """

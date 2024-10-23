@@ -314,6 +314,13 @@ defmodule Deployex.Monitor.Application do
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
 
+    ssl_options =
+      if Common.check_mtls() == :supported do
+        "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
+      else
+        ""
+      end
+
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
@@ -325,8 +332,7 @@ defmodule Deployex.Monitor.Application do
       -pa "$BASE"/*/ebin \
       -eval "$PACKAGE@@main:run($PACKAGE)" \
       -noshell \
-      -proto_dist inet_tls \
-      -ssl_dist_optfile /tmp/inet_tls.conf \
+      #{ssl_options} \
       -sname #{app_name}-#{instance} \
       -setcookie #{cookie}
     """

@@ -36,6 +36,23 @@ defmodule Deployex.Common do
   end
 
   @doc """
+  Return if mutual TLS is supported
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.mtls == :not_supported
+  """
+  @spec check_mtls() :: :supported | :not_supported
+  def check_mtls do
+    if :init.get_arguments()[:ssl_dist_optfile] do
+      :supported
+    else
+      :not_supported
+    end
+  end
+
+  @doc """
   Return the current configured cookie
 
   ## Examples
@@ -43,6 +60,7 @@ defmodule Deployex.Common do
     iex> alias Deployex.Common
     ...> assert Common.cookie == :cookie
   """
+  @spec cookie() :: atom()
   def cookie do
     if_not_test do
       Node.get_cookie()
