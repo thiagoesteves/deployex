@@ -3,10 +3,11 @@
 ## 0.3.0-rc21 ()
 
 ### Backwards incompatible changes for 0.3.0-rc20
- * None
+ * Added new configuration for gleam, new variables documentation added to the README.
 
 ### Installer Actions
- * None
+ * Update `deployex-config.json` to support new configuration
+ * Update `deployex.sh` to be able to install using new configuration
 
 ### Bug fixes
  * None
@@ -16,6 +17,7 @@
  * [[`PR-71`](https://github.com/thiagoesteves/deployex/pull/71)] Added ex_docs and enhanced documentation
  * [[`PR-72`](https://github.com/thiagoesteves/deployex/pull/72)] Change deploy reference to string instead erlang reference
  * [[`PR-73`](https://github.com/thiagoesteves/deployex/pull/73)] Adding deploy_ref to the monitor global_name
+ * [[`PR-75`](https://github.com/thiagoesteves/deployex/pull/75)] Adding Gleam support
 
 ## 0.3.0-rc20 (2024-10-02)
 
@@ -84,7 +86,7 @@
  * Added new configuration for google credentials when using GCP, new variables documentation added to the README.
 
 ### Installer Actions
- * Update `deployex-config.json` to suppoer new configuration
+ * Update `deployex-config.json` to support new configuration
  * Update `deployex.sh` to be able to install using new configuration
 
 ### Bug fixes

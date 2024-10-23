@@ -4,15 +4,17 @@
 
 ![Development](https://img.shields.io/badge/STATUS-Development_v0.3.0-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
 
-DeployEx is a lightweight tool designed for managing deployments in Elixir and Gleam applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the mix release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
+DeployEx is a lightweight tool designed for managing deployments in Elixir and Gleam applications without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
 DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
 
-DeployEx is currently used by [Calori Web Server](https://github.com/thiagoesteves/calori) and you can check its [deployment](https://deployex.calori.com.br).
+DeployEx is currently used by:
+ * [Calori Web Server](https://github.com/thiagoesteves/calori) for __Elixir__ applications and you can check it at [homepage](https://calori.com.br).
+ * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications and you can check it at [homepage](https://gleam.deployex.pro).
 
 ![Deployment Architecture](docs/static/deployex.png)
 
-Upon deployment, the following dashboard becomes available, offering access to logs for both DeployEx and monitored applications, along with an IEX terminal."
+Upon deployment, the following dashboard becomes available, offering access to logs for both DeployEx and monitored applications, along with an IEX and/or erl terminal."
 
 [![Running with no monitored apps](docs/static/deployex_monitoring_app_tls.png)](docs/static/deployex.mov)
 
@@ -145,6 +147,7 @@ DeployEx application typically requires several environment variables to be defi
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | -/- | erlang cookie |
 | __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
+| __DEPLOYEX_MONITORED_APP_LANG__ | elixir | system ENV | -/- |  Monitored app language |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
 | __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
 | __GOOGLE_APPLICATION_CREDENTIALS__ | /path/to/file.json | system ENV | -/- | the google application credentials path |
@@ -198,18 +201,20 @@ Within the secrets, the following key-value pairs are required:
 
 ## 🏠 Running DeployEx and Monitored app locally
 
+### Elixir
+
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
 Create the required release folders:
 ```bash
-export monitored_app_name=cochito
+export monitored_app_name=myphoenixapp
 mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-### Creating an Elixir phoenix app (default name is `myphoenixapp`)
+#### Creating an Elixir phoenix app (default name is `myphoenixapp`)
 
 In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
@@ -220,7 +225,7 @@ mix phx.new myphoenixapp --no-ecto
 cd myphoenixapp
 ```
 
-### Add env.sh.eex file in the release folder to configure the OTP distribution
+#### Add env.sh.eex file in the release folder to configure the OTP distribution
 
 ```bash
 vi rel/env.sh.eex
@@ -237,7 +242,7 @@ export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 # save the file :wq
 ```
 
-### The next steps are needed ONLY for Hot upgrades
+#### The next steps are needed ONLY for Hot upgrades
 Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
 ```elixir
 def deps do
@@ -277,7 +282,7 @@ live_reload: [
 ]
 ```
 
-### Generate a release
+#### Generate a release
 Then you can compile and generate a release
 ```bash
 mix deps.get
@@ -298,7 +303,7 @@ cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-### Running DeployEx and deploy the app
+#### Running DeployEx and deploy the app
 
 Move back to the DeployEx project and run the command line with the required ENV vars. 
 
@@ -330,9 +335,9 @@ You should then visit the application and check it is running [localhost:5001](h
 
 Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
-### Updating the application
+#### Updating the application
 
-#### Full deployment
+##### Full deployment
 
 In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myphoenixapp` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
 
@@ -377,7 +382,7 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 ...
 ```
 
-#### Hot-upgrades
+##### Hot-upgrades
 
 For this scenario, the project must first be compiled to the current version and subsequently compiled for the version it's expected to update to. The `current.json` file deployed includes the git hash representing the current application version. In this local testing phase, it suffices to compile for the previous version, such as `0.1.1`, and the subsequent version, like `0.1.2`, so the necessary files will be automatically populated.
 
@@ -422,7 +427,7 @@ you can check that the version and the deployment status has changed in the dash
 ![No mTLS Dashboard](docs/static/deployex_monitoring_app_hot_upgrade.png)
 
 
-### 🔑 Enhancing OTP Distribution Security with mTLS
+#### 🔑 Enhancing OTP Distribution Security with mTLS
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 
@@ -488,6 +493,8 @@ After making these changes, create and publish a new version `0.1.3` for `myphoe
 
 > [!ATTENTION]
 > Ensure that the cookie is properly set
+
+### Gleam
 
 ## 🔨 Throubleshooting
 
