@@ -41,7 +41,7 @@ defmodule Deployex.Common do
   ## Examples
 
     iex> alias Deployex.Common
-    ...> assert Common.mtls == :not_supported
+    ...> assert Common.check_mtls == :not_supported
   """
   @spec check_mtls() :: :supported | :not_supported
   def check_mtls do

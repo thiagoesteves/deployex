@@ -95,23 +95,21 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       |> String.to_integer()
       |> Deployex.Storage.bin_path(app_lang)
 
+    path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
+    app_name = Deployex.Storage.monitored_app()
+    {:ok, hostname} = :inet.gethostname()
+
+    ssl_options =
+      if Common.check_mtls() == :supported do
+        "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
+      else
+        ""
+      end
 
     if File.exists?(bin_path) do
-      path = Common.remove_deployex_from_path()
-
       commands =
         if app_lang == "gleam" and instance != "0" do
-          {:ok, hostname} = :inet.gethostname()
-          app_name = Deployex.Storage.monitored_app()
-
-          ssl_options =
-            if Common.check_mtls() == :supported do
-              "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
-            else
-              ""
-            end
-
           """
           unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
           unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
