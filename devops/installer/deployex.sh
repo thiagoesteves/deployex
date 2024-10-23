@@ -48,17 +48,18 @@ remove_deployex() {
 
 install_deployex() {
     local app_name="${1}"
-    local replicas="${2}"
-    local account_name="${3}"
-    local deployex_hostname="${4}"
-    local release_adapter="${5}"
-    local release_bucket="${6}"
-    local secrets_adapter="${7}"
-    local secrets_path="${8}"
-    local aws_region="${9}"
-    local google_credentials="${10}"
-    local deploy_timeout_rollback_ms="${11}"
-    local deploy_schedule_interval_ms="${12}"
+    local app_lang="${2}"
+    local replicas="${3}"
+    local account_name="${4}"
+    local deployex_hostname="${5}"
+    local release_adapter="${6}"
+    local release_bucket="${7}"
+    local secrets_adapter="${8}"
+    local secrets_path="${9}"
+    local aws_region="${10}"
+    local google_credentials="${11}"
+    local deploy_timeout_rollback_ms="${12}"
+    local deploy_schedule_interval_ms="${13}"
 
     # Load environment variables from JSON
     local env_variables=$(jq -r '.env | to_entries[] | "\(.key)=\(.value)"' "$config_file")
@@ -85,6 +86,7 @@ DEPLOYEX_SYSTEMD_FILE="
   Environment=DEPLOYEX_CLOUD_ENVIRONMENT=${account_name}
   Environment=DEPLOYEX_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates
   Environment=DEPLOYEX_MONITORED_APP_NAME=${app_name}
+  Environment=DEPLOYEX_MONITORED_APP_LANG=${app_lang}
   Environment=DEPLOYEX_PHX_HOST=${deployex_hostname}
   Environment=DEPLOYEX_RELEASE_ADAPTER=${release_adapter}
   Environment=DEPLOYEX_RELEASE_BUCKET=${release_bucket}
@@ -188,7 +190,8 @@ fi
 
 # Load variables from JSON config file
 if ! variables=$(jq -e '. | {
-      app_name, 
+      app_name,
+      app_lang,
       replicas, 
       account_name, 
       deployex_hostname, 
@@ -209,6 +212,7 @@ fi
 # Assign variables
 eval "$(echo "$variables" | jq -r '@sh "
   app_name=\(.app_name)
+  app_lang=\(.app_lang)
   replicas=\(.replicas)
   account_name=\(.account_name)
   deployex_hostname=\(.deployex_hostname)
@@ -226,6 +230,7 @@ eval "$(echo "$variables" | jq -r '@sh "
 # Check if all required parameters are provided based on the operation
 if [ "$operation" == "install" ]; then
     if [[ -z "$app_name" || 
+          -z "$app_lang" ||
           -z "$replicas" || 
           -z "$account_name" || 
           -z "$deployex_hostname" || 
@@ -241,6 +246,7 @@ if [ "$operation" == "install" ]; then
     fi
     remove_deployex
     install_deployex "$app_name" \
+                     "$app_lang" \
                      "$replicas" \
                      "$account_name" \
                      "$deployex_hostname" \

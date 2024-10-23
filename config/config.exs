@@ -17,10 +17,11 @@ import Config
 config :deployex,
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
+  bin_dir: "/opt/deployex/bin",
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
   replicas: 3,
-  monitored_app_phx_start_port: 4000
+  monitored_app_start_port: 4000
 
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
@@ -34,7 +35,8 @@ config :deployex, Deployex.Accounts,
 
 config :deployex, Deployex.Deployment,
   timeout_rollback: :timer.minutes(10),
-  schedule_interval: :timer.seconds(5)
+  schedule_interval: :timer.seconds(5),
+  delay_between_deploys_ms: :timer.seconds(1)
 
 # Configures the endpoint
 config :deployex, DeployexWeb.Endpoint,

@@ -3,7 +3,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 
   filter {
@@ -72,14 +72,24 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 resource "aws_iam_role" "ec2_iam_role" {
   name               = "myappname-${var.account_name}-instance-role"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
-    managed_policy_arns = [
-      aws_iam_policy.s3_distribution_bucket_policy.arn,
-      aws_iam_policy.myappname_secrets_manager_policy.arn,
-      aws_iam_policy.ec2_cloudwatch_policy.arn
-  ]
 }
 
-resource "aws_iam_instance_profile" "myappname_node" {
+resource "aws_iam_role_policy_attachment" "attach-s3" {
+  role       = aws_iam_role.ec2_iam_role.name
+  policy_arn = aws_iam_policy.s3_distribution_bucket_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach-secrets" {
+  role       = aws_iam_role.ec2_iam_role.name
+  policy_arn = aws_iam_policy.cochito_secrets_manager_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "attach-cloudwatch" {
+  role       = aws_iam_role.ec2_iam_role.name
+  policy_arn = aws_iam_policy.ec2_cloudwatch_policy.arn
+}
+
+resource "aws_iam_instance_profile" "cochito_node" {
   name = "myappname-${var.account_name}-ec2-profile"
   role = aws_iam_role.ec2_iam_role.name
 }

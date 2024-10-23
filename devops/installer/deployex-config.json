@@ -1,5 +1,6 @@
 {
     "app_name": "myapp",
+    "app_lang": "elixir",
     "replicas": 3,
     "account_name": "prod",
     "deployex_hostname": "deployex.example.com",

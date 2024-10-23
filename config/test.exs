@@ -6,8 +6,9 @@ config :deployex,
   env: "local",
   base_path: "/tmp/deployex/test/varlib",
   monitored_app_name: monitored_app_name,
+  monitored_app_lang: "elixir",
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_phx_start_port: 4444
+  monitored_app_start_port: 4444
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -35,6 +36,8 @@ config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock
 
 # Config Mock for Operational System
 config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
+
+config :deployex, Deployex.Deployment, delay_between_deploys_ms: 10
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false

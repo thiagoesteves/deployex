@@ -3,6 +3,8 @@ defmodule Deployex.Common do
   This module contains functions to be shared among other modules
   """
 
+  import Deployex.Macros
+
   @sec_in_minute 60
   @sec_in_hour 3_600
   @sec_in_day 86_400
@@ -31,6 +33,61 @@ defmodule Deployex.Common do
       |> Enum.random()
     end)
     |> to_string
+  end
+
+  @doc """
+  Return if mutual TLS is supported
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.check_mtls == :not_supported
+  """
+  @spec check_mtls() :: :supported | :not_supported
+  def check_mtls do
+    if :init.get_arguments()[:ssl_dist_optfile] do
+      :supported
+    else
+      :not_supported
+    end
+  end
+
+  @doc """
+  Return the current configured cookie
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.cookie == :cookie
+  """
+  @spec cookie() :: atom()
+  def cookie do
+    if_not_test do
+      Node.get_cookie()
+    else
+      :cookie
+    end
+  end
+
+  @doc """
+  Return the PATH without deployex bin/erts
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.remove_deployex_from_path != ""
+  """
+  @spec remove_deployex_from_path :: String.t()
+  def remove_deployex_from_path do
+    bindir = System.get_env("BINDIR", "")
+    deployex_bin_dir = Application.fetch_env!(:deployex, :bin_dir)
+
+    paths =
+      "PATH"
+      |> System.get_env("")
+      |> String.split([":"])
+
+    Enum.join(paths -- [bindir, deployex_bin_dir], ":")
   end
 
   @doc """

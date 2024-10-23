@@ -9,6 +9,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   """
   use DeployexWeb, :live_component
 
+  alias Deployex.Common
   alias Deployex.OpSys
 
   require Logger
@@ -87,21 +88,43 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   defp maybe_connect(%{assigns: %{id: instance, cookie: cookie}} = socket)
        when cookie != :nocookie do
+    app_lang = Deployex.Storage.monitored_app_lang()
+
     bin_path =
       instance
       |> String.to_integer()
-      |> Deployex.Storage.bin_path()
+      |> Deployex.Storage.bin_path(app_lang)
 
+    path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
+    app_name = Deployex.Storage.monitored_app()
+    {:ok, hostname} = :inet.gethostname()
+
+    ssl_options =
+      if Common.check_mtls() == :supported do
+        "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
+      else
+        ""
+      end
 
     if File.exists?(bin_path) do
       commands =
-        """
-        unset $(env | grep RELEASE | awk -F'=' '{print $1}')
-        export RELEASE_NODE_SUFFIX=#{suffix}
-        export RELEASE_COOKIE=#{cookie}
-        #{bin_path} remote
-        """
+        if app_lang == "gleam" and instance != "0" do
+          """
+          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+          erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
+          """
+        else
+          """
+          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+          export PATH=#{path}
+          export RELEASE_NODE_SUFFIX=#{suffix}
+          export RELEASE_COOKIE=#{cookie}
+          #{bin_path} remote
+          """
+        end
 
       options = [:stdin, :stdout, :pty, :pty_echo]
 

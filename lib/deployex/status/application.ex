@@ -203,7 +203,7 @@ defmodule Deployex.Status.Application do
       name: "deployex",
       version: Application.spec(:deployex, :vsn) |> to_string,
       otp: check_otp_deployex.(),
-      tls: check_tls(),
+      tls: Common.check_mtls(),
       supervisor: true,
       status: :running,
       uptime: uptime,
@@ -237,7 +237,7 @@ defmodule Deployex.Status.Application do
       instance: instance,
       version: current_version(instance),
       otp: check_otp_monitored_app.(instance, status),
-      tls: check_tls(),
+      tls: Common.check_mtls(),
       last_deployment: current_version_map(instance).deployment,
       supervisor: false,
       status: status,
@@ -245,13 +245,5 @@ defmodule Deployex.Status.Application do
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time)
     }
-  end
-
-  defp check_tls do
-    if :init.get_arguments()[:ssl_dist_optfile] do
-      :supported
-    else
-      :not_supported
-    end
   end
 end

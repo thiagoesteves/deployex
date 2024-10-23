@@ -13,5 +13,5 @@ module "standard_account" {
   replicas         = "3"
   machine_type     = "e2-micro"
   deployex_dns     = "deployex.myappname.com"
-  deployex_version = "0.3.0-rc14"
+  deployex_version = "0.3.0-rc21"
 }

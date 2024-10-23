@@ -34,6 +34,7 @@ write_files:
     content: |
       {
         "app_name": "myappname",
+        "app_lang": "gleam",
         "replicas": ${replicas},
         "account_name": "${account_name}",
         "deployex_hostname": "${deployex_hostname}",
@@ -43,15 +44,10 @@ write_files:
         "secrets_path": "deployex-myappname-${account_name}-secrets",
         "aws_region": "${aws_region}",
         "version": "${deployex_version}",
-        "os_target": "ubuntu-20.04",
+        "os_target": "ubuntu-22.04",
         "deploy_timeout_rollback_ms": 600000,
         "deploy_schedule_interval_ms": 5000,
-        "env": {
-            "MYAPPNAME_PHX_HOST": "${hostname}",
-            "MYAPPNAME_PHX_SERVER": true,
-            "MYAPPNAME_CLOUD_ENVIRONMENT": "${account_name}",
-            "MYAPPNAME_OTP_TLS_CERT_PATH": "/usr/local/share/ca-certificates"
-        }
+        "env": { }
       }
   - path: /home/ubuntu/config.json
     owner: root:root
@@ -102,7 +98,7 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      upstream phoenix {
+      upstream gleam {
           server 127.0.0.1:4000 max_fails=5 fail_timeout=60s;
           server 127.0.0.1:4001 max_fails=5 fail_timeout=60s;
           server 127.0.0.1:4002 max_fails=5 fail_timeout=60s;
@@ -170,7 +166,7 @@ write_files:
               proxy_set_header Upgrade $http_upgrade;
               proxy_set_header Connection "upgrade";
 
-              proxy_pass http://phoenix;
+              proxy_pass http://gleam;
           }
           # Add here the letsencrypt paths
       }
@@ -187,6 +183,9 @@ runcmd:
   - wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
   - dpkg -i -E ./amazon-cloudwatch-agent.deb
   - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/home/ubuntu/config.json -s
+  - apt install -y build-essential libssl-dev libgtk-3-dev libncurses5-dev libncursesw5-dev libreadline-dev
+  - wget https://github.com/erlang/otp/releases/download/OTP-26.1.2/otp_src_26.1.2.tar.gz
+  - tar -xzf otp_src_26.1.2.tar.gz && cd otp_src_26.1.2 && ./configure && make && make install
   - systemctl enable --no-block nginx 
   - systemctl start --no-block nginx
   - reboot

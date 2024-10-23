@@ -66,16 +66,28 @@ defmodule Deployex.Storage do
   def monitored_app, do: default().monitored_app()
 
   @doc """
+  Return the app language that will be monitored
+
+  ## Examples
+
+    iex> alias Deployex.Storage
+    ...> assert Storage.monitored_app_lang() == "elixir"
+  """
+  @impl true
+  @spec monitored_app_lang() :: binary()
+  def monitored_app_lang, do: default().monitored_app_lang()
+
+  @doc """
   Return the monitored app phoenix port
 
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.phx_start_port() == 4444
+    ...> assert Storage.monitored_app_start_port() == 4444
   """
   @impl true
-  @spec phx_start_port() :: integer()
-  def phx_start_port, do: default().phx_start_port()
+  @spec monitored_app_start_port() :: integer()
+  def monitored_app_start_port, do: default().monitored_app_start_port()
 
   @doc """
   Return the path for the stdout log file
@@ -128,14 +140,18 @@ defmodule Deployex.Storage do
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.bin_path(0) == "/opt/deployex/bin/deployex"
-    ...> assert Storage.bin_path(1) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
-    ...> assert Storage.bin_path(2) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
-    ...> assert Storage.bin_path(3) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
+    ...> assert Storage.bin_path(0, "elixir") == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "elixir") == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
+    ...> assert Storage.bin_path(2, "elixir") == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
+    ...> assert Storage.bin_path(3, "elixir") == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
+    ...> assert Storage.bin_path(0, "gleam") == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "gleam") == "/tmp/deployex/test/varlib/service/testapp/1/current/erlang-shipment"
+    ...> assert Storage.bin_path(2, "gleam") == "/tmp/deployex/test/varlib/service/testapp/2/current/erlang-shipment"
+    ...> assert Storage.bin_path(3, "gleam") == "/tmp/deployex/test/varlib/service/testapp/3/current/erlang-shipment"
   """
   @impl true
-  @spec bin_path(integer()) :: String.t()
-  def bin_path(instance), do: default().bin_path(instance)
+  @spec bin_path(integer(), String.t()) :: String.t()
+  def bin_path(instance, monitored_app_lang), do: default().bin_path(instance, monitored_app_lang)
 
   @doc """
   Base path for the state and service data
