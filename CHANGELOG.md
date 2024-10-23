@@ -1,6 +1,6 @@
 # CHANGELOG (v0.3.0)
 
-## 0.3.0-rc21 ()
+## 0.3.0-rc21 (2024-10-23)
 
 ### Backwards incompatible changes for 0.3.0-rc20
  * Added new configuration for gleam, new variables documentation added to the README.
