@@ -3,6 +3,8 @@ defmodule Deployex.Common do
   This module contains functions to be shared among other modules
   """
 
+  import Deployex.Macros
+
   @sec_in_minute 60
   @sec_in_hour 3_600
   @sec_in_day 86_400
@@ -31,6 +33,22 @@ defmodule Deployex.Common do
       |> Enum.random()
     end)
     |> to_string
+  end
+
+  @doc """
+  Return the current configured cookie
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.cookie == :cookie
+  """
+  def cookie do
+    if_not_test do
+      Node.get_cookie()
+    else
+      :cookie
+    end
   end
 
   @doc """

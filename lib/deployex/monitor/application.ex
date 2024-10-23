@@ -312,6 +312,7 @@ defmodule Deployex.Monitor.Application do
     server_port = Storage.monitored_app_start_port() + (instance - 1)
     app_name = Storage.monitored_app()
     path = Common.remove_deployex_from_path()
+    cookie = Common.cookie()
 
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
@@ -327,7 +328,7 @@ defmodule Deployex.Monitor.Application do
       -proto_dist inet_tls \
       -ssl_dist_optfile /tmp/inet_tls.conf \
       -sname #{app_name}-#{instance} \
-      -setcookie cookie
+      -setcookie #{cookie}
     """
   end
 
