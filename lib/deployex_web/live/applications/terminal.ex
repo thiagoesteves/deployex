@@ -113,6 +113,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
           """
           unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
           unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+          export PATH=#{path}
           erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
           """
         else
