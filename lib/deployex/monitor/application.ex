@@ -94,8 +94,8 @@ defmodule Deployex.Monitor.Application do
 
   # This command is available during the hot upgrade. If it fails, the process will
   # restart and attempt a full deployment.
-  def handle_call({:run_pre_commands, pre_commands, app_bin_path}, _from, state) do
-    :ok = execute_pre_commands(state, pre_commands, app_bin_path)
+  def handle_call({:run_pre_commands, pre_commands, app_bin_state}, _from, state) do
+    :ok = execute_pre_commands(state, pre_commands, app_bin_state)
 
     {:reply, {:ok, pre_commands}, state}
   end
@@ -205,11 +205,11 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  def run_pre_commands(instance, pre_commands, app_bin_path) do
+  def run_pre_commands(instance, pre_commands, app_bin_state) do
     instance
     |> global_name()
     |> Enum.at(0)
-    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_path})
+    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_state})
   end
 
   @impl true
@@ -251,7 +251,7 @@ defmodule Deployex.Monitor.Application do
          version_map
        ) do
     monitore_app_lang = Storage.monitored_app_lang()
-    app_exec = executable_path(monitore_app_lang, instance, :current)
+    app_exec = Storage.bin_path(instance, monitore_app_lang, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -291,7 +291,7 @@ defmodule Deployex.Monitor.Application do
   # NOTE: Some commands need to run prior starting the application
   #       - Unset env vars from the deployex release to not mix with the monitored app release
   #       - Export suffix to add different snames to the apps
-  #       - Export phoenix listening port taht needs to be one per app
+  #       - Export listening port that needs to be one per app
   defp run_app_bin(language, instance, executable_path, command)
 
   defp run_app_bin("elixir", instance, executable_path, command) do
@@ -308,7 +308,33 @@ defmodule Deployex.Monitor.Application do
     """
   end
 
-  defp run_app_bin("gleam", instance, executable_path, _command) do
+  defp run_app_bin("erlang", instance, executable_path, "start") do
+    server_port = Storage.monitored_app_start_port() + (instance - 1)
+    path = Common.remove_deployex_from_path()
+    app_name = Storage.monitored_app_name()
+    cookie = Common.cookie()
+
+    ssl_options =
+      if Common.check_mtls() == :supported do
+        "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
+      else
+        ""
+      end
+
+    """
+    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+    export PATH=#{path}
+    export RELX_REPLACE_OS_VARS=true
+    export RELEASE_NODE=#{app_name}-#{instance}
+    export RELEASE_COOKIE=#{cookie}
+    export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
+    export PORT=#{server_port}
+    #{executable_path} foreground
+    """
+  end
+
+  defp run_app_bin("gleam", instance, executable_path, "start") do
     server_port = Storage.monitored_app_start_port() + (instance - 1)
     app_name = Storage.monitored_app_name()
     path = Common.remove_deployex_from_path()
@@ -338,26 +364,24 @@ defmodule Deployex.Monitor.Application do
     """
   end
 
-  defp executable_path(language, instance, path)
+  defp run_app_bin(language, instance, _executable_path, command) do
+    msg =
+      "Running not supported for language: #{language}, instance: #{instance}, command: #{command}"
 
-  defp executable_path("elixir", instance, :current) do
-    "#{Storage.current_path(instance)}/bin/#{Storage.monitored_app_name()}"
-  end
-
-  defp executable_path("elixir", instance, :new) do
-    "#{Storage.new_path(instance)}/bin/#{Storage.monitored_app_name()}"
-  end
-
-  defp executable_path("gleam", instance, _path) do
-    "#{Storage.current_path(instance)}/erlang-shipment"
+    Logger.warning(msg)
+    "echo \"#{msg}\""
   end
 
   # credo:disable-for-lines:28
-  defp execute_pre_commands(_state, pre_commands, _bin_path) when pre_commands == [], do: :ok
+  defp execute_pre_commands(_state, pre_commands, _bin_state) when pre_commands == [], do: :ok
 
-  defp execute_pre_commands(%{instance: instance, status: status} = state, pre_commands, bin_path) do
+  defp execute_pre_commands(
+         %{instance: instance, status: status} = state,
+         pre_commands,
+         bin_state
+       ) do
     monitore_app_lang = Storage.monitored_app_lang()
-    migration_exec = executable_path(monitore_app_lang, instance, bin_path)
+    migration_exec = Storage.bin_path(instance, monitore_app_lang, bin_state)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
