@@ -93,7 +93,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     bin_path =
       instance
       |> String.to_integer()
-      |> Deployex.Storage.bin_path(app_lang)
+      |> Deployex.Storage.bin_path(app_lang, :current)
 
     path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
@@ -109,22 +109,36 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
     if File.exists?(bin_path) do
       commands =
-        if app_lang == "gleam" and instance != "0" do
-          """
-          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
-          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
-          export PATH=#{path}
-          erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
-          """
-        else
-          """
-          unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
-          unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
-          export PATH=#{path}
-          export RELEASE_NODE_SUFFIX=#{suffix}
-          export RELEASE_COOKIE=#{cookie}
-          #{bin_path} remote
-          """
+        cond do
+          app_lang == "gleam" and instance != "0" ->
+            """
+            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+            export PATH=#{path}
+            erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
+            """
+
+          app_lang == "erlang" and instance != "0" ->
+            """
+            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+            export PATH=#{path}
+            export RELX_REPLACE_OS_VARS=true
+            export RELEASE_NODE=#{app_name}#{suffix}
+            export RELEASE_COOKIE=#{cookie}
+            export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
+            #{bin_path} remote_console
+            """
+
+          true ->
+            """
+            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+            export PATH=#{path}
+            export RELEASE_NODE_SUFFIX=#{suffix}
+            export RELEASE_COOKIE=#{cookie}
+            #{bin_path} remote
+            """
         end
 
       options = [:stdin, :stdout, :pty, :pty_echo]
