@@ -81,7 +81,7 @@ resource "aws_iam_role_policy_attachment" "attach_s3" {
 
 resource "aws_iam_role_policy_attachment" "attach_secrets" {
   role       = aws_iam_role.ec2_iam_role.name
-  policy_arn = aws_iam_policy.cochito_secrets_manager_policy.arn
+  policy_arn = aws_iam_policy.myappname_secrets_manager_policy.arn
 }
 
 resource "aws_iam_role_policy_attachment" "attach_cloudwatch" {

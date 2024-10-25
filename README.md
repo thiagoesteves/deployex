@@ -150,7 +150,7 @@ DeployEx application typically requires several environment variables to be defi
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | -/- | erlang cookie |
 | __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
-| __DEPLOYEX_MONITORED_APP_LANG__ | elixir | system ENV | -/- |  Monitored app language |
+| __DEPLOYEX_MONITORED_APP_LANG__ | __elixir__, __gleam__ or __erlang__  | system ENV | -/- |  Monitored app language |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
 | __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
 | __GOOGLE_APPLICATION_CREDENTIALS__ | /path/to/file.json | system ENV | -/- | the google application credentials path |
@@ -182,7 +182,7 @@ If you intend to install DeployEx directly on an Ubuntu server, you can utilize 
 
 Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install DeployEx on your target system.
 
-### Pre-commands
+### Pre-commands (Elixir only)
 
 Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
