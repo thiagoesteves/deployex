@@ -3,7 +3,7 @@ defmodule Deployex.Storage.Adapter do
   Behaviour that defines the storage adapter callback
   """
 
-  @type bin_state :: :current | :new
+  @type bin_service :: :current | :new
 
   @callback setup() :: :ok
   @callback replicas() :: integer()
@@ -14,7 +14,7 @@ defmodule Deployex.Storage.Adapter do
   @callback stdout_path(integer()) :: binary()
   @callback stderr_path(integer()) :: binary()
   @callback sname(integer()) :: String.t()
-  @callback bin_path(integer(), String.t(), bin_state()) :: String.t()
+  @callback bin_path(integer(), String.t(), bin_service()) :: String.t()
   @callback base_path() :: any()
   @callback new_path(integer()) :: binary()
   @callback current_path(integer()) :: binary()

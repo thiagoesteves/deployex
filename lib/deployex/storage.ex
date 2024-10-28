@@ -154,10 +154,10 @@ defmodule Deployex.Storage do
     ...> assert Storage.bin_path(3, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
   """
   @impl true
-  @spec bin_path(integer(), String.t(), Deployex.Storage.Adapter.bin_state()) :: String.t()
+  @spec bin_path(integer(), String.t(), Deployex.Storage.Adapter.bin_service()) :: String.t()
 
-  def bin_path(instance, monitored_app_lang, bin_state),
-    do: default().bin_path(instance, monitored_app_lang, bin_state)
+  def bin_path(instance, monitored_app_lang, bin_service),
+    do: default().bin_path(instance, monitored_app_lang, bin_service)
 
   @doc """
   Base path for the state and service data

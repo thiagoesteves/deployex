@@ -94,8 +94,8 @@ defmodule Deployex.Monitor.Application do
 
   # This command is available during the hot upgrade. If it fails, the process will
   # restart and attempt a full deployment.
-  def handle_call({:run_pre_commands, pre_commands, app_bin_state}, _from, state) do
-    :ok = execute_pre_commands(state, pre_commands, app_bin_state)
+  def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
+    :ok = execute_pre_commands(state, pre_commands, app_bin_service)
 
     {:reply, {:ok, pre_commands}, state}
   end
@@ -205,11 +205,11 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  def run_pre_commands(instance, pre_commands, app_bin_state) do
+  def run_pre_commands(instance, pre_commands, app_bin_service) do
     instance
     |> global_name()
     |> Enum.at(0)
-    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_state})
+    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_service})
   end
 
   @impl true
@@ -373,15 +373,15 @@ defmodule Deployex.Monitor.Application do
   end
 
   # credo:disable-for-lines:28
-  defp execute_pre_commands(_state, pre_commands, _bin_state) when pre_commands == [], do: :ok
+  defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(
          %{instance: instance, status: status} = state,
          pre_commands,
-         bin_state
+         bin_service
        ) do
     monitore_app_lang = Storage.monitored_app_lang()
-    migration_exec = Storage.bin_path(instance, monitore_app_lang, bin_state)
+    migration_exec = Storage.bin_path(instance, monitore_app_lang, bin_service)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 

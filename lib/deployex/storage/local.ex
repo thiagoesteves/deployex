@@ -122,7 +122,7 @@ defmodule Deployex.Storage.Local do
   def sname(instance), do: "#{monitored_app_name()}-#{instance}"
 
   @impl true
-  def bin_path(@deployex_instance, _monitored_app_lang, _bin_location) do
+  def bin_path(@deployex_instance, _monitored_app_lang, _bin_service) do
     Application.fetch_env!(:deployex, :bin_path)
   end
 
