@@ -17,6 +17,8 @@ defmodule DeployexWeb.Applications.VersionsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       [
         FixtureStatus.version(%{
@@ -70,6 +72,8 @@ defmodule DeployexWeb.Applications.VersionsTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> full_list end)
     |> stub(:history_version_list, fn "1" -> full_list end)
 

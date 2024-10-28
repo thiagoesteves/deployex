@@ -30,7 +30,7 @@ defmodule Deployex.MonitorTest do
         %Deployex.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref)
+      assert {:ok, pid} = MonitorApp.start_service("elixir", instance, deploy_ref)
 
       assert Process.alive?(pid)
 
@@ -54,7 +54,7 @@ defmodule Deployex.MonitorTest do
         %Deployex.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref)
+      assert {:ok, pid} = MonitorApp.start_service("elixir", instance, deploy_ref)
 
       assert Process.alive?(pid)
 
@@ -66,8 +66,7 @@ defmodule Deployex.MonitorTest do
   end
 
   describe "Running applications" do
-    @tag :capture_log
-    test "Running application - no executable path" do
+    test "Running application - no executable path - elixir" do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
@@ -86,22 +85,95 @@ defmodule Deployex.MonitorTest do
         %Deployex.Status.Version{version: "1.0.0"}
       end)
 
-      assert {:ok, pid} =
-               MonitorApp.start_service(instance, deploy_ref, retry_delay_pre_commands: 10)
+      assert capture_log(fn ->
+               assert {:ok, pid} =
+                        MonitorApp.start_service("elixir", instance, deploy_ref,
+                          retry_delay_pre_commands: 10
+                        )
 
-      assert Process.alive?(pid)
+               assert Process.alive?(pid)
 
-      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+               assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(instance)
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/testapp/#{instance}/current/bin/testapp"
     end
 
-    @tag :capture_log
-    test "Running application - no pre_commands" do
+    test "Running application - no executable path - gleam" do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
       instance = 1003
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        # Wait for at least 2 tries
+        called = Process.get("current_version_map", 0)
+        Process.put("current_version_map", called + 1)
+
+        if called > 0 do
+          send(test_pid_process, {:handle_ref_event, test_event_ref})
+        end
+
+        %Deployex.Status.Version{version: "1.0.0"}
+      end)
+
+      assert capture_log(fn ->
+               assert {:ok, pid} =
+                        MonitorApp.start_service("gleam", instance, deploy_ref,
+                          retry_delay_pre_commands: 10
+                        )
+
+               assert Process.alive?(pid)
+
+               assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/testapp/#{instance}/current/erlang-shipment"
+    end
+
+    test "Running application - no executable path - erlang" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1004
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        # Wait for at least 2 tries
+        called = Process.get("current_version_map", 0)
+        Process.put("current_version_map", called + 1)
+
+        if called > 0 do
+          send(test_pid_process, {:handle_ref_event, test_event_ref})
+        end
+
+        %Deployex.Status.Version{version: "1.0.0"}
+      end)
+
+      assert capture_log(fn ->
+               assert {:ok, pid} =
+                        MonitorApp.start_service("erlang", instance, deploy_ref,
+                          retry_delay_pre_commands: 10
+                        )
+
+               assert Process.alive?(pid)
+
+               assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/testapp/#{instance}/current/bin/testapp"
+    end
+
+    @tag :capture_log
+    test "Running application - no pre_commands - elixir" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1005
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -121,7 +193,8 @@ defmodule Deployex.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, _pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -131,11 +204,83 @@ defmodule Deployex.MonitorTest do
     end
 
     @tag :capture_log
-    test "Running application with pre_commands" do
+    test "Running application - no pre_commands - gleam" do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1004
+      instance = 1006
+      os_pid = 123_456
+      language = "gleam"
+
+      Binary.create_bin_files(language, instance)
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        %Deployex.Status.Version{version: "1.0.0"}
+      end)
+
+      Deployex.OpSysMock
+      |> expect(:run_link, fn _command, _options ->
+        # Wait a timer greater than timeout_app_ready to guarantee app is in the
+        # running state
+        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(language, instance, deploy_ref, timeout_app_ready: 10)
+
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+      assert %{status: :running} = Deployex.Monitor.Application.state(instance)
+
+      assert :ok = MonitorApp.stop_service(instance)
+    end
+
+    @tag :capture_log
+    test "Running application - no pre_commands - erlang" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1007
+      os_pid = 123_456
+      language = "erlang"
+
+      Binary.create_bin_files(language, instance)
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        %Deployex.Status.Version{version: "1.0.0"}
+      end)
+
+      Deployex.OpSysMock
+      |> expect(:run_link, fn _command, _options ->
+        # Wait a timer greater than timeout_app_ready to guarantee app is in the
+        # running state
+        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(language, instance, deploy_ref, timeout_app_ready: 10)
+
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+      assert %{status: :running} = Deployex.Monitor.Application.state(instance)
+
+      assert :ok = MonitorApp.stop_service(instance)
+    end
+
+    @tag :capture_log
+    test "Running application with pre_commands - elixir" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1008
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
 
@@ -157,19 +302,100 @@ defmodule Deployex.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, _pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert :ok = MonitorApp.stop_service(instance)
     end
 
-    @tag :capture_log
-    test "Error trying to run the application with pre-commands failing" do
+    test "Running application with pre_commands not supported - gleam" do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1005
+      instance = 1009
+      os_pid = 123_456
+      pre_commands = ["eval command1", "eval command2"]
+      language = "gleam"
+
+      Binary.create_bin_files(language, instance)
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        %Deployex.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+      end)
+
+      Deployex.OpSysMock
+      |> expect(:run_link, fn _command, _options ->
+        send(test_pid_process, {:handle_ref_event, test_event_ref})
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, 3, fn commands, _options ->
+        assert commands =~ "eval command1" or commands =~ "eval command2" or commands =~ "kill -9"
+        {:ok, test_pid_process}
+      end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert capture_log(fn ->
+               assert {:ok, _pid} =
+                        MonitorApp.start_service(language, instance, deploy_ref,
+                          timeout_app_ready: 10
+                        )
+
+               assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~
+               "Running not supported for language: #{language}, instance: #{instance}, command: eval command1"
+    end
+
+    test "Running application with pre_commands not supported - erlang" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1010
+      os_pid = 123_456
+      pre_commands = ["eval command1", "eval command2"]
+      language = "erlang"
+
+      Binary.create_bin_files(language, instance)
+
+      Deployex.StatusMock
+      |> stub(:current_version_map, fn ^instance ->
+        %Deployex.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+      end)
+
+      Deployex.OpSysMock
+      |> expect(:run_link, fn _command, _options ->
+        send(test_pid_process, {:handle_ref_event, test_event_ref})
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, 3, fn commands, _options ->
+        assert commands =~ "eval command1" or commands =~ "eval command2" or commands =~ "kill -9"
+        {:ok, test_pid_process}
+      end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert capture_log(fn ->
+               assert {:ok, _pid} =
+                        MonitorApp.start_service(language, instance, deploy_ref,
+                          timeout_app_ready: 10
+                        )
+
+               assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+               assert :ok = MonitorApp.stop_service(instance)
+             end) =~
+               "Running not supported for language: #{language}, instance: #{instance}, command: eval command1"
+    end
+
+    @tag :capture_log
+    test "Error trying to run the application with pre-commands failing - elixir" do
+      test_event_ref = make_ref()
+      deploy_ref = Common.random_small_alphanum()
+      test_pid_process = self()
+      instance = 1011
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
 
@@ -194,7 +420,7 @@ defmodule Deployex.MonitorTest do
       end)
       |> expect(:stop, 0, fn _pid -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(instance, deploy_ref)
+      assert {:ok, _pid} = MonitorApp.start_service("elixir", instance, deploy_ref)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -206,7 +432,7 @@ defmodule Deployex.MonitorTest do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1006
+      instance = 1012
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -224,7 +450,7 @@ defmodule Deployex.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref)
+      assert {:ok, pid} = MonitorApp.start_service("elixir", instance, deploy_ref)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -236,11 +462,11 @@ defmodule Deployex.MonitorTest do
     end
 
     @tag :capture_log
-    test "Running pre_commands while application is running" do
+    test "Running pre_commands while application is running - elixir" do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1009
+      instance = 1013
       os_pid = 123_456
       pre_commands = ["eval running_cmd1", "eval running_cmd1"]
 
@@ -266,7 +492,8 @@ defmodule Deployex.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, _pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -283,7 +510,7 @@ defmodule Deployex.MonitorTest do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1010
+      instance = 1014
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -306,7 +533,8 @@ defmodule Deployex.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -329,7 +557,7 @@ defmodule Deployex.MonitorTest do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1011
+      instance = 1015
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -349,7 +577,8 @@ defmodule Deployex.MonitorTest do
       |> stub(:run, fn _commands, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -370,7 +599,7 @@ defmodule Deployex.MonitorTest do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1012
+      instance = 1016
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
 
@@ -394,7 +623,9 @@ defmodule Deployex.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, _pid} =
-                        MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+                        MonitorApp.start_service("elixir", instance, deploy_ref,
+                          timeout_app_ready: 10
+                        )
 
                assert {:error, :application_is_not_running} = MonitorApp.restart(instance)
 
@@ -410,7 +641,7 @@ defmodule Deployex.MonitorTest do
       test_event_ref = make_ref()
       deploy_ref = Common.random_small_alphanum()
       test_pid_process = self()
-      instance = 1013
+      instance = 1017
       os_pid = 123_456
 
       Binary.create_bin_files(instance)
@@ -434,7 +665,8 @@ defmodule Deployex.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(instance, deploy_ref, timeout_app_ready: 10)
+      assert {:ok, _pid} =
+               MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -446,12 +678,13 @@ defmodule Deployex.MonitorTest do
 
   test "Adapter function test" do
     Deployex.MonitorMock
-    |> expect(:start_service, fn _instance, _deploy_ref, _list -> {:ok, self()} end)
+    |> expect(:start_service, fn _language, _instance, _deploy_ref, _list -> {:ok, self()} end)
     |> expect(:stop_service, fn _instance -> :ok end)
     |> expect(:state, fn _instance -> {:ok, %{}} end)
     |> expect(:restart, fn _instance -> :ok end)
     |> expect(:run_pre_commands, fn _instance, cmds, _new_or_current -> {:ok, cmds} end)
     |> expect(:global_name, fn _instance -> %{} end)
+    |> expect(:global_name, fn _instance, _deploy -> %{} end)
 
     assert {:ok, _pid} = Deployex.Monitor.start_service(1, make_ref(), [])
     assert :ok = Deployex.Monitor.stop_service(1)
@@ -459,5 +692,6 @@ defmodule Deployex.MonitorTest do
     assert :ok = Deployex.Monitor.restart(1)
     assert {:ok, []} = Deployex.Monitor.run_pre_commands(1, [], :new)
     assert %{} = Deployex.Monitor.global_name(1)
+    assert %{} = Deployex.Monitor.global_name(1, 1)
   end
 end

@@ -7,6 +7,8 @@ defmodule Deployex.Status.Adapter do
   alias Deployex.Status
 
   @callback monitoring :: {:ok, list()} | {:error, :rescued}
+  @callback monitored_app_name() :: String.t()
+  @callback monitored_app_lang() :: String.t()
   @callback current_version(integer()) :: String.t() | nil
   @callback current_version_map(integer()) :: Status.Version.t()
   @callback subscribe() :: :ok

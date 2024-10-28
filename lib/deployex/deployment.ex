@@ -196,7 +196,9 @@ defmodule Deployex.Deployment do
     new_deploy_ref = Common.random_small_alphanum()
 
     if current_app_version != nil do
-      {:ok, _} = Monitor.start_service(state.current, new_deploy_ref)
+      {:ok, _} =
+        Monitor.start_service(Storage.monitored_app_lang(), state.current, new_deploy_ref)
+
       set_timeout_to_rollback(state, new_deploy_ref)
     else
       state
@@ -277,7 +279,7 @@ defmodule Deployex.Deployment do
         deploy_ref: new_deploy_ref
       )
 
-      {:ok, _} = Monitor.start_service(instance, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(Storage.monitored_app_lang(), instance, new_deploy_ref)
     end)
 
     set_timeout_to_rollback(state, new_deploy_ref)

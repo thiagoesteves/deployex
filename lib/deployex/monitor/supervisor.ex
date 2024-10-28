@@ -19,15 +19,16 @@ defmodule Deployex.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-  @spec start_service(integer(), String.t(), [Keyword.t()]) ::
+  @spec start_service(String.t(), integer(), String.t(), [Keyword.t()]) ::
           {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(instance, deploy_ref, options) do
+  def start_service(language, instance, deploy_ref, options) do
     spec = %{
       id: Deployex.Monitor.Application,
       start:
         {Deployex.Monitor.Application, :start_link,
          [
            [
+             language: language,
              instance: instance,
              deploy_ref: deploy_ref,
              options: options

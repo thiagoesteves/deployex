@@ -85,7 +85,8 @@ defmodule DeployexWeb.ApplicationsLive do
         module={Terminal}
         id={@selected_instance}
         title={@page_title}
-        action={@live_action}
+        monitored_app_name={@monitored_app_name}
+        monitored_app_lang={@monitored_app_lang}
         terminal_process={@terminal_process}
         terminal_message={@terminal_message}
         cookie={Common.cookie()}
@@ -157,6 +158,8 @@ defmodule DeployexWeb.ApplicationsLive do
       socket
       |> assign(:node, Node.self())
       |> assign(:monitoring_apps_data, monitoring)
+      |> assign(:monitored_app_name, Status.monitored_app_name())
+      |> assign(:monitored_app_lang, Status.monitored_app_lang())
       |> assign(:selected_instance, nil)
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
@@ -175,6 +178,8 @@ defmodule DeployexWeb.ApplicationsLive do
      socket
      |> assign(:node, Node.self())
      |> assign(:monitoring_apps_data, [])
+     |> assign(:monitored_app_name, nil)
+     |> assign(:monitored_app_lang, nil)
      |> assign(:selected_instance, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)

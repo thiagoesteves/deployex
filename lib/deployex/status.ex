@@ -76,6 +76,20 @@ defmodule Deployex.Status do
   def monitoring, do: default().monitoring()
 
   @doc """
+  Retrieve the current monitored app name
+  """
+  @impl true
+  @spec monitored_app_name() :: String.t()
+  def monitored_app_name, do: default().monitored_app_name()
+
+  @doc """
+  Retrieve the current monitored app language
+  """
+  @impl true
+  @spec monitored_app_lang() :: String.t()
+  def monitored_app_lang, do: default().monitored_app_lang()
+
+  @doc """
   Retrieve the current version set for the monitored application
   """
   @impl true

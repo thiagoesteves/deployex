@@ -79,6 +79,14 @@ defmodule Deployex.StatusAppTest do
            } = StatusApp.current_version_map(3)
   end
 
+  test "monitored_app_name/0" do
+    assert StatusApp.monitored_app_name() == "testapp"
+  end
+
+  test "monitored_app_lang/0" do
+    assert StatusApp.monitored_app_lang() == "elixir"
+  end
+
   test "subscribe/0" do
     assert StatusApp.subscribe() == :ok
   end

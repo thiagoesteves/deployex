@@ -62,7 +62,7 @@ jobs:
             deployex-
 
       - name: Run tests
-        run: mix coveralls.github
+        run: mix coveralls.html
 
   analysis:
     name: Static Analysis

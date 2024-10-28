@@ -17,6 +17,8 @@ defmodule DeployexWeb.Applications.ModeTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..40, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -45,6 +47,8 @@ defmodule DeployexWeb.Applications.ModeTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -70,6 +74,8 @@ defmodule DeployexWeb.Applications.ModeTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> expect(:set_mode, fn :manual, ^expected_manual_version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -112,6 +118,8 @@ defmodule DeployexWeb.Applications.ModeTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> expect(:set_mode, fn :automatic, _version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -151,6 +159,8 @@ defmodule DeployexWeb.Applications.ModeTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -175,6 +185,8 @@ defmodule DeployexWeb.Applications.ModeTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -192,6 +204,8 @@ defmodule DeployexWeb.Applications.ModeTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})

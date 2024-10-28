@@ -76,6 +76,12 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
+  def monitored_app_name, do: Storage.monitored_app_name()
+
+  @impl true
+  def monitored_app_lang, do: Storage.monitored_app_lang()
+
+  @impl true
   def subscribe, do: Phoenix.PubSub.subscribe(Deployex.PubSub, @apps_data_updated_topic)
 
   @impl true
