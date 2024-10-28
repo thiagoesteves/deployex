@@ -152,6 +152,18 @@ defmodule Deployex.Storage do
     ...> assert Storage.bin_path(1, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
     ...> assert Storage.bin_path(2, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
     ...> assert Storage.bin_path(3, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
+    ...> assert Storage.bin_path(0, "elixir", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
+    ...> assert Storage.bin_path(2, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
+    ...> assert Storage.bin_path(3, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
+    ...> assert Storage.bin_path(0, "gleam", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/erlang-shipment"
+    ...> assert Storage.bin_path(2, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/erlang-shipment"
+    ...> assert Storage.bin_path(3, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/erlang-shipment"
+    ...> assert Storage.bin_path(0, "erlang", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
+    ...> assert Storage.bin_path(2, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
+    ...> assert Storage.bin_path(3, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
   """
   @impl true
   @spec bin_path(integer(), String.t(), Deployex.Storage.Adapter.bin_service()) :: String.t()
