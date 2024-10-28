@@ -17,6 +17,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
@@ -38,6 +40,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -65,6 +69,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -101,6 +107,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -129,6 +137,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -163,6 +173,8 @@ defmodule DeployexWeb.Applications.IndexTest do
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -230,6 +242,8 @@ defmodule DeployexWeb.Applications.IndexTest do
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployex.PubSub, topic) end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")

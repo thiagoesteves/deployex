@@ -18,6 +18,8 @@ defmodule DeployexWeb.Applications.RestartTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -34,6 +36,8 @@ defmodule DeployexWeb.Applications.RestartTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.MonitorMock
@@ -53,6 +57,8 @@ defmodule DeployexWeb.Applications.RestartTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -69,6 +75,8 @@ defmodule DeployexWeb.Applications.RestartTest do
     Deployex.StatusMock
     |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
     |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployex.OpSysMock

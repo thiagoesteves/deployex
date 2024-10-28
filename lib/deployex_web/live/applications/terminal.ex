@@ -15,11 +15,12 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   require Logger
 
   @impl true
+  @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
     <div>
       <.header>
-        <%= "Terminal for #{@monitored_app} [#{@id}]" %>
+        <%= "Terminal for #{@monitored_app_name} [#{@id}]" %>
         <:subtitle>Bin: <%= @bin_path %></:subtitle>
       </.header>
 
@@ -37,11 +38,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   @impl true
   def mount(socket) do
-    monitored_app = Deployex.Storage.monitored_app_name()
-
     socket =
       socket
-      |> assign(:monitored_app, monitored_app)
       |> assign(:bin_path, "")
 
     {:ok, socket}
@@ -86,10 +84,18 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     {:noreply, socket}
   end
 
-  defp maybe_connect(%{assigns: %{id: instance, cookie: cookie}} = socket)
+  defp maybe_connect(
+         %{
+           assigns: %{
+             id: instance,
+             cookie: cookie,
+             monitored_app_name: app_name,
+             monitored_app_lang: app_lang
+           }
+         } =
+           socket
+       )
        when cookie != :nocookie do
-    app_lang = Deployex.Storage.monitored_app_lang()
-
     bin_path =
       instance
       |> String.to_integer()
@@ -97,7 +103,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
     path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
-    app_name = Deployex.Storage.monitored_app_name()
     {:ok, hostname} = :inet.gethostname()
 
     ssl_options =
@@ -130,6 +135,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             #{bin_path} remote_console
             """
 
+          # Deafult to Elixir language
           true ->
             """
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')

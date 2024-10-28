@@ -8,6 +8,7 @@ defmodule Deployex.Monitor do
   @type t :: %__MODULE__{
           current_pid: pid() | nil,
           instance: integer() | nil,
+          language: String.t(),
           status: :idle | :running | :starting,
           crash_restart_count: integer(),
           force_restart_count: integer(),
@@ -19,6 +20,7 @@ defmodule Deployex.Monitor do
 
   defstruct current_pid: nil,
             instance: nil,
+            language: nil,
             status: :idle,
             crash_restart_count: 0,
             force_restart_count: 0,
@@ -35,10 +37,10 @@ defmodule Deployex.Monitor do
   Starts monitor service for an specific instance
   """
   @impl true
-  @spec start_service(integer(), String.t(), list()) ::
+  @spec start_service(String.t(), integer(), String.t(), list()) ::
           {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(instance, deploy_ref, options \\ []) do
-    default().start_service(instance, deploy_ref, options)
+  def start_service(language, instance, deploy_ref, options \\ []) do
+    default().start_service(language, instance, deploy_ref, options)
   end
 
   @doc """

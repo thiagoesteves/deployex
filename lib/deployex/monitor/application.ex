@@ -36,6 +36,7 @@ defmodule Deployex.Monitor.Application do
 
     instance = Keyword.fetch!(args, :instance)
     deploy_ref = Keyword.fetch!(args, :deploy_ref)
+    language = Keyword.fetch!(args, :language)
     options = Keyword.fetch!(args, :options)
 
     timeout_app_ready =
@@ -50,7 +51,7 @@ defmodule Deployex.Monitor.Application do
     |> String.to_atom()
     |> :ets.new([:set, :protected, :named_table])
 
-    Logger.info("Initialising monitor server for instance: #{instance}")
+    Logger.info("Initialising monitor server for instance: #{instance} language: #{language}")
 
     trigger_run_service(deploy_ref)
 
@@ -59,7 +60,8 @@ defmodule Deployex.Monitor.Application do
        instance: instance,
        timeout_app_ready: timeout_app_ready,
        retry_delay_pre_commands: retry_delay_pre_commands,
-       deploy_ref: deploy_ref
+       deploy_ref: deploy_ref,
+       language: language
      })}
   end
 
@@ -213,7 +215,8 @@ defmodule Deployex.Monitor.Application do
   end
 
   @impl true
-  defdelegate start_service(instance, deploy_ref, options \\ []), to: Deployex.Monitor.Supervisor
+  defdelegate start_service(language, instance, deploy_ref, options \\ []),
+    to: Deployex.Monitor.Supervisor
 
   @impl true
   defdelegate stop_service(instance), to: Deployex.Monitor.Supervisor
@@ -246,12 +249,12 @@ defmodule Deployex.Monitor.Application do
            instance: instance,
            deploy_ref: deploy_ref,
            timeout_app_ready: timeout_app_ready,
-           retry_delay_pre_commands: retry_delay_pre_commands
+           retry_delay_pre_commands: retry_delay_pre_commands,
+           language: language
          } = state,
          version_map
        ) do
-    monitore_app_lang = Storage.monitored_app_lang()
-    app_exec = Storage.bin_path(instance, monitore_app_lang, :current)
+    app_exec = Storage.bin_path(instance, language, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -261,7 +264,7 @@ defmodule Deployex.Monitor.Application do
 
       {:ok, pid, os_pid} =
         OpSys.run_link(
-          run_app_bin(monitore_app_lang, instance, app_exec, "start"),
+          run_app_bin(language, instance, app_exec, "start"),
           [
             {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
             {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
@@ -376,12 +379,11 @@ defmodule Deployex.Monitor.Application do
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(
-         %{instance: instance, status: status} = state,
+         %{instance: instance, status: status, language: language} = state,
          pre_commands,
          bin_service
        ) do
-    monitore_app_lang = Storage.monitored_app_lang()
-    migration_exec = Storage.bin_path(instance, monitore_app_lang, bin_service)
+    migration_exec = Storage.bin_path(instance, language, bin_service)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
@@ -391,7 +393,7 @@ defmodule Deployex.Monitor.Application do
       Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
         Logger.info(" # Executing: #{pre_command}")
 
-        OpSys.run(run_app_bin(monitore_app_lang, instance, migration_exec, pre_command), [
+        OpSys.run(run_app_bin(language, instance, migration_exec, pre_command), [
           :sync,
           {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
           {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
