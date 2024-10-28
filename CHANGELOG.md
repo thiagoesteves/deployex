@@ -1,5 +1,20 @@
 # CHANGELOG (v0.3.0)
 
+## 0.3.0-rc22 ()
+
+### Backwards incompatible changes for 0.3.0-rc21
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-77`](https://github.com/thiagoesteves/deployex/pull/77)] Adding Erlang support
+
+
 ## 0.3.0-rc21 (2024-10-23)
 
 ### Backwards incompatible changes for 0.3.0-rc20

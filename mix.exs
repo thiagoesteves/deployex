@@ -4,7 +4,7 @@ defmodule Deployex.MixProject do
   def project do
     [
       app: :deployex,
-      version: "0.3.0-rc22-erlang",
+      version: "0.3.0-rc22",
       elixir: "~> 1.15",
       name: "DeployEx",
       source_url: "https://github.com/thiagoesteves/deployex",
@@ -87,7 +87,11 @@ defmodule Deployex.MixProject do
   defp docs do
     [
       main: "Deployex",
-      extras: ["README.md", "LICENSE.md", "CHANGELOG.md"]
+      extras: [
+        "README.md",
+        "LICENSE.md",
+        "CHANGELOG.md"
+      ]
     ]
   end
 

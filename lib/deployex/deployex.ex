@@ -1,10 +1,11 @@
 defmodule Deployex do
   @moduledoc """
-  DeployEx is a lightweight tool designed for managing deployments in Elixir
-  and Gleam applications without relying on additional deployment tools like
-  Docker or Kubernetes. Its primary goal is to utilize the release package
-  for executing full deployments or hot-upgrades, depending on the package's
-  content, while leveraging OTP distribution for monitoring and data extraction
+  DeployEx is a lightweight tool designed for managing deployments in Beam
+  applications (Elixir, Gleam and Erlang) without relying on additional
+  deployment tools like Docker or Kubernetes. Its primary goal is to utilize
+  the release package for executing full deployments or hot-upgrades, depending
+  on the package's content, while leveraging OTP distribution for monitoring
+  and data extraction.
   """
 
   alias Deployex.OpSys
