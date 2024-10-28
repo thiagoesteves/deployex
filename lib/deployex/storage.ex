@@ -140,18 +140,36 @@ defmodule Deployex.Storage do
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.bin_path(0, "elixir") == "/opt/deployex/bin/deployex"
-    ...> assert Storage.bin_path(1, "elixir") == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
-    ...> assert Storage.bin_path(2, "elixir") == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
-    ...> assert Storage.bin_path(3, "elixir") == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
-    ...> assert Storage.bin_path(0, "gleam") == "/opt/deployex/bin/deployex"
-    ...> assert Storage.bin_path(1, "gleam") == "/tmp/deployex/test/varlib/service/testapp/1/current/erlang-shipment"
-    ...> assert Storage.bin_path(2, "gleam") == "/tmp/deployex/test/varlib/service/testapp/2/current/erlang-shipment"
-    ...> assert Storage.bin_path(3, "gleam") == "/tmp/deployex/test/varlib/service/testapp/3/current/erlang-shipment"
+    ...> assert Storage.bin_path(0, "elixir", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
+    ...> assert Storage.bin_path(2, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
+    ...> assert Storage.bin_path(3, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
+    ...> assert Storage.bin_path(0, "gleam", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/erlang-shipment"
+    ...> assert Storage.bin_path(2, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/erlang-shipment"
+    ...> assert Storage.bin_path(3, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/erlang-shipment"
+    ...> assert Storage.bin_path(0, "erlang", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
+    ...> assert Storage.bin_path(2, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
+    ...> assert Storage.bin_path(3, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
+    ...> assert Storage.bin_path(0, "elixir", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
+    ...> assert Storage.bin_path(2, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
+    ...> assert Storage.bin_path(3, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
+    ...> assert Storage.bin_path(0, "gleam", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/erlang-shipment"
+    ...> assert Storage.bin_path(2, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/erlang-shipment"
+    ...> assert Storage.bin_path(3, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/erlang-shipment"
+    ...> assert Storage.bin_path(0, "erlang", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Storage.bin_path(1, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
+    ...> assert Storage.bin_path(2, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
+    ...> assert Storage.bin_path(3, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
   """
   @impl true
-  @spec bin_path(integer(), String.t()) :: String.t()
-  def bin_path(instance, monitored_app_lang), do: default().bin_path(instance, monitored_app_lang)
+  @spec bin_path(integer(), String.t(), Deployex.Storage.Adapter.bin_service()) :: String.t()
+
+  def bin_path(instance, monitored_app_lang, bin_service),
+    do: default().bin_path(instance, monitored_app_lang, bin_service)
 
   @doc """
   Base path for the state and service data

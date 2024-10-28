@@ -122,16 +122,25 @@ defmodule Deployex.Storage.Local do
   def sname(instance), do: "#{monitored_app_name()}-#{instance}"
 
   @impl true
-  def bin_path(@deployex_instance, _monitored_app_lang) do
+  def bin_path(@deployex_instance, _monitored_app_lang, _bin_service) do
     Application.fetch_env!(:deployex, :bin_path)
   end
 
-  def bin_path(instance, "elixir") do
+  def bin_path(instance, app_lang, :new) when app_lang in ["elixir", "erlang"] do
+    monitored_app = monitored_app_name()
+    "#{new_path(instance)}/bin/#{monitored_app}"
+  end
+
+  def bin_path(instance, app_lang, :current) when app_lang in ["elixir", "erlang"] do
     monitored_app = monitored_app_name()
     "#{current_path(instance)}/bin/#{monitored_app}"
   end
 
-  def bin_path(instance, "gleam") do
+  def bin_path(instance, "gleam", :new) do
+    "#{new_path(instance)}/erlang-shipment"
+  end
+
+  def bin_path(instance, "gleam", :current) do
     "#{current_path(instance)}/erlang-shipment"
   end
 
