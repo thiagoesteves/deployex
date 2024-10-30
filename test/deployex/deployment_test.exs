@@ -231,7 +231,7 @@ defmodule Deployex.DeploymentTest do
       end)
 
       Deployex.UpgradeMock
-      |> expect(:execute, 1, fn _instance, "1.0.0", "2.0.0" -> :ok end)
+      |> expect(:execute, 1, fn _instance, _app_lang, _app_name, "1.0.0", "2.0.0" -> :ok end)
 
       assert {:ok, _pid} =
                Deployment.start_link(
@@ -283,7 +283,9 @@ defmodule Deployex.DeploymentTest do
       end)
 
       Deployex.UpgradeMock
-      |> stub(:execute, fn _instance, "1.0.0", "2.0.0" -> {:error, "any"} end)
+      |> stub(:execute, fn _instance, _app_lang, _app_name, "1.0.0", "2.0.0" ->
+        {:error, "any"}
+      end)
 
       assert capture_log(fn ->
                assert {:ok, _pid} =

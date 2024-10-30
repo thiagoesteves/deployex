@@ -20,9 +20,9 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def get_current_version_map do
-    monitored_app = Storage.monitored_app_name()
+    app_name = Storage.monitored_app_name()
 
-    file_path = "#{bucket()}/versions/#{monitored_app}/#{env()}/current.json"
+    file_path = "#{bucket()}/versions/#{app_name}/#{env()}/current.json"
 
     case File.read(file_path) do
       {:ok, data} ->
@@ -39,16 +39,24 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def download_and_unpack(instance, version) do
-    monitored_app = Storage.monitored_app_name()
+    app_name = Storage.monitored_app_name()
+    app_lang = Storage.monitored_app_lang()
 
-    download_path = "#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
+    download_path = "#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
 
     Status.clear_new(instance)
     new_path = Storage.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(instance, download_path, Status.current_version(instance), version)
+    Upgrade.check(
+      instance,
+      app_lang,
+      app_name,
+      download_path,
+      Status.current_version(instance),
+      version
+    )
   end
 
   ### ==========================================================================

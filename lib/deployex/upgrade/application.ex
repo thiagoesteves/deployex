@@ -3,21 +3,33 @@ defmodule Deployex.Upgrade.Application do
   This module will provide functions to update the application based on the appup.
 
   For a hotupgrade to happen, a few steps need to be followed:
-  1. Ensure that .appup files are available. These files are generated during the release
-     process when updating from an older version. For this project, these files are generated
-     within the myapp application and then copied from Distillery.
+  1. Ensure that .appup files are available. These files are generated during the release process
+     when updating from an older version. Deployex was designed to consume appup files generated
+     by these libraries:
+       a. [Jellyfish](https://github.com/thiagoesteves/jellyfish) (For Elixir apps)
+       a. [Rebar3 appup plugin](https://github.com/lrascao/rebar3_appup_plugin) (For Erlang apps)
 
   2. During deployment, the release app-new-version.tar.gz is copied to a directory named
      after the version under the current/releases folder, for example:
      /var/lib/deployex/service/myapp/current/{instance}/releases/{new-version}/app-new-version.tar.gz
 
-  3. A sequence of commands is executed by this module to create the relup file and install
-     the release. Note that only upgrades are permitted in this project, and in the event of
+  3. A sequence of commands is executed by this module:
+       a. Unpack a release using release_handler:unpack_release
+       b. Create a relup file using systools:make_relup
+       c. Check Intall release using release_handler:check_install_release
+         i. Request via RPC to run  ConfigProvider and Runtime and populate sys.config (Only ELixir)
+       d. Install the release using release_handler:install_release
+       e. Make the release permanent using release_handler:make_permanent
+         i. Return original empty sys.config (Only ELixir)
+
+    Note that only upgrades are permitted in this project, and in the event of
      failure, the system will revert to a full deployment.
 
   4. ATTENTION:
      The sys.config file contains all application configurations and is not loaded during a
-     hot upgrade. To address this, several steps are included in this module to load the new
+     hot upgrade. For Elixir applications, Config Provider and Runtime are codes that executes
+     when the applicaiton is starting and are required for fetching information.
+     To address this, several steps are included in this module to load the new
      version of sys.config and utilize the RPC channel to execute runtime.exs and the config
      provider. It's important to note that these actions occur within the current version,
      meaning the system is not immediately prepared to execute hot upgrades when configuration
@@ -25,14 +37,15 @@ defmodule Deployex.Upgrade.Application do
 
   References:
 
-  App up files generation
-  https://github.com/bitwalker/distillery
-
-  Relup and release installations
-  https://github.com/erlware/relx/blob/main/priv/templates/install_upgrade_escript
-
-  # For updating the config
-  https://github.com/ausimian/castle/blob/main/lib/castle.ex
+  * https://learnyousomeerlang.com/relups
+  * https://www.erlang.org/doc/system/appup_cookbook.html
+  * https://github.com/lrascao/rebar3_appup_plugin
+  * https://lrascao.github.io/automatic-release-upgrades-in-erlang/
+  * https://rebar3.org/docs/deployment/releases/
+  * https://rebar3.org/docs/configuration/plugins/
+  * https://github.com/erlware/relx/blob/main/priv/templates/install_upgrade_escript
+  * https://github.com/bitwalker/distillery (elixir oriented)
+  * https://github.com/ausimian/castle/blob/main/lib/castle.ex (elixir oriented)
   """
 
   @timeout 300_000
@@ -48,26 +61,32 @@ defmodule Deployex.Upgrade.Application do
   ### ==========================================================================
 
   @impl true
-  @spec execute(integer(), binary() | charlist() | nil, binary() | charlist() | nil) ::
+  @spec execute(
+          integer(),
+          String.t(),
+          String.t(),
+          binary() | charlist() | nil,
+          binary() | charlist() | nil
+        ) ::
           :ok | {:error, any()}
-  def execute(_instance, from_version, to_version)
+  def execute(_instance, _app_lang, _app_name, from_version, to_version)
       when is_nil(from_version) or is_nil(to_version),
       do: {:error, :invalid_version}
 
-  def execute(instance, from_version, to_version)
+  def execute(instance, app_lang, app_name, from_version, to_version)
       when is_binary(from_version) or is_binary(to_version) do
-    execute(instance, from_version |> to_charlist, to_version |> to_charlist)
+    execute(instance, app_lang, app_name, from_version |> to_charlist, to_version |> to_charlist)
   end
 
-  def execute(instance, from_version, to_version) do
+  def execute(instance, app_lang, app_name, from_version, to_version) do
     with {:ok, node} <- connect(instance),
-         :ok <- unpack_release(node, to_version),
-         :ok <- make_relup(node, from_version, to_version),
+         :ok <- unpack_release(node, app_name, to_version),
+         :ok <- make_relup(node, instance, app_name, app_lang, from_version, to_version),
          :ok <- check_install_release(node, to_version),
-         :ok <- update_sys_config_from_installed_version(instance, node, to_version),
+         :ok <- update_sys_config_from_installed_version(node, instance, app_lang, to_version),
          :ok <- install_release(node, to_version),
-         :ok <- permfy(node, to_version),
-         :ok <- return_original_sys_config(instance, to_version) do
+         :ok <- permfy(node, instance, app_name, app_lang, to_version),
+         :ok <- return_original_sys_config(instance, app_lang, to_version) do
       Logger.info(
         "Release upgrade executed with success at instance: #{instance} from: #{from_version} to: #{to_version}"
       )
@@ -83,9 +102,9 @@ defmodule Deployex.Upgrade.Application do
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
 
-  @spec update_sys_config_from_installed_version(integer(), atom(), charlist()) ::
+  @spec update_sys_config_from_installed_version(atom(), integer(), String.t(), charlist()) ::
           :ok | {:error, any()}
-  def update_sys_config_from_installed_version(instance, node, to_version) do
+  def update_sys_config_from_installed_version(node, instance, "elixir", to_version) do
     rel_vsn_dir = "#{Storage.current_path(instance)}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
@@ -115,8 +134,10 @@ defmodule Deployex.Upgrade.Application do
     end
   end
 
-  @spec return_original_sys_config(integer(), charlist()) :: :ok | {:error, atom()}
-  def return_original_sys_config(instance, to_version) do
+  def update_sys_config_from_installed_version(_node, _instance, _app_lang, _to_version), do: :ok
+
+  @spec return_original_sys_config(integer(), String.t(), charlist()) :: :ok | {:error, atom()}
+  def return_original_sys_config(instance, "elixir", to_version) do
     rel_vsn_dir = "#{Storage.current_path(instance)}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
@@ -124,19 +145,58 @@ defmodule Deployex.Upgrade.Application do
     File.rename(original_sys_config_file, sys_config_path)
   end
 
+  def return_original_sys_config(_instance, _app_lang, _to_version), do: :ok
+
   @impl true
-  @spec check(integer(), binary(), binary() | charlist() | nil, binary() | charlist()) ::
+  @spec check(
+          integer(),
+          String.t(),
+          String.t(),
+          binary(),
+          binary() | charlist() | nil,
+          binary() | charlist()
+        ) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, download_path, from_version, to_version)
+  def check(instance, app_lang, app_name, download_path, from_version, to_version)
       when is_binary(from_version) or is_binary(to_version) do
-    check(instance, download_path, from_version |> to_charlist, to_version |> to_charlist)
+    check(
+      instance,
+      app_lang,
+      app_name,
+      download_path,
+      from_version |> to_charlist,
+      to_version |> to_charlist
+    )
   end
 
-  def check(instance, download_path, from_version, to_version) do
-    monitored_app = Storage.monitored_app_name()
+  def check(instance, app_lang, app_name, download_path, from_version, to_version) do
+    cp_appup_priv_to_ebin = fn ->
+      priv_app_up_file =
+        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/#{app_name}.appup"
+
+      ebin_app_up_file =
+        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+
+      if File.exists?(priv_app_up_file) do
+        File.cp!(priv_app_up_file, ebin_app_up_file)
+      end
+    end
+
+    add_version_to_rel_file = fn ->
+      releases = "#{Storage.new_path(instance)}/releases"
+
+      if File.exists?("#{releases}/#{app_name}.rel") do
+        File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
+      end
+    end
+
+    if app_lang == "erlang" do
+      cp_appup_priv_to_ebin.()
+      add_version_to_rel_file.()
+    end
 
     with [file_path] <-
-           Path.wildcard("#{Storage.new_path(instance)}/lib/#{monitored_app}-*/ebin/*.appup"),
+           Path.wildcard("#{Storage.new_path(instance)}/lib/#{app_name}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do
       Logger.warning("HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}")
 
@@ -147,7 +207,7 @@ defmodule Deployex.Upgrade.Application do
 
       {"", 0} = System.cmd("mkdir", [dest_dir])
 
-      {"", 0} = System.cmd("cp", [download_path, "#{dest_dir}/#{monitored_app}.tar.gz"])
+      {"", 0} = System.cmd("cp", [download_path, "#{dest_dir}/#{app_name}.tar.gz"])
 
       {:ok, :hot_upgrade}
     else
@@ -177,9 +237,9 @@ defmodule Deployex.Upgrade.Application do
     end
   end
 
-  @spec unpack_release(atom(), charlist()) :: :ok | {:error, any()}
-  def unpack_release(node, to_version) do
-    release_link = "#{to_version}/#{Storage.monitored_app_name()}" |> to_charlist
+  @spec unpack_release(atom(), String.t(), charlist()) :: :ok | {:error, any()}
+  def unpack_release(node, app_name, to_version) do
+    release_link = "#{to_version}/#{app_name}" |> to_charlist
 
     case :rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
       {:ok, version} ->
@@ -195,21 +255,46 @@ defmodule Deployex.Upgrade.Application do
     end
   end
 
-  @spec make_relup(atom(), charlist(), charlist()) :: :ok | {:error, :make_relup}
-  def make_relup(node, from_version, to_version) do
+  @spec make_relup(atom(), integer(), String.t(), String.t(), charlist(), charlist()) ::
+          :ok | {:error, :make_relup}
+  def make_relup(node, instance, app_name, app_lang, from_version, to_version) do
     root = root_dir(node)
+
+    cp_appup_priv_to_ebin = fn ->
+      priv_app_up_file =
+        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/#{app_name}.appup"
+
+      ebin_app_up_file =
+        "#{Storage.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+
+      if File.exists?(priv_app_up_file) do
+        File.cp!(priv_app_up_file, ebin_app_up_file)
+      end
+    end
+
+    add_version_to_rel_file = fn ->
+      releases = "#{Storage.current_path(instance)}/releases"
+
+      if File.exists?("#{releases}/#{app_name}.rel") do
+        File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
+      end
+    end
+
+    if app_lang == "erlang" do
+      cp_appup_priv_to_ebin.()
+      add_version_to_rel_file.()
+    end
 
     :rpc.call(
       node,
       :systools,
       :make_relup,
       [
-        root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ to_version,
-        [root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ from_version],
-        [root ++ ~c"/releases/#{Storage.monitored_app_name()}-" ++ from_version],
+        root ++ ~c"/releases/#{app_name}-" ++ to_version,
+        [root ++ ~c"/releases/#{app_name}-" ++ from_version],
+        [root ++ ~c"/releases/#{app_name}-" ++ from_version],
         [
-          {:path,
-           [root ++ ~c"/lib/*/ebin", root ++ ~c"/releases/*/#{Storage.monitored_app_name()}"]},
+          {:path, [root ++ ~c"/lib/*/ebin"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
       ],
@@ -256,16 +341,24 @@ defmodule Deployex.Upgrade.Application do
     end
   end
 
-  @spec permfy(atom(), charlist()) :: :ok | {:error, any()}
-  def permfy(node, version) do
-    case :rpc.call(node, :release_handler, :make_permanent, [version], @timeout) do
+  @spec permfy(atom(), integer(), String.t(), String.t(), charlist()) :: :ok | {:error, any()}
+  def permfy(node, instance, app_name, app_lang, to_version) do
+    case :rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
       :ok ->
-        Logger.info("Made release permanent: #{version}")
+        Logger.info("Made release permanent: #{to_version}")
+
+        if app_lang == "erlang" do
+          File.cp!(
+            "#{Storage.current_path(instance)}/bin/#{app_name}-#{to_version}",
+            "#{Storage.current_path(instance)}/bin/#{app_name}"
+          )
+        end
+
         :ok
 
       reason ->
         Logger.error(
-          "Error while trying to set a permanent version for #{version}, reason: #{inspect(reason)}"
+          "Error while trying to set a permanent version for #{to_version}, reason: #{inspect(reason)}"
         )
 
         {:error, reason}

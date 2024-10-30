@@ -48,7 +48,9 @@ defmodule Deployex.Release.GcpStorageTest do
     |> expect(:current_version, fn ^instance -> version end)
 
     Deployex.UpgradeMock
-    |> expect(:check, fn ^instance, _path, _from, _to -> {:ok, :full_deployment} end)
+    |> expect(:check, fn ^instance, _app_lang, _app_name, _path, _from, _to ->
+      {:ok, :full_deployment}
+    end)
 
     new_path = "/tmp/deployex/test/varlib/service/testapp/999/new"
 

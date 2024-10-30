@@ -26,20 +26,33 @@ defmodule Deployex.Upgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(integer(), binary(), binary() | charlist() | nil, binary() | charlist()) ::
+  @spec check(
+          integer(),
+          String.t(),
+          String.t(),
+          binary(),
+          binary() | charlist() | nil,
+          binary() | charlist()
+        ) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, download_path, from_version, to_version) do
-    default().check(instance, download_path, from_version, to_version)
+  def check(instance, app_lang, app_name, download_path, from_version, to_version) do
+    default().check(instance, app_lang, app_name, download_path, from_version, to_version)
   end
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(integer(), binary() | charlist() | nil, binary() | charlist() | nil) ::
+  @spec execute(
+          integer(),
+          String.t(),
+          String.t(),
+          binary() | charlist() | nil,
+          binary() | charlist() | nil
+        ) ::
           :ok | {:error, any()}
-  def execute(instance, from_version, to_version) do
-    default().execute(instance, from_version, to_version)
+  def execute(instance, app_lang, app_name, from_version, to_version) do
+    default().execute(instance, app_lang, app_name, from_version, to_version)
   end
 
   ### ==========================================================================

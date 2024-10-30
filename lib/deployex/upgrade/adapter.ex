@@ -4,8 +4,21 @@ defmodule Deployex.Upgrade.Adapter do
   """
 
   @callback connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
-  @callback check(integer(), binary(), binary() | charlist() | nil, binary() | charlist()) ::
+  @callback check(
+              integer(),
+              String.t(),
+              String.t(),
+              binary(),
+              binary() | charlist() | nil,
+              binary() | charlist()
+            ) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  @callback execute(integer(), binary() | charlist() | nil, binary() | charlist() | nil) ::
+  @callback execute(
+              integer(),
+              String.t(),
+              String.t(),
+              binary() | charlist() | nil,
+              binary() | charlist() | nil
+            ) ::
               :ok | {:error, any()}
 end

@@ -297,7 +297,13 @@ defmodule Deployex.Deployment do
 
       from_version = Status.current_version(instance)
 
-      case Upgrade.execute(instance, from_version, release.version) do
+      case Upgrade.execute(
+             instance,
+             Storage.monitored_app_lang(),
+             Storage.monitored_app_name(),
+             from_version,
+             release.version
+           ) do
         :ok ->
           Status.set_current_version_map(instance, release,
             deployment: :hot_upgrade,

@@ -38,9 +38,10 @@ defmodule Deployex.Release.S3 do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = Storage.monitored_app_name()
+    app_name = Storage.monitored_app_name()
+    app_lang = Storage.monitored_app_lang()
 
-    s3_path = "dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
+    s3_path = "dist/#{app_name}/#{app_name}-#{version}.tar.gz"
 
     {:ok, :done} =
       bucket()
@@ -52,7 +53,14 @@ defmodule Deployex.Release.S3 do
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(instance, download_path, Status.current_version(instance), version)
+    Upgrade.check(
+      instance,
+      app_lang,
+      app_name,
+      download_path,
+      Status.current_version(instance),
+      version
+    )
   after
     Briefly.cleanup()
   end
