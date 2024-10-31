@@ -102,11 +102,15 @@ defmodule Deployex.UpgradeAppTest do
 
   setup do
     FixtureStorage.cleanup()
+    {:ok, hostname} = :inet.gethostname()
+
+    app_name = "testapp"
+    instance = 1
 
     %{
-      node: :"testapp-1@MacBookPro",
-      app_name: "testapp",
-      instance: 1,
+      node: :"#{app_name}-#{instance}@#{hostname}",
+      app_name: app_name,
+      instance: instance,
       from_version: "0.1.0",
       to_version: "0.2.0",
       base_path: Application.get_env(:deployex, :base_path)
