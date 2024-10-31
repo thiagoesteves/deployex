@@ -50,8 +50,8 @@ defmodule Deployex.Upgrade.Application do
 
   @timeout 300_000
 
-  alias Deployex.Storage
   alias Deployex.Rpc
+  alias Deployex.Storage
 
   @behaviour Deployex.Upgrade.Adapter
 

@@ -108,7 +108,8 @@ defmodule Deployex.UpgradeAppTest do
       app_name: "testapp",
       instance: 1,
       from_version: "0.1.0",
-      to_version: "0.2.0"
+      to_version: "0.2.0",
+      base_path: Application.get_env(:deployex, :base_path)
     }
   end
 
@@ -155,14 +156,15 @@ defmodule Deployex.UpgradeAppTest do
     app_name: app_name,
     instance: instance,
     from_version: from_version,
-    to_version: to_version
+    to_version: to_version,
+    base_path: base_path
   } do
     new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
     current_releases_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(current_releases_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
-    File.write("#{app_name}-#{to_version}.tar.gz", "")
+    File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
              assert {:ok, :hot_upgrade} =
@@ -170,7 +172,7 @@ defmodule Deployex.UpgradeAppTest do
                         instance,
                         app_name,
                         "elixir",
-                        "#{app_name}-#{to_version}.tar.gz",
+                        "#{base_path}/#{app_name}-#{to_version}.tar.gz",
                         from_version,
                         to_version
                       )
@@ -248,7 +250,8 @@ defmodule Deployex.UpgradeAppTest do
     app_name: app_name,
     instance: instance,
     from_version: from_version,
-    to_version: to_version
+    to_version: to_version,
+    base_path: base_path
   } do
     new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
     new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv"
@@ -262,7 +265,7 @@ defmodule Deployex.UpgradeAppTest do
 
     File.write("#{new_lib_priv_path}/#{app_name}.appup", @valid_appup_file)
     File.write("#{new_releases_path}/#{app_name}.rel", @release_file)
-    File.write("#{app_name}-#{to_version}.tar.gz", "")
+    File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
              assert {:ok, :hot_upgrade} =
@@ -270,7 +273,7 @@ defmodule Deployex.UpgradeAppTest do
                         instance,
                         app_name,
                         "erlang",
-                        "#{app_name}-#{to_version}.tar.gz",
+                        "#{base_path}/#{app_name}-#{to_version}.tar.gz",
                         from_version,
                         to_version
                       )
