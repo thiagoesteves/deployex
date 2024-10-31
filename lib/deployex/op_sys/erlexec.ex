@@ -6,7 +6,7 @@ defmodule Deployex.OpSys.Erlexec do
   @behaviour Deployex.OpSys.Adapter
 
   ### ==========================================================================
-  ### CWC Callbacks
+  ### OpSys Callbacks
   ### ==========================================================================
   @impl true
   def run_link(command, options), do: :exec.run_link(command, options)

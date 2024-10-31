@@ -12,7 +12,7 @@ defmodule Deployex.Release.GcpStorage do
   require Logger
 
   ### ==========================================================================
-  ### CWC Callbacks
+  ### Release Callbacks
   ### ==========================================================================
 
   @doc """
@@ -39,10 +39,11 @@ defmodule Deployex.Release.GcpStorage do
   def download_and_unpack(instance, version) do
     {:ok, download_path} = Briefly.create()
 
-    monitored_app = Storage.monitored_app_name()
+    app_name = Storage.monitored_app_name()
+    app_lang = Storage.monitored_app_lang()
 
     gcp_path =
-      "https://storage.googleapis.com/#{bucket()}/dist/#{monitored_app}/#{monitored_app}-#{version}.tar.gz"
+      "https://storage.googleapis.com/#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
 
     :get
     |> Finch.build(gcp_path, headers(), [])
@@ -60,7 +61,14 @@ defmodule Deployex.Release.GcpStorage do
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
-    Upgrade.check(instance, download_path, Status.current_version(instance), version)
+    Upgrade.check(
+      instance,
+      app_name,
+      app_lang,
+      download_path,
+      Status.current_version(instance),
+      version
+    )
   after
     Briefly.cleanup()
   end
