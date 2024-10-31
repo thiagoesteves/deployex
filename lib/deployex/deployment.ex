@@ -299,8 +299,8 @@ defmodule Deployex.Deployment do
 
       case Upgrade.execute(
              instance,
-             Storage.monitored_app_lang(),
              Storage.monitored_app_name(),
+             Storage.monitored_app_lang(),
              from_version,
              release.version
            ) do

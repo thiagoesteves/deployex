@@ -46,7 +46,7 @@ defmodule Deployex.Release.LocalTest do
     |> expect(:current_version, fn ^instance -> version end)
 
     Deployex.UpgradeMock
-    |> expect(:check, fn ^instance, _app_lang, _app_name, _path, _from, _to ->
+    |> expect(:check, fn ^instance, _app_name, _app_lang, _path, _from, _to ->
       {:ok, :full_deployment}
     end)
 

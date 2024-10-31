@@ -35,8 +35,8 @@ defmodule Deployex.Upgrade do
           binary() | charlist()
         ) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, app_lang, app_name, download_path, from_version, to_version) do
-    default().check(instance, app_lang, app_name, download_path, from_version, to_version)
+  def check(instance, app_name, app_lang, download_path, from_version, to_version) do
+    default().check(instance, app_name, app_lang, download_path, from_version, to_version)
   end
 
   @doc """
@@ -51,8 +51,8 @@ defmodule Deployex.Upgrade do
           binary() | charlist() | nil
         ) ::
           :ok | {:error, any()}
-  def execute(instance, app_lang, app_name, from_version, to_version) do
-    default().execute(instance, app_lang, app_name, from_version, to_version)
+  def execute(instance, app_name, app_lang, from_version, to_version) do
+    default().execute(instance, app_name, app_lang, from_version, to_version)
   end
 
   ### ==========================================================================

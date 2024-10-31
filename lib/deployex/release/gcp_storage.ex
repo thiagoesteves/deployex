@@ -12,7 +12,7 @@ defmodule Deployex.Release.GcpStorage do
   require Logger
 
   ### ==========================================================================
-  ### CWC Callbacks
+  ### Release Callbacks
   ### ==========================================================================
 
   @doc """
@@ -63,8 +63,8 @@ defmodule Deployex.Release.GcpStorage do
 
     Upgrade.check(
       instance,
-      app_lang,
       app_name,
+      app_lang,
       download_path,
       Status.current_version(instance),
       version

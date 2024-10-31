@@ -12,7 +12,7 @@ defmodule Deployex.Release.Local do
   require Logger
 
   ### ==========================================================================
-  ### CWC Callbacks
+  ### Release Callbacks
   ### ==========================================================================
 
   @doc """
@@ -51,8 +51,8 @@ defmodule Deployex.Release.Local do
 
     Upgrade.check(
       instance,
-      app_lang,
       app_name,
+      app_lang,
       download_path,
       Status.current_version(instance),
       version

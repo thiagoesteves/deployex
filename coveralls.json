@@ -10,6 +10,8 @@
     "lib/deployex/status/adapter.ex",
     "lib/deployex/upgrade/adapter.ex",
     "lib/deployex/storage/adapter.ex",
+    "lib/deployex/rpc/adapter.ex",
+    "lib/deployex/rpc/local.ex",
     "lib/deployex/mailer.ex",
     "lib/deployex/macros.ex",
     "lib/deployex_web/components/layouts.ex",
@@ -21,6 +23,6 @@
     "test/*"
   ],
   "coverage_options": {
-    "minimum_coverage": 90
+    "minimum_coverage": 95
   }
 }

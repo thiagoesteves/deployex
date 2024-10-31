@@ -51,6 +51,7 @@ defmodule Deployex.Upgrade.Application do
   @timeout 300_000
 
   alias Deployex.Storage
+  alias Deployex.Rpc
 
   @behaviour Deployex.Upgrade.Adapter
 
@@ -69,16 +70,16 @@ defmodule Deployex.Upgrade.Application do
           binary() | charlist() | nil
         ) ::
           :ok | {:error, any()}
-  def execute(_instance, _app_lang, _app_name, from_version, to_version)
+  def execute(_instance, _app_name, _app_lang, from_version, to_version)
       when is_nil(from_version) or is_nil(to_version),
       do: {:error, :invalid_version}
 
-  def execute(instance, app_lang, app_name, from_version, to_version)
+  def execute(instance, app_name, app_lang, from_version, to_version)
       when is_binary(from_version) or is_binary(to_version) do
-    execute(instance, app_lang, app_name, from_version |> to_charlist, to_version |> to_charlist)
+    execute(instance, app_name, app_lang, from_version |> to_charlist, to_version |> to_charlist)
   end
 
-  def execute(instance, app_lang, app_name, from_version, to_version) do
+  def execute(instance, app_name, app_lang, from_version, to_version) do
     with {:ok, node} <- connect(instance),
          :ok <- unpack_release(node, app_name, to_version),
          :ok <- make_relup(node, instance, app_name, app_lang, from_version, to_version),
@@ -87,9 +88,10 @@ defmodule Deployex.Upgrade.Application do
          :ok <- install_release(node, to_version),
          :ok <- permfy(node, instance, app_name, app_lang, to_version),
          :ok <- return_original_sys_config(instance, app_lang, to_version) do
-      Logger.info(
+      message =
         "Release upgrade executed with success at instance: #{instance} from: #{from_version} to: #{to_version}"
-      )
+
+      Logger.info(message)
 
       :ok
     end
@@ -97,7 +99,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec which_releases(atom()) :: list()
   def which_releases(node) do
-    releases = :rpc.call(node, :release_handler, :which_releases, [], @timeout)
+    releases = Rpc.call(node, :release_handler, :which_releases, [], @timeout)
 
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
@@ -117,7 +119,7 @@ defmodule Deployex.Upgrade.Application do
       |> Keyword.get(:config_provider_init)
       |> Map.get(:providers)
       |> Enum.reduce(sys_config, fn {mod, arg}, cfg ->
-        :rpc.call(node, mod, :load, [cfg, arg], @timeout)
+        Rpc.call(node, mod, :load, [cfg, arg], @timeout)
       end)
 
     with :ok <- File.rename(sys_config_path, original_sys_config_file),
@@ -125,9 +127,9 @@ defmodule Deployex.Upgrade.Application do
            File.write(sys_config_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [sys_config])) do
       :ok
     else
-      reason ->
+      {:error, reason} ->
         Logger.error(
-          "Error while loading sys.config to: #{to_version}, reason: #{inspect(reason)}"
+          "Error while updating sys.config to: #{to_version}, reason: #{inspect(reason)}"
         )
 
         {:error, reason}
@@ -157,19 +159,19 @@ defmodule Deployex.Upgrade.Application do
           binary() | charlist()
         ) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, app_lang, app_name, download_path, from_version, to_version)
+  def check(instance, app_name, app_lang, download_path, from_version, to_version)
       when is_binary(from_version) or is_binary(to_version) do
     check(
       instance,
-      app_lang,
       app_name,
+      app_lang,
       download_path,
       from_version |> to_charlist,
       to_version |> to_charlist
     )
   end
 
-  def check(instance, app_lang, app_name, download_path, from_version, to_version) do
+  def check(instance, app_name, app_lang, download_path, from_version, to_version) do
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file =
         "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/#{app_name}.appup"
@@ -205,9 +207,9 @@ defmodule Deployex.Upgrade.Application do
 
       File.rm_rf(dest_dir)
 
-      {"", 0} = System.cmd("mkdir", [dest_dir])
+      File.mkdir_p!(dest_dir)
 
-      {"", 0} = System.cmd("cp", [download_path, "#{dest_dir}/#{app_name}.tar.gz"])
+      File.cp!(download_path, "#{dest_dir}/#{app_name}.tar.gz")
 
       {:ok, :hot_upgrade}
     else
@@ -241,7 +243,7 @@ defmodule Deployex.Upgrade.Application do
   def unpack_release(node, app_name, to_version) do
     release_link = "#{to_version}/#{app_name}" |> to_charlist
 
-    case :rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
+    case Rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
       {:ok, version} ->
         Logger.info("Unpacked successfully: #{inspect(version)}")
         :ok
@@ -285,7 +287,7 @@ defmodule Deployex.Upgrade.Application do
       add_version_to_rel_file.()
     end
 
-    :rpc.call(
+    Rpc.call(
       node,
       :systools,
       :make_relup,
@@ -312,7 +314,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec check_install_release(atom(), charlist()) :: :ok | {:error, any()}
   def check_install_release(node, to_version) do
-    case :rpc.call(node, :release_handler, :check_install_release, [to_version], @timeout) do
+    case Rpc.call(node, :release_handler, :check_install_release, [to_version], @timeout) do
       {:ok, _other, _desc} ->
         :ok
 
@@ -324,7 +326,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec install_release(atom(), charlist()) :: :ok | {:error, any()}
   def install_release(node, to_version) do
-    case :rpc.call(
+    case Rpc.call(
            node,
            :release_handler,
            :install_release,
@@ -343,7 +345,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec permfy(atom(), integer(), String.t(), String.t(), charlist()) :: :ok | {:error, any()}
   def permfy(node, instance, app_name, app_lang, to_version) do
-    case :rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
+    case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
       :ok ->
         Logger.info("Made release permanent: #{to_version}")
 
@@ -366,7 +368,7 @@ defmodule Deployex.Upgrade.Application do
   end
 
   @spec root_dir(atom()) :: any()
-  def root_dir(node), do: :rpc.call(node, :code, :root_dir, [])
+  def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @timeout)
 
   @impl true
   @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
