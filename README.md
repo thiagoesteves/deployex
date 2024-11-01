@@ -59,13 +59,11 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ## ⚠️ Next steps
 
-### Version 0.3.0
+### What is missing for the Release Version: 0.3.0
 
-- [X] 🚧 Add Gleam support.
-- [X] 🚧 Add Erlang support.
-- [X] 🚧 Add Erlang hot upgrade support.
+- [ ] 🚧 Add Host Terminal.
 
-### Version 0.4.0
+### What is coming for the Release Version: 0.4.0
 
 - [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
 - [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
