@@ -93,7 +93,7 @@ iex(deployex@hostname)1>
 
 You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should look like this:
 
-![No mTLS Dashboard Gleam](docs/static/deployex_monitoring_app_gleam_no_tls.png)
+![No mTLS Dashboard Gleam](../../static/deployex_monitoring_app_gleam_no_tls.png)
 
 Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
@@ -186,4 +186,4 @@ ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -s
 
 After making these changes, create and publish a new version `0.1.2` for `mygleamapp` and run the DeployEx with the command from item 5. After the deployment, you should see the following dashboard:
 
-![mTLS Dashboard Gleam](docs/static/deployex_monitoring_app_gleam_tls.png)
+![mTLS Dashboard Gleam](../../static/deployex_monitoring_app_gleam_tls.png)

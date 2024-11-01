@@ -174,7 +174,7 @@ defmodule Deployex.Upgrade.Application do
   def check(instance, app_name, app_lang, download_path, from_version, to_version) do
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file =
-        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/#{app_name}.appup"
+        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
 
       ebin_app_up_file =
         "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
@@ -264,7 +264,7 @@ defmodule Deployex.Upgrade.Application do
 
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file =
-        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/#{app_name}.appup"
+        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
 
       ebin_app_up_file =
         "#{Storage.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
