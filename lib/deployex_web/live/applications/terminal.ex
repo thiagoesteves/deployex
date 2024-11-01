@@ -27,8 +27,9 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       <div
         :if={@bin_path != "Binary not found"}
         phx-target={@myself}
-        phx-hook="IexTerminal"
+        phx-hook="Terminal"
         id={"iex-#{@id}"}
+        data-cols={100}
       >
         <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>

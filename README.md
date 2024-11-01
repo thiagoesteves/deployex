@@ -206,9 +206,9 @@ Within the secrets, the following key-value pairs are required:
 
 ## 🏠 Running DeployEx locally
 
- * [Elixir Applications](docs/examples/local-elixir/elixir.md)
- * [Gleam Applications](docs/examples/local-gleam/gleam.md)
- * [Erlang Applications](docs/examples/local-erlang/erlang.md)
+ * [Elixir Applications](docs/examples/local-elixir/README.md)
+ * [Gleam Applications](docs/examples/local-gleam/README.md)
+ * [Erlang Applications](docs/examples/local-erlang/README.md)
 
 
 ## 🔨 Throubleshooting

@@ -26,12 +26,15 @@ import { Terminal } from "./xterm/xterm"
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 let hooks = {}
-hooks.IexTerminal = {
+hooks.Terminal = {
   mounted() {
+    let cols = this.el.dataset.cols ?? 80;
+    let rows = this.el.dataset.rows ?? 24;
+
     let term = new Terminal({
       fontSize: 14,
-      cols: 100,
-      rows: 24,
+      cols: cols,
+      rows: rows,
       cursorBlink: true,
       fontFamily: 'Monospace'
     });

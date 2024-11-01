@@ -36,6 +36,21 @@ defmodule Deployex.Common do
   end
 
   @doc """
+  Return a random number for a given range
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert Common.random_number(5,5) == 5
+    ...> assert Common.random_number(1,100) >= 1
+    ...> assert Common.random_number(1,100) <= 100
+  """
+  @spec random_number(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  def random_number(from, to) do
+    Enum.random(from..to)
+  end
+
+  @doc """
   Return if mutual TLS is supported
 
   ## Examples

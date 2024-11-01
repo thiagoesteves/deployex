@@ -7,7 +7,7 @@ defmodule Deployex.Terminal.Server do
 
   @type t :: %__MODULE__{
           commands: String.t(),
-          type: :iex_terminal | :logs_stdout | :logs_stderr,
+          type: :iex_terminal | :logs_stdout | :logs_stderr | :shell_terminal,
           myself: nil | pid(),
           process: pid(),
           msg_sequence: integer(),
@@ -16,7 +16,7 @@ defmodule Deployex.Terminal.Server do
           status: :open | :closed,
           message: String.t(),
           options: list(),
-          timeout_session: nil | integer()
+          timeout_session: nil | integer() | :infinity
         }
 
   defstruct commands: nil,
@@ -36,7 +36,7 @@ defmodule Deployex.Terminal.Server do
     Structure to encapsulate the message that will be sent to the target process
     """
     @type t :: %__MODULE__{
-            type: :iex_terminal | :logs_stdout | :logs_stderr,
+            type: :iex_terminal | :logs_stdout | :logs_stderr | :shell_terminal,
             myself: nil | pid(),
             process: pid(),
             msg_sequence: integer(),
@@ -76,7 +76,8 @@ defmodule Deployex.Terminal.Server do
       )
       |> Map.put(:myself, self())
 
-    Process.send_after(self(), :session_timeout, state.timeout_session)
+    if state.timeout_session != :infinity,
+      do: Process.send_after(self(), :session_timeout, state.timeout_session)
 
     Process.monitor(state.target)
 
@@ -172,6 +173,7 @@ defmodule Deployex.Terminal.Server do
     )
 
     notify_target(state)
+
     {:stop, :normal, state}
   end
 
