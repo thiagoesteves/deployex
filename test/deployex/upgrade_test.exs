@@ -258,7 +258,7 @@ defmodule Deployex.UpgradeAppTest do
     base_path: base_path
   } do
     new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv"
+    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
     new_releases_path = "#{Storage.new_path(instance)}/releases"
     current_releases_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
 
@@ -369,7 +369,7 @@ defmodule Deployex.UpgradeAppTest do
   } do
     root = ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
-    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv"
+    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
     current_lib_ebin_path = "#{Storage.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
     current_releases_path = "#{Storage.current_path(instance)}/releases"
 

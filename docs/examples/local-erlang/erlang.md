@@ -24,7 +24,7 @@ rebar3 new release myerlangapp
 cd myerlangapp
 ```
 
-## Add required release vars
+### Add required release vars
 
 Open the args file `config/vm.args` and add the following lines, removing previous suggestions for sname and cookie. These variables will be injected by DeployEx:
 
@@ -37,7 +37,53 @@ ${RELEASE_SSL_OPTIONS}
 +A30
 ```
 
-## Add gen_server for testing
+Add the modules `inets` and `ssl` in the `apps/myerlangapp/src/myerlangapp.erl` file. They are required for distribution:
+
+```bash
+...
+    {applications, [
+        kernel,
+        stdlib,
+        inets, # <----
+        ssl    # <----
+    ]},
+...
+```
+
+### Add required plugin for hot upgrades
+
+Integrate the [rebar3 appup plugin](https://github.com/lrascao/rebar3_appup_plugin) adding the following commands at `rebar.config`:
+```erlang
+{plugins, [rebar3_appup_plugin]}.
+
+{provider_hooks, [
+    {pre, [{tar, {appup, tar}}]},
+    {post, [{compile, {appup, compile}},
+            {clean, {appup, clean}}]}
+]}.
+```
+
+### Modify profile
+
+Change the `prod` profile at `rebar.config`. This is required for rebar3 appup plugin:
+```erlang
+{profiles, [
+    %% prod is the default mode when prod
+    %% profile is used, so does not have
+    %% to be explicitly included like this
+    {prod, [
+        {relx, [
+            {dev_mode, false},
+            {include_erts, true}
+
+            %% use minimal mode to exclude ERTS
+            %% {mode, minimal}
+        ]}
+    ]}
+]}.
+```
+
+### Add gen_server for testing
 
 Let's create a simple gen_server that prints its version message every second. Create the file `apps/myerlangapp/src/myerlangapp.erl` and populate with:
 
@@ -90,9 +136,8 @@ timer_send_message() ->
 terminate(_Reason, _State) ->
     ok.
 
-%% Code change callback (not used in this simple example)
-code_change(OldVsn, State, _Extra) ->
-    io:format("Hot code reloading happening, old version ~s", [OldVsn]),
+%% Code change callback
+code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 ```
 
@@ -108,7 +153,7 @@ init([]) ->
   ChildSpecs = [#{id => myerlangapp,
                   start => {myerlangapp, start_link, []},
                   restart => permanent,
-                  type => supervisor,
+                  type => worker,
                   shutdown => brutal_kill} ],
     {ok, {SupFlags, ChildSpecs}}.
 ```
@@ -116,6 +161,7 @@ init([]) ->
 ## Generate a release
 Then you can compile and generate a release
 ```bash
+rebar3 as prod release
 rebar3 as prod tar
 ```
 
@@ -173,6 +219,8 @@ In this scenario, the existing application will undergo termination, paving the 
 
 1. Remove any previously generated files and generate a new release
 ```bash
+rm -rf _build/
+rebar3 as prod release
 rebar3 as prod tar
 ```
 
@@ -201,44 +249,38 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 ### Hot Upgrade
 
-Integrate the [rebar3 appup plugin](https://github.com/lrascao/rebar3_appup_plugin) adding the following commands at `rebar.config`:
-```erlang
-{plugins, [rebar3_appup_plugin]}.
-
-...
-
-{provider_hooks, [
-    {pre, [{tar, {appup, tar}}]},
-    {post, [{compile, {appup, compile}},
-            {clean, {appup, clean}}]}
-]}.
-```
-
 #### Generating Appup Files
 
-DeployEx is capable of executing hot upgrades using only the appup files. The Rebar3 appup plugin is capable of generating appup and relup files, but for compatibility, we are going to generate only the application appup files (excluding OTP, libraries, etc) and save the file in the priv folder.
+DeployEx is capable of executing hot upgrades using only the appup files. The Rebar3 appup plugin is capable of generating appup and relup files, but for compatibility, we are going to generate only the application appup files (excluding OTP, libraries, etc) and save the `appup` file in the `priv/appup` folder.
 
 > [!ATTENTION]
-> The plugin os not fully operation when using different profiles like `prod`, for this reason, the best sequence for creating the appup files are listed below.
+> The Rebar3 appup plugin is not fully operation when using different profiles like `prod`, for this reason, we are going to use the default profile ONLY for creating the appup file and copy it to the `priv/appup` folder which will then be packed with the `prod` profile.
 
-Create the folder:
+Create the folder (if doesn't exist) where the appup file will be stored and build the `default` release for the version `0.1.1` (This is the version where you want to upgrade from):
 ```bash
 export app_name=myerlangapp
-mkdir -p "apps/${app_name}/priv"
+mkdir -p "apps/${app_name}/priv/appup"
+rm -rf _build/
+rebar3 release # Creating release for the version that will be upgrade from (default profile)
 ```
 
-Don't change the files or the version yet, follow the sequence:
+Update the project repository and/or make the changes for your app. Afterward, increment the version in both the `apps/myerlangapp/src/myerlangapp.app.src` and `rebar.config` files to `0.1.2`. As suggestion, you can add the following print in the `code_change` function of the `gen_server` at `apps/myerlangapp/src/myerlangapp.erl`:
+
+```erlang
+%% Code change callback
+code_change(_OldVsn, State, _Extra) ->
+    io:format("( ͡° ͜ʖ ͡°)_/¯ Hot code reloading happening here"),
+    {ok, State}.
+```
+
+Let's then generate the `0.1.2` release with the appup file:
 ```bash
 export app_name=myerlangapp
-rm -rf _build/
-rebar3 release
-# Navigate to the project and increment the version in the `apps/myerlangapp/src/myerlangapp.app.src` and `rebar.config` files to `0.1.2`.
-rebar3 release
-rebar3 appup generate --target_dir "${PWD}/apps/${app_name}/priv"
+rebar3 as prod release
+rebar3 as prod appup generate --previous "${PWD}/_build/default/rel/myerlangapp"  --target_dir "${PWD}/apps/${app_name}/priv/appup"
 # ===> current base dir: "/home/ubuntu/myerlangapp/_build/default"
 # ===> app myerlangapp ebin dir: "/home/ubuntu/myerlangapp/_build/default/lib/myerlangapp/ebin"
-# ===> Generated appup ("0.1.1" <-> "0.1.2") for myerlangapp in "/home/ubuntu/myerlangapp/apps/myerlangapp/priv/myerlangapp.appup"
-rebar3 as prod release
+# ===> Generated appup ("0.1.1" <-> "0.1.2") for myerlangapp in "/home/ubuntu/myerlangapp/apps/myerlangapp/priv/appup/myerlangapp.appup"
 rebar3 as prod tar
 ```
 
@@ -249,6 +291,10 @@ cp _build/prod/rel/${app_name}/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${
 echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
+you can check in the logs that the Hotupgrade was executed with success:
+![hot upgrade logs](../../static/deployex_monitoring_app_erlang_ht_logs.png)
+
+you can also restart the application to check that the hotupgrade persisted.
 
 ## 🔑 Enhancing OTP Distribution Security with mTLS
 
@@ -295,25 +341,11 @@ EOF
 )
 ```
 
-4. Since the default erlang application doesn't enable tls and ssh, you need to add these libraries, open the file `apps/myerlangapp/src/myerlangapp.app.src` and add inets and ssl:
-```bash
-    ...
-    {mod, {myerlangapp_app, []}},
-    {applications, [
-        kernel,
-        stdlib,
-        inets,
-        ssl
-    ]},
-    {env, []},
-    ...
-```bash
-
-5. To enable `mTLS` for DeployEx, set the appropriate Erlang options before running the application in the terminal:
+4. To enable `mTLS` for DeployEx, set the appropriate Erlang options before running the application in the terminal:
 ```bash
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
-After making these changes, create and publish a new version `0.1.2` for `myerlangapp` and run the DeployEx with the command from item 5. After the deployment, you should see the following dashboard:
+After implementing these changes, create and publish a new version, `0.1.3`, for `myerlangapp`. Then, run DeployEx using the command from item 4. After deployment, you should see the following dashboard:
 
 ![mTLS Dashboard Erlang](../../static/deployex_monitoring_app_erlang_tls.png)
