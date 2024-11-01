@@ -36,6 +36,7 @@ defmodule DeployexWeb.ApplicationsLive do
               mode={app.mode}
               manual_version={app.manual_version}
               versions={@versions}
+              language={app.language}
             />
           <% end %>
         </div>

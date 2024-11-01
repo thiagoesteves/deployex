@@ -44,6 +44,7 @@ defmodule Deployex.Status do
           uptime: String.t() | nil,
           last_ghosted_version: String.t() | nil,
           mode: :automatic | :manual,
+          language: String.t(),
           manual_version: Deployex.Status.Version.t() | nil
         }
 
@@ -60,6 +61,7 @@ defmodule Deployex.Status do
             uptime: nil,
             last_ghosted_version: nil,
             mode: :automatic,
+            language: "elixir",
             manual_version: nil
 
   @behaviour Deployex.Status.Adapter

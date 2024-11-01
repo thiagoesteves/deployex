@@ -19,6 +19,7 @@ defmodule DeployexWeb.Components.AppCard do
   attr :last_ghosted_version, :string, required: true
   attr :restart_path, :string, required: true
   attr :mode, :atom, required: true
+  attr :language, :string, required: true
   attr :manual_version, :map, required: true
   attr :versions, :list, required: true
 
@@ -38,7 +39,16 @@ defmodule DeployexWeb.Components.AppCard do
           restart_path={@restart_path}
         />
 
-        <h3 class="font-mono text-center text-xl text-black font-bold"><%= "#{@name}" %></h3>
+        <p class="flex  tracking-tight pt-3 justify-center">
+          <img
+            src={"/images/#{@language}.ico"}
+            alt=""
+            style="width: 32px; height: 32px;opacity: 0.7; margin-right: 20px;"
+          />
+          <strong class="font-mono  text-2xl text-black font-bold">
+            <%= "#{@name}" %>
+          </strong>
+        </p>
 
         <p :if={@supervisor == false} class="flex  tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Instance</span>

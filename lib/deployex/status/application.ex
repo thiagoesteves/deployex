@@ -224,7 +224,8 @@ defmodule Deployex.Status.Application do
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
-      start_time: start_time
+      start_time: start_time,
+      language: language
     } = Monitor.state(instance)
 
     check_otp_monitored_app = fn
@@ -249,7 +250,8 @@ defmodule Deployex.Status.Application do
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
-      uptime: Common.uptime_to_string(start_time)
+      uptime: Common.uptime_to_string(start_time),
+      language: language
     }
   end
 end
