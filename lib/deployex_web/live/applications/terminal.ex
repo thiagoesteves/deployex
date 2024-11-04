@@ -29,7 +29,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         phx-target={@myself}
         phx-hook="Terminal"
         id={"iex-#{@id}"}
-        data-cols={100}
       >
         <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>

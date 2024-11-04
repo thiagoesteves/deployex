@@ -105,9 +105,6 @@ defmodule DeployexWeb.TerminalLive do
         %{assigns: %{terminal_process: terminal_process}} = socket
       )
       when terminal_process == process do
-    # ATTENTION: This is the stdout from erl_exec command
-    #            Be careful adding logs here, since it can create an infinity loop
-    #            when using deployex web logs.
     {:noreply,
      socket
      |> push_event("print-host-shell-#{socket.assigns.id}", %{data: message})}

@@ -28,7 +28,7 @@ let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("
 let hooks = {}
 hooks.Terminal = {
   mounted() {
-    let cols = this.el.dataset.cols ?? 80;
+    let cols = this.el.dataset.cols ?? 100;
     let rows = this.el.dataset.rows ?? 24;
 
     let term = new Terminal({
