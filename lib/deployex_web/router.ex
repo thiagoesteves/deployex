@@ -43,6 +43,7 @@ defmodule DeployexWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [{DeployexWeb.UserAuth, :ensure_authenticated}] do
       live "/", ApplicationsLive, :index
+      live "/terminal", TerminalLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
