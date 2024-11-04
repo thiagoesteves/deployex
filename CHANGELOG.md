@@ -1,6 +1,6 @@
 # CHANGELOG (v0.3.0)
 
-## 0.3.0-rc22 ()
+## 0.3.0-rc22 (2024-11-04)
 
 ### Backwards incompatible changes for 0.3.0-rc21
  * None
@@ -14,6 +14,7 @@
 ### Enhancements
  * [[`PR-77`](https://github.com/thiagoesteves/deployex/pull/77)] Adding Erlang support
  * [[`PR-80`](https://github.com/thiagoesteves/deployex/pull/80)] Adding Erlang hot upgrade support
+ * [[`PR-82`](https://github.com/thiagoesteves/deployex/pull/82)] Adding host Terminal (tmux) via Liveview
 
 
 ## 0.3.0-rc21 (2024-10-23)
