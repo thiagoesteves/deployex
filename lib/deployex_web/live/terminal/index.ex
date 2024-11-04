@@ -43,13 +43,14 @@ defmodule DeployexWeb.TerminalLive do
     id = Common.random_number(1_000, 10_000)
 
     tmux_config_path = "#{:code.priv_dir(:deployex)}/static/.tmux.conf"
+    session_name = "DeployEx-#{id}"
 
     cmd = """
-    tmux kill-session -t deployex
+    tmux kill-session -t #{session_name}
     stty cols #{@terminal_cols} rows #{@terminal_rows}
-    tmux new-session -s deployex -d
-    tmux source-file #{tmux_config_path} -t deployex
-    tmux attach -t deployex
+    tmux new-session -s #{session_name} -d
+    tmux source-file #{tmux_config_path} -t #{session_name}
+    tmux attach -t #{session_name}
     """
 
     {:ok, _pid} =
