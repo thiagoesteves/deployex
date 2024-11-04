@@ -42,9 +42,10 @@ Upon deployment, the following dashboard becomes available, offering access to l
  * Allows setting a previously configured version in the UI, enabling DeployEx to enforce deployment of a specific version.
  * Supports individual application restarts via the UI, including DeployEx itself.
  * Allows access to current log files (stdout and stderr) for both monitored apps and DeployEx.
- * Provides access to the shell:
+ * Provides easy access to the application shell:
    - IEx shell for monitored Elixir apps and DeployEx.
    - Erlang shell for monitored Gleam/Erlang apps.
+ * Provides easy access to the host shell (tmux).
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:
    - OTP connectivity
@@ -59,9 +60,7 @@ Upon deployment, the following dashboard becomes available, offering access to l
 
 ## ⚠️ Next steps
 
-### What is missing for the Release Version: 0.3.0
-
-- [ ] 🚧 Add Host Terminal.
+### Release Version: 0.3.0 is coming soon!!!
 
 ### What is coming for the Release Version: 0.4.0
 
