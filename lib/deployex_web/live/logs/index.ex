@@ -35,23 +35,21 @@ defmodule DeployexWeb.LogsLive do
       />
 
       <div class="p-2">
-        <div class="bg-white w-full shadow-lg rounded  overflow-y-auto">
-          <div id="terminal-live-logs" class="block overflow-x-auto max-h-[600px]">
-            <.table_logs id="terminal-live-logs-table" rows={@streams.logs}>
-              <:col :let={{_id, log}} label="SERVICE">
-                <div class="flex">
-                  <div class={["w-[10px]  rounded ml-1 mr-1", log.color]}></div>
-                  <span><%= log.service %></span>
-                </div>
-              </:col>
-              <:col :let={{_id, log}} label="TYPE">
-                <%= log.log %>
-              </:col>
-              <:col :let={{_id, log}} label="CONTENT">
-                <%= log.msg %>
-              </:col>
-            </.table_logs>
-          </div>
+        <div class="bg-white w-full shadow-lg rounded">
+          <.table_logs id="terminal-live-logs-table" rows={@streams.logs}>
+            <:col :let={{_id, log}} label="SERVICE">
+              <div class="flex">
+                <div class={["w-[5px]  rounded ml-1 mr-1", log.color]}></div>
+                <span><%= log.service %></span>
+              </div>
+            </:col>
+            <:col :let={{_id, log}} label="TYPE">
+              <%= log.log %>
+            </:col>
+            <:col :let={{_id, log}} label="CONTENT">
+              <%= log.msg %>
+            </:col>
+          </.table_logs>
         </div>
       </div>
     </div>
@@ -110,7 +108,10 @@ defmodule DeployexWeb.LogsLive do
 
         acc
         |> stream(data_key, [], reset: true)
-        |> update_log_transient(data_key, %{"transition" => false, "terminal_server" => nil})
+        |> update_log_transient(data_key, %{
+          "transition" => false,
+          "terminal_server" => nil
+        })
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -135,7 +136,10 @@ defmodule DeployexWeb.LogsLive do
 
         acc
         |> stream(data_key, [], reset: true)
-        |> update_log_transient(data_key, %{"transition" => false, "terminal_server" => nil})
+        |> update_log_transient(data_key, %{
+          "transition" => false,
+          "terminal_server" => nil
+        })
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -159,7 +163,7 @@ defmodule DeployexWeb.LogsLive do
         path = log_path(app.instance, log_key)
 
         if File.exists?(path) do
-          commands = "tail -f -n 10 #{path}"
+          commands = "tail -f -n 0 #{path}"
           options = [:stdout]
 
           {:ok, _pid} =
@@ -175,7 +179,9 @@ defmodule DeployexWeb.LogsLive do
         data_key = data_key(service_key, log_key)
 
         acc
-        |> update_log_transient(data_key, %{"transition" => false})
+        |> update_log_transient(data_key, %{
+          "transition" => false
+        })
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -198,7 +204,7 @@ defmodule DeployexWeb.LogsLive do
         path = log_path(app.instance, log_key)
 
         if File.exists?(path) do
-          commands = "tail -f -n 10 #{path}"
+          commands = "tail -f -n 0 #{path}"
           options = [:stdout]
 
           {:ok, _pid} =
@@ -214,7 +220,9 @@ defmodule DeployexWeb.LogsLive do
         data_key = data_key(service_key, log_key)
 
         acc
-        |> update_log_transient(data_key, %{"transition" => false})
+        |> update_log_transient(data_key, %{
+          "transition" => false
+        })
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -260,16 +268,12 @@ defmodule DeployexWeb.LogsLive do
         message
         |> String.split(["\n", "\r"], trim: true)
         |> Enum.map(fn element ->
-          # color =
-          #   case String.split(element, ["[", "]"], trim: true) do
-          #     [_time, log_level, _] -> log_color(log_level)
-          #     _ -> log_color("debug")
-          #   end
+          color = log_color(element, log_key)
 
           %{
             id: Deployex.Common.uuid4(),
             msg: element,
-            color: "bg-blue-300",
+            color: color,
             service: service_key,
             log: log_key
           }
@@ -360,5 +364,29 @@ defmodule DeployexWeb.LogsLive do
   defp log_path(instance, "stderr") do
     instance
     |> Deployex.Storage.stderr_path()
+  end
+
+  def log_color(_message, "stderr"), do: "bg-red-500"
+
+  def log_color(message, _log_type) do
+    cond do
+      String.contains?(message, ["debug", "DEBUG"]) ->
+        "bg-gray-300"
+
+      String.contains?(message, ["info", "INFO"]) ->
+        "bg-blue-300"
+
+      String.contains?(message, ["warning", "WARNING"]) ->
+        "bg-yellow-400"
+
+      String.contains?(message, ["error", "ERROR", "SIGTERM"]) ->
+        "bg-red-500"
+
+      String.contains?(message, ["notice", "NOTICE"]) ->
+        "bg-orange-300"
+
+      true ->
+        "bg-gray-300"
+    end
   end
 end
