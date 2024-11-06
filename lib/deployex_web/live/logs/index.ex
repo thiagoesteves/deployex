@@ -37,9 +37,9 @@ defmodule DeployexWeb.LogsLive do
           <%= for service <- @node_info.selected_services_keys do %>
             <%= for log <- @node_info.selected_logs_keys do %>
               <% app = Enum.find(@node_info.node, &(&1.service == service)) %>
-              <%!-- <%= if  metric in app.logs_keys do %>
-                <% _data_key = data_key(service, metric) %>
-              <% end %> --%>
+              <%= if  log in app.logs_keys do %>
+                <% IO.inspect(app) %>
+              <% end %>
             <% end %>
           <% end %>
         </div>
@@ -144,6 +144,19 @@ defmodule DeployexWeb.LogsLive do
       Enum.reduce(node_info.selected_logs_keys, socket, fn log_key, acc ->
         # Collector.subscribe_for_updates(service_key, log_key)
 
+        # if File.exists?(path) do
+        #   commands = "tail -f -n 10 #{path}"
+        #   options = [:stdout]
+
+        #   {:ok, _pid} =
+        #     Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+        #       instance: id,
+        #       commands: commands,
+        #       options: options,
+        #       target: self(),
+        #       type: action
+        #     })
+
         data_key = data_key(service_key, log_key)
 
         acc
@@ -234,17 +247,9 @@ defmodule DeployexWeb.LogsLive do
   end
 
   defp node_info_new do
-    {:ok, hostname} = :inet.gethostname()
-    app_name = Status.monitored_app_name()
-
     %{
-      services_keys: [
-        :"deployex@#{hostname}",
-        :"#{app_name}-1@#{hostname}",
-        :"#{app_name}-2@#{hostname}",
-        :"#{app_name}-3@#{hostname}"
-      ],
-      logs_keys: [:stdout, :stderr],
+      services_keys: [],
+      logs_keys: [],
       selected_services_keys: [],
       selected_logs_keys: [],
       node: []
@@ -254,10 +259,59 @@ defmodule DeployexWeb.LogsLive do
   defp update_node_info, do: update_node_info([], [])
 
   defp update_node_info(selected_services_keys, selected_logs_keys) do
-    %{
-      node_info_new()
-      | selected_services_keys: selected_services_keys,
-        selected_logs_keys: selected_logs_keys
-    }
+    initial_map =
+      %{
+        node_info_new()
+        | selected_services_keys: selected_services_keys,
+          selected_logs_keys: selected_logs_keys
+      }
+
+    {:ok, hostname} = :inet.gethostname()
+    app_name = Status.monitored_app_name()
+
+    Deployex.Storage.replicas_list()
+    |> Enum.reduce(initial_map, fn instance,
+                                   %{
+                                     services_keys: services_keys,
+                                     logs_keys: logs_keys,
+                                     node: node
+                                   } = acc ->
+      name = "#{app_name}-#{instance}"
+      service = "#{name}@#{hostname}"
+
+      instance_logs_keys = ["stdout", "stderr"]
+      logs_keys = (logs_keys ++ instance_logs_keys) |> Enum.uniq()
+      services_keys = services_keys ++ [service]
+
+      node =
+        if service in selected_services_keys do
+          [
+            %{
+              name: name,
+              instance: instance,
+              logs_keys: instance_logs_keys,
+              service: service
+            }
+            | node
+          ]
+        else
+          node
+        end
+
+      %{acc | services_keys: services_keys, logs_keys: logs_keys, node: node}
+    end)
+    |> IO.inspect()
+  end
+
+  defp log_path(instance, :stdout) do
+    instance
+    |> String.to_integer()
+    |> Deployex.Storage.stdout_path()
+  end
+
+  defp log_path(instance, :stderr) do
+    instance
+    |> String.to_integer()
+    |> Deployex.Storage.stderr_path()
   end
 end
