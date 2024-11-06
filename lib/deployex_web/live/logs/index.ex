@@ -3,6 +3,8 @@ defmodule DeployexWeb.LogsLive do
 
   alias Deployex.Status
   alias DeployexWeb.Components.MultiSearch
+  alias Deployex.Terminal.Server, as: TerminalServer
+  alias Deployex.Terminal.Supervisor, as: TerminalSup
 
   @impl true
   def render(assigns) do
@@ -38,7 +40,7 @@ defmodule DeployexWeb.LogsLive do
             <%= for log <- @node_info.selected_logs_keys do %>
               <% app = Enum.find(@node_info.node, &(&1.service == service)) %>
               <%= if  log in app.logs_keys do %>
-                <% IO.inspect(app) %>
+                <%!-- <% IO.inspect(app) %> --%>
               <% end %>
             <% end %>
           <% end %>
@@ -92,13 +94,13 @@ defmodule DeployexWeb.LogsLive do
 
     socket =
       Enum.reduce(node_info.selected_logs_keys, socket, fn log_key, acc ->
-        # Collector.unsubscribe_for_updates(service_key, log_key)
-
         data_key = data_key(service_key, log_key)
+        %{"terminal_server" => terminal_server} = log_transient(socket, data_key)
+        TerminalServer.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
-        |> assign_log_transient(data_key, %{"transition" => false})
+        |> assign_log_transient(data_key, %{"transition" => false, "terminal_server" => nil, "terminal_process" => nil})
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -117,13 +119,13 @@ defmodule DeployexWeb.LogsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        # Collector.unsubscribe_for_updates(service_key, log_key)
-
         data_key = data_key(service_key, log_key)
+        %{"terminal_server" => terminal_server} = log_transient(socket, data_key)
+        TerminalServer.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
-        |> assign_log_transient(data_key, %{"transition" => false})
+        |> assign_log_transient(data_key, %{"transition" => false, "terminal_server" => nil, "terminal_process" => nil})
       end)
 
     {:noreply, assign(socket, :node_info, node_info)}
@@ -142,20 +144,23 @@ defmodule DeployexWeb.LogsLive do
 
     socket =
       Enum.reduce(node_info.selected_logs_keys, socket, fn log_key, acc ->
-        # Collector.subscribe_for_updates(service_key, log_key)
+        app = Enum.find(node_info.node, &(&1.service == service_key))
 
-        # if File.exists?(path) do
-        #   commands = "tail -f -n 10 #{path}"
-        #   options = [:stdout]
+        path = log_path(app.instance, log_key)
 
-        #   {:ok, _pid} =
-        #     Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-        #       instance: id,
-        #       commands: commands,
-        #       options: options,
-        #       target: self(),
-        #       type: action
-        #     })
+        if File.exists?(path) do
+          commands = "tail -f -n 10 #{path}"
+          options = [:stdout]
+
+          {:ok, _pid} =
+            TerminalSup.new(%TerminalServer{
+              instance: app.instance,
+              commands: commands,
+              options: options,
+              target: self(),
+              type: %{service: service_key, log_key: log_key}
+            })
+        end
 
         data_key = data_key(service_key, log_key)
 
@@ -184,7 +189,22 @@ defmodule DeployexWeb.LogsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        # Collector.subscribe_for_updates(service_key, log_key)
+        app = Enum.find(node_info.node, &(&1.service == service_key))
+        path = log_path(app.instance, log_key)
+
+        if File.exists?(path) do
+          commands = "tail -f -n 10 #{path}"
+          options = [:stdout]
+
+          {:ok, _pid} =
+            TerminalSup.new(%TerminalServer{
+              instance: app.instance,
+              commands: commands,
+              options: options,
+              target: self(),
+              type: %{service: service_key, log_key: log_key}
+            })
+        end
 
         data_key = data_key(service_key, log_key)
 
@@ -207,28 +227,39 @@ defmodule DeployexWeb.LogsLive do
   end
 
   @impl true
-  def handle_info({:metrics_new_data, service, key, data}, socket) do
-    data_key = data_key(service, key)
-
-    {:noreply,
-     socket
-     |> stream_insert(data_key, data, at: 0)
-     |> assign_log_transient(data_key, %{"transition" => true})}
+  def handle_info({:terminal_update, %{type: _type, status: :closed}}, socket) do
+    {:noreply, socket}
   end
 
   def handle_info(
-        {:metrics_new_keys, _service, _new_keys},
-        %{assigns: %{node_info: node_info}} = socket
+        {:terminal_update,
+         %{
+           type: %{service: service_key, log_key: log_key},
+           process: process,
+           myself: pid,
+           message: ""
+         }},
+        socket
       ) do
-    node_info =
-      update_node_info(
-        node_info.selected_services_keys,
-        node_info.selected_logs_keys
-      )
+    data_key = data_key(service_key, log_key)
 
     {:noreply,
-     socket
-     |> assign(:node_info, node_info)}
+     assign_log_transient(socket, data_key, %{
+       "terminal_process" => process,
+       "terminal_server" => pid
+     })}
+  end
+
+  def handle_info(
+        {:terminal_update,
+         %{type: %{service: service_key, log_key: log_key}, process: process, message: message}},
+        socket
+      ) do
+    data_key = data_key(service_key, log_key)
+
+    IO.inspect(message)
+
+    {:noreply, socket}
   end
 
   defp data_key(service, log), do: "#{service}::#{log}"
@@ -244,6 +275,10 @@ defmodule DeployexWeb.LogsLive do
       |> Map.merge(attributes)
 
     assign(socket, :log_transient, Map.put(log_transient, data_key, updated_data))
+  end
+
+  defp log_transient(%{assigns: %{log_transient: log_transient}}, data_key) do
+    Map.get(log_transient, data_key)
   end
 
   defp node_info_new do
@@ -300,18 +335,15 @@ defmodule DeployexWeb.LogsLive do
 
       %{acc | services_keys: services_keys, logs_keys: logs_keys, node: node}
     end)
-    |> IO.inspect()
   end
 
-  defp log_path(instance, :stdout) do
+  defp log_path(instance, "stdout") do
     instance
-    |> String.to_integer()
     |> Deployex.Storage.stdout_path()
   end
 
-  defp log_path(instance, :stderr) do
+  defp log_path(instance, "stderr") do
     instance
-    |> String.to_integer()
     |> Deployex.Storage.stderr_path()
   end
 end
