@@ -8,7 +8,7 @@ defmodule Deployex.TerminalTest do
 
   alias Deployex.Fixture.Storage
   alias Deployex.Fixture.Terminal, as: FixtureTerminal
-  alias Deployex.Terminal.Supervisor, as: TerminalSup
+  alias Deployex.Terminal
 
   setup do
     Storage.cleanup()
@@ -32,15 +32,15 @@ defmodule Deployex.TerminalTest do
         :ok
       end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: options,
         target: test_pid_process,
-        type: "test"
+        metadata: "test"
       }
 
-      assert {:ok, _pid} = TerminalSup.new(state)
+      assert {:ok, _pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
 
@@ -66,15 +66,15 @@ defmodule Deployex.TerminalTest do
         :ok
       end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: [],
         target: test_pid_process,
-        type: "test"
+        metadata: "test"
       }
 
-      assert {:ok, _pid} = TerminalSup.new(state)
+      assert {:ok, _pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
 
@@ -102,16 +102,16 @@ defmodule Deployex.TerminalTest do
         :ok
       end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: options,
         target: test_pid_process,
-        type: "test",
+        metadata: "test",
         timeout_session: 1
       }
 
-      assert {:ok, _pid} = TerminalSup.new(state)
+      assert {:ok, _pid} = Terminal.new(state)
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end
@@ -136,15 +136,15 @@ defmodule Deployex.TerminalTest do
         :ok
       end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: [],
         target: test_pid_process,
-        type: "test"
+        metadata: "test"
       }
 
-      assert {:ok, pid} = TerminalSup.new(state)
+      assert {:ok, pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
 
@@ -184,15 +184,15 @@ defmodule Deployex.TerminalTest do
         :ok
       end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: [],
         target: test_pid_process,
-        type: "test"
+        metadata: "test"
       }
 
-      assert {:ok, pid} = TerminalSup.new(state)
+      assert {:ok, pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
 
@@ -215,15 +215,15 @@ defmodule Deployex.TerminalTest do
       end)
       |> expect(:stop, 0, fn ^os_pid -> :ok end)
 
-      state = %Deployex.Terminal.Server{
+      state = %Terminal{
         instance: instance,
         commands: commands,
         options: [],
         target: test_pid_process,
-        type: "test"
+        metadata: "test"
       }
 
-      assert {:ok, pid} = TerminalSup.new(state)
+      assert {:ok, pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
 

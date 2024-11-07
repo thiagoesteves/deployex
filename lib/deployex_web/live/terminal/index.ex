@@ -9,7 +9,7 @@ defmodule DeployexWeb.TerminalLive do
 
   alias Deployex.Common
   alias Deployex.OpSys
-  alias Deployex.Terminal.Server
+  alias Deployex.Terminal
 
   @terminal_cols 120
   @terminal_rows 35
@@ -54,12 +54,12 @@ defmodule DeployexWeb.TerminalLive do
     """
 
     {:ok, _pid} =
-      Deployex.Terminal.Supervisor.new(%Server{
+      Terminal.new(%Terminal{
         instance: id,
         commands: cmd,
         options: [:stdin, :stdout, :pty, :pty_echo],
         target: self(),
-        type: :shell_terminal,
+        metadata: :shell_terminal,
         timeout_session: @shell_timeout
       })
 
@@ -90,19 +90,19 @@ defmodule DeployexWeb.TerminalLive do
   end
 
   @impl true
-  def handle_info({:terminal_update, %{type: :shell_terminal, status: :closed}}, socket) do
+  def handle_info({:terminal_update, %{metadata: :shell_terminal, status: :closed}}, socket) do
     {:noreply, push_navigate(socket, to: ~p"/applications")}
   end
 
   def handle_info(
-        {:terminal_update, %{type: :shell_terminal, process: process, message: ""}},
+        {:terminal_update, %{metadata: :shell_terminal, process: process, message: ""}},
         %{assigns: %{terminal_process: nil}} = socket
       ) do
     {:noreply, assign(socket, :terminal_process, process)}
   end
 
   def handle_info(
-        {:terminal_update, %{type: :shell_terminal, process: process, message: message}},
+        {:terminal_update, %{metadata: :shell_terminal, process: process, message: message}},
         %{assigns: %{terminal_process: terminal_process}} = socket
       )
       when terminal_process == process do

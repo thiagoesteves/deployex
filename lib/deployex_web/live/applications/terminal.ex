@@ -11,6 +11,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   alias Deployex.Common
   alias Deployex.OpSys
+  alias Deployex.Terminal
 
   require Logger
 
@@ -150,12 +151,12 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       options = [:stdin, :stdout, :pty, :pty_echo]
 
       {:ok, _pid} =
-        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
-          instance: instance,
+        Terminal.new(%Terminal{
+          instance: String.to_integer(instance),
           commands: commands,
           options: options,
           target: self(),
-          type: :iex_terminal
+          metadata: :iex_terminal
         })
 
       socket
