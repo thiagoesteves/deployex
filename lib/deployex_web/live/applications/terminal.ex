@@ -152,7 +152,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
       {:ok, _pid} =
         Terminal.new(%Terminal{
-          instance: instance,
+          instance: String.to_integer(instance),
           commands: commands,
           options: options,
           target: self(),

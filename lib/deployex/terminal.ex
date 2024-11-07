@@ -6,13 +6,13 @@ defmodule Deployex.Terminal do
   @type t :: %__MODULE__{
           commands: String.t(),
           metadata: any(),
-          myself: nil | pid(),
-          process: pid(),
+          myself: pid() | nil,
+          process: pid() | nil,
           msg_sequence: integer(),
-          target: pid(),
-          instance: String.t(),
+          target: pid() | nil,
+          instance: non_neg_integer(),
           status: :open | :closed,
-          message: String.t(),
+          message: String.t() | nil,
           options: list(),
           timeout_session: nil | integer() | :infinity
         }
@@ -22,7 +22,7 @@ defmodule Deployex.Terminal do
             myself: nil,
             process: nil,
             msg_sequence: 0,
-            instance: "",
+            instance: 0,
             target: nil,
             status: :open,
             message: nil,

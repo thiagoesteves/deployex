@@ -13,6 +13,7 @@
 
 ### Enhancements
  * [[`PR-83`](https://github.com/thiagoesteves/deployex/pull/83)] Adding Live logs tab
+ * [[`PR-84`](https://github.com/thiagoesteves/deployex/pull/84)] Refactoring Terminal Server
 
 ## 0.3.0-rc22 (2024-11-04)
 

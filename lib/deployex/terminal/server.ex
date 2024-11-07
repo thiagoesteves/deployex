@@ -11,12 +11,12 @@ defmodule Deployex.Terminal.Server do
     """
     @type t :: %__MODULE__{
             metadata: any(),
-            myself: nil | pid(),
-            process: pid(),
+            myself: pid() | nil,
+            process: pid() | nil,
             msg_sequence: integer(),
-            instance: String.t(),
+            instance: non_neg_integer(),
             status: :open | :closed,
-            message: String.t()
+            message: String.t() | nil
           }
 
     @derive Jason.Encoder
