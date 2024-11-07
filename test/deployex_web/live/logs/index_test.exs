@@ -471,49 +471,4 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     assert_receive {:handle_terminate_event, ^ref}, 1_000
   end
-
-  # test "Send Character to Terminal Index Liveview from erlexec", %{conn: conn} do
-  #   ref = make_ref()
-  #   test_pid_process = self()
-  #   os_pid = 123_456
-  #   message = "Sending from Host Terminal"
-
-  #   Deployex.OpSysMock
-  #   |> expect(:run, fn _command, _options ->
-  #     send(self(), {:stdout, os_pid, message})
-  #     Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-
-  #     {:ok, test_pid_process, os_pid}
-  #   end)
-  #   |> expect(:stop, fn ^os_pid -> :ok end)
-
-  #   {:ok, _index_live, _html} = live(conn, ~p"/terminal")
-
-  #   FixtureTerminal.terminate_all()
-
-  #   assert_receive {:handle_ref_event, ^ref}, 1_000
-  # end
-
-  # test "Terminal server timed out", %{conn: conn} do
-  #   ref = make_ref()
-  #   test_pid_process = self()
-  #   os_pid = 123_456
-
-  #   Deployex.OpSysMock
-  #   |> expect(:run, fn _command, _options ->
-  #     {:ok, test_pid_process, os_pid}
-  #   end)
-  #   |> expect(:stop, fn ^os_pid ->
-  #     Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-  #     :ok
-  #   end)
-
-  #   {:ok, _index_live, _html} = live(conn, ~p"/terminal")
-
-  #   assert [pid] = FixtureTerminal.list_children()
-
-  #   send(pid, :session_timeout)
-
-  #   assert_receive {:handle_ref_event, ^ref}, 1_000
-  # end
 end
