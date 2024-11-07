@@ -54,6 +54,19 @@ defmodule Deployex.Storage do
   def replicas_list, do: default().replicas_list()
 
   @doc """
+  This function return a list with all replicas that needs to be
+  monitored, including deployex
+
+  ## Examples
+
+    iex> alias Deployex.Storage
+    ...> assert Storage.instance_list == [0, 1, 2, 3]
+  """
+  @impl true
+  @spec instance_list() :: list()
+  def instance_list, do: default().instance_list()
+
+  @doc """
   Return the app name that will be monitored
 
   ## Examples
@@ -125,7 +138,7 @@ defmodule Deployex.Storage do
   ## Examples
 
     iex> alias Deployex.Storage
-    ...> assert Storage.sname(0) == "testapp-0"
+    ...> assert Storage.sname(0) == "deployex"
     ...> assert Storage.sname(1) == "testapp-1"
     ...> assert Storage.sname(2) == "testapp-2"
     ...> assert Storage.sname(3) == "testapp-3"

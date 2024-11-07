@@ -147,9 +147,9 @@ DeployEx application typically requires several environment variables to be defi
 
 | ENV NAME   |      EXAMPLE      |  SOURCE |  DEFAULT | DESCRIPTION |
 |----------|-------------|------:|------|------|
-| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws secrets | -/- | secret key used for encryption |
-| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws secrets | -/- | erlang cookie |
-| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws secrets | -/- | Hashed admin password for authentication |
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws or gcp secrets | -/- | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws or gcp secrets | -/- | erlang cookie |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws or gcp secrets | -/- | Hashed admin password for authentication |
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
 | __DEPLOYEX_MONITORED_APP_LANG__ | __elixir__, __gleam__ or __erlang__  | system ENV | -/- |  Monitored app language |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |

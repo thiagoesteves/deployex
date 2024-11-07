@@ -44,6 +44,7 @@ defmodule DeployexWeb.Router do
       on_mount: [{DeployexWeb.UserAuth, :ensure_authenticated}] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
+      live "/logs", LogsLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
