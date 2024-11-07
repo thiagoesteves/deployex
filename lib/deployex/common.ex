@@ -216,20 +216,26 @@ defmodule Deployex.Common do
 
   @doc """
   Generates a random, version 4 UUID.
-  """
-  @spec uuid4() :: binary()
-  def uuid4(), do: encode(bingenerate())
 
-  @doc """
-  Generates a random, version 4 UUID in the binary format.
+  Copied/Modified from https://github.com/elixir-ecto/ecto/blob/0746c94cc0a63c350732aa10ba661bcc0d9bd648/lib/ecto/uuid.ex#L190
+
+  ## Examples
+
+    iex> alias Deployex.Common
+    ...> assert is_binary(Common.uuid4())
+    ...> assert is_binary(Common.uuid4())
+    ...> assert is_binary(Common.uuid4())
+    ...> assert is_binary(Common.uuid4())
+    ...> assert is_binary(Common.uuid4())
   """
-  @spec bingenerate() :: binary()
-  def bingenerate() do
+  @spec uuid4 :: binary()
+  def uuid4, do: encode(bingenerate())
+
+  defp bingenerate do
     <<u0::48, _::4, u1::12, _::2, u2::62>> = :crypto.strong_rand_bytes(16)
     <<u0::48, 4::4, u1::12, 2::2, u2::62>>
   end
 
-  @spec encode(binary()) :: binary()
   defp encode(
          <<a1::4, a2::4, a3::4, a4::4, a5::4, a6::4, a7::4, a8::4, b1::4, b2::4, b3::4, b4::4,
            c1::4, c2::4, c3::4, c4::4, d1::4, d2::4, d3::4, d4::4, e1::4, e2::4, e3::4, e4::4,

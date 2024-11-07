@@ -653,7 +653,7 @@ defmodule DeployexWeb.CoreComponents do
           </tr>
         </thead>
       </table>
-      <div id={@id} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
+      <div id={"#{@id}-body"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
         <table class="w-full table-fixed">
           <tbody
             id={@id}

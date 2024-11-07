@@ -1,10 +1,9 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
-  alias Deployex.Status
-  alias DeployexWeb.Components.MultiSearch
   alias Deployex.Terminal.Server, as: TerminalServer
   alias Deployex.Terminal.Supervisor, as: TerminalSup
+  alias DeployexWeb.Components.MultiSelect
 
   @impl true
   def render(assigns) do
@@ -21,33 +20,42 @@ defmodule DeployexWeb.LogsLive do
 
     ~H"""
     <div class="min-h-screen bg-gray-500 ">
-      <MultiSearch.content
-        selected_text="Selected logs"
-        selected={[
-          %{name: "services", keys: @node_info.selected_services_keys},
-          %{name: "logs", keys: @node_info.selected_logs_keys}
-        ]}
-        unselected={[
-          %{name: "services", keys: @unselected_services_keys},
-          %{name: "logs", keys: @unselected_logs_keys}
-        ]}
-        show_options={@show_log_options}
-      />
-
+      <div class="flex">
+        <MultiSelect.content
+          id="log-multi-select"
+          selected_text="Selected logs"
+          selected={[
+            %{name: "services", keys: @node_info.selected_services_keys},
+            %{name: "logs", keys: @node_info.selected_logs_keys}
+          ]}
+          unselected={[
+            %{name: "services", keys: @unselected_services_keys},
+            %{name: "logs", keys: @unselected_logs_keys}
+          ]}
+          show_options={@show_log_options}
+        />
+        <button
+          id="log-multi-select-reset"
+          phx-click="logs-reset"
+          class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
+        >
+          RESET
+        </button>
+      </div>
       <div class="p-2">
         <div class="bg-white w-full shadow-lg rounded">
-          <.table_logs id="terminal-live-logs-table" rows={@streams.logs}>
-            <:col :let={{_id, log}} label="SERVICE">
+          <.table_logs id="terminal-live-logs-table" rows={@streams.log_messages}>
+            <:col :let={{_id, log_message}} label="SERVICE">
               <div class="flex">
-                <div class={["w-[5px]  rounded ml-1 mr-1", log.color]}></div>
-                <span><%= log.service %></span>
+                <div class={["w-[5px]  rounded ml-1 mr-1", log_message.color]}></div>
+                <span><%= log_message.service %></span>
               </div>
             </:col>
-            <:col :let={{_id, log}} label="TYPE">
-              <%= log.log %>
+            <:col :let={{_id, log_message}} label="TYPE">
+              <%= log_message.type %>
             </:col>
-            <:col :let={{_id, log}} label="CONTENT">
-              <%= log.msg %>
+            <:col :let={{_id, log_message}} label="CONTENT">
+              <%= log_message.content %>
             </:col>
           </.table_logs>
         </div>
@@ -62,9 +70,9 @@ defmodule DeployexWeb.LogsLive do
      socket
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
-     |> assign(:log_transient, %{})
+     |> assign(:current_config, %{})
      |> assign(:show_log_options, false)
-     |> stream(:logs, [])}
+     |> stream(:log_messages, [])}
   end
 
   @impl true
@@ -73,9 +81,9 @@ defmodule DeployexWeb.LogsLive do
      socket
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
-     |> assign(:log_transient, %{})
+     |> assign(:current_config, %{})
      |> assign(:show_log_options, false)
-     |> stream(:logs, [])}
+     |> stream(:log_messages, [])}
   end
 
   @impl true
@@ -92,7 +100,7 @@ defmodule DeployexWeb.LogsLive do
   def handle_event(
         "multi-select-remove-item",
         %{"item" => "services", "key" => service_key},
-        %{assigns: %{node_info: node_info, log_transient: log_transient}} = socket
+        %{assigns: %{node_info: node_info, current_config: current_config}} = socket
       ) do
     node_info =
       update_node_info(
@@ -103,12 +111,12 @@ defmodule DeployexWeb.LogsLive do
     socket =
       Enum.reduce(node_info.selected_logs_keys, socket, fn log_key, acc ->
         data_key = data_key(service_key, log_key)
-        terminal_server = log_transient[data_key]["terminal_server"]
+        terminal_server = current_config[data_key]["terminal_server"]
         TerminalServer.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
-        |> update_log_transient(data_key, %{
+        |> update_current_config(data_key, %{
           "transition" => false,
           "terminal_server" => nil
         })
@@ -120,7 +128,7 @@ defmodule DeployexWeb.LogsLive do
   def handle_event(
         "multi-select-remove-item",
         %{"item" => "logs", "key" => log_key},
-        %{assigns: %{node_info: node_info, log_transient: log_transient}} = socket
+        %{assigns: %{node_info: node_info, current_config: current_config}} = socket
       ) do
     node_info =
       update_node_info(
@@ -131,12 +139,12 @@ defmodule DeployexWeb.LogsLive do
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
         data_key = data_key(service_key, log_key)
-        terminal_server = log_transient[data_key]["terminal_server"]
+        terminal_server = current_config[data_key]["terminal_server"]
         TerminalServer.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
-        |> update_log_transient(data_key, %{
+        |> update_current_config(data_key, %{
           "transition" => false,
           "terminal_server" => nil
         })
@@ -172,14 +180,14 @@ defmodule DeployexWeb.LogsLive do
               commands: commands,
               options: options,
               target: self(),
-              type: %{service: service_key, log_key: log_key}
+              type: %{context: :terminal_index, service: service_key, type: log_key}
             })
         end
 
         data_key = data_key(service_key, log_key)
 
         acc
-        |> update_log_transient(data_key, %{
+        |> update_current_config(data_key, %{
           "transition" => false
         })
       end)
@@ -213,14 +221,14 @@ defmodule DeployexWeb.LogsLive do
               commands: commands,
               options: options,
               target: self(),
-              type: %{service: service_key, log_key: log_key}
+              type: %{context: :terminal_index, service: service_key, type: log_key}
             })
         end
 
         data_key = data_key(service_key, log_key)
 
         acc
-        |> update_log_transient(data_key, %{
+        |> update_current_config(data_key, %{
           "transition" => false
         })
       end)
@@ -234,6 +242,10 @@ defmodule DeployexWeb.LogsLive do
     {:noreply, socket |> assign(:show_log_options, show_log_options)}
   end
 
+  def handle_event("logs-reset", _value, socket) do
+    {:noreply, stream(socket, :log_messages, [], reset: true)}
+  end
+
   @impl true
   def handle_info({:terminal_update, %{type: _type, status: :closed}}, socket) do
     {:noreply, socket}
@@ -242,7 +254,7 @@ defmodule DeployexWeb.LogsLive do
   def handle_info(
         {:terminal_update,
          %{
-           type: %{service: service_key, log_key: log_key},
+           type: %{context: :terminal_index, service: service_key, type: log_key},
            myself: pid,
            message: ""
          }},
@@ -250,36 +262,38 @@ defmodule DeployexWeb.LogsLive do
       ) do
     data_key = data_key(service_key, log_key)
 
-    {:noreply, update_log_transient(socket, data_key, %{"terminal_server" => pid})}
+    {:noreply, update_current_config(socket, data_key, %{"terminal_server" => pid})}
   end
 
   def handle_info(
         {:terminal_update,
-         %{type: %{service: service_key, log_key: log_key}, myself: pid, message: message}},
-        %{assigns: %{log_transient: log_transient}} = socket
+         %{
+           type: %{context: :terminal_index, service: service_key, type: log_key},
+           myself: pid,
+           message: message
+         }},
+        %{assigns: %{current_config: current_config}} = socket
       ) do
     data_key = data_key(service_key, log_key)
-    terminal_server = log_transient[data_key]["terminal_server"]
+    terminal_server = current_config[data_key]["terminal_server"]
 
     if terminal_server == pid do
-      IO.inspect(message)
-
       messages =
         message
         |> String.split(["\n", "\r"], trim: true)
-        |> Enum.map(fn element ->
-          color = log_color(element, log_key)
+        |> Enum.map(fn content ->
+          color = log_color(content, log_key)
 
           %{
             id: Deployex.Common.uuid4(),
-            msg: element,
+            content: content,
             color: color,
             service: service_key,
-            log: log_key
+            type: log_key
           }
         end)
 
-      {:noreply, stream(socket, :logs, messages)}
+      {:noreply, stream(socket, :log_messages, messages)}
     else
       {:noreply, socket}
     end
@@ -287,23 +301,23 @@ defmodule DeployexWeb.LogsLive do
 
   defp data_key(service, log), do: "#{service}::#{log}"
 
-  defp update_log_transient(
-         %{assigns: %{log_transient: log_transient}} = socket,
+  defp update_current_config(
+         %{assigns: %{current_config: current_config}} = socket,
          data_key,
          attributes
        ) do
     updated_data =
-      log_transient
+      current_config
       |> Map.get(data_key, %{})
       |> Map.merge(attributes)
 
-    assign(socket, :log_transient, Map.put(log_transient, data_key, updated_data))
+    assign(socket, :current_config, Map.put(current_config, data_key, updated_data))
   end
 
   defp node_info_new do
     %{
       services_keys: [],
-      logs_keys: [],
+      logs_keys: ["stdout", "stderr"],
       selected_services_keys: [],
       selected_logs_keys: [],
       node: []
@@ -321,29 +335,25 @@ defmodule DeployexWeb.LogsLive do
       }
 
     {:ok, hostname} = :inet.gethostname()
-    app_name = Status.monitored_app_name()
 
-    Deployex.Storage.replicas_list()
+    Deployex.Storage.instance_list()
     |> Enum.reduce(initial_map, fn instance,
                                    %{
                                      services_keys: services_keys,
                                      logs_keys: logs_keys,
                                      node: node
                                    } = acc ->
-      name = "#{app_name}-#{instance}"
-      service = "#{name}@#{hostname}"
-
-      instance_logs_keys = ["stdout", "stderr"]
-      logs_keys = (logs_keys ++ instance_logs_keys) |> Enum.uniq()
+      sname = Deployex.Storage.sname(instance)
+      service = "#{sname}@#{hostname}"
       services_keys = services_keys ++ [service]
 
       node =
         if service in selected_services_keys do
           [
             %{
-              name: name,
+              sname: sname,
               instance: instance,
-              logs_keys: instance_logs_keys,
+              logs_keys: logs_keys,
               service: service
             }
             | node
@@ -366,9 +376,9 @@ defmodule DeployexWeb.LogsLive do
     |> Deployex.Storage.stderr_path()
   end
 
-  def log_color(_message, "stderr"), do: "bg-red-500"
+  defp log_color(_message, "stderr"), do: "bg-red-500"
 
-  def log_color(message, _log_type) do
+  defp log_color(message, _log_type) do
     cond do
       String.contains?(message, ["debug", "DEBUG"]) ->
         "bg-gray-300"

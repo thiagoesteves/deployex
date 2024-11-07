@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Components.MultiSearch do
+defmodule DeployexWeb.Components.MultiSelect do
   @moduledoc """
   Multi select box
 
@@ -10,6 +10,7 @@ defmodule DeployexWeb.Components.MultiSearch do
 
   alias Phoenix.LiveView.JS
 
+  attr :id, :string, required: true
   attr :selected_text, :string, required: true
   attr :selected, :list, required: true
   attr :unselected, :list, required: true
@@ -34,6 +35,7 @@ defmodule DeployexWeb.Components.MultiSearch do
                         <%= "#{item.name}:#{key}" %>
                       </div>
                       <button
+                        id={"#{@id}-#{item.name}-remove-item"}
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -70,6 +72,7 @@ defmodule DeployexWeb.Components.MultiSearch do
               </div>
               <div class="text-gray-300 w-8 py-1 pl-2 pr-1 border-l flex items-center border-gray-200 ">
                 <button
+                  id={"#{@id}-toggle-options"}
                   class="cursor-pointer w-6 h-6 text-gray-600 outline-none focus:outline-none"
                   phx-click="toggle-options"
                 >
@@ -111,6 +114,7 @@ defmodule DeployexWeb.Components.MultiSearch do
 
                     <%= for key <- item.keys do %>
                       <button
+                        id={"#{@id}-add-item"}
                         class="flex justify-center items-center m-1 font-medium py-1 px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                         phx-click="multi-select-add-item"
                         phx-value-key={key}

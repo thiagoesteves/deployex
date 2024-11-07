@@ -86,6 +86,9 @@ defmodule Deployex.Storage.Local do
   def replicas_list, do: Enum.to_list(1..replicas())
 
   @impl true
+  def instance_list, do: Enum.to_list(0..replicas())
+
+  @impl true
   def monitored_app_name, do: Application.fetch_env!(:deployex, :monitored_app_name)
 
   @impl true
@@ -119,6 +122,7 @@ defmodule Deployex.Storage.Local do
   end
 
   @impl true
+  def sname(@deployex_instance), do: "deployex"
   def sname(instance), do: "#{monitored_app_name()}-#{instance}"
 
   @impl true
