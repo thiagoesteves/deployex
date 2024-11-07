@@ -1,8 +1,7 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
-  alias Deployex.Terminal.Server, as: TerminalServer
-  alias Deployex.Terminal.Supervisor, as: TerminalSup
+  alias Deployex.Terminal
   alias DeployexWeb.Components.MultiSelect
 
   @impl true
@@ -112,7 +111,7 @@ defmodule DeployexWeb.LogsLive do
       Enum.reduce(node_info.selected_logs_keys, socket, fn log_key, acc ->
         data_key = data_key(service_key, log_key)
         terminal_server = current_config[data_key]["terminal_server"]
-        TerminalServer.async_terminate(terminal_server)
+        Terminal.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
@@ -140,7 +139,7 @@ defmodule DeployexWeb.LogsLive do
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
         data_key = data_key(service_key, log_key)
         terminal_server = current_config[data_key]["terminal_server"]
-        TerminalServer.async_terminate(terminal_server)
+        Terminal.async_terminate(terminal_server)
 
         acc
         |> stream(data_key, [], reset: true)
@@ -175,12 +174,12 @@ defmodule DeployexWeb.LogsLive do
           options = [:stdout]
 
           {:ok, _pid} =
-            TerminalSup.new(%TerminalServer{
+            Terminal.new(%Terminal{
               instance: app.instance,
               commands: commands,
               options: options,
               target: self(),
-              type: %{context: :terminal_index, service: service_key, type: log_key}
+              metadata: %{context: :terminal_index, service: service_key, type: log_key}
             })
         end
 
@@ -216,12 +215,12 @@ defmodule DeployexWeb.LogsLive do
           options = [:stdout]
 
           {:ok, _pid} =
-            TerminalSup.new(%TerminalServer{
+            Terminal.new(%Terminal{
               instance: app.instance,
               commands: commands,
               options: options,
               target: self(),
-              type: %{context: :terminal_index, service: service_key, type: log_key}
+              metadata: %{context: :terminal_index, service: service_key, type: log_key}
             })
         end
 
@@ -247,14 +246,14 @@ defmodule DeployexWeb.LogsLive do
   end
 
   @impl true
-  def handle_info({:terminal_update, %{type: _type, status: :closed}}, socket) do
+  def handle_info({:terminal_update, %{status: :closed}}, socket) do
     {:noreply, socket}
   end
 
   def handle_info(
         {:terminal_update,
          %{
-           type: %{context: :terminal_index, service: service_key, type: log_key},
+           metadata: %{context: :terminal_index, service: service_key, type: log_key},
            myself: pid,
            message: ""
          }},
@@ -268,7 +267,7 @@ defmodule DeployexWeb.LogsLive do
   def handle_info(
         {:terminal_update,
          %{
-           type: %{context: :terminal_index, service: service_key, type: log_key},
+           metadata: %{context: :terminal_index, service: service_key, type: log_key},
            myself: pid,
            message: message
          }},

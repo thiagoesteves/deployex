@@ -5,38 +5,12 @@ defmodule Deployex.Terminal.Server do
 
   alias Deployex.OpSys
 
-  @type t :: %__MODULE__{
-          commands: String.t(),
-          type: :iex_terminal | :logs_stdout | :logs_stderr | :shell_terminal,
-          myself: nil | pid(),
-          process: pid(),
-          msg_sequence: integer(),
-          target: pid(),
-          instance: String.t(),
-          status: :open | :closed,
-          message: String.t(),
-          options: list(),
-          timeout_session: nil | integer() | :infinity
-        }
-
-  defstruct commands: nil,
-            type: nil,
-            myself: nil,
-            process: nil,
-            msg_sequence: 0,
-            instance: "",
-            target: nil,
-            status: :open,
-            message: nil,
-            options: [],
-            timeout_session: nil
-
   defmodule Message do
     @moduledoc """
     Structure to encapsulate the message that will be sent to the target process
     """
     @type t :: %__MODULE__{
-            type: :iex_terminal | :logs_stdout | :logs_stderr | :shell_terminal,
+            metadata: any(),
             myself: nil | pid(),
             process: pid(),
             msg_sequence: integer(),
@@ -47,7 +21,7 @@ defmodule Deployex.Terminal.Server do
 
     @derive Jason.Encoder
 
-    defstruct type: nil,
+    defstruct metadata: nil,
               myself: nil,
               process: nil,
               msg_sequence: 0,
@@ -194,7 +168,7 @@ defmodule Deployex.Terminal.Server do
       state.target,
       {:terminal_update,
        %Deployex.Terminal.Server.Message{
-         type: state.type,
+         metadata: state.metadata,
          myself: state.myself,
          process: state.process,
          msg_sequence: state.msg_sequence,

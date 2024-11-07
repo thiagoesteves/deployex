@@ -3,6 +3,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
 
   require Logger
 
+  alias Deployex.Terminal
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -104,12 +106,12 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       options = [:stdout]
 
       {:ok, _pid} =
-        Deployex.Terminal.Supervisor.new(%Deployex.Terminal.Server{
+        Terminal.new(%Terminal{
           instance: id,
           commands: commands,
           options: options,
           target: self(),
-          type: action
+          metadata: action
         })
 
       socket

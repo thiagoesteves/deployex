@@ -20,7 +20,11 @@ defmodule Deployex.Terminal.Supervisor do
   ### Public APIs
   ### ==========================================================================
 
-  def new(%Server{} = args) do
+  @doc """
+  Starts a new supervised Terminal server instance
+  """
+  @spec new(Deployex.Terminal.t()) :: {:ok, pid} | {:error, pid(), :already_started}
+  def new(args) do
     spec = %{id: Server, start: {Server, :start_link, [args]}, restart: :transient}
 
     DynamicSupervisor.start_child(__MODULE__, spec)
