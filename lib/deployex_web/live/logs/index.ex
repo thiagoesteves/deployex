@@ -36,7 +36,7 @@ defmodule DeployexWeb.LogsLive do
         <button
           id="log-multi-select-reset"
           phx-click="logs-reset"
-          class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
+          class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
         >
           RESET
         </button>
