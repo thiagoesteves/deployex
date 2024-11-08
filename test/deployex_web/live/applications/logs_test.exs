@@ -106,7 +106,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     update_log_message(os_pid, message)
 
     assert render(index_live) =~ message
-    assert render(index_live) =~ "bg-blue-300"
+    assert render(index_live) =~ "#93C5FD"
 
     FixtureTerminal.terminate_all()
 
@@ -143,7 +143,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     update_log_message(os_pid, message)
 
     assert render(index_live) =~ message
-    assert render(index_live) =~ "bg-red-500"
+    assert render(index_live) =~ "#F87171"
 
     FixtureTerminal.terminate_all()
 

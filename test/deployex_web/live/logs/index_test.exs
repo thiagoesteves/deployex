@@ -223,7 +223,7 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-logs-stderr-add-item", "stderr")
+      |> element("#log-multi-select-logs-stderr-add-item")
       |> render_click()
 
       index_live
@@ -243,18 +243,18 @@ defmodule DeployexWeb.Logs.IndexTest do
   end
 
   %{
-    1 => %{type: "debug", color: "bg-gray-300"},
-    2 => %{type: "DEBUG", color: "bg-gray-300"},
-    3 => %{type: "info", color: "bg-blue-300"},
-    4 => %{type: "INFO", color: "bg-blue-300"},
-    5 => %{type: "warning", color: "bg-yellow-400"},
-    6 => %{type: "WARNING", color: "bg-yellow-400"},
-    7 => %{type: "error", color: "bg-red-500"},
-    8 => %{type: "ERROR", color: "bg-red-500"},
-    9 => %{type: "SIGTERM", color: "bg-red-500"},
-    10 => %{type: "notice", color: "bg-orange-300"},
-    11 => %{type: "NOTICE", color: "bg-orange-300"},
-    12 => %{type: "none", color: "bg-gray-300"}
+    1 => %{type: "debug", color: "#E5E5E5"},
+    2 => %{type: "DEBUG", color: "#E5E5E5"},
+    3 => %{type: "info", color: "#93C5FD"},
+    4 => %{type: "INFO", color: "#93C5FD"},
+    5 => %{type: "warning", color: "#FBBF24"},
+    6 => %{type: "WARNING", color: "#FBBF24"},
+    7 => %{type: "error", color: "#F87171"},
+    8 => %{type: "ERROR", color: "#F87171"},
+    9 => %{type: "SIGTERM", color: "#F87171"},
+    10 => %{type: "notice", color: "#FDBA74"},
+    11 => %{type: "NOTICE", color: "#FDBA74"},
+    12 => %{type: "none", color: "#E5E5E5"}
   }
   |> Enum.each(fn {element, %{type: type, color: color}} ->
     test "#{element} - Send Stdout #{type} message from erlexec server", %{conn: conn} do
@@ -358,7 +358,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
       assert_receive {:handle_sending_message, ^ref}, 1_000
 
-      assert render(index_live) =~ "bg-red-500"
+      assert render(index_live) =~ "#F87171"
 
       FixtureTerminal.terminate_all()
       assert_receive {:handle_terminate_event, ^ref}, 1_000

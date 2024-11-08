@@ -10,45 +10,48 @@ defmodule Deployex.Log do
   @doc """
   Return the expected background color for the respective message type
 
+  PS: It wasn't possible to use bg-color-[value] since the table wasn't working
+      as expected
+
   ## Examples
 
     iex> alias Deployex.Log
-    ...> assert Log.log_message_color("any", "stderr") == "bg-red-500"
-    ...> assert Log.log_message_color("debug", "stdout") == "bg-gray-300"
-    ...> assert Log.log_message_color("DEBUG", "stdout") == "bg-gray-300"
-    ...> assert Log.log_message_color("info", "stdout") == "bg-blue-300"
-    ...> assert Log.log_message_color("INFO", "stdout") == "bg-blue-300"
-    ...> assert Log.log_message_color("warning", "stdout") == "bg-yellow-400"
-    ...> assert Log.log_message_color("WARNING", "stdout") == "bg-yellow-400"
-    ...> assert Log.log_message_color("error", "stdout") == "bg-red-500"
-    ...> assert Log.log_message_color("ERROR", "stdout") == "bg-red-500"
-    ...> assert Log.log_message_color("SIGTERM", "stdout") == "bg-red-500"
-    ...> assert Log.log_message_color("notice", "stdout") == "bg-orange-300"
-    ...> assert Log.log_message_color("NOTICE", "stdout") == "bg-orange-300"
-    ...> assert Log.log_message_color("any", "stdout") == "bg-gray-300"
+    ...> assert Log.log_message_color("any", "stderr") == "#F87171"
+    ...> assert Log.log_message_color("debug", "stdout") == "#E5E5E5"
+    ...> assert Log.log_message_color("DEBUG", "stdout") == "#E5E5E5"
+    ...> assert Log.log_message_color("info", "stdout") == "#93C5FD"
+    ...> assert Log.log_message_color("INFO", "stdout") == "#93C5FD"
+    ...> assert Log.log_message_color("warning", "stdout") == "#FBBF24"
+    ...> assert Log.log_message_color("WARNING", "stdout") == "#FBBF24"
+    ...> assert Log.log_message_color("error", "stdout") == "#F87171"
+    ...> assert Log.log_message_color("ERROR", "stdout") == "#F87171"
+    ...> assert Log.log_message_color("SIGTERM", "stdout") == "#F87171"
+    ...> assert Log.log_message_color("notice", "stdout") == "#FDBA74"
+    ...> assert Log.log_message_color("NOTICE", "stdout") == "#FDBA74"
+    ...> assert Log.log_message_color("any", "stdout") == "#E5E5E5"
   """
   @spec log_message_color(String.t(), String.t()) :: String.t()
-  def log_message_color(_message, "stderr"), do: "bg-red-500"
+  def log_message_color(_message, "stderr"), do: "#F87171"
 
   def log_message_color(message, _log_type) do
     cond do
       String.contains?(message, ["debug", "DEBUG"]) ->
-        "bg-gray-300"
+        "#E5E5E5"
 
       String.contains?(message, ["info", "INFO"]) ->
-        "bg-blue-300"
+        "#93C5FD"
 
       String.contains?(message, ["warning", "WARNING"]) ->
-        "bg-yellow-400"
+        "#FBBF24"
 
       String.contains?(message, ["error", "ERROR", "SIGTERM"]) ->
-        "bg-red-500"
+        "#F87171"
 
       String.contains?(message, ["notice", "NOTICE"]) ->
-        "bg-orange-300"
+        "#FDBA74"
 
       true ->
-        "bg-gray-300"
+        "#E5E5E5"
     end
   end
 

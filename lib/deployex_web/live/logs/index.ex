@@ -47,7 +47,11 @@ defmodule DeployexWeb.LogsLive do
           <.table_logs id="live-logs" rows={@streams.log_messages}>
             <:col :let={{_id, log_message}} label="SERVICE">
               <div class="flex">
-                <span class={["w-[5px] rounded ml-1 mr-1", log_message.color]}></span>
+                <span
+                  class="w-[5px] rounded ml-1 mr-1"
+                  style={"background-color: #{log_message.color};"}
+                >
+                </span>
                 <span><%= log_message.service %></span>
               </div>
             </:col>
