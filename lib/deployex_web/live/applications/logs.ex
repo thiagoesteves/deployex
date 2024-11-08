@@ -3,6 +3,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
 
   require Logger
 
+  alias Deployex.Log
   alias Deployex.Terminal
 
   @impl true
@@ -14,18 +15,21 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
         <:subtitle><%= @subtitle %></:subtitle>
       </.header>
 
-      <div
-        id={"#{@action}-logs-#{@id}"}
-        class="bg-gray-50 max-h-50 overflow-y-auto scroll-auto w-full mt-5"
-        style="height: 50vh;"
-        phx-update="stream"
-        phx-hook="ScrollBottom"
-      >
-        <%= for {dom_id, log} <- @streams.logs do %>
-          <p id={dom_id} class={["text-xs font-light", log.color]}>
-            <%= log.msg %>
-          </p>
-        <% end %>
+      <div id={"#{@action}-logs-#{@id}"} class="bg-gray-50 w-full mt-5">
+        <div class="hidden only:block">
+          <span> Connecting ...</span>
+        </div>
+
+        <div class="bg-white w-full shadow-lg rounded">
+          <.table_logs id="terminal-live-logs-table" rows={@streams.log_messages}>
+            <:col :let={{_id, log_message}} label="CONTENT">
+              <div class="flex">
+                <div class={["w-[5px]  rounded ml-1 mr-1", log_message.color]}></div>
+                <span><%= log_message.content %></span>
+              </div>
+            </:col>
+          </.table_logs>
+        </div>
       </div>
     </div>
     """
@@ -37,7 +41,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       socket
       |> assign(:subtitle, "")
       |> assign(:log_counter, 0)
-      |> stream(:logs, [])
+      |> stream(:log_messages, [])
 
     {:ok, socket}
   end
@@ -62,30 +66,33 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   end
 
   defp handle_log_update(
-         %{assigns: %{terminal_message: %{message: message}, log_counter: log_counter}} = socket
+         %{
+           assigns: %{
+             terminal_message: %{message: message, metadata: metadata},
+             log_counter: log_counter
+           }
+         } = socket
        ) do
     messages =
       message
       |> String.split(["\n", "\r"], trim: true)
-      |> Enum.with_index(fn element, index ->
-        color =
-          case String.split(element, ["[", "]"], trim: true) do
-            [_time, log_level, _] -> log_color(log_level)
-            _ -> log_color("debug")
+      |> Enum.with_index(fn content, index ->
+        log_key =
+          case metadata do
+            :logs_stdout -> "stdout"
+            :logs_stderr -> "stderr"
           end
 
-        %{id: log_counter + index, msg: element, color: color}
+        color = Log.log_message_color(content, log_key)
+
+        %{id: log_counter + index, content: content, color: color}
       end)
 
     update_log_counter = log_counter + length(messages)
 
     socket
     |> assign(:log_counter, update_log_counter)
-    |> stream(:logs, messages)
-  end
-
-  defp handle_log_update(socket) do
-    socket
+    |> stream(:log_messages, messages)
   end
 
   defp log_path(instance, :logs_stdout) do
@@ -121,11 +128,4 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       |> assign(:subtitle, "File not found")
     end
   end
-
-  defp log_color("debug"), do: "text-gray-700"
-  defp log_color("info"), do: "text-blue-500"
-  defp log_color("warning"), do: "text-yellow-700"
-  defp log_color("error"), do: "text-red-700"
-  defp log_color("notice"), do: "text-orange-700"
-  defp log_color(_), do: "text-gray-700"
 end

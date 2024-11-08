@@ -1,6 +1,7 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
+  alias Deployex.Log
   alias Deployex.Terminal
   alias DeployexWeb.Components.MultiSelect
 
@@ -281,7 +282,7 @@ defmodule DeployexWeb.LogsLive do
         message
         |> String.split(["\n", "\r"], trim: true)
         |> Enum.map(fn content ->
-          color = log_color(content, log_key)
+          color = Log.log_message_color(content, log_key)
 
           %{
             id: Deployex.Common.uuid4(),
@@ -373,29 +374,5 @@ defmodule DeployexWeb.LogsLive do
   defp log_path(instance, "stderr") do
     instance
     |> Deployex.Storage.stderr_path()
-  end
-
-  defp log_color(_message, "stderr"), do: "bg-red-500"
-
-  defp log_color(message, _log_type) do
-    cond do
-      String.contains?(message, ["debug", "DEBUG"]) ->
-        "bg-gray-300"
-
-      String.contains?(message, ["info", "INFO"]) ->
-        "bg-blue-300"
-
-      String.contains?(message, ["warning", "WARNING"]) ->
-        "bg-yellow-400"
-
-      String.contains?(message, ["error", "ERROR", "SIGTERM"]) ->
-        "bg-red-500"
-
-      String.contains?(message, ["notice", "NOTICE"]) ->
-        "bg-orange-300"
-
-      true ->
-        "bg-gray-300"
-    end
   end
 end

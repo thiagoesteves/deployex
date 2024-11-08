@@ -167,5 +167,9 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     end
   end
 
-  defp maybe_connect(socket), do: assign(socket, :cookie, :nocookie)
+  defp maybe_connect(socket) do
+    socket
+    |> assign(:cookie, :nocookie)
+    |> assign(:bin_path, "Cookie not set")
+  end
 end

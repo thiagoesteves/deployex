@@ -128,7 +128,7 @@ defmodule Deployex.StatusAppTest do
     assert %{instance: 2} = Enum.at(version_list, 3)
   end
 
-  test "update monitoring apps" do
+  test "update monitoring apps with Idle State" do
     Deployex.MonitorMock
     |> expect(:state, 3, fn instance ->
       %Deployex.Monitor{
@@ -167,6 +167,147 @@ defmodule Deployex.StatusAppTest do
              monitoring,
              &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
                  &1.version == "1.0.3" and &1.status == :idle)
+           )
+  end
+
+  test "update monitoring apps with running state and otp not connected" do
+    Deployex.MonitorMock
+    |> expect(:state, 3, fn instance ->
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :running,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
+    end)
+
+    Deployex.UpgradeMock
+    |> stub(:connect, fn _instance -> {:error, :not_connecting} end)
+
+    # No info, update needed
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+                 &1.version == "1.0.1" and &1.status == :running and &1.otp == :not_connected)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+                 &1.version == "1.0.2" and &1.status == :running and &1.otp == :not_connected)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+                 &1.version == "1.0.3" and &1.status == :running and &1.otp == :not_connected)
+           )
+  end
+
+  test "update monitoring apps with running state and otp connected" do
+    Deployex.MonitorMock
+    |> expect(:state, 3, fn instance ->
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :running,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
+    end)
+
+    Deployex.UpgradeMock
+    |> stub(:connect, fn _instance -> {:ok, :connected} end)
+
+    # No info, update needed
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+                 &1.version == "1.0.1" and &1.status == :running and &1.otp == :connected)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+                 &1.version == "1.0.2" and &1.status == :running and &1.otp == :connected)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+                 &1.version == "1.0.3" and &1.status == :running and &1.otp == :connected)
+           )
+  end
+
+  test "update monitoring apps with running state and with ghosted version list" do
+    Deployex.MonitorMock
+    |> expect(:state, 3, fn instance ->
+      %Deployex.Monitor{
+        current_pid: nil,
+        instance: instance,
+        status: :running,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil,
+        deploy_ref: :init
+      }
+    end)
+
+    Deployex.UpgradeMock
+    |> stub(:connect, fn _instance -> {:ok, :connected} end)
+
+    ghosted_version = "1.1.1"
+    version_map = StatusApp.current_version_map(1)
+    # Add ghosted version
+    assert {:ok, _} = StatusApp.add_ghosted_version(%{version_map | version: ghosted_version})
+
+    # No info, update needed
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "deployex" and &1.supervisor and &1.status == :running and
+                 &1.last_ghosted_version == ghosted_version)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+                 &1.version == "1.0.1" and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+                 &1.version == "1.0.2" and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+                 &1.version == "1.0.3" and &1.status == :running)
            )
   end
 
