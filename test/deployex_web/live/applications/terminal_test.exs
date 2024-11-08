@@ -4,6 +4,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   import Phoenix.LiveViewTest
   import ExUnit.CaptureLog
   import Mox
+  import Mock
 
   setup [
     :set_mox_global,
@@ -241,5 +242,23 @@ defmodule DeployexWeb.Applications.TerminalTest do
     socket = %{assigns: %{terminal_process: nil}}
 
     assert {:noreply, ^socket} = Terminal.handle_event("key", :any, socket)
+  end
+
+  test "Error when :nocookie is set", %{conn: conn} do
+    Deployex.StatusMock
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
+    Binary.create_bin_files(1)
+
+    with_mock Deployex.Common, cookie: fn -> :nocookie end do
+      {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+      assert index_live |> element("#app-terminal-1") |> render_click() =~
+               "Bin: Cookie not set"
+    end
   end
 end

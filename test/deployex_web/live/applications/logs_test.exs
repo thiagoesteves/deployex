@@ -76,7 +76,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Redirect received string to JS", %{conn: conn} do
+  test "Redirect received string to JS [stdout]", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
@@ -106,43 +106,44 @@ defmodule DeployexWeb.Applications.LogsTest do
     update_log_message(os_pid, message)
 
     assert render(index_live) =~ message
-    assert render(index_live) =~ "text-blue-500"
+    assert render(index_live) =~ "bg-blue-300"
 
-    message = "[debug] my-debug-message"
+    FixtureTerminal.terminate_all()
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+  end
+
+  test "Redirect received string to JS [stderr]", %{conn: conn} do
+    ref = make_ref()
+    test_pid_process = self()
+    os_pid = 123_456
+
+    Deployex.StatusMock
+    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:monitored_app_name, fn -> "testapp" end)
+    |> stub(:monitored_app_lang, fn -> "elixir" end)
+    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+
+    Deployex.OpSysMock
+    |> expect(:run, fn _command, _options ->
+      {:ok, test_pid_process, os_pid}
+    end)
+    |> expect(:stop, fn ^os_pid ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      :ok
+    end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    assert index_live |> element("#app-log-stderr-1") |> render_click() =~
+             "Application Logs [1]"
+
+    message = "[info] my-info-message"
     update_log_message(os_pid, message)
 
     assert render(index_live) =~ message
-    assert render(index_live) =~ "text-gray-700"
-
-    message = "[warning] my-warning-message"
-    update_log_message(os_pid, message)
-
-    assert render(index_live) =~ message
-    assert render(index_live) =~ "text-yellow-700"
-
-    message = "[error] my-error-message"
-    update_log_message(os_pid, message)
-
-    assert render(index_live) =~ message
-    assert render(index_live) =~ "text-red-700"
-
-    message = "[notice] my-notice-message"
-    update_log_message(os_pid, message)
-
-    assert render(index_live) =~ message
-    assert render(index_live) =~ "text-orange-700"
-
-    message = "[not-defined] my-default-message"
-    update_log_message(os_pid, message)
-
-    assert render(index_live) =~ message
-    assert render(index_live) =~ "text-gray-700"
-
-    message = "my-default-message"
-    update_log_message(os_pid, message)
-
-    assert render(index_live) =~ message
-    assert render(index_live) =~ "text-gray-700"
+    assert render(index_live) =~ "bg-red-500"
 
     FixtureTerminal.terminate_all()
 

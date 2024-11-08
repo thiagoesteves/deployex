@@ -41,6 +41,10 @@ defmodule Deployex.MonitorTest do
       refute Process.alive?(pid)
     end
 
+    test "Invalid instance" do
+      assert %Deployex.Monitor{} = MonitorApp.state(:any)
+    end
+
     @tag :capture_log
     test "Stop a monitor that is not running" do
       test_event_ref = make_ref()
@@ -693,5 +697,48 @@ defmodule Deployex.MonitorTest do
     assert {:ok, []} = Deployex.Monitor.run_pre_commands(1, [], :new)
     assert %{} = Deployex.Monitor.global_name(1)
     assert %{} = Deployex.Monitor.global_name(1, 1)
+  end
+
+  @tag :capture_log
+  test "Do not change state when an invalid :check_running msg is received" do
+    test_event_ref = make_ref()
+    deploy_ref = Common.random_small_alphanum()
+    test_pid_process = self()
+    instance = 1014
+    os_pid = 123_456
+
+    Binary.create_bin_files(instance)
+
+    Deployex.StatusMock
+    |> stub(:current_version_map, fn ^instance ->
+      %Deployex.Status.Version{version: "1.0.0"}
+    end)
+
+    Deployex.OpSysMock
+    |> expect(:run_link, fn _command, _options ->
+      # Wait a timer greater than timeout_app_ready to guarantee app is in the
+      # running state
+      Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+      {:ok, test_pid_process, os_pid}
+    end)
+    |> expect(:run, fn _commands, _options ->
+      {:ok, test_pid_process}
+    end)
+    |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+    assert {:ok, pid} =
+             MonitorApp.start_service("elixir", instance, deploy_ref, timeout_app_ready: 10)
+
+    assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+    state = Deployex.Monitor.Application.state(instance)
+
+    send(pid, {:check_running, :any, :any})
+
+    :timer.sleep(100)
+
+    assert state == Deployex.Monitor.Application.state(instance)
+
+    assert :ok = MonitorApp.stop_service(instance)
   end
 end
