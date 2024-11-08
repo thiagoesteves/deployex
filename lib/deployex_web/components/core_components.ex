@@ -638,23 +638,21 @@ defmodule DeployexWeb.CoreComponents do
 
     ~H"""
     <div class="px-4 sm:overflow-visible sm:px-0 ">
-      <table class="items-center w-full border-collapse table-fixed ">
-        <thead class="text-xs text-left align-middle leading-6 bg-blueGray-50 text-blueGray-500 uppercase ">
-          <tr>
-            <th
-              :for={col <- @col}
-              class="p-1 pb-1 pr-6 font-semibold border border-solid border-blueGray-100 border-l-0 border-r-0 font-normal  "
-            >
-              <%= col[:label] %>
-            </th>
-            <th :if={@action != []} class="relative p-0 pb-4">
-              <span class="sr-only"><%= gettext("Actions") %></span>
-            </th>
-          </tr>
-        </thead>
-      </table>
-      <div id={"#{@id}-body"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
-        <table class="w-full table-fixed">
+      <div id={"#{@id}-table"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
+        <table class="items-center w-full border-collapse ">
+          <thead class="text-xs text-left align-middle leading-6 bg-blueGray-50 text-blueGray-500 uppercase">
+            <tr>
+              <th
+                :for={col <- @col}
+                class="p-1 pb-1 pr-6 font-semibold border border-solid border-blueGray-100 border-l-0 border-r-0 font-normal"
+              >
+                <%= col[:label] %>
+              </th>
+              <th :if={@action != []} class="relative p-0 pb-4">
+                <span class="sr-only"><%= gettext("Actions") %></span>
+              </th>
+            </tr>
+          </thead>
           <tbody
             id={"#{@id}-tbody"}
             phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
