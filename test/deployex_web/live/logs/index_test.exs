@@ -44,8 +44,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stdout.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       {:ok, test_pid_process, os_pid}
@@ -63,11 +61,11 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
     end
 
@@ -83,8 +81,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stdout.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       {:ok, test_pid_process, os_pid}
@@ -102,11 +98,11 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
     end
 
@@ -122,8 +118,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stdout.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       {:ok, test_pid_process, os_pid}
@@ -141,19 +135,19 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-logs-remove-item")
+      |> element("#log-multi-select-services-deployex-remove-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-services-remove-item")
+      |> element("#log-multi-select-logs-stdout-remove-item")
       |> render_click()
     end
 
@@ -168,8 +162,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stdout.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       {:ok, test_pid_process, os_pid}
@@ -187,19 +179,19 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-services-remove-item")
+      |> element("#log-multi-select-logs-stdout-remove-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-logs-remove-item")
+      |> element("#log-multi-select-services-deployex-remove-item")
       |> render_click()
     end
 
@@ -214,8 +206,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stderr.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stderr.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       {:ok, test_pid_process, os_pid}
@@ -233,19 +223,19 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stderr")
+      |> element("#log-multi-select-logs-stderr-add-item", "stderr")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-services-remove-item")
+      |> element("#log-multi-select-services-deployex-remove-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-logs-remove-item")
+      |> element("#log-multi-select-logs-stderr-remove-item")
       |> render_click()
     end
 
@@ -277,8 +267,6 @@ defmodule DeployexWeb.Logs.IndexTest do
       message = unquote(type)
       expected_color = unquote(color)
 
-      {:ok, hostname} = :inet.gethostname()
-
       Deployex.OpSysMock
       |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
         Process.send_after(test_pid_process, {:handle_sending_message, ref}, 100)
@@ -299,11 +287,11 @@ defmodule DeployexWeb.Logs.IndexTest do
         |> render_click()
 
         index_live
-        |> element("#log-multi-select-add-item", "stdout")
+        |> element("#log-multi-select-logs-stdout-add-item")
         |> render_click()
 
         index_live
-        |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+        |> element("#log-multi-select-services-deployex-add-item")
         |> render_click()
       end
 
@@ -340,8 +328,6 @@ defmodule DeployexWeb.Logs.IndexTest do
       expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stderr.log"
       message = unquote(type)
 
-      {:ok, hostname} = :inet.gethostname()
-
       Deployex.OpSysMock
       |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
         Process.send_after(test_pid_process, {:handle_sending_message, ref}, 100)
@@ -362,11 +348,11 @@ defmodule DeployexWeb.Logs.IndexTest do
         |> render_click()
 
         index_live
-        |> element("#log-multi-select-add-item", "stderr")
+        |> element("#log-multi-select-logs-stderr-add-item")
         |> render_click()
 
         index_live
-        |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+        |> element("#log-multi-select-services-deployex-add-item")
         |> render_click()
       end
 
@@ -388,8 +374,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
     message = "My beautiful message"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       Process.send_after(test_pid_process, {:handle_sending_message, ref}, 100)
@@ -410,11 +394,11 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
     end
 
@@ -440,8 +424,6 @@ defmodule DeployexWeb.Logs.IndexTest do
     expected_path = "/var/log/deployex/deployex-stdout.log"
     expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
       send(self(), :session_timeout)
@@ -461,11 +443,11 @@ defmodule DeployexWeb.Logs.IndexTest do
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "stdout")
+      |> element("#log-multi-select-logs-stdout-add-item")
       |> render_click()
 
       index_live
-      |> element("#log-multi-select-add-item", "deployex@#{hostname}")
+      |> element("#log-multi-select-services-deployex-add-item")
       |> render_click()
     end
 

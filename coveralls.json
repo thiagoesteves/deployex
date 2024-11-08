@@ -23,6 +23,6 @@
     "test/*"
   ],
   "coverage_options": {
-    "minimum_coverage": 95
+    "minimum_coverage": 98
   }
 }

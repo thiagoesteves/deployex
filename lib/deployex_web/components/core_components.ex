@@ -656,7 +656,7 @@ defmodule DeployexWeb.CoreComponents do
       <div id={"#{@id}-body"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
         <table class="w-full table-fixed">
           <tbody
-            id={@id}
+            id={"#{@id}-tbody"}
             phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
             class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
           >

@@ -387,32 +387,28 @@ defmodule Deployex.Monitor.Application do
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
-    if File.exists?(migration_exec) do
-      Logger.info(" # Migration executable: #{migration_exec}")
+    Logger.info(" # Migration executable: #{migration_exec}")
 
-      Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
-        Logger.info(" # Executing: #{pre_command}")
+    Enum.reduce_while(pre_commands, :ok, fn pre_command, acc ->
+      Logger.info(" # Executing: #{pre_command}")
 
-        OpSys.run(run_app_bin(language, instance, migration_exec, pre_command), [
-          :sync,
-          {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
-          {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
-        ])
-        |> case do
-          {:ok, _} ->
-            {:cont, acc}
+      OpSys.run(run_app_bin(language, instance, migration_exec, pre_command), [
+        :sync,
+        {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
+        {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
+      ])
+      |> case do
+        {:ok, _} ->
+          {:cont, acc}
 
-          {:error, reason} ->
-            Logger.error(
-              "Error running pre-command: #{pre_command} for instance: #{instance} reason: #{inspect(reason)}"
-            )
+        {:error, reason} ->
+          Logger.error(
+            "Error running pre-command: #{pre_command} for instance: #{instance} reason: #{inspect(reason)}"
+          )
 
-            {:halt, {:error, :pre_commands}}
-        end
-      end)
-    else
-      {:error, :migration_exec_non_available}
-    end
+          {:halt, {:error, :pre_commands}}
+      end
+    end)
     |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
   end
 

@@ -44,10 +44,10 @@ defmodule DeployexWeb.LogsLive do
       </div>
       <div class="p-2">
         <div class="bg-white w-full shadow-lg rounded">
-          <.table_logs id="terminal-live-logs-table" rows={@streams.log_messages}>
+          <.table_logs id="live-logs" rows={@streams.log_messages}>
             <:col :let={{_id, log_message}} label="SERVICE">
               <div class="flex">
-                <div class={["w-[5px]  rounded ml-1 mr-1", log_message.color]}></div>
+                <span class={["w-[5px] rounded ml-1 mr-1", log_message.color]}></span>
                 <span><%= log_message.service %></span>
               </div>
             </:col>
@@ -334,8 +334,6 @@ defmodule DeployexWeb.LogsLive do
           selected_logs_keys: selected_logs_keys
       }
 
-    {:ok, hostname} = :inet.gethostname()
-
     Deployex.Storage.instance_list()
     |> Enum.reduce(initial_map, fn instance,
                                    %{
@@ -343,15 +341,13 @@ defmodule DeployexWeb.LogsLive do
                                      logs_keys: logs_keys,
                                      node: node
                                    } = acc ->
-      sname = Deployex.Storage.sname(instance)
-      service = "#{sname}@#{hostname}"
+      service = Deployex.Storage.sname(instance)
       services_keys = services_keys ++ [service]
 
       node =
         if service in selected_services_keys do
           [
             %{
-              sname: sname,
               instance: instance,
               logs_keys: logs_keys,
               service: service

@@ -28,7 +28,7 @@ defmodule DeployexWeb.Components.AppCard do
     <div :if={@supervisor}></div>
 
     <div
-      id={"button-#{@name}"}
+      id={"button-#{@name}-#{@instance}"}
       class={[app_background(@supervisor, @status), "rounded-lg border border-black mt-2"]}
     >
       <div class="flex flex-col rounded mb-3">

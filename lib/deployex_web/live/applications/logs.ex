@@ -15,21 +15,15 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
         <:subtitle><%= @subtitle %></:subtitle>
       </.header>
 
-      <div id={"#{@action}-logs-#{@id}"} class="bg-gray-50 w-full mt-5">
-        <div class="hidden only:block">
-          <span> Connecting ...</span>
-        </div>
-
-        <div class="bg-white w-full shadow-lg rounded">
-          <.table_logs id="terminal-live-logs-table" rows={@streams.log_messages}>
-            <:col :let={{_id, log_message}} label="CONTENT">
-              <div class="flex">
-                <div class={["w-[5px]  rounded ml-1 mr-1", log_message.color]}></div>
-                <span><%= log_message.content %></span>
-              </div>
-            </:col>
-          </.table_logs>
-        </div>
+      <div class="bg-white w-full shadow-lg rounded">
+        <.table_logs id={"application-live-logs-#{@id}"} rows={@streams.log_messages}>
+          <:col :let={{_id, log_message}} label="CONTENT">
+            <div class="flex">
+              <span class={["w-[5px] rounded ml-1 mr-1", log_message.color]}></span>
+              <span><%= log_message.content %></span>
+            </div>
+          </:col>
+        </.table_logs>
       </div>
     </div>
     """

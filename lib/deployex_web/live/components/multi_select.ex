@@ -35,7 +35,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                         <%= "#{item.name}:#{key}" %>
                       </div>
                       <button
-                        id={"#{@id}-#{item.name}-remove-item"}
+                        id={"#{@id}-#{item.name}-#{key}-remove-item"}
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -114,7 +114,7 @@ defmodule DeployexWeb.Components.MultiSelect do
 
                     <%= for key <- item.keys do %>
                       <button
-                        id={"#{@id}-add-item"}
+                        id={"#{@id}-#{item.name}-#{key}-add-item"}
                         class="flex justify-center items-center m-1 font-medium py-1 px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                         phx-click="multi-select-add-item"
                         phx-value-key={key}
