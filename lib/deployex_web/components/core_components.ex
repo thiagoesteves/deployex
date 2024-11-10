@@ -640,7 +640,7 @@ defmodule DeployexWeb.CoreComponents do
     <div class="px-4 sm:overflow-visible sm:px-0 ">
       <div id={"#{@id}-table"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
         <table class="items-center w-full border-collapse ">
-          <thead class="text-xs text-left align-middle leading-6 bg-blueGray-50 text-blueGray-500 uppercase">
+          <thead class="text-xs text-left align-middle leading-6 bg-white text-blueGray-500 uppercase sticky top-0 z-10">
             <tr>
               <th
                 :for={col <- @col}
@@ -656,7 +656,7 @@ defmodule DeployexWeb.CoreComponents do
           <tbody
             id={"#{@id}-tbody"}
             phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-            class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
+            class=" relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
           >
             <tr
               :for={row <- @rows}
