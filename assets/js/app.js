@@ -22,6 +22,7 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { Terminal } from "./xterm/xterm"
+import { mermaid } from "./mermaid/mermaid"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
@@ -75,6 +76,24 @@ hooks.ScrollBottom = {
       this.el.scrollTo(0, this.el.scrollHeight);
     }
   },
+};
+
+hooks.Mermaid = {
+  mounted() {
+    const config = {
+      logLevel: 4,
+      maxTextSize: 3000000,
+      startOnLoad: true,
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'cardinal' },
+      securityLevel: 'loose',
+      postRenderCallback: (id) => {
+        console.log(id);
+      }
+    };
+    mermaid.initialize(config);
+    mermaid.run(config);
+  }
+
 };
 
 let liveSocket = new LiveSocket("/live", Socket, {
