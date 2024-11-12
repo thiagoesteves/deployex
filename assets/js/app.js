@@ -22,7 +22,7 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import { Terminal } from "./xterm/xterm"
-import { mermaid } from "./mermaid/mermaid"
+import * as echarts from "./echarts/echarts.min"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
@@ -78,23 +78,19 @@ hooks.ScrollBottom = {
   },
 };
 
-hooks.Mermaid = {
+hooks.EChart = {
   mounted() {
-    const config = {
-      logLevel: 4,
-      maxTextSize: 3000000,
-      startOnLoad: true,
-      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'cardinal' },
-      securityLevel: 'loose',
-      postRenderCallback: (id) => {
-        console.log(id);
-      }
-    };
-    mermaid.initialize(config);
-    mermaid.run(config);
+      selector = "#" + this.el.id
+      this.chart = echarts.init(this.el.querySelector(selector + "-chart"))
+      option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
+      this.chart.setOption(option)
+  },
+  updated() {
+      selector = "#" + this.el.id
+      option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
+      this.chart.setOption(option)
   }
-
-};
+}
 
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
