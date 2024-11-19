@@ -52,10 +52,10 @@ defmodule Deployex.Observer do
   The application information is given as a tuple containing: `{name, description, version}`.
   The `name` is an atom, while both the description and version are Strings.
   """
-  @spec list :: list({atom, String.t(), String.t()})
-  def list do
-    :application_controller.which_applications()
-    |> Enum.filter(&alive?/1)
+  @spec list(node :: atom()) :: list({atom, String.t(), String.t()})
+  def list(node \\ Node.self()) do
+    :rpc.call(node, :application_controller, :which_applications, [])
+    |> Enum.filter(&alive?(node, &1))
     |> Enum.map(&structure_application/1)
   end
 
@@ -70,13 +70,14 @@ defmodule Deployex.Observer do
     - `meta`,  the meta information of a process. (See: `Wobserver.Util.Process.meta/1`.)
     - `children`, the children of the process.
   """
-  @spec info(app :: atom) :: map
-  def info(app \\ :kernel) do
-    app_pid =
-      app
-      |> :application_controller.get_master()
+  @spec info(node :: atom(), app :: atom) :: map
+  def info(node \\ Node.self(), app \\ :kernel) do
+    app_pid = :rpc.call(node, :application_controller, :get_master, [app])
 
-    children = app_pid |> :application_master.get_child() |> structure_pid(app_pid)
+    children =
+      node
+      |> :rpc.call(:application_master, :get_child, [app_pid])
+      |> structure_pid(app_pid)
 
     new(%{
       pid: app_pid,
@@ -92,9 +93,9 @@ defmodule Deployex.Observer do
   ### Private functions
   ### ==========================================================================
 
-  defp alive?({app, _, _}) do
-    app
-    |> :application_controller.get_master()
+  defp alive?(node, {app, _, _}) do
+    node
+    |> :rpc.call(:application_controller, :get_master, [app])
     |> is_pid
   catch
     _, _ -> false
@@ -111,7 +112,7 @@ defmodule Deployex.Observer do
   defp structure_pid({pid, name}, parent) do
     child = structure_pid({name, pid, :supervisor, []}, parent)
 
-    {_, dictionary} = :erlang.process_info(pid, :dictionary)
+    {_, dictionary} = :rpc.pinfo(pid, :dictionary)
 
     case Keyword.get(dictionary, :"$ancestors") do
       [parent] ->
@@ -137,7 +138,7 @@ defmodule Deployex.Observer do
   defp structure_pid({_, :undefined, _, _}, _parent), do: nil
 
   defp structure_pid({_, pid, :supervisor, _}, parent) do
-    {:links, links} = :erlang.process_info(pid, :links)
+    {:links, links} = :rpc.pinfo(pid, :links)
 
     links = links -- [parent]
 
@@ -261,6 +262,8 @@ defmodule Deployex.Observer do
     struct(__MODULE__, attrs)
   end
 
-  defp meta(pid) when is_pid(pid), do: Process.meta(pid)
-  defp meta(port) when is_port(port), do: Port.meta(port)
+  # Process.meta(pid)
+  defp meta(pid) when is_pid(pid), do: ""
+  # Port.meta(port)
+  defp meta(port) when is_port(port), do: ""
 end
