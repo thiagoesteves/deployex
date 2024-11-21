@@ -80,24 +80,28 @@ hooks.ScrollBottom = {
 
 hooks.EChart = {
   mounted() {
-      var callback = (args) => {
-        return args.data.info
-      }
+    var callback = (args) => {
+      return args.data.info
+    }
 
-      selector = "#" + this.el.id
-      this.chart = echarts.init(this.el.querySelector(selector + "-chart"))
-      option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
-      // Set the callback in the tooltip formatter (or any other part of the option)
-      option.tooltip = {
-        formatter: callback  // Set the callback function here
-      };
+    selector = "#" + this.el.id
 
-      this.chart.setOption(option)
+    this.chart = echarts.init(this.el.querySelector(selector + "-chart"))
+    option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
+    // Set the callback in the tooltip formatter (or any other part of the option)
+    option.tooltip = {
+      formatter: callback  // Set the callback function here
+    };
+
+    this.chart.setOption(option)
   },
   updated() {
-      selector = "#" + this.el.id
-      option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
-      this.chart.setOption(option)
+    selector = "#" + this.el.id
+    // This flag will indicate to Echart to not merge the data
+    let notMerge = !this.el.dataset.merge ?? true;
+
+    option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
+    this.chart.setOption(option, notMerge)
   }
 }
 

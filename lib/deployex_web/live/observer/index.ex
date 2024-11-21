@@ -3,6 +3,7 @@ defmodule DeployexWeb.ObserverLive do
 
   alias Deployex.Observer
   alias DeployexWeb.Components.MultiSelect
+  alias DeployexWeb.Observer.Legend
 
   @impl true
   def render(assigns) do
@@ -12,14 +13,43 @@ defmodule DeployexWeb.ObserverLive do
     unselected_apps_keys =
       assigns.node_info.apps_keys -- assigns.node_info.selected_apps_keys
 
-    app_data =
-      Observer.info()
+    # credo:disable-for-lines:9
+    adjust_series_position = fn series ->
+      case Enum.count(series) do
+        n when n > 0 ->
+          step = 100.0 / n
+
+          {series, _top, _bottom} =
+            Enum.reduce(series, {[], 0.0, 100.0}, fn serie, {acc, top, bottom} ->
+              bottom = bottom - step
+
+              new_serie = %{
+                serie
+                | top: :erlang.float_to_binary(top, [{:decimals, 0}]) <> "%",
+                  bottom: :erlang.float_to_binary(bottom, [{:decimals, 0}]) <> "%"
+              }
+
+              {acc ++ [new_serie], top + step, bottom}
+            end)
+
+          series
+
+        _ ->
+          series
+      end
+    end
+
+    chart_tree_data =
+      assigns.observer_data
+      |> Enum.reduce([], fn {key, %{"data" => info}}, acc ->
+        acc ++ [series(key, info)]
+      end)
+      |> adjust_series_position.()
       |> flare_chart_data()
-      |> Jason.encode!()
 
     assigns =
       assigns
-      |> assign(app_data: app_data)
+      |> assign(chart_tree_data: chart_tree_data)
       |> assign(unselected_services_keys: unselected_services_keys)
       |> assign(unselected_apps_keys: unselected_apps_keys)
 
@@ -40,151 +70,19 @@ defmodule DeployexWeb.ObserverLive do
           show_options={@show_apps_options}
         />
         <button
-          id="observer-multi-select-reset"
-          phx-click="apps-reset"
+          id="observer-multi-select-update"
+          phx-click="observer-apps-update"
           class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
         >
           UPDATE
         </button>
       </div>
       <div class="p-2">
-        <div class="p-3 border border-black relative mt-5">
-          <h2 class="absolute -top-1/2 translate-y-1/2 bg-white">Legend</h2>
-          <div class="flex items-center">
-            <span class="text-gray-600 dark:text-neutral-600">Process (App)</span>
-            <div class="w-6 h-6 bg-white mr-3 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4 text-[#A1887F]"
-              >
-                <polygon points="12,2 22,12 12,22 2,12"></polygon>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Supervisor</span>
-            <div class="w-6 h-6 rounded-lg bg-white mr-3 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4 text-[#F87171]"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Process (Worker)</span>
-            <div class="w-6 h-6 rounded-full bg-white mr-3 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4 text-[#93C5FD]"
-              >
-                <circle cx="12" cy="12" r="8"></circle>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Port</span>
-            <div class="w-6 h-6 bg-white mr-2 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4 text-[#FBBF24]"
-              >
-                <polygon points="12,2 22,22 2,22"></polygon>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Reference</span>
-            <div class="w-6 h-6 rounded-lg bg-white mr-3 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4 text-[#28A745]"
-              >
-                <rect x="3" y="3" width="18" height="18"></rect>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Link</span>
-            <div class="w-6 h-6 bg-white mr-2 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4"
-              >
-                <line x1="0" y1="12" x2="24" y2="12" stroke="#CCC" stroke-width="2"></line>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Monitor</span>
-            <div class="w-6 h-6 bg-white mr-2 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4"
-              >
-                <line x1="0" y1="12" x2="24" y2="12" stroke="#D1A1E5" stroke-width="2"></line>
-              </svg>
-            </div>
-
-            <span class="text-gray-600 dark:text-neutral-600">Monitored by</span>
-            <div class="w-6 h-6 bg-white mr-2 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="w-4 h-4"
-              >
-                <line x1="0" y1="12" x2="24" y2="12" stroke="#4DB8FF" stroke-width="2"></line>
-              </svg>
-            </div>
-          </div>
-        </div>
-
+        <Legend.content />
         <div>
-          <div id="tree" class="ml-5 mr-5 mt-10" phx-hook="EChart">
-            <div id="tree-chart" style="width: 80%; height: 600px;" phx-update="ignore" />
-            <div id="tree-data" hidden><%= @app_data %></div>
+          <div id="tree" class="ml-5 mr-5 mt-10" phx-hook="EChart" data-merge={false}>
+            <div id="tree-chart" style="width: 100%; height: 600px;" phx-update="ignore" />
+            <div id="tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
           </div>
         </div>
       </div>
@@ -198,7 +96,7 @@ defmodule DeployexWeb.ObserverLive do
      socket
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
-     |> assign(:current_config, %{})
+     |> assign(:observer_data, %{})
      |> assign(:show_apps_options, false)}
   end
 
@@ -207,7 +105,7 @@ defmodule DeployexWeb.ObserverLive do
      socket
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
-     |> assign(:current_config, %{})
+     |> assign(:observer_data, %{})
      |> assign(:show_apps_options, false)}
   end
 
@@ -218,59 +116,144 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply, socket |> assign(:show_apps_options, show_apps_options)}
   end
 
-  def flare_chart_data(data) do
-    %{
-      tooltip: %{
-        trigger: "item",
-        triggerOn: "mousemove"
-      },
-      series: [
-        %{
-          type: "tree",
-          id: 0,
-          name: "tree1",
-          data: [data],
-          top: "5%",
-          left: "5%",
-          bottom: "5%",
-          right: "20%",
-          symbolSize: 10,
-          itemStyle: %{color: "#93C5FD"},
-          edgeShape: "curve",
-          edgeForkPosition: "63%",
-          initialTreeDepth: 3,
-          lineStyle: %{
-            width: 2
-          },
-          axisPointer: [
-            %{
-              show: "auto"
-            }
-          ],
-          label: %{
-            backgroundColor: "#fff",
-            position: "top",
-            verticalAlign: "middle",
-            align: "center"
-          },
-          leaves: %{
-            label: %{
-              position: "right",
-              verticalAlign: "middle",
-              align: "left"
-            }
-          },
-          emphasis: %{
-            focus: "descendant"
-          },
-          roam: "zoom",
-          symbol: "emptyCircle",
-          expandAndCollapse: true,
-          animationDuration: 550,
-          animationDurationUpdate: 750
-        }
-      ]
-    }
+  def handle_event(
+        "observer-apps-update",
+        _value,
+        %{assigns: %{observer_data: observer_data}} = socket
+      ) do
+    new_observer_data =
+      Enum.reduce(observer_data, %{}, fn {key, data}, acc ->
+        [service, app] = String.split(key, "::")
+        new_info = Observer.info(String.to_existing_atom(service), String.to_existing_atom(app))
+        Map.put(acc, key, %{data | "data" => new_info})
+      end)
+
+    {:noreply, assign(socket, :observer_data, new_observer_data)}
+  end
+
+  def handle_event(
+        "multi-select-remove-item",
+        %{"item" => "services", "key" => service_key},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys -- [service_key],
+        node_info.selected_apps_keys
+      )
+
+    socket =
+      Enum.reduce(node_info.selected_apps_keys, socket, fn app_key, acc ->
+        data_key = data_key(service_key, app_key)
+
+        update_observer_data(acc, data_key, nil)
+      end)
+
+    {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  def handle_event(
+        "multi-select-remove-item",
+        %{"item" => "apps", "key" => app_key},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys,
+        node_info.selected_apps_keys -- [app_key]
+      )
+
+    socket =
+      Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
+        data_key = data_key(service_key, app_key)
+
+        update_observer_data(acc, data_key, nil)
+      end)
+
+    {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  def handle_event(
+        "multi-select-add-item",
+        %{"item" => "services", "key" => service_key},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys ++ [service_key],
+        node_info.selected_apps_keys
+      )
+
+    socket =
+      Enum.reduce(node_info.selected_apps_keys, socket, fn app_key, acc ->
+        node_service = Enum.find(node_info.node, &(&1.service == service_key))
+
+        data_key = data_key(service_key, app_key)
+
+        if app_key in node_service.apps_keys do
+          info =
+            Observer.info(String.to_existing_atom(service_key), String.to_existing_atom(app_key))
+
+          update_observer_data(acc, data_key, %{"transition" => false, "data" => info})
+        else
+          update_observer_data(acc, data_key, nil)
+        end
+      end)
+
+    {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  def handle_event(
+        "multi-select-add-item",
+        %{"item" => "apps", "key" => app_key},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys,
+        node_info.selected_apps_keys ++ [app_key]
+      )
+
+    socket =
+      Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
+        node_service = Enum.find(node_info.node, &(&1.service == service_key))
+
+        data_key = data_key(service_key, app_key)
+
+        if app_key in node_service.apps_keys do
+          info =
+            Observer.info(String.to_existing_atom(service_key), String.to_existing_atom(app_key))
+
+          update_observer_data(acc, data_key, %{"transition" => false, "data" => info})
+        else
+          update_observer_data(acc, data_key, nil)
+        end
+      end)
+
+    {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  defp data_key(service, apps), do: "#{service}::#{apps}"
+
+  defp update_observer_data(
+         %{assigns: %{observer_data: observer_data}} = socket,
+         data_key,
+         nil
+       ) do
+    assign(socket, :observer_data, Map.delete(observer_data, data_key))
+  end
+
+  defp update_observer_data(
+         %{assigns: %{observer_data: observer_data}} = socket,
+         data_key,
+         attributes
+       ) do
+    updated_data =
+      observer_data
+      |> Map.get(data_key, %{})
+      |> Map.merge(attributes)
+
+    assign(socket, :observer_data, Map.put(observer_data, data_key, updated_data))
   end
 
   defp node_info_new do
@@ -303,15 +286,15 @@ defmodule DeployexWeb.ObserverLive do
       [name, _hostname] = String.split(service, "@")
       services_keys = services_keys ++ [service]
 
-      node_app_keys = Observer.list(instance_node) |> Enum.map(&(&1.name |> to_string))
-      apps_keys = (apps_keys ++ node_app_keys) |> Enum.uniq()
+      instance_app_keys = Observer.list(instance_node) |> Enum.map(&(&1.name |> to_string))
+      apps_keys = (apps_keys ++ instance_app_keys) |> Enum.uniq()
 
       node =
         if service in selected_services_keys do
           [
             %{
               name: name,
-              apps_keys: apps_keys,
+              apps_keys: instance_app_keys,
               service: service
             }
             | node
@@ -322,5 +305,70 @@ defmodule DeployexWeb.ObserverLive do
 
       %{acc | services_keys: services_keys, apps_keys: apps_keys, node: node}
     end)
+  end
+
+  defp flare_chart_data(series) do
+    %{
+      tooltip: %{
+        trigger: "item",
+        triggerOn: "mousemove"
+      },
+      notMerge: true,
+      legend: [
+        %{
+          top: "5%",
+          left: "0%",
+          orient: "vertical",
+          borderColor: "#c23531"
+        }
+      ],
+      series: series
+    }
+  end
+
+  defp series(name, data) do
+    %{
+      type: "tree",
+      name: name,
+      data: [data],
+      top: "0%",
+      left: "30%",
+      bottom: "74%",
+      right: "20%",
+      symbolSize: 10,
+      itemStyle: %{color: "#93C5FD"},
+      edgeShape: "curve",
+      edgeForkPosition: "63%",
+      initialTreeDepth: 3,
+      lineStyle: %{
+        width: 2
+      },
+      axisPointer: [
+        %{
+          show: "auto"
+        }
+      ],
+      label: %{
+        backgroundColor: "#fff",
+        position: "top",
+        verticalAlign: "middle",
+        align: "center"
+      },
+      leaves: %{
+        label: %{
+          position: "right",
+          verticalAlign: "middle",
+          align: "left"
+        }
+      },
+      emphasis: %{
+        focus: "descendant"
+      },
+      roam: "zoom",
+      symbol: "emptyCircle",
+      expandAndCollapse: true,
+      animationDuration: 550,
+      animationDurationUpdate: 750
+    }
   end
 end
