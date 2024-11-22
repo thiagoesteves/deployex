@@ -4,7 +4,6 @@ defmodule Deployex.Observer do
   """
 
   alias Deployex.Observer.Helper
-  alias Deployex.Observer.Port
   alias Deployex.Observer.Process
 
   @link_line_color "#CCC"
@@ -33,7 +32,7 @@ defmodule Deployex.Observer do
           symbol: String.t(),
           lineStyle: map(),
           itemStyle: map(),
-          meta: map()
+          info: map()
         }
 
   @derive Jason.Encoder
@@ -44,7 +43,7 @@ defmodule Deployex.Observer do
             symbol: @process_symbol,
             lineStyle: %{color: @link_line_color},
             itemStyle: %{color: @process_item_color},
-            meta: %{}
+            info: ""
 
   @doc """
   Lists all running applications.
@@ -84,8 +83,7 @@ defmodule Deployex.Observer do
       name: name(app_pid),
       children: children,
       symbol: @app_process_symbol,
-      itemStyle: %{color: @app_process_item_color},
-      meta: meta(app_pid)
+      itemStyle: %{color: @app_process_item_color}
     })
   end
 
@@ -124,8 +122,7 @@ defmodule Deployex.Observer do
             name: name(parent),
             children: [child],
             symbol: @app_process_symbol,
-            itemStyle: %{color: @app_process_item_color},
-            meta: meta(parent)
+            itemStyle: %{color: @app_process_item_color}
           })
         ]
 
@@ -154,8 +151,7 @@ defmodule Deployex.Observer do
       name: name(pid),
       children: children,
       symbol: @supervisor_symbol,
-      itemStyle: %{color: @supervisor_item_color},
-      meta: meta(pid)
+      itemStyle: %{color: @supervisor_item_color}
     })
   end
 
@@ -166,15 +162,14 @@ defmodule Deployex.Observer do
 
     links = links -- [parent]
 
-    children = Enum.map(links, &structure_pid_or_port/1)
-    monitored_by_pids = Enum.map(monitored_by_pids, &monitored_by/1)
-    monitors = Enum.map(monitors, &monitor/1)
+    children = Enum.map(links, &structure_pid_or_port(&1))
+    monitored_by_pids = Enum.map(monitored_by_pids, &monitored_by(&1))
+    monitors = Enum.map(monitors, &monitor(&1))
 
     new(%{
       pid: pid,
       name: name(pid),
-      children: children ++ monitored_by_pids ++ monitors,
-      meta: meta(pid)
+      children: children ++ monitored_by_pids ++ monitors
     })
   end
 
@@ -195,8 +190,7 @@ defmodule Deployex.Observer do
       name: print_port(port),
       symbol: @port_symbol,
       itemStyle: %{color: @port_item_color},
-      lineStyle: %{color: @monitored_by_line_color},
-      meta: meta(port)
+      lineStyle: %{color: @monitored_by_line_color}
     })
   end
 
@@ -204,8 +198,7 @@ defmodule Deployex.Observer do
     new(%{
       pid: pid,
       name: print_pid(pid),
-      lineStyle: %{color: @monitored_by_line_color},
-      meta: meta(pid)
+      lineStyle: %{color: @monitored_by_line_color}
     })
   end
 
@@ -214,8 +207,7 @@ defmodule Deployex.Observer do
     new(%{
       pid: port,
       name: print_port(port),
-      lineStyle: %{color: @monitor_line_color},
-      meta: meta(port)
+      lineStyle: %{color: @monitor_line_color}
     })
   end
 
@@ -223,8 +215,7 @@ defmodule Deployex.Observer do
     new(%{
       pid: pid,
       name: print_pid(pid),
-      lineStyle: %{color: @monitor_line_color},
-      meta: meta(pid)
+      lineStyle: %{color: @monitor_line_color}
     })
   end
 
@@ -233,13 +224,12 @@ defmodule Deployex.Observer do
       pid: port,
       name: name(port),
       symbol: @port_symbol,
-      itemStyle: %{color: @port_item_color},
-      meta: meta(port)
+      itemStyle: %{color: @port_item_color}
     })
   end
 
   defp structure_pid_or_port(pid) when is_pid(pid) do
-    new(%{pid: pid, name: name(pid), meta: meta(pid)})
+    new(%{pid: pid, name: name(pid)})
   end
 
   defp structure_pid_or_port(_), do: nil
@@ -258,12 +248,11 @@ defmodule Deployex.Observer do
   defp print_reference(reference), do: reference |> inspect |> String.trim_leading("#Reference")
 
   @spec new(map()) :: struct()
-  def new(attrs \\ %{}) do
-    struct(__MODULE__, attrs)
+  def new(%{pid: pid} = attrs) do
+    struct(__MODULE__, Map.put(attrs, :info, do_info(pid)))
   end
 
-  # Process.meta(pid)
-  defp meta(pid) when is_pid(pid), do: ""
-  # Port.meta(port)
-  defp meta(port) when is_port(port), do: ""
+  defp do_info(pid) when is_pid(pid), do: inspect(Process.info(pid))
+  defp do_info(port) when is_port(port), do: ""
+  defp do_info(reference) when is_reference(reference), do: ""
 end

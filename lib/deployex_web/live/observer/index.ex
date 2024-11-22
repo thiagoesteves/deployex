@@ -110,6 +110,10 @@ defmodule DeployexWeb.ObserverLive do
   end
 
   @impl true
+  @spec handle_event(<<_::64, _::_*8>>, any(), %{
+          :assigns => atom() | map(),
+          optional(any()) => any()
+        }) :: {:noreply, map()}
   def handle_event("toggle-options", _value, socket) do
     show_apps_options = !socket.assigns.show_apps_options
 
@@ -124,11 +128,16 @@ defmodule DeployexWeb.ObserverLive do
     new_observer_data =
       Enum.reduce(observer_data, %{}, fn {key, data}, acc ->
         [service, app] = String.split(key, "::")
-        new_info = Observer.info(String.to_existing_atom(service), String.to_existing_atom(app))
+
+        new_info =
+          Observer.info(String.to_existing_atom(service), String.to_existing_atom(app))
+
         Map.put(acc, key, %{data | "data" => new_info})
       end)
 
-    {:noreply, assign(socket, :observer_data, new_observer_data)}
+    {:noreply,
+     socket
+     |> assign(:observer_data, new_observer_data)}
   end
 
   def handle_event(

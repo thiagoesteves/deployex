@@ -80,18 +80,10 @@ hooks.ScrollBottom = {
 
 hooks.EChart = {
   mounted() {
-    var callback = (args) => {
-      return args.data.info
-    }
-
     selector = "#" + this.el.id
 
     this.chart = echarts.init(this.el.querySelector(selector + "-chart"))
     option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
-    // Set the callback in the tooltip formatter (or any other part of the option)
-    option.tooltip = {
-      formatter: callback  // Set the callback function here
-    };
 
     this.chart.setOption(option)
   },
@@ -101,6 +93,15 @@ hooks.EChart = {
     let notMerge = !this.el.dataset.merge ?? true;
 
     option = JSON.parse(this.el.querySelector(selector + "-data").textContent)
+    // Set the callback in the tooltip formatter (or any other part of the option)
+    var callback = (args) => {
+      return args.data.info
+    }
+
+    option.tooltip = {
+      formatter: callback
+    };
+
     this.chart.setOption(option, notMerge)
   }
 }
