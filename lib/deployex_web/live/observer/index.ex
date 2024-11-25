@@ -124,6 +124,16 @@ defmodule DeployexWeb.ObserverLive do
   end
 
   @impl true
+  def handle_params(params, _url, socket) do
+    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+  end
+
+  defp apply_action(socket, :index, _params) do
+    socket
+    |> assign(:page_title, "Live Observer")
+  end
+
+  @impl true
   def handle_event("toggle-options", _value, socket) do
     show_apps_options = !socket.assigns.show_apps_options
 
