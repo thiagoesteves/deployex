@@ -35,8 +35,12 @@ defmodule Deployex.Observer.Process do
     ...> assert %{error_handler: :error_handler, memory: _, relations: %{links: [head, tail]}} = ObserverPort.info(kernel_pid)
     ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(head)
     ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(tail)
+    ...> invalid_pid = "<0.11111.0>" |> String.to_charlist() |> :erlang.list_to_pid()
+    ...> assert :undefined = ObserverPort.info(invalid_pid)
+    ...> supervisor = Process.whereis Elixir.Deployex.Supervisor
+    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(supervisor)
   """
-  @spec info(pid :: pid()) :: :error | map
+  @spec info(pid :: pid()) :: :undefined | map
   def info(pid) do
     process_info(pid, @process_full, &structure_full/2)
   end
@@ -46,7 +50,7 @@ defmodule Deployex.Observer.Process do
   ### ==========================================================================
   defp process_info(pid, information, structurer) do
     case :rpc.pinfo(pid, information) do
-      :undefined -> :error
+      :undefined -> :undefined
       data -> structurer.(data, pid)
     end
   end
@@ -55,7 +59,10 @@ defmodule Deployex.Observer.Process do
     {:status, ^pid, {:module, class}, _} = :sys.get_status(pid, 100)
     class
   catch
-    _, _ -> :unknown
+    # coveralls-ignore-start
+    _, _ ->
+      :unknown
+      # coveralls-ignore-stop
   end
 
   defp state(pid) do

@@ -45,8 +45,8 @@ defmodule Deployex.Observer do
   @doc """
   Lists all running applications.
 
-  The application information is given as a tuple containing: `{name, description, version}`.
-  The `name` is an atom, while both the description and version are Strings.
+    iex> alias Deployex.Observer
+    ...> assert Enum.find(Observer.list(), &(&1.name == :kernel))
   """
   @spec list(node :: atom()) :: list({atom, String.t(), String.t()})
   def list(node \\ Node.self()) do
@@ -56,15 +56,13 @@ defmodule Deployex.Observer do
   end
 
   @doc """
-  Retreives information about the application.
+  Retreives information about the application and its respective linked processes, ports and references.
 
-  The given `app` atom is used to find the started application.
-
-  Containing:
-    - `pid`, the process id or port id.
-    - `name`, the registered name or pid/port.
-    - `meta`,  the meta information of a process. (See: `Wobserver.Util.Process.meta/1`.)
-    - `children`, the children of the process.
+    iex> alias Deployex.Observer
+    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info()
+    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :deployex)
+    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :phoenix_pubsub)
+    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :logger)
   """
   @spec info(node :: atom(), app :: atom) :: map
   def info(node \\ Node.self(), app \\ :kernel) do
@@ -93,7 +91,10 @@ defmodule Deployex.Observer do
     |> :rpc.call(:application_controller, :get_master, [app])
     |> is_pid
   catch
-    _, _ -> false
+    # coveralls-ignore-start
+    _, _ ->
+      false
+      # coveralls-ignore-stop
   end
 
   defp structure_application({name, description, version}) do
@@ -105,18 +106,16 @@ defmodule Deployex.Observer do
   end
 
   defp structure_pid({pid, name}, parent) do
-    child = structure_pid({name, pid, :supervisor, []}, parent)
-
     {_, dictionary} = :rpc.pinfo(pid, :dictionary)
 
     case Keyword.get(dictionary, :"$ancestors") do
-      [parent] ->
-        child = structure_pid({name, pid, :supervisor, []}, parent)
+      [ancestor_parent] ->
+        child = structure_pid({name, pid, :supervisor, []}, ancestor_parent)
 
         [
           new(%{
-            pid: parent,
-            name: name(parent),
+            pid: ancestor_parent,
+            name: name(ancestor_parent),
             children: [child],
             symbol: @app_process_symbol,
             itemStyle: %{color: @app_process_item_color}
@@ -124,8 +123,10 @@ defmodule Deployex.Observer do
         ]
 
       _ ->
-        raise "error"
+        # coveralls-ignore-start
+        child = structure_pid({name, pid, :supervisor, []}, parent)
         [child]
+        # coveralls-ignore-stop
     end
   end
 
@@ -159,7 +160,7 @@ defmodule Deployex.Observer do
 
     links = links -- [parent]
 
-    children = Enum.map(links, &structure_pid_or_port(&1))
+    children = Enum.map(links, &structure_links(&1))
     monitored_by_pids = Enum.map(monitored_by_pids, &monitored_by(&1))
     monitors = Enum.map(monitors, &monitor(&1))
 
@@ -171,20 +172,23 @@ defmodule Deployex.Observer do
   end
 
   # Check https://www.erlang.org/docs/26/man/erlang#process_info-2
+  # coveralls-ignore-start
   defp monitored_by(reference) when is_reference(reference) do
     new(%{
       pid: reference,
-      name: print_reference(reference),
+      name: name(reference),
       symbol: @reference_symbol,
       itemStyle: %{color: @reference_item_color},
       lineStyle: %{color: @monitored_by_line_color}
     })
   end
 
+  # coveralls-ignore-stop
+
   defp monitored_by(port) when is_port(port) do
     new(%{
       pid: port,
-      name: print_port(port),
+      name: name(port),
       symbol: @port_symbol,
       itemStyle: %{color: @port_item_color},
       lineStyle: %{color: @monitored_by_line_color}
@@ -194,29 +198,32 @@ defmodule Deployex.Observer do
   defp monitored_by(pid) when is_pid(pid) do
     new(%{
       pid: pid,
-      name: print_pid(pid),
+      name: name(pid),
       lineStyle: %{color: @monitored_by_line_color}
     })
   end
 
   # Check https://www.erlang.org/docs/26/man/erlang#process_info-2
+  # coveralls-ignore-start
   defp monitor({:port, port}) do
     new(%{
       pid: port,
-      name: print_port(port),
+      name: name(port),
       lineStyle: %{color: @monitor_line_color}
     })
   end
+
+  # coveralls-ignore-stop
 
   defp monitor({:process, pid}) do
     new(%{
       pid: pid,
-      name: print_pid(pid),
+      name: name(pid),
       lineStyle: %{color: @monitor_line_color}
     })
   end
 
-  defp structure_pid_or_port(port) when is_port(port) do
+  defp structure_links(port) when is_port(port) do
     new(%{
       pid: port,
       name: name(port),
@@ -225,24 +232,30 @@ defmodule Deployex.Observer do
     })
   end
 
-  defp structure_pid_or_port(pid) when is_pid(pid) do
+  defp structure_links(pid) when is_pid(pid) do
     new(%{pid: pid, name: name(pid)})
   end
 
-  defp structure_pid_or_port(_), do: nil
+  # coveralls-ignore-start
+  defp structure_links(reference) when is_reference(reference) do
+    new(%{pid: reference, name: name(reference)})
+  end
+
+  # coveralls-ignore-stop
 
   defp name(pid) when is_pid(pid) do
     case :rpc.pinfo(pid, :registered_name) do
       {_, registered_name} -> to_string(registered_name) |> String.trim_leading("Elixir.")
-      _ -> print_pid(pid)
+      _ -> pid |> inspect |> String.trim_leading("#PID")
     end
   end
 
-  defp name(port) when is_port(port), do: print_port(port)
+  defp name(port) when is_port(port), do: port |> inspect |> String.trim_leading("#Port")
+  # coveralls-ignore-start
+  defp name(reference) when is_reference(reference),
+    do: reference |> inspect |> String.trim_leading("#Reference")
 
-  defp print_pid(pid), do: pid |> inspect |> String.trim_leading("#PID")
-  defp print_port(port), do: port |> inspect |> String.trim_leading("#Port")
-  defp print_reference(reference), do: reference |> inspect |> String.trim_leading("#Reference")
+  # coveralls-ignore-stop
 
   @spec new(map()) :: struct()
   def new(attrs) do

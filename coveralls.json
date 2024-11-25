@@ -14,6 +14,7 @@
     "lib/deployex/rpc/local.ex",
     "lib/deployex/mailer.ex",
     "lib/deployex/macros.ex",
+    "lib/deployex/observer/helper.ex",
     "lib/deployex_web/components/layouts.ex",
     "lib/deployex_web/controllers/page_html.ex",
     "lib/deployex_web/endpoint.ex",
