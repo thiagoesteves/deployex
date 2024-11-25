@@ -4,7 +4,6 @@ defmodule Deployex.Observer do
   """
 
   alias Deployex.Observer.Helper
-  alias Deployex.Observer.Process
 
   @link_line_color "#CCC"
   @monitor_line_color "#D1A1E5"
@@ -31,8 +30,7 @@ defmodule Deployex.Observer do
           name: String.t(),
           symbol: String.t(),
           lineStyle: map(),
-          itemStyle: map(),
-          info: map()
+          itemStyle: map()
         }
 
   @derive Jason.Encoder
@@ -42,8 +40,7 @@ defmodule Deployex.Observer do
             name: "",
             symbol: @process_symbol,
             lineStyle: %{color: @link_line_color},
-            itemStyle: %{color: @process_item_color},
-            info: ""
+            itemStyle: %{color: @process_item_color}
 
   @doc """
   Lists all running applications.
@@ -248,11 +245,7 @@ defmodule Deployex.Observer do
   defp print_reference(reference), do: reference |> inspect |> String.trim_leading("#Reference")
 
   @spec new(map()) :: struct()
-  def new(%{pid: pid} = attrs) do
-    struct(__MODULE__, Map.put(attrs, :info, do_info(pid)))
+  def new(attrs) do
+    struct(__MODULE__, attrs)
   end
-
-  defp do_info(pid) when is_pid(pid), do: inspect(Process.info(pid))
-  defp do_info(port) when is_port(port), do: ""
-  defp do_info(reference) when is_reference(reference), do: ""
 end

@@ -5,16 +5,6 @@ defmodule Deployex.Observer.Process do
 
   alias Deployex.Observer.Helper
 
-  @process_summary [
-    :registered_name,
-    :initial_call,
-    :memory,
-    :reductions,
-    :current_function,
-    :message_queue_len,
-    :dictionary
-  ]
-
   @process_full [
     :registered_name,
     :priority,
@@ -32,85 +22,28 @@ defmodule Deployex.Observer.Process do
     :min_heap_size,
     :garbage_collection,
     :status,
-    :dictionary
+    :dictionary,
+    :monitored_by,
+    :monitors
   ]
 
-  @process_meta [
-    :initial_call,
-    :current_function,
-    :status,
-    :dictionary
-  ]
-
-  @doc ~S"""
+  @doc """
   Creates a complete overview of process stats based on the given `pid`.
 
-  Including but not limited to:
-    - `id`, the process pid
-    - `name`, the registered name or `nil`.
-    - `init`, initial function or name.
-    - `current`, current function.
-    - `memory`, the total amount of memory used by the process.
-    - `reductions`, the amount of reductions.
-    - `message_queue_length`, the amount of unprocessed messages for the process.,
+    iex> alias Deployex.Observer.Process, as: ObserverPort
+    ...> kernel_pid = :application_controller.get_master :kernel
+    ...> assert %{error_handler: :error_handler, memory: _, relations: %{links: [head, tail]}} = ObserverPort.info(kernel_pid)
+    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(head)
+    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(tail)
   """
-  @spec info(pid :: pid | list | binary | integer | {integer, integer, integer}) :: :error | map
+  @spec info(pid :: pid()) :: :error | map
   def info(pid) do
     process_info(pid, @process_full, &structure_full/2)
   end
 
-  @doc """
-  Retreives a list of process summaries.
-
-  Every summary contains:
-    - `id`, the process pid.
-    - `name`, the registered name or `nil`.
-    - `init`, initial function or name.
-    - `current`, current function.
-    - `memory`, the total amount of memory used by the process.
-    - `reductions`, the amount of reductions.
-    - `message_queue_length`, the amount of unprocessed messages for the process.
-  """
-  @spec list :: list(map)
-  def list do
-    :erlang.processes()
-    |> Enum.map(&summary/1)
-  end
-
-  @doc ~S"""
-  Creates formatted meta information about the process based on the given `pid`.
-
-  The information contains:
-    - `init`, initial function or name.
-    - `current`, current function.
-    - `status`, process status.
-
-  """
-  @spec meta(pid :: pid) :: map
-  def meta(pid),
-    do: pid |> process_info(@process_meta, &structure_meta/2)
-
-  @doc ~S"""
-  Creates formatted summary about the process based on the given `pid`.
-
-  Every summary contains:
-    - `id`, the process pid.
-    - `name`, the registered name or `nil`.
-    - `init`, initial function or name.
-    - `current`, current function.
-    - `memory`, the total amount of memory used by the process.
-    - `reductions`, the amount of reductions.
-    - `message_queue_length`, the amount of unprocessed messages for the process.
-
-  """
-  @spec summary(pid :: pid) :: map
-  def summary(pid),
-    do: pid |> process_info(@process_summary, &structure_summary/2)
-
-  # Helpers
-
-  defp process_info(nil, _, _), do: :error
-
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
   defp process_info(pid, information, structurer) do
     case :rpc.pinfo(pid, information) do
       :undefined -> :error
@@ -131,9 +64,7 @@ defmodule Deployex.Observer.Process do
     _, _ -> :unknown
   end
 
-  @doc false
-  @spec initial_call(data :: keyword) :: {atom, atom, integer} | atom
-  def initial_call(data) do
+  defp initial_call(data) do
     dictionary_init =
       data
       |> Keyword.get(:dictionary, [])
@@ -150,24 +81,6 @@ defmodule Deployex.Observer.Process do
 
   # Structurers
 
-  defp structure_summary(data, pid) do
-    process_name =
-      case Keyword.get(data, :registered_name, []) do
-        [] -> nil
-        name -> name
-      end
-
-    %{
-      pid: pid,
-      name: process_name,
-      init: Helper.format_function(initial_call(data)),
-      current: Helper.format_function(Keyword.get(data, :current_function, nil)),
-      memory: Keyword.get(data, :memory, 0),
-      reductions: Keyword.get(data, :reductions, 0),
-      message_queue_length: Keyword.get(data, :message_queue_len, 0)
-    }
-  end
-
   defp structure_full(data, pid) do
     gc = Keyword.get(data, :garbage_collection, [])
     dictionary = Keyword.get(data, :dictionary)
@@ -182,7 +95,9 @@ defmodule Deployex.Observer.Process do
       relations: %{
         group_leader: Keyword.get(data, :group_leader, nil),
         ancestors: Keyword.get(dictionary, :"$ancestors", []),
-        links: Keyword.get(data, :links, nil)
+        links: Keyword.get(data, :links, nil),
+        monitored_by: Keyword.get(data, :monitored_by, nil),
+        monitors: Keyword.get(data, :monitors, nil)
       },
       memory: %{
         total: Keyword.get(data, :memory, 0),

@@ -1,9 +1,14 @@
 defmodule DeployexWeb.ObserverLive do
   use DeployexWeb, :live_view
 
+  require Logger
+
   alias Deployex.Observer
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Observer.Legend
+  alias DeployexWeb.Observer.Process
+
+  @tooltip_debouncing 50
 
   @impl true
   def render(assigns) do
@@ -78,13 +83,17 @@ defmodule DeployexWeb.ObserverLive do
         </button>
       </div>
       <div class="p-2">
-        <Legend.content />
+        <%= if @observer_data != %{}  do %>
+          <Legend.content />
+        <% end %>
         <div>
           <div id="tree" class="ml-5 mr-5 mt-10" phx-hook="EChart" data-merge={false}>
             <div id="tree-chart" style="width: 100%; height: 600px;" phx-update="ignore" />
             <div id="tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
           </div>
         </div>
+
+        <Process.content process_info={@current_selected_process.info} />
       </div>
     </div>
     """
@@ -92,11 +101,15 @@ defmodule DeployexWeb.ObserverLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
+    # Adds notification is node is up or down
+    :net_kernel.monitor_nodes(true)
+
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
+     |> assign(:current_selected_process, %{info: nil, pid_string: nil, debouncing: 10})
      |> assign(:show_apps_options, false)}
   end
 
@@ -106,18 +119,56 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
+     |> assign(:current_selected_process, %{info: nil, pid_string: nil, debouncing: 10})
      |> assign(:show_apps_options, false)}
   end
 
   @impl true
-  @spec handle_event(<<_::64, _::_*8>>, any(), %{
-          :assigns => atom() | map(),
-          optional(any()) => any()
-        }) :: {:noreply, map()}
   def handle_event("toggle-options", _value, socket) do
     show_apps_options = !socket.assigns.show_apps_options
 
     {:noreply, socket |> assign(:show_apps_options, show_apps_options)}
+  end
+
+  def handle_event(
+        "request-process",
+        value,
+        %{assigns: %{current_selected_process: %{pid_string: pid_string, debouncing: debouncing}}} =
+          socket
+      )
+      when pid_string != value or debouncing < 0 do
+    pid? = String.contains?(value, "#PID<")
+
+    current_selected_process =
+      if pid? do
+        pid =
+          value
+          |> String.trim_leading("#PID")
+          |> String.to_charlist()
+          |> :erlang.list_to_pid()
+
+        Logger.info("Retrieving process info for pid: #{value}")
+
+        %{info: Observer.Process.info(pid), pid_string: value, debouncing: @tooltip_debouncing}
+      else
+        reset_current_selected_process(value)
+      end
+
+    {:noreply, assign(socket, :current_selected_process, current_selected_process)}
+  end
+
+  # The debouncing added here will reduce the number of Process.info requests since
+  # tooltips are high demand signals.
+  def handle_event(
+        "request-process",
+        _value,
+        %{assigns: %{current_selected_process: current_selected_process}} = socket
+      ) do
+    {:noreply,
+     assign(socket, :current_selected_process, %{
+       current_selected_process
+       | debouncing: current_selected_process.debouncing - 1
+     })}
   end
 
   def handle_event(
@@ -158,7 +209,10 @@ defmodule DeployexWeb.ObserverLive do
         update_observer_data(acc, data_key, nil)
       end)
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:current_selected_process, reset_current_selected_process())}
   end
 
   def handle_event(
@@ -179,7 +233,10 @@ defmodule DeployexWeb.ObserverLive do
         update_observer_data(acc, data_key, nil)
       end)
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:current_selected_process, reset_current_selected_process())}
   end
 
   def handle_event(
@@ -209,7 +266,10 @@ defmodule DeployexWeb.ObserverLive do
         end
       end)
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:current_selected_process, reset_current_selected_process())}
   end
 
   def handle_event(
@@ -239,7 +299,43 @@ defmodule DeployexWeb.ObserverLive do
         end
       end)
 
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:current_selected_process, reset_current_selected_process())}
+  end
+
+  @impl true
+  def handle_info({:nodeup, _node}, %{assigns: %{node_info: node_info}} = socket) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys,
+        node_info.selected_apps_keys
+      )
+
     {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  def handle_info({:nodedown, node}, %{assigns: %{node_info: node_info}} = socket) do
+    service_key = node |> to_string
+
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys -- [service_key],
+        node_info.selected_apps_keys
+      )
+
+    socket =
+      Enum.reduce(node_info.selected_apps_keys, socket, fn app_key, acc ->
+        data_key = data_key(service_key, app_key)
+
+        update_observer_data(acc, data_key, nil)
+      end)
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:current_selected_process, reset_current_selected_process())}
   end
 
   defp data_key(service, apps), do: "#{service}::#{apps}"
@@ -315,6 +411,9 @@ defmodule DeployexWeb.ObserverLive do
       %{acc | services_keys: services_keys, apps_keys: apps_keys, node: node}
     end)
   end
+
+  defp reset_current_selected_process(pid_string \\ nil),
+    do: %{info: nil, pid_string: pid_string, debouncing: @tooltip_debouncing}
 
   defp flare_chart_data(series) do
     %{

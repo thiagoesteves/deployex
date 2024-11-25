@@ -3,11 +3,21 @@ defmodule Deployex.Observer.Port do
   Port handling.
   """
 
-  @spec info(port()) :: :error | %{connected: any(), id: any(), name: any(), os_pid: any()}
+  @doc """
+  Return port information
+
+  ## Examples
+
+    iex> alias Deployex.Observer.Port
+    ...> [h | _] = :erlang.ports()
+    ...> assert %{connected: _, id: _, name: _, os_pid: _} = Port.info(h)
+    ...> assert :undefined = Port.info(nil)
+  """
+  @spec info(port()) :: :undefined | %{connected: any(), id: any(), name: any(), os_pid: any()}
   def info(port) do
     case :erlang.port_info(port) do
       :undefined ->
-        :error
+        :undefined
 
       data ->
         %{
