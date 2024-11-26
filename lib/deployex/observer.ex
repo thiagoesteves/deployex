@@ -3,6 +3,8 @@ defmodule Deployex.Observer do
   This module will provide observability functions
   """
 
+  require Logger
+
   alias Deployex.Observer.Helper
 
   @link_line_color "#CCC"
@@ -25,7 +27,7 @@ defmodule Deployex.Observer do
   @reference_item_color "#28A745"
 
   @type t :: %__MODULE__{
-          pid: pid() | nil,
+          id: pid() | port() | reference() | nil,
           children: list(),
           name: String.t(),
           symbol: String.t(),
@@ -35,7 +37,7 @@ defmodule Deployex.Observer do
 
   @derive Jason.Encoder
 
-  defstruct pid: nil,
+  defstruct id: nil,
             children: [],
             name: "",
             symbol: @process_symbol,
@@ -59,10 +61,10 @@ defmodule Deployex.Observer do
   Retreives information about the application and its respective linked processes, ports and references.
 
     iex> alias Deployex.Observer
-    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info()
-    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :deployex)
-    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :phoenix_pubsub)
-    ...> assert %Deployex.Observer{pid: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :logger)
+    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info()
+    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :deployex)
+    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :phoenix_pubsub)
+    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :logger)
   """
   @spec info(node :: atom(), app :: atom) :: map
   def info(node \\ Node.self(), app \\ :kernel) do
@@ -71,11 +73,10 @@ defmodule Deployex.Observer do
     children =
       node
       |> :rpc.call(:application_master, :get_child, [app_pid])
-      |> structure_pid(app_pid)
+      |> structure_id(app_pid)
 
     new(%{
-      pid: app_pid,
-      name: name(app_pid),
+      id: app_pid,
       children: children,
       symbol: @app_process_symbol,
       itemStyle: %{color: @app_process_item_color}
@@ -105,17 +106,16 @@ defmodule Deployex.Observer do
     }
   end
 
-  defp structure_pid({pid, name}, parent) do
+  defp structure_id({pid, name}, parent) do
     {_, dictionary} = :rpc.pinfo(pid, :dictionary)
 
     case Keyword.get(dictionary, :"$ancestors") do
       [ancestor_parent] ->
-        child = structure_pid({name, pid, :supervisor, []}, ancestor_parent)
+        child = structure_id({name, pid, :supervisor, []}, ancestor_parent)
 
         [
           new(%{
-            pid: ancestor_parent,
-            name: name(ancestor_parent),
+            id: ancestor_parent,
             children: [child],
             symbol: @app_process_symbol,
             itemStyle: %{color: @app_process_item_color}
@@ -124,15 +124,15 @@ defmodule Deployex.Observer do
 
       _ ->
         # coveralls-ignore-start
-        child = structure_pid({name, pid, :supervisor, []}, parent)
+        child = structure_id({name, pid, :supervisor, []}, parent)
         [child]
         # coveralls-ignore-stop
     end
   end
 
-  defp structure_pid({_, :undefined, _, _}, _parent), do: nil
+  defp structure_id({_, :undefined, _, _}, _parent), do: nil
 
-  defp structure_pid({_, pid, :supervisor, _}, parent) do
+  defp structure_id({_, pid, :supervisor, _}, parent) do
     {:links, links} = :rpc.pinfo(pid, :links)
 
     links = links -- [parent]
@@ -141,19 +141,18 @@ defmodule Deployex.Observer do
       pid
       |> :supervisor.which_children()
       |> Kernel.++(Enum.filter(links, fn link -> is_port(link) end))
-      |> Helper.parallel_map(&structure_pid(&1, pid))
+      |> Helper.parallel_map(&structure_id(&1, pid))
       |> Enum.filter(&(&1 != nil))
 
     new(%{
-      pid: pid,
-      name: name(pid),
+      id: pid,
       children: children,
       symbol: @supervisor_symbol,
       itemStyle: %{color: @supervisor_item_color}
     })
   end
 
-  defp structure_pid({_, pid, :worker, _}, parent) do
+  defp structure_id({_, pid, :worker, _}, parent) do
     {:links, links} = :rpc.pinfo(pid, :links)
     {:monitored_by, monitored_by_pids} = :rpc.pinfo(pid, :monitored_by)
     {:monitors, monitors} = :rpc.pinfo(pid, :monitors)
@@ -165,8 +164,7 @@ defmodule Deployex.Observer do
     monitors = Enum.map(monitors, &monitor(&1))
 
     new(%{
-      pid: pid,
-      name: name(pid),
+      id: pid,
       children: children ++ monitored_by_pids ++ monitors
     })
   end
@@ -175,8 +173,7 @@ defmodule Deployex.Observer do
   # coveralls-ignore-start
   defp monitored_by(reference) when is_reference(reference) do
     new(%{
-      pid: reference,
-      name: name(reference),
+      id: reference,
       symbol: @reference_symbol,
       itemStyle: %{color: @reference_item_color},
       lineStyle: %{color: @monitored_by_line_color}
@@ -187,8 +184,7 @@ defmodule Deployex.Observer do
 
   defp monitored_by(port) when is_port(port) do
     new(%{
-      pid: port,
-      name: name(port),
+      id: port,
       symbol: @port_symbol,
       itemStyle: %{color: @port_item_color},
       lineStyle: %{color: @monitored_by_line_color}
@@ -197,8 +193,7 @@ defmodule Deployex.Observer do
 
   defp monitored_by(pid) when is_pid(pid) do
     new(%{
-      pid: pid,
-      name: name(pid),
+      id: pid,
       lineStyle: %{color: @monitored_by_line_color}
     })
   end
@@ -207,8 +202,7 @@ defmodule Deployex.Observer do
   # coveralls-ignore-start
   defp monitor({:port, port}) do
     new(%{
-      pid: port,
-      name: name(port),
+      id: port,
       lineStyle: %{color: @monitor_line_color}
     })
   end
@@ -217,28 +211,47 @@ defmodule Deployex.Observer do
 
   defp monitor({:process, pid}) do
     new(%{
-      pid: pid,
-      name: name(pid),
+      id: pid,
       lineStyle: %{color: @monitor_line_color}
     })
   end
 
   defp structure_links(port) when is_port(port) do
     new(%{
-      pid: port,
-      name: name(port),
+      id: port,
       symbol: @port_symbol,
       itemStyle: %{color: @port_item_color}
     })
   end
 
   defp structure_links(pid) when is_pid(pid) do
-    new(%{pid: pid, name: name(pid)})
+    new(%{id: pid})
   end
 
   # coveralls-ignore-start
   defp structure_links(reference) when is_reference(reference) do
-    new(%{pid: reference, name: name(reference)})
+    new(%{id: reference})
+  end
+
+  # coveralls-ignore-stop
+
+  @spec new(map()) :: struct()
+  def new(%{id: id} = attrs) when is_port(id) or is_pid(id) or is_reference(id) do
+    name = name(id)
+    struct(__MODULE__, Map.put(attrs, :name, name))
+  end
+
+  # coveralls-ignore-start
+  def new(%{id: id} = attrs) do
+    name = "#{inspect(id)}"
+    Logger.warning("Entity ID not mapped: #{name}")
+
+    struct(
+      __MODULE__,
+      attrs
+      |> Map.put(:name, name)
+      |> Map.put(:id, nil)
+    )
   end
 
   # coveralls-ignore-stop
@@ -256,9 +269,4 @@ defmodule Deployex.Observer do
     do: reference |> inspect |> String.trim_leading("#Reference")
 
   # coveralls-ignore-stop
-
-  @spec new(map()) :: struct()
-  def new(attrs) do
-    struct(__MODULE__, attrs)
-  end
 end

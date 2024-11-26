@@ -78,7 +78,7 @@ hooks.ScrollBottom = {
   },
 };
 
-hooks.EChart = {
+hooks.ObserverEChart = {
   mounted() {
     selector = "#" + this.el.id
 
@@ -106,10 +106,8 @@ hooks.EChart = {
 
     // Set the callback in the tooltip formatter (or any other part of the option)
     var callback = (args) => {
-      this.pushEventTo(this.el, "request-process", args.data.pid);
-
-      console.log(args)
-      return args.data.pid;
+      this.pushEventTo(this.el, "request-process", { id: args.data.id });
+      return args.data.id;
     }
 
     newOption.tooltip = {

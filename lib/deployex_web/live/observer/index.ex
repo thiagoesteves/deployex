@@ -87,9 +87,9 @@ defmodule DeployexWeb.ObserverLive do
           <Legend.content />
         <% end %>
         <div>
-          <div id="tree" class="ml-5 mr-5 mt-10" phx-hook="EChart" data-merge={false}>
-            <div id="tree-chart" style="width: 100%; height: 600px;" phx-update="ignore" />
-            <div id="tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
+          <div id="observer-tree" class="ml-5 mr-5 mt-10" phx-hook="ObserverEChart" data-merge={false}>
+            <div id="observer-tree-chart" style="width: 100%; height: 600px;" phx-update="ignore" />
+            <div id="observer-tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
           </div>
         </div>
 
@@ -109,7 +109,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
-     |> assign(:current_selected_process, %{info: nil, pid_string: nil, debouncing: 10})
+     |> assign(:current_selected_process, %{info: nil, id_string: nil, debouncing: 10})
      |> assign(:show_apps_options, false)}
   end
 
@@ -119,7 +119,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
-     |> assign(:current_selected_process, %{info: nil, pid_string: nil, debouncing: 10})
+     |> assign(:current_selected_process, %{info: nil, id_string: nil, debouncing: 10})
      |> assign(:show_apps_options, false)}
   end
 
@@ -134,6 +134,10 @@ defmodule DeployexWeb.ObserverLive do
   end
 
   @impl true
+  @spec handle_event(<<_::64, _::_*8>>, any(), %{
+          :assigns => atom() | map(),
+          optional(any()) => any()
+        }) :: {:noreply, map()}
   def handle_event("toggle-options", _value, socket) do
     show_apps_options = !socket.assigns.show_apps_options
 
@@ -142,26 +146,30 @@ defmodule DeployexWeb.ObserverLive do
 
   def handle_event(
         "request-process",
-        value,
-        %{assigns: %{current_selected_process: %{pid_string: pid_string, debouncing: debouncing}}} =
+        %{"id" => request_id},
+        %{assigns: %{current_selected_process: %{id_string: id_string, debouncing: debouncing}}} =
           socket
       )
-      when pid_string != value or debouncing < 0 do
-    pid? = String.contains?(value, "#PID<")
+      when id_string != request_id or debouncing < 0 do
+    pid? = String.contains?(request_id, "#PID<")
 
     current_selected_process =
       if pid? do
         pid =
-          value
+          request_id
           |> String.trim_leading("#PID")
           |> String.to_charlist()
           |> :erlang.list_to_pid()
 
-        Logger.info("Retrieving process info for pid: #{value}")
+        Logger.info("Retrieving process info for pid: #{request_id}")
 
-        %{info: Observer.Process.info(pid), pid_string: value, debouncing: @tooltip_debouncing}
+        %{
+          info: Observer.Process.info(pid),
+          id_string: request_id,
+          debouncing: @tooltip_debouncing
+        }
       else
-        reset_current_selected_process(value)
+        reset_current_selected_process(request_id)
       end
 
     {:noreply, assign(socket, :current_selected_process, current_selected_process)}
@@ -171,7 +179,7 @@ defmodule DeployexWeb.ObserverLive do
   # tooltips are high demand signals.
   def handle_event(
         "request-process",
-        _value,
+        _data,
         %{assigns: %{current_selected_process: current_selected_process}} = socket
       ) do
     {:noreply,
@@ -183,7 +191,7 @@ defmodule DeployexWeb.ObserverLive do
 
   def handle_event(
         "observer-apps-update",
-        _value,
+        _data,
         %{assigns: %{observer_data: observer_data}} = socket
       ) do
     new_observer_data =
@@ -422,8 +430,8 @@ defmodule DeployexWeb.ObserverLive do
     end)
   end
 
-  defp reset_current_selected_process(pid_string \\ nil),
-    do: %{info: nil, pid_string: pid_string, debouncing: @tooltip_debouncing}
+  defp reset_current_selected_process(id_string \\ nil),
+    do: %{info: nil, id_string: id_string, debouncing: @tooltip_debouncing}
 
   defp flare_chart_data(series) do
     %{
