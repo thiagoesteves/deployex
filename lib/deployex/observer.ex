@@ -161,6 +161,10 @@ defmodule Deployex.Observer do
     })
   end
 
+  defp structure_id(id, _parent) do
+    new(%{id: id})
+  end
+
   # Check https://www.erlang.org/docs/26/man/erlang#process_info-2
   # coveralls-ignore-start
   defp monitored_by(reference) when is_reference(reference) do
