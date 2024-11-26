@@ -161,9 +161,20 @@ defmodule Deployex.Observer do
     })
   end
 
+  # coveralls-ignore-start
+  defp structure_id(id, _parent) when is_port(id) do
+    new(%{id: id, symbol: @port_symbol})
+  end
+
+  defp structure_id(id, _parent) when is_reference(id) do
+    new(%{id: id, symbol: @reference_symbol})
+  end
+
   defp structure_id(id, _parent) do
     new(%{id: id})
   end
+
+  # coveralls-ignore-stop
 
   # Check https://www.erlang.org/docs/26/man/erlang#process_info-2
   # coveralls-ignore-start
