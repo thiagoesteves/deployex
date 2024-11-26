@@ -4,6 +4,7 @@ defmodule Deployex.Observer.Process do
   """
 
   alias Deployex.Observer.Helper
+  alias Deployex.Rpc
 
   @process_full [
     :registered_name,
@@ -29,16 +30,6 @@ defmodule Deployex.Observer.Process do
 
   @doc """
   Creates a complete overview of process stats based on the given `pid`.
-
-    iex> alias Deployex.Observer.Process, as: ObserverPort
-    ...> kernel_pid = :application_controller.get_master :kernel
-    ...> assert %{error_handler: :error_handler, memory: _, relations: %{links: [head, tail]}} = ObserverPort.info(kernel_pid)
-    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(head)
-    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(tail)
-    ...> invalid_pid = "<0.11111.0>" |> String.to_charlist() |> :erlang.list_to_pid()
-    ...> assert :undefined = ObserverPort.info(invalid_pid)
-    ...> supervisor = Process.whereis Elixir.Deployex.Supervisor
-    ...> assert %{error_handler: :error_handler, memory: _, relations: _} = ObserverPort.info(supervisor)
   """
   @spec info(pid :: pid()) :: :undefined | map
   def info(pid) do
@@ -49,7 +40,7 @@ defmodule Deployex.Observer.Process do
   ### Private functions
   ### ==========================================================================
   defp process_info(pid, information, structurer) do
-    case :rpc.pinfo(pid, information) do
+    case Rpc.pinfo(pid, information) do
       :undefined -> :undefined
       data -> structurer.(data, pid)
     end

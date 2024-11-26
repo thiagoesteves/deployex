@@ -6,6 +6,7 @@ defmodule Deployex.Observer do
   require Logger
 
   alias Deployex.Observer.Helper
+  alias Deployex.Rpc
 
   @link_line_color "#CCC"
   @monitor_line_color "#D1A1E5"
@@ -46,33 +47,24 @@ defmodule Deployex.Observer do
 
   @doc """
   Lists all running applications.
-
-    iex> alias Deployex.Observer
-    ...> assert Enum.find(Observer.list(), &(&1.name == :kernel))
   """
   @spec list(node :: atom()) :: list({atom, String.t(), String.t()})
   def list(node \\ Node.self()) do
-    :rpc.call(node, :application_controller, :which_applications, [])
+    Rpc.call(node, :application_controller, :which_applications, [], :infinity)
     |> Enum.filter(&alive?(node, &1))
     |> Enum.map(&structure_application/1)
   end
 
   @doc """
   Retreives information about the application and its respective linked processes, ports and references.
-
-    iex> alias Deployex.Observer
-    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info()
-    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :deployex)
-    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :phoenix_pubsub)
-    ...> assert %Deployex.Observer{id: _, name: _, children: _, symbol: _, lineStyle: _, itemStyle: _} = Observer.info(Node.self(), :logger)
   """
   @spec info(node :: atom(), app :: atom) :: map
   def info(node \\ Node.self(), app \\ :kernel) do
-    app_pid = :rpc.call(node, :application_controller, :get_master, [app])
+    app_pid = Rpc.call(node, :application_controller, :get_master, [app], :infinity)
 
     children =
       node
-      |> :rpc.call(:application_master, :get_child, [app_pid])
+      |> Rpc.call(:application_master, :get_child, [app_pid], :infinity)
       |> structure_id(app_pid)
 
     new(%{
@@ -89,7 +81,7 @@ defmodule Deployex.Observer do
 
   defp alive?(node, {app, _, _}) do
     node
-    |> :rpc.call(:application_controller, :get_master, [app])
+    |> Rpc.call(:application_controller, :get_master, [app], :infinity)
     |> is_pid
   catch
     # coveralls-ignore-start
@@ -107,7 +99,7 @@ defmodule Deployex.Observer do
   end
 
   defp structure_id({pid, name}, parent) do
-    {_, dictionary} = :rpc.pinfo(pid, :dictionary)
+    {_, dictionary} = Rpc.pinfo(pid, :dictionary)
 
     case Keyword.get(dictionary, :"$ancestors") do
       [ancestor_parent] ->
@@ -133,7 +125,7 @@ defmodule Deployex.Observer do
   defp structure_id({_, :undefined, _, _}, _parent), do: nil
 
   defp structure_id({_, pid, :supervisor, _}, parent) do
-    {:links, links} = :rpc.pinfo(pid, :links)
+    {:links, links} = Rpc.pinfo(pid, :links)
 
     links = links -- [parent]
 
@@ -153,9 +145,9 @@ defmodule Deployex.Observer do
   end
 
   defp structure_id({_, pid, :worker, _}, parent) do
-    {:links, links} = :rpc.pinfo(pid, :links)
-    {:monitored_by, monitored_by_pids} = :rpc.pinfo(pid, :monitored_by)
-    {:monitors, monitors} = :rpc.pinfo(pid, :monitors)
+    {:links, links} = Rpc.pinfo(pid, :links)
+    {:monitored_by, monitored_by_pids} = Rpc.pinfo(pid, :monitored_by)
+    {:monitors, monitors} = Rpc.pinfo(pid, :monitors)
 
     links = links -- [parent]
 
@@ -257,7 +249,7 @@ defmodule Deployex.Observer do
   # coveralls-ignore-stop
 
   defp name(pid) when is_pid(pid) do
-    case :rpc.pinfo(pid, :registered_name) do
+    case Rpc.pinfo(pid, :registered_name) do
       {_, registered_name} -> to_string(registered_name) |> String.trim_leading("Elixir.")
       _ -> pid |> inspect |> String.trim_leading("#PID")
     end

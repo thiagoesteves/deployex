@@ -31,6 +31,12 @@ defmodule DeployexWeb.Observer.IndexTest do
   end
 
   test "GET /observer", %{conn: conn} do
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
     {:ok, _index_live, html} = live(conn, ~p"/observer")
 
     assert html =~ "Live Observer"
@@ -39,6 +45,12 @@ defmodule DeployexWeb.Observer.IndexTest do
   test "Add/Remove Local Service + Kernel App", %{conn: conn} do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
 
     {:ok, index_live, _html} = live(conn, ~p"/observer")
 
@@ -79,6 +91,12 @@ defmodule DeployexWeb.Observer.IndexTest do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
 
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
     {:ok, index_live, _html} = live(conn, ~p"/observer")
 
     index_live
@@ -118,6 +136,12 @@ defmodule DeployexWeb.Observer.IndexTest do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
 
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
     {:ok, index_live, _html} = live(conn, ~p"/observer")
 
     index_live
@@ -154,6 +178,12 @@ defmodule DeployexWeb.Observer.IndexTest do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
 
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
     {:ok, index_live, _html} = live(conn, ~p"/observer")
 
     index_live
@@ -173,7 +203,7 @@ defmodule DeployexWeb.Observer.IndexTest do
     html =
       index_live
       |> element("#observer-tree")
-      |> render_hook("request-process", %{"pid" => "#{inspect(port)}"})
+      |> render_hook("request-process", %{"id" => "#{inspect(port)}"})
 
     # Check the Port information is NOT being shown
     refute html =~ "Group Leader"
@@ -184,6 +214,12 @@ defmodule DeployexWeb.Observer.IndexTest do
   test "Update buttom with Deployex App + Local Service", %{conn: conn} do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
 
     {:ok, index_live, _html} = live(conn, ~p"/observer")
 
@@ -241,5 +277,42 @@ defmodule DeployexWeb.Observer.IndexTest do
     FixtureTerminal.terminate_all()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
+  end
+
+  test "Testing NodeUp/NodeDown", %{conn: conn} do
+    fake_node = :myapp@nohost
+    node = Node.self() |> to_string
+    service = String.replace(node, "@", "-")
+    test_pid_process = self()
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      send(test_pid_process, {:observer_index_pid, self()})
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/observer")
+
+    assert_receive {:observer_index_pid, observer_index_pid}, 1_000
+
+    index_live
+    |> element("#observer-multi-select-toggle-options")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-apps-kernel-add-item")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-services-#{service}-add-item")
+    |> render_click()
+
+    send(observer_index_pid, {:nodeup, fake_node})
+    send(observer_index_pid, {:nodedown, fake_node})
+
+    index_live
+    |> element("#observer-multi-select-apps-kernel-remove-item")
+    |> render_click()
   end
 end

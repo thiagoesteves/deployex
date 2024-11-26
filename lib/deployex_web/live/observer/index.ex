@@ -280,7 +280,9 @@ defmodule DeployexWeb.ObserverLive do
 
           update_observer_data(acc, data_key, %{"transition" => false, "data" => info})
         else
+          # coveralls-ignore-start
           update_observer_data(acc, data_key, nil)
+          # coveralls-ignore-stop
         end
       end)
 
@@ -313,7 +315,9 @@ defmodule DeployexWeb.ObserverLive do
 
           update_observer_data(acc, data_key, %{"transition" => false, "data" => info})
         else
+          # coveralls-ignore-start
           update_observer_data(acc, data_key, nil)
+          # coveralls-ignore-stop
         end
       end)
 
