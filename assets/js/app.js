@@ -106,7 +106,7 @@ hooks.ObserverEChart = {
 
     // Set the callback in the tooltip formatter (or any other part of the option)
     var callback = (args) => {
-      this.pushEventTo(this.el, "request-process", { id: args.data.id });
+      this.pushEventTo(this.el, "request-process", { id: args.data.id, series_name: args.seriesName });
       return args.data.id;
     }
 

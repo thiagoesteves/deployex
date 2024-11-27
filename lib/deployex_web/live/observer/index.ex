@@ -6,6 +6,7 @@ defmodule DeployexWeb.ObserverLive do
   alias Deployex.Observer
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Observer.Legend
+  alias DeployexWeb.Observer.Port
   alias DeployexWeb.Observer.Process
 
   @tooltip_debouncing 50
@@ -92,8 +93,11 @@ defmodule DeployexWeb.ObserverLive do
             <div id="observer-tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
           </div>
         </div>
-
-        <Process.content process_info={@current_selected_process.info} />
+        <%= if @current_selected_id.type == "pid" do %>
+          <Process.content info={@current_selected_id.info} />
+        <% else %>
+          <Port.content info={@current_selected_id.info} />
+        <% end %>
       </div>
     </div>
     """
@@ -109,7 +113,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
-     |> assign(:current_selected_process, %{info: nil, id_string: nil, debouncing: 10})
+     |> assign(:current_selected_id, reset_current_selected_id())
      |> assign(:show_apps_options, false)}
   end
 
@@ -119,7 +123,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
-     |> assign(:current_selected_process, %{info: nil, id_string: nil, debouncing: 10})
+     |> assign(:current_selected_id, reset_current_selected_id())
      |> assign(:show_apps_options, false)}
   end
 
@@ -146,33 +150,56 @@ defmodule DeployexWeb.ObserverLive do
 
   def handle_event(
         "request-process",
-        %{"id" => request_id},
-        %{assigns: %{current_selected_process: %{id_string: id_string, debouncing: debouncing}}} =
+        %{"id" => request_id, "series_name" => series_name},
+        %{assigns: %{current_selected_id: %{id_string: id_string, debouncing: debouncing}}} =
           socket
       )
       when id_string != request_id or debouncing < 0 do
     pid? = String.contains?(request_id, "#PID<")
+    port? = String.contains?(request_id, "#Port<")
 
-    current_selected_process =
-      if pid? do
-        pid =
-          request_id
-          |> String.trim_leading("#PID")
-          |> String.to_charlist()
-          |> :erlang.list_to_pid()
+    current_selected_id =
+      cond do
+        pid? ->
+          pid =
+            request_id
+            |> String.trim_leading("#PID")
+            |> String.to_charlist()
+            |> :erlang.list_to_pid()
 
-        Logger.info("Retrieving process info for pid: #{request_id}")
+          Logger.info("Retrieving process info for pid: #{request_id}")
 
-        %{
-          info: Observer.Process.info(pid),
-          id_string: request_id,
-          debouncing: @tooltip_debouncing
-        }
-      else
-        reset_current_selected_process(request_id)
+          %{
+            info: Observer.Process.info(pid),
+            id_string: request_id,
+            type: "pid",
+            debouncing: @tooltip_debouncing
+          }
+
+        port? ->
+          [service, _app] = String.split(series_name, "::")
+
+          port =
+            request_id
+            |> String.to_charlist()
+            |> :erlang.list_to_port()
+
+          node = String.to_existing_atom(service)
+
+          Logger.info("Retrieving port info for port: #{request_id}")
+
+          %{
+            info: Observer.Port.info(node, port),
+            id_string: request_id,
+            type: "port",
+            debouncing: @tooltip_debouncing
+          }
+
+        true ->
+          reset_current_selected_id(request_id)
       end
 
-    {:noreply, assign(socket, :current_selected_process, current_selected_process)}
+    {:noreply, assign(socket, :current_selected_id, current_selected_id)}
   end
 
   # The debouncing added here will reduce the number of Process.info requests since
@@ -180,12 +207,12 @@ defmodule DeployexWeb.ObserverLive do
   def handle_event(
         "request-process",
         _data,
-        %{assigns: %{current_selected_process: current_selected_process}} = socket
+        %{assigns: %{current_selected_id: current_selected_id}} = socket
       ) do
     {:noreply,
-     assign(socket, :current_selected_process, %{
-       current_selected_process
-       | debouncing: current_selected_process.debouncing - 1
+     assign(socket, :current_selected_id, %{
+       current_selected_id
+       | debouncing: current_selected_id.debouncing - 1
      })}
   end
 
@@ -230,7 +257,7 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply,
      socket
      |> assign(:node_info, node_info)
-     |> assign(:current_selected_process, reset_current_selected_process())}
+     |> assign(:current_selected_id, reset_current_selected_id())}
   end
 
   def handle_event(
@@ -254,7 +281,7 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply,
      socket
      |> assign(:node_info, node_info)
-     |> assign(:current_selected_process, reset_current_selected_process())}
+     |> assign(:current_selected_id, reset_current_selected_id())}
   end
 
   def handle_event(
@@ -289,7 +316,7 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply,
      socket
      |> assign(:node_info, node_info)
-     |> assign(:current_selected_process, reset_current_selected_process())}
+     |> assign(:current_selected_id, reset_current_selected_id())}
   end
 
   def handle_event(
@@ -324,7 +351,7 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply,
      socket
      |> assign(:node_info, node_info)
-     |> assign(:current_selected_process, reset_current_selected_process())}
+     |> assign(:current_selected_id, reset_current_selected_id())}
   end
 
   @impl true
@@ -357,7 +384,7 @@ defmodule DeployexWeb.ObserverLive do
     {:noreply,
      socket
      |> assign(:node_info, node_info)
-     |> assign(:current_selected_process, reset_current_selected_process())}
+     |> assign(:current_selected_id, reset_current_selected_id())}
   end
 
   defp data_key(service, apps), do: "#{service}::#{apps}"
@@ -434,8 +461,8 @@ defmodule DeployexWeb.ObserverLive do
     end)
   end
 
-  defp reset_current_selected_process(id_string \\ nil),
-    do: %{info: nil, id_string: id_string, debouncing: @tooltip_debouncing}
+  defp reset_current_selected_id(id_string \\ nil),
+    do: %{info: nil, id_string: id_string, type: nil, debouncing: @tooltip_debouncing}
 
   defp flare_chart_data(series) do
     %{

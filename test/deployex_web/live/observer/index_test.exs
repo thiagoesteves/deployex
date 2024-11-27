@@ -160,18 +160,23 @@ defmodule DeployexWeb.Observer.IndexTest do
 
     # Send the request 2 times to validate the path where the request
     # was already executed.
+    id = "#{inspect(pid)}"
+    series_name = "#{Node.self()}::kernel"
+
     index_live
     |> element("#observer-tree")
-    |> render_hook("request-process", %{"id" => "#{inspect(pid)}"})
+    |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
 
     html =
       index_live
       |> element("#observer-tree")
-      |> render_hook("request-process", %{"id" => "#{inspect(pid)}"})
+      |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
 
     # Check the Process information is being shown
     assert html =~ "Group Leader"
     assert html =~ "Heap Size"
+    refute html =~ "Os Pid"
+    refute html =~ "Connected"
   end
 
   test "Select Service+Apps and select a port to request information", %{conn: conn} do
@@ -200,14 +205,72 @@ defmodule DeployexWeb.Observer.IndexTest do
 
     port = Enum.random(:erlang.ports())
 
+    # Send the request 2 times to validate the path where the request
+    # was already executed.
+    id = "#{inspect(port)}"
+    series_name = "#{Node.self()}::kernel"
+
+    index_live
+    |> element("#observer-tree")
+    |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
+
     html =
       index_live
       |> element("#observer-tree")
-      |> render_hook("request-process", %{"id" => "#{inspect(port)}"})
+      |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
 
-    # Check the Port information is NOT being shown
+    # Check the Process information is being shown
     refute html =~ "Group Leader"
     refute html =~ "Heap Size"
+    assert html =~ "Os Pid"
+    assert html =~ "Connected"
+  end
+
+  test "Select Service+Apps and select a reference to request information", %{conn: conn} do
+    node = Node.self() |> to_string
+    service = String.replace(node, "@", "-")
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/observer")
+
+    index_live
+    |> element("#observer-multi-select-toggle-options")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-apps-kernel-add-item")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-services-#{service}-add-item")
+    |> render_click()
+
+    reference = make_ref()
+
+    # Send the request 2 times to validate the path where the request
+    # was already executed.
+    id = "#{inspect(reference)}"
+    series_name = "#{Node.self()}::kernel"
+
+    index_live
+    |> element("#observer-tree")
+    |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
+
+    html =
+      index_live
+      |> element("#observer-tree")
+      |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
+
+    # Check the Process information is being shown
+    refute html =~ "Group Leader"
+    refute html =~ "Heap Size"
+    refute html =~ "Os Pid"
+    refute html =~ "Connected"
   end
 
   @tag :capture_log
