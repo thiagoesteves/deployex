@@ -1,6 +1,8 @@
 defmodule Deployex.Observer do
   @moduledoc """
   This module will provide observability functions
+
+  Copied/Modified from https://github.com/shinyscorpion/wobserver
   """
 
   require Logger

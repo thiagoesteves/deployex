@@ -1,6 +1,8 @@
 defmodule Deployex.Observer.Helper do
   @moduledoc """
   Helper functions and JSON encoders.
+
+  Copied/Modified from https://github.com/shinyscorpion/wobserver
   """
 
   alias Jason.Encoder

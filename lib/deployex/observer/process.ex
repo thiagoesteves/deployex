@@ -1,6 +1,8 @@
 defmodule Deployex.Observer.Process do
   @moduledoc """
-  Process and pid handling.
+  Retrieve process links and information
+
+  Copied/Modified from https://github.com/shinyscorpion/wobserver
   """
 
   alias Deployex.Observer.Helper

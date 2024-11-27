@@ -41,10 +41,11 @@ Upon deployment, the following dashboard becomes available, providing easy acces
  * Provides a friendly UI that only authenticated users can access.
  * Allows setting a previously configured version in the UI, enabling DeployEx to enforce deployment of a specific version.
  * Supports individual application restarts via the UI, including DeployEx itself.
- * Allows access to current log files (stdout and stderr) for both monitored apps and DeployEx.
  * Provides easy access to the application shell:
    - IEx shell for monitored Elixir apps and DeployEx.
    - Erlang shell for monitored Gleam/Erlang apps.
+ * Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
+ * Supports process observability with links and information for all connected applications.
  * Provides easy access to the host shell (tmux).
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:
@@ -53,7 +54,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
    - Last deployment status
    - Number of crash restarts
    - Number of forced restarts
- * And much more to come ...
+ * And much more ...
 
 > [!NOTE]
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.

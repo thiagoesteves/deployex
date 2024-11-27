@@ -1,6 +1,6 @@
 defmodule Deployex.Observer.Port do
   @moduledoc """
-  Port handling.
+  Retrieve Port information
   """
 
   @doc """
