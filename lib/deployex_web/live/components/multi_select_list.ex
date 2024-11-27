@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Components.MultiSelect do
+defmodule DeployexWeb.Components.MultiSelectList do
   @moduledoc """
   Multi select box
 
@@ -106,45 +106,47 @@ defmodule DeployexWeb.Components.MultiSelect do
                   time: 300
                 )
               }>
-                <%= for item <- @unselected do %>
-                  <div class="flex w-full flex-wrap">
-                    <div class="flex items-start p-2">
-                      <div class="text-xs font-bold text-black"><%= item.name %>:</div>
-                    </div>
+                <div class="flex grid grid-cols-3 mt-1 gap-1 items-top">
+                  <%= for item <- @unselected do %>
+                    <div class="rounded-lg bg-white border border-solid border-blueGray-100 block overflow-y-auto max-h-[300px]">
+                      <div class="flex items-start bg-white p-2 sticky top-0 z-10">
+                        <div class=" text-xs font-bold text-black"><%= item.name %>:</div>
+                      </div>
 
-                    <%= for key <- item.keys do %>
-                      <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
-                        class="flex justify-center items-center m-1 font-medium py-1 px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
-                        phx-click="multi-select-add-item"
-                        phx-value-key={key}
-                        phx-value-item={item.name}
-                      >
-                        <div class="text-xs font-normal leading-none max-w-full flex-initial">
-                          <%= key %>
-                        </div>
-                        <div class="flex flex-auto flex-row-reverse">
-                          <div>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="100%"
-                              height="100%"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
-                            >
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                      <%= for key <- item.keys do %>
+                        <button
+                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
+                          class="flex justify-center items-center m-1 font-medium  px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
+                          phx-click="multi-select-add-item"
+                          phx-value-key={key}
+                          phx-value-item={item.name}
+                        >
+                          <div class="text-xs font-normal leading-none max-w-full flex-initial">
+                            <%= key %>
                           </div>
-                        </div>
-                      </button>
-                    <% end %>
-                  </div>
-                <% end %>
+                          <div class="flex flex-auto flex-row-reverse">
+                            <div>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="100%"
+                                height="100%"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
+                              >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </div>
+                          </div>
+                        </button>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
               </div>
             </div>
           </div>
