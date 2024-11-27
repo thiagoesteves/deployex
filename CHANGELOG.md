@@ -14,6 +14,7 @@
 ### Enhancements
  * [[`PR-83`](https://github.com/thiagoesteves/deployex/pull/83)] Adding Live logs tab
  * [[`PR-84`](https://github.com/thiagoesteves/deployex/pull/84)] Refactoring Terminal Server
+ * [[`PR-86`](https://github.com/thiagoesteves/deployex/pull/86)] Adding Live Observer
 
 ## 0.3.0-rc22 (2024-11-04)
 
