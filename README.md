@@ -15,9 +15,9 @@ DeployEx is currently used by:
 
 ![Deployment Architecture](docs/static/deployex.png)
 
-Upon deployment, the following dashboard becomes available, offering access to logs for both DeployEx and monitored applications, along with an IEX and/or erl terminal."
+Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
-[![Running with no monitored apps](docs/static/deployex_monitoring_app_tls.png)](docs/static/deployex.mov)
+[![Watch the video](docs/static/deployex_monitoring_app_tls.png)](https://github.com/user-attachments/assets/188adc35-c022-4061-84ad-0e2d47af614e)
 
 ## 🔉 Features
 
