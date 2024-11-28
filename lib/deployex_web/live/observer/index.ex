@@ -438,10 +438,10 @@ defmodule DeployexWeb.ObserverLive do
                                                               } = acc ->
       service = instance_node |> to_string
       [name, _hostname] = String.split(service, "@")
-      services_keys = services_keys ++ [service]
+      services_keys = (services_keys ++ [service]) |> Enum.sort()
 
       instance_app_keys = Observer.list(instance_node) |> Enum.map(&(&1.name |> to_string))
-      apps_keys = (apps_keys ++ instance_app_keys) |> Enum.uniq()
+      apps_keys = (apps_keys ++ instance_app_keys) |> Enum.sort() |> Enum.uniq()
 
       node =
         if service in selected_services_keys do
