@@ -30,8 +30,14 @@ defmodule DeployexWeb.Components.MultiSelect do
 
                 <%= for item <- @selected do %>
                   <%= for key <- item.keys do %>
-                    <div class="flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full text-teal-700 bg-teal-100 border border-teal-300 ">
-                      <div class="text-xs font-normal leading-none max-w-full flex-initial">
+                    <div class={[
+                      "flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full border",
+                      border_item_color(item.name)
+                    ]}>
+                      <div class={[
+                        "text-xs font-normal leading-none max-w-full flex-initial",
+                        text_item_color(item.name)
+                      ]}>
                         <%= "#{item.name}:#{key}" %>
                       </div>
                       <button
@@ -107,42 +113,44 @@ defmodule DeployexWeb.Components.MultiSelect do
                 )
               }>
                 <%= for item <- @unselected do %>
-                  <div class="flex w-full flex-wrap">
+                  <div class="w-full flex-wrap">
                     <div class="flex items-start p-2">
                       <div class="text-xs font-bold text-black"><%= item.name %>:</div>
                     </div>
 
-                    <%= for key <- item.keys do %>
-                      <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
-                        class="flex justify-center items-center m-1 font-medium py-1 px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
-                        phx-click="multi-select-add-item"
-                        phx-value-key={key}
-                        phx-value-item={item.name}
-                      >
-                        <div class="text-xs font-normal leading-none max-w-full flex-initial">
-                          <%= key %>
-                        </div>
-                        <div class="flex flex-auto flex-row-reverse">
-                          <div>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="100%"
-                              height="100%"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
-                            >
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                    <div class="flex flex-wrap">
+                      <%= for key <- item.keys do %>
+                        <button
+                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
+                          class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
+                          phx-click="multi-select-add-item"
+                          phx-value-key={key}
+                          phx-value-item={item.name}
+                        >
+                          <div class="text-xs font-normal leading-none max-w-full flex-initial">
+                            <%= key %>
                           </div>
-                        </div>
-                      </button>
-                    <% end %>
+                          <div class="flex flex-auto flex-row-reverse">
+                            <div>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="100%"
+                                height="100%"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
+                              >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </div>
+                          </div>
+                        </button>
+                      <% end %>
+                    </div>
                   </div>
                 <% end %>
               </div>
@@ -153,4 +161,14 @@ defmodule DeployexWeb.Components.MultiSelect do
     </div>
     """
   end
+
+  def border_item_color("services"), do: "border-teal-300"
+  def border_item_color("logs"), do: "border-yellow-400"
+  def border_item_color("apps"), do: "border-blue-400"
+  def border_item_color(_), do: "border-gray-300"
+
+  def text_item_color("services"), do: "text-teal-700"
+  def text_item_color("logs"), do: "text-yellow-700"
+  def text_item_color("apps"), do: "text-blue-700"
+  def text_item_color(_), do: "text-teal-700"
 end

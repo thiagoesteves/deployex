@@ -60,7 +60,7 @@ defmodule DeployexWeb.ObserverLive do
       |> assign(unselected_apps_keys: unselected_apps_keys)
 
     ~H"""
-    <div class="min-h-screen bg-white ">
+    <div class="min-h-screen bg-white">
       <div class="flex">
         <MultiSelect.content
           id="observer-multi-select"

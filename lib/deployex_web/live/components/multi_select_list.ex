@@ -30,8 +30,14 @@ defmodule DeployexWeb.Components.MultiSelectList do
 
                 <%= for item <- @selected do %>
                   <%= for key <- item.keys do %>
-                    <div class="flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full text-teal-700 bg-teal-100 border border-teal-300 ">
-                      <div class="text-xs font-normal leading-none max-w-full flex-initial">
+                    <div class={[
+                      "flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full border",
+                      border_item_color(item.name)
+                    ]}>
+                      <div class={[
+                        "text-xs font-normal leading-none max-w-full flex-initial",
+                        text_item_color(item.name)
+                      ]}>
                         <%= "#{item.name}:#{key}" %>
                       </div>
                       <button
@@ -155,4 +161,14 @@ defmodule DeployexWeb.Components.MultiSelectList do
     </div>
     """
   end
+
+  def border_item_color("services"), do: "border-teal-300"
+  def border_item_color("modules"), do: "border-red-500"
+  def border_item_color("functions"), do: "border-blue-400"
+  def border_item_color(_), do: "border-gray-300"
+
+  def text_item_color("services"), do: "text-teal-700"
+  def text_item_color("modules"), do: "text-red-500"
+  def text_item_color("functions"), do: "text-blue-400"
+  def text_item_color(_), do: "text-teal-700"
 end

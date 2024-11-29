@@ -34,7 +34,7 @@ defmodule DeployexWeb.TracingLive do
       |> assign(show_tracing_options: show_tracing_options)
 
     ~H"""
-    <div class="min-h-screen bg-white ">
+    <div class="min-h-screen bg-white">
       <div class="flex">
         <MultiSelectList.content
           id="tracing-multi-select"
@@ -69,7 +69,18 @@ defmodule DeployexWeb.TracingLive do
           Stop
         </button>
       </div>
-      <div class="p-2"></div>
+      <div class="p-2">
+        <div class="bg-white w-full shadow-lg rounded">
+          <.table_logs id="live-logs" h_max_size="max-h-[400px]" rows={@streams.tracing_messages}>
+            <:col :let={{_id, tracing_message}} label="SERVICE">
+              <span><%= tracing_message.service %></span>
+            </:col>
+            <:col :let={{_id, tracing_message}} label="CONTENT">
+              <%= tracing_message.content %>
+            </:col>
+          </.table_logs>
+        </div>
+      </div>
     </div>
     """
   end
@@ -84,7 +95,8 @@ defmodule DeployexWeb.TracingLive do
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
      |> assign(:trace_session_id, nil)
-     |> assign(:show_tracing_options, false)}
+     |> assign(:show_tracing_options, false)
+     |> stream(:tracing_messages, [])}
   end
 
   def mount(_params, _session, socket) do
@@ -93,7 +105,8 @@ defmodule DeployexWeb.TracingLive do
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
      |> assign(:trace_session_id, nil)
-     |> assign(:show_tracing_options, false)}
+     |> assign(:show_tracing_options, false)
+     |> stream(:tracing_messages, [])}
   end
 
   @impl true
@@ -177,7 +190,10 @@ defmodule DeployexWeb.TracingLive do
 
       case DeployexT.start_trace(functions_to_monitor) do
         {:ok, %{session_id: session_id}} ->
-          {:noreply, assign(socket, :trace_session_id, session_id)}
+          {:noreply,
+           socket
+           |> assign(:trace_session_id, session_id)
+           |> stream(:tracing_messages, [], reset: true)}
 
         {:error, _} ->
           {:noreply, assign(socket, :trace_session_id, nil)}
@@ -319,7 +335,13 @@ defmodule DeployexWeb.TracingLive do
   def handle_info({:new_trace_message, _session_id, node, index, message}, socket) do
     Logger.info("Message: #{node} - [#{index}] :: #{message}")
 
-    {:noreply, socket}
+    data = %{
+      service: node,
+      id: Deployex.Common.uuid4(),
+      content: message
+    }
+
+    {:noreply, stream(socket, :tracing_messages, [data])}
   end
 
   def handle_info({event, _session_id}, socket)

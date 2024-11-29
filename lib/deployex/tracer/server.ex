@@ -67,7 +67,9 @@ defmodule Deployex.Tracer.Server do
         _from,
         _state
       ) do
-    Logger.warning(
+    Process.monitor(request_pid)
+
+    Logger.info(
       "New trace requested session: #{session_id} functions: #{inspect(functions_by_node)}"
     )
 
@@ -174,6 +176,23 @@ defmodule Deployex.Tracer.Server do
   end
 
   def handle_info({:stop_tracing, _session_id}, state) do
+    {:noreply, state}
+  end
+
+  # NOTE: Request PID process was terminated
+  def handle_info(
+        {:DOWN, _reference, :process, target_pid, _reason},
+        %{request_pid: request_pid}
+      )
+      when target_pid == request_pid do
+    Logger.warning("target process was terminated")
+
+    :dbg.stop()
+
+    {:noreply, %DeployexT{}}
+  end
+
+  def handle_info({:DOWN, _reference, :process, _target_pid, _reason}, state) do
     {:noreply, state}
   end
 
