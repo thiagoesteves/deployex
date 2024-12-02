@@ -88,30 +88,30 @@ defmodule Deployex.Tracer.Server do
       trace_ms, {session_id, index} ->
         {origin_pid, type, message} =
           case trace_ms do
-            {_, pid, :call, {module, fun, args}, caller, timestamp} ->
+            {_, pid, :call = type, {module, fun, args}, caller, timestamp} ->
               {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
               arg_list = Enum.map(args, &inspect/1)
 
-              {pid, :caller,
+              {pid, type,
                "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")}) caller: #{inspect(caller)}"}
 
-            {_, pid, :call, {module, fun, args}, timestamp} ->
+            {_, pid, :call = type, {module, fun, args}, timestamp} ->
               {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
               arg_list = Enum.map(args, &inspect/1)
 
-              {pid, :call,
+              {pid, type,
                "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")})"}
 
-            {_, pid, :return_from, {module, fun, arity}, return_value, timestamp} ->
+            {_, pid, :return_from = type, {module, fun, arity}, return_value, timestamp} ->
               {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
 
-              {pid, :return_from,
+              {pid, type,
                "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) return_value: #{inspect(return_value)}"}
 
-            {_, pid, :exception_from, {module, fun, arity}, exception_value, timestamp} ->
+            {_, pid, :exception_from = type, {module, fun, arity}, exception_value, timestamp} ->
               {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
 
-              {pid, :exception_from,
+              {pid, type,
                "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) exception_value: #{inspect(exception_value)}"}
 
             trace_msg ->
