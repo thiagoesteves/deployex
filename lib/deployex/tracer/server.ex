@@ -7,6 +7,7 @@ defmodule Deployex.Tracer.Server do
    * https://github.com/erlang/otp/blob/master/lib/observer/src/observer_trace_wx.erl
    * https://kaiwern.com/posts/2020/11/02/debugging-with-tracing-in-elixir/
    * https://blog.appsignal.com/2023/01/10/debugging-and-tracing-in-erlang.html
+   * https://github.dev/massemanet/redbug
   """
   use GenServer
   require Logger
@@ -55,6 +56,7 @@ defmodule Deployex.Tracer.Server do
     {:reply, state, state}
   end
 
+  # credo:disable-for-lines:1
   def handle_call(
         {:start_trace,
          %{
@@ -80,33 +82,64 @@ defmodule Deployex.Tracer.Server do
     monitored_nodes = Map.keys(functions_by_node)
 
     handle_trace = fn
-      {_, pid, _, {module, fun, args}, timestamp}, {session_id, index}
-      when index <= max_messages ->
-        node = :erlang.node(pid)
+      _trace_message, {_session_id, index} when index > max_messages ->
+        :dbg.stop()
+
+      trace_ms, {session_id, index} ->
+        {origin_pid, type, message} =
+          case trace_ms do
+            {_, pid, :call, {module, fun, args}, caller, timestamp} ->
+              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+              arg_list = Enum.map(args, &inspect/1)
+
+              {pid, :caller,
+               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")}) caller: #{inspect(caller)}"}
+
+            {_, pid, :call, {module, fun, args}, timestamp} ->
+              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+              arg_list = Enum.map(args, &inspect/1)
+
+              {pid, :call,
+               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")})"}
+
+            {_, pid, :return_from, {module, fun, arity}, return_value, timestamp} ->
+              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+
+              {pid, :return_from,
+               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) return_value: #{inspect(return_value)}"}
+
+            {_, pid, :exception_from, {module, fun, arity}, exception_value, timestamp} ->
+              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+
+              {pid, :exception_from,
+               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) exception_value: #{inspect(exception_value)}"}
+
+            trace_msg ->
+              Logger.warning(
+                "Not able to decode trace_mg: #{inspect(trace_msg)} session_index: #{inspect(index)}"
+              )
+
+              {nil, nil, nil}
+          end
+
+        node = origin_pid && :erlang.node(origin_pid)
 
         if node in monitored_nodes do
-          {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
-          arg_list = Enum.map(args, &inspect/1)
-
-          message =
-            "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")})"
-
-          send(request_pid, {:new_trace_message, session_id, node, index, message})
+          send(request_pid, {:new_trace_message, session_id, node, index, type, message})
 
           if index == max_messages do
             send(tracer_pid, {:stop_tracing, session_id})
             send(request_pid, {:stop_tracing, session_id})
             :dbg.stop()
+          else
+            {session_id, index + 1}
           end
-
-          {session_id, index + 1}
         else
           {session_id, index}
         end
-
-      _trace_message, _session_index ->
-        :dbg.stop()
     end
+
+    default_functions_matchspecs = DeployexT.get_default_functions_matchspecs()
 
     # Start Tracer with Handler Function
     :dbg.tracer(:process, {handle_trace, {session_id, 1}})
@@ -118,8 +151,19 @@ defmodule Deployex.Tracer.Server do
       end
 
       # Add functions to be traced
+      # credo:disable-for-lines:12
       Enum.each(functions, fn function ->
-        :dbg.tp(function.module, function.function, function.arity, [])
+        match_specs =
+          Enum.reduce(function.match_spec, [], fn spec, acc ->
+            atom_spec = String.to_existing_atom(spec)
+
+            case Map.get(default_functions_matchspecs, atom_spec) do
+              nil -> acc
+              %{pattern: pattern} -> acc ++ pattern
+            end
+          end)
+
+        :dbg.tp(function.module, function.function, function.arity, match_specs)
       end)
     end)
 

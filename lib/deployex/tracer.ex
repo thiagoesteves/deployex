@@ -72,6 +72,32 @@ defmodule Deployex.Tracer do
     %{node: node, module: module, functions: all_functions}
   end
 
+  @spec get_default_functions_matchspecs :: map()
+  def get_default_functions_matchspecs do
+    %{
+      return_trace: %{
+        pattern: [{:_, [], [{:return_trace}]}],
+        name: "Return Trace",
+        fun: "fun(_) -> return_trace() end"
+      },
+      exception_trace: %{
+        pattern: [{:_, [], [{:exception_trace}]}],
+        name: "Exception Trace",
+        fun: "fun(_) -> exception_trace() end"
+      },
+      caller: %{
+        pattern: [{:_, [], [{:message, {:caller}}]}],
+        name: "Message Caller",
+        fun: "fun(_) -> message(caller()) end"
+      },
+      process_dump: %{
+        pattern: [{:_, [], [{:message, {:process_dump}}]}],
+        name: "Message Dump",
+        fun: "fun(_) -> message(process_dump()) end"
+      }
+    }
+  end
+
   @spec start_trace(functions :: list(), attrs :: map()) ::
           {:ok, t()} | {:error, :already_started}
   def start_trace(functions, attrs \\ %{}) do

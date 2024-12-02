@@ -112,11 +112,17 @@ defmodule DeployexWeb.Components.MultiSelectList do
                   time: 300
                 )
               }>
-                <div class="flex grid grid-cols-3 mt-1 gap-1 items-top">
+                <% n_columns = length(@unselected) %>
+                <div class={["flex grid mt-1 gap-1 items-top", "grid-cols-#{n_columns}"]}>
                   <%= for item <- @unselected do %>
                     <div class="rounded-lg bg-white border border-solid border-blueGray-100 block overflow-y-auto max-h-[300px]">
                       <div class="flex items-start bg-white p-2 sticky top-0 z-10">
-                        <div class=" text-xs font-bold text-black"><%= item.name %>:</div>
+                        <%= if item[:info] do %>
+                          <div class=" text-xs font-bold text-black"><%= item.name %>
+                            <%= item.info %>:</div>
+                        <% else %>
+                          <div class=" text-xs font-bold text-black"><%= item.name %>:</div>
+                        <% end %>
                       </div>
 
                       <%= for key <- item.keys do %>
@@ -165,10 +171,12 @@ defmodule DeployexWeb.Components.MultiSelectList do
   def border_item_color("services"), do: "border-teal-300"
   def border_item_color("modules"), do: "border-red-500"
   def border_item_color("functions"), do: "border-blue-400"
+  def border_item_color("match_spec"), do: "border-yellow-400"
   def border_item_color(_), do: "border-gray-300"
 
   def text_item_color("services"), do: "text-teal-700"
   def text_item_color("modules"), do: "text-red-500"
   def text_item_color("functions"), do: "text-blue-400"
+  def text_item_color("match_spec"), do: "text-yellow-700"
   def text_item_color(_), do: "text-teal-700"
 end
