@@ -367,15 +367,20 @@ defmodule DeployexWeb.Observer.IndexTest do
     |> element("#observer-multi-select-apps-kernel-add-item")
     |> render_click()
 
-    index_live
-    |> element("#observer-multi-select-services-#{service}-add-item")
-    |> render_click()
+    html =
+      index_live
+      |> element("#observer-multi-select-services-#{service}-add-item")
+      |> render_click()
 
+    assert html =~ "services:#{node}"
+    assert html =~ "apps:kernel"
+
+    # Check node up/down doesn't change the selected items
     send(observer_index_pid, {:nodeup, fake_node})
     send(observer_index_pid, {:nodedown, fake_node})
 
-    index_live
-    |> element("#observer-multi-select-apps-kernel-remove-item")
-    |> render_click()
+    assert html = render(index_live)
+    assert html =~ "services:#{node}"
+    assert html =~ "apps:kernel"
   end
 end

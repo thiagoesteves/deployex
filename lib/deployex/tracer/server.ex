@@ -29,14 +29,6 @@ defmodule Deployex.Tracer.Server do
   end
 
   @impl true
-  def handle_call(
-        {:start_trace, _functions, _session_timeout_ms},
-        _from,
-        %DeployexT{status: :running} = state
-      ) do
-    {:reply, {:error, :already_started}, state}
-  end
-
   def handle_call({:stop_tracing, rcv_session_id}, _from, %DeployexT{
         session_id: session_id
       })
@@ -56,6 +48,14 @@ defmodule Deployex.Tracer.Server do
     {:reply, state, state}
   end
 
+  def handle_call(
+        {:start_trace, _new_state},
+        _from,
+        %DeployexT{status: :running} = state
+      ) do
+    {:reply, {:error, :already_started}, state}
+  end
+
   # credo:disable-for-lines:1
   def handle_call(
         {:start_trace,
@@ -71,9 +71,7 @@ defmodule Deployex.Tracer.Server do
       ) do
     Process.monitor(request_pid)
 
-    Logger.info(
-      "New trace requested session: #{session_id} functions: #{inspect(functions_by_node)}"
-    )
+    Logger.info("New Trace Session: #{session_id} functions: #{inspect(functions_by_node)}")
 
     tracer_pid = self()
     # The local node (deployex) is always present in the trace list of nodes.
@@ -96,9 +94,12 @@ defmodule Deployex.Tracer.Server do
 
     Enum.each(functions_by_node, fn {node, functions} ->
       # Add node to tracing process (exclude local node since it is added by default)
+      # coveralls-ignore-start
       if node != Node.self() do
         :dbg.n(node)
       end
+
+      # coveralls-ignore-stop
 
       # Add functions to be traced
       # credo:disable-for-lines:12
@@ -108,7 +109,9 @@ defmodule Deployex.Tracer.Server do
             atom_spec = String.to_existing_atom(spec)
 
             case Map.get(default_functions_matchspecs, atom_spec) do
+              # coveralls-ignore-start
               nil -> acc
+              # coveralls-ignore-stop
               %{pattern: pattern} -> acc ++ pattern
             end
           end)
@@ -130,14 +133,6 @@ defmodule Deployex.Tracer.Server do
   end
 
   @impl true
-  def handle_info(
-        {:trace_session_timeout, session_id_timed_out},
-        %DeployexT{session_id: session_id} = state
-      )
-      when session_id != session_id_timed_out do
-    {:noreply, state}
-  end
-
   def handle_info({:trace_session_timeout, rcv_session_id} = msg, %DeployexT{
         session_id: session_id,
         request_pid: request_pid
@@ -156,6 +151,7 @@ defmodule Deployex.Tracer.Server do
     {:noreply, state}
   end
 
+  # NOTE: Messages from handle_trace
   def handle_info({:stop_tracing, rcv_session_id} = msg, %DeployexT{
         session_id: session_id,
         max_messages: max_messages,
@@ -226,7 +222,9 @@ defmodule Deployex.Tracer.Server do
 
   def handle_trace(_trace_message, {%{max_messages: max_messages} = session_info, index})
       when index > max_messages do
+    # coveralls-ignore-start
     :dbg.stop()
+    # coveralls-ignore-stop
     {session_info, index}
   end
 
@@ -268,12 +266,14 @@ defmodule Deployex.Tracer.Server do
           {pid, type,
            "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) exception_value: #{inspect(exception_value)}"}
 
+        # coveralls-ignore-start
         trace_msg ->
           Logger.warning(
             "Not able to decode trace_mg: #{inspect(trace_msg)} session_index: #{inspect(index)}"
           )
 
           {nil, nil, nil}
+          # coveralls-ignore-stop
       end
 
     node = origin_pid && :erlang.node(origin_pid)

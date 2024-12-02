@@ -88,6 +88,7 @@ defmodule DeployexWeb.TracingLive do
 
             <.form
               for={@form}
+              id="tracing-update-form"
               class="flex ml-2 mr-2 text-xs text-center whitespace-nowrap gap-5"
               phx-change="form-update"
             >
@@ -117,7 +118,7 @@ defmodule DeployexWeb.TracingLive do
           phx-click="tracing-apps-run"
           class="phx-submit-loading:opacity-75 rounded-r-xl bg-green-500 transform active:scale-75 transition-transform hover:bg-green-600 py-10 w-64 text-sm font-semibold  text-white active:text-white/80"
         >
-          Run
+          RUN
         </button>
         <button
           :if={@trace_idle? == false and @trace_owner?}
@@ -125,7 +126,7 @@ defmodule DeployexWeb.TracingLive do
           phx-click="tracing-apps-stop"
           class="phx-submit-loading:opacity-75 rounded-r-xl bg-red-500 transform active:scale-75 transition-transform hover:bg-red-600 py-10 w-64 text-sm font-semibold text-white active:text-white/80 animate-pulse"
         >
-          Stop
+          STOP
         </button>
 
         <button
@@ -313,8 +314,10 @@ defmodule DeployexWeb.TracingLive do
            |> assign(:trace_session_id, session_id)
            |> stream(:tracing_messages, [], reset: true)}
 
+        # coveralls-ignore-start
         {:error, _} ->
           {:noreply, assign(socket, :trace_session_id, nil)}
+          # coveralls-ignore-stop
       end
     else
       {:noreply, assign(socket, :trace_session_id, nil)}

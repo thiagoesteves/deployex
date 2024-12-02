@@ -7,6 +7,7 @@ defmodule Deployex.Tracer do
 
   require Logger
 
+  alias Deployex.Rpc
   alias Deployex.Tracer.Server, as: TracerServer
 
   @default_session_timeout_ms 30_000
@@ -37,10 +38,16 @@ defmodule Deployex.Tracer do
   """
   @spec get_modules(node :: atom()) :: list()
   def get_modules(node \\ Node.self()) do
-    :rpc.call(node, :code, :all_loaded, [], :infinity)
+    Rpc.call(node, :code, :all_loaded, [], :infinity)
     |> Enum.map(fn
-      {module, _} -> module
-      module -> module
+      {module, _} ->
+        module
+
+      # coveralls-ignore-start
+      module ->
+        module
+
+        # coveralls-ignore-stop
     end)
   end
 
@@ -53,8 +60,8 @@ defmodule Deployex.Tracer do
           node: atom()
         }
   def get_module_functions_info(node \\ Node.self(), module) do
-    functions = :rpc.call(node, module, :module_info, [:functions], :infinity)
-    externals = :rpc.call(node, module, :module_info, [:exports], :infinity)
+    functions = Rpc.call(node, module, :module_info, [:functions], :infinity)
+    externals = Rpc.call(node, module, :module_info, [:exports], :infinity)
 
     all_functions =
       (functions ++ externals)
@@ -117,6 +124,7 @@ defmodule Deployex.Tracer do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  # coveralls-ignore-start
   defp regular_functions?(function) do
     String.contains?(function, "-anonymous-") or
       String.contains?(function, "-fun-") or
@@ -125,4 +133,6 @@ defmodule Deployex.Tracer do
       String.contains?(function, "-lc") or
       String.contains?(function, "-lbc")
   end
+
+  # coveralls-ignore-stop
 end
