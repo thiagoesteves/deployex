@@ -81,68 +81,18 @@ defmodule Deployex.Tracer.Server do
     # should be included or filtered out.
     monitored_nodes = Map.keys(functions_by_node)
 
-    handle_trace = fn
-      _trace_message, {_session_id, index} when index > max_messages ->
-        :dbg.stop()
-
-      trace_ms, {session_id, index} ->
-        {origin_pid, type, message} =
-          case trace_ms do
-            {_, pid, :call = type, {module, fun, args}, caller, timestamp} ->
-              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
-              arg_list = Enum.map(args, &inspect/1)
-
-              {pid, type,
-               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")}) caller: #{inspect(caller)}"}
-
-            {_, pid, :call = type, {module, fun, args}, timestamp} ->
-              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
-              arg_list = Enum.map(args, &inspect/1)
-
-              {pid, type,
-               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")})"}
-
-            {_, pid, :return_from = type, {module, fun, arity}, return_value, timestamp} ->
-              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
-
-              {pid, type,
-               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) return_value: #{inspect(return_value)}"}
-
-            {_, pid, :exception_from = type, {module, fun, arity}, exception_value, timestamp} ->
-              {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
-
-              {pid, type,
-               "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) exception_value: #{inspect(exception_value)}"}
-
-            trace_msg ->
-              Logger.warning(
-                "Not able to decode trace_mg: #{inspect(trace_msg)} session_index: #{inspect(index)}"
-              )
-
-              {nil, nil, nil}
-          end
-
-        node = origin_pid && :erlang.node(origin_pid)
-
-        if node in monitored_nodes do
-          send(request_pid, {:new_trace_message, session_id, node, index, type, message})
-
-          if index == max_messages do
-            send(tracer_pid, {:stop_tracing, session_id})
-            send(request_pid, {:stop_tracing, session_id})
-            :dbg.stop()
-          else
-            {session_id, index + 1}
-          end
-        else
-          {session_id, index}
-        end
-    end
+    session_info = %{
+      session_id: session_id,
+      tracer_pid: tracer_pid,
+      request_pid: request_pid,
+      monitored_nodes: monitored_nodes,
+      max_messages: max_messages
+    }
 
     default_functions_matchspecs = DeployexT.get_default_functions_matchspecs()
 
     # Start Tracer with Handler Function
-    :dbg.tracer(:process, {handle_trace, {session_id, 1}})
+    :dbg.tracer(:process, {&handle_trace/2, {session_info, 1}})
 
     Enum.each(functions_by_node, fn {node, functions} ->
       # Add node to tracing process (exclude local node since it is added by default)
@@ -273,4 +223,73 @@ defmodule Deployex.Tracer.Server do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
+
+  def handle_trace(_trace_message, {%{max_messages: max_messages} = session_info, index})
+      when index > max_messages do
+    :dbg.stop()
+    {session_info, index}
+  end
+
+  def handle_trace(
+        trace_ms,
+        {%{
+           session_id: session_id,
+           tracer_pid: tracer_pid,
+           request_pid: request_pid,
+           monitored_nodes: monitored_nodes,
+           max_messages: max_messages
+         } = session_info, index}
+      ) do
+    {origin_pid, type, message} =
+      case trace_ms do
+        {_, pid, :call = type, {module, fun, args}, caller, timestamp} ->
+          {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+          arg_list = Enum.map(args, &inspect/1)
+
+          {pid, type,
+           "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")}) caller: #{inspect(caller)}"}
+
+        {_, pid, :call = type, {module, fun, args}, timestamp} ->
+          {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+          arg_list = Enum.map(args, &inspect/1)
+
+          {pid, type,
+           "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}(#{Enum.join(arg_list, ", ")})"}
+
+        {_, pid, :return_from = type, {module, fun, arity}, return_value, timestamp} ->
+          {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+
+          {pid, type,
+           "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) return_value: #{inspect(return_value)}"}
+
+        {_, pid, :exception_from = type, {module, fun, arity}, exception_value, timestamp} ->
+          {{y, mm, d}, {h, m, s}} = :calendar.now_to_datetime(timestamp)
+
+          {pid, type,
+           "[#{y}-#{mm}-#{d} #{h}:#{m}:#{s}] (#{inspect(pid)}) #{inspect(module)}.#{fun}/#{arity}}) exception_value: #{inspect(exception_value)}"}
+
+        trace_msg ->
+          Logger.warning(
+            "Not able to decode trace_mg: #{inspect(trace_msg)} session_index: #{inspect(index)}"
+          )
+
+          {nil, nil, nil}
+      end
+
+    node = origin_pid && :erlang.node(origin_pid)
+
+    if node in monitored_nodes do
+      send(request_pid, {:new_trace_message, session_id, node, index, type, message})
+
+      if index == max_messages do
+        send(tracer_pid, {:stop_tracing, session_id})
+        send(request_pid, {:stop_tracing, session_id})
+        :dbg.stop()
+      else
+        {session_info, index + 1}
+      end
+    else
+      {session_info, index}
+    end
+  end
 end
