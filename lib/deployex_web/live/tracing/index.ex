@@ -73,8 +73,8 @@ defmodule DeployexWeb.TracingLive do
             </div>
             <div class="ml-2 mr-2 mt-2 mb-2 text-xs">
               Incorrect use of the <b>:dbg</b>
-              tracer in production can lead to performance degradation,
-              and long-running traces may introduce latency. <b>DeployEx Live tracing</b>
+              tracer in production can lead to performance degradation, latency and crashes.
+              <b>DeployEx Live tracing</b>
               enforces limits on the maximum number of messages and applies a timeout (in seconds)
               to ensure the debugger doesn't remain active unintentionally. Check out the
               <a
@@ -480,8 +480,6 @@ defmodule DeployexWeb.TracingLive do
   end
 
   def handle_info({:new_trace_message, _session_id, node, index, type, message}, socket) do
-    # Logger.debug("Message: #{node} - [#{index}] :: #{message}")
-
     data = %{
       service: node,
       id: Deployex.Common.uuid4(),
@@ -502,7 +500,7 @@ defmodule DeployexWeb.TracingLive do
   end
 
   defp default_form_options do
-    %{"max_messages" => "10", "session_timeout_seconds" => "30"}
+    %{"max_messages" => "3", "session_timeout_seconds" => "30"}
   end
 
   defp node_info_new do
