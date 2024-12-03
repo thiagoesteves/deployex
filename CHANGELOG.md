@@ -12,9 +12,10 @@
  * None
 
 ### Enhancements
- * [[`PR-83`](https://github.com/thiagoesteves/deployex/pull/83)] Adding Live logs tab
+ * [[`PR-83`](https://github.com/thiagoesteves/deployex/pull/83)] Adding Live logs option
  * [[`PR-84`](https://github.com/thiagoesteves/deployex/pull/84)] Refactoring Terminal Server
- * [[`PR-86`](https://github.com/thiagoesteves/deployex/pull/86)] Adding Live Observer
+ * [[`PR-86`](https://github.com/thiagoesteves/deployex/pull/86)] Adding Live Observer option
+ * [[`PR-88`](https://github.com/thiagoesteves/deployex/pull/88)] Adding Live Tracing option
 
 ## 0.3.0-rc22 (2024-11-04)
 

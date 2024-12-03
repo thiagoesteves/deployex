@@ -1,8 +1,6 @@
 defmodule Deployex.Tracer do
   @moduledoc """
-
-
-  Copied/Modified from
+  This module provides Tracing context
   """
 
   require Logger
@@ -79,6 +77,9 @@ defmodule Deployex.Tracer do
     %{node: node, module: module, functions: all_functions}
   end
 
+  @doc """
+  This function retrieves all match specs available
+  """
   @spec get_default_functions_matchspecs :: map()
   def get_default_functions_matchspecs do
     %{
@@ -105,17 +106,26 @@ defmodule Deployex.Tracer do
     }
   end
 
+  @doc """
+  This function starts the trace for the passed module/functions
+  """
   @spec start_trace(functions :: list(), attrs :: map()) ::
           {:ok, t()} | {:error, :already_started}
   def start_trace(functions, attrs \\ %{}) do
     TracerServer.start_trace(functions, attrs)
   end
 
+  @doc """
+  This function stops the trace for the passed session ID
+  """
   @spec stop_trace(binary()) :: :ok
   def stop_trace(session_id) do
     TracerServer.stop_trace(session_id)
   end
 
+  @doc """
+  This function returns the current trace server state
+  """
   @spec state :: map()
   def state do
     TracerServer.state()

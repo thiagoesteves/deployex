@@ -1,6 +1,6 @@
 defmodule DeployexWeb.Components.MultiSelectList do
   @moduledoc """
-  Multi select box
+  Multi select list box
 
   References:
    * https://www.creative-tim.com/twcomponents/component/multi-select
