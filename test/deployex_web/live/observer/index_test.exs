@@ -42,6 +42,30 @@ defmodule DeployexWeb.Observer.IndexTest do
     assert html =~ "Live Observer"
   end
 
+  test "Adjust Initial Tree Depth", %{conn: conn} do
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/observer")
+
+    html =
+      index_live
+      |> element("#observer-multi-select-toggle-options")
+      |> render_click()
+
+    refute html =~ "4242"
+
+    html =
+      index_live
+      |> element("#observer-update-form")
+      |> render_change(%{initial_tree_depth: "4242"})
+
+    assert html =~ "4242"
+  end
+
   test "Add/Remove Local Service + Kernel App", %{conn: conn} do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")

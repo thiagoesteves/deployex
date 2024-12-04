@@ -45,10 +45,12 @@ defmodule DeployexWeb.ObserverLive do
       end
     end
 
+    initial_tree_depth = assigns.form.params["initial_tree_depth"]
+
     chart_tree_data =
       assigns.observer_data
       |> Enum.reduce([], fn {key, %{"data" => info}}, acc ->
-        acc ++ [series(key, info)]
+        acc ++ [series(key, info, initial_tree_depth)]
       end)
       |> adjust_series_position.()
       |> flare_chart_data()
@@ -61,6 +63,55 @@ defmodule DeployexWeb.ObserverLive do
 
     ~H"""
     <div class="min-h-screen bg-white">
+      <div class="flex items-center mt-1">
+        <div
+          id="live-tracing-alert"
+          class="p-2 border-l-8 border-blue-400 rounded-l-lg bg-gray-300 text-blue-500"
+          role="alert"
+        >
+          <div class="flex items-center">
+            <div class="flex items-center py-8">
+              <svg
+                class="flex-shrink-0 w-4 h-4 me-2"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+              </svg>
+              <span class="sr-only">Info</span>
+              <h3 class="text-sm font-medium">Note</h3>
+            </div>
+            <div class="ml-2 mr-2 mt-2 mb-2 text-xs">
+              DeployEx Observer displays process relationships, supervisor trees, and detailed process information. It allows users to configure the initial tree depth or expand all trees by setting the depth to -1.
+            </div>
+
+            <.form
+              for={@form}
+              id="observer-update-form"
+              class="flex ml-2 mr-2 text-xs text-center whitespace-nowrap gap-5"
+              phx-change="form-update"
+            >
+              <.input
+                field={@form[:initial_tree_depth]}
+                type="number"
+                step="1"
+                min="-1"
+                label="Initial Depth"
+              />
+            </.form>
+          </div>
+        </div>
+        <button
+          id="observer-multi-select-update"
+          phx-click="observer-apps-update"
+          class="phx-submit-loading:opacity-75 rounded-r-xl bg-green-500 transform active:scale-75 transition-transform hover:bg-green-600 py-10 w-64 text-sm font-semibold  text-white active:text-white/80"
+        >
+          UPDATE
+        </button>
+      </div>
+
       <div class="flex">
         <MultiSelect.content
           id="observer-multi-select"
@@ -75,13 +126,6 @@ defmodule DeployexWeb.ObserverLive do
           ]}
           show_options={@show_observer_options}
         />
-        <button
-          id="observer-multi-select-update"
-          phx-click="observer-apps-update"
-          class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
-        >
-          UPDATE
-        </button>
       </div>
       <div class="p-2">
         <%= if @observer_data != %{}  do %>
@@ -114,6 +158,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
      |> assign(:current_selected_id, reset_current_selected_id())
+     |> assign(form: to_form(default_form_options()))
      |> assign(:show_observer_options, false)}
   end
 
@@ -124,6 +169,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
      |> assign(:current_selected_id, reset_current_selected_id())
+     |> assign(form: to_form(default_form_options()))
      |> assign(:show_observer_options, false)}
   end
 
@@ -142,6 +188,10 @@ defmodule DeployexWeb.ObserverLive do
     show_observer_options = !socket.assigns.show_observer_options
 
     {:noreply, socket |> assign(:show_observer_options, show_observer_options)}
+  end
+
+  def handle_event("form-update", %{"initial_tree_depth" => depth}, socket) do
+    {:noreply, assign(socket, form: to_form(%{"initial_tree_depth" => depth}))}
   end
 
   def handle_event(
@@ -406,6 +456,8 @@ defmodule DeployexWeb.ObserverLive do
     assign(socket, :observer_data, Map.put(observer_data, data_key, updated_data))
   end
 
+  defp default_form_options, do: %{"initial_tree_depth" => "3"}
+
   defp node_info_new do
     %{
       services_keys: [],
@@ -479,7 +531,7 @@ defmodule DeployexWeb.ObserverLive do
     }
   end
 
-  defp series(name, data) do
+  defp series(name, data, initial_tree_depth) do
     %{
       type: "tree",
       name: name,
@@ -492,7 +544,7 @@ defmodule DeployexWeb.ObserverLive do
       itemStyle: %{color: "#93C5FD"},
       edgeShape: "curve",
       edgeForkPosition: "63%",
-      initialTreeDepth: 3,
+      initialTreeDepth: initial_tree_depth,
       lineStyle: %{
         width: 2
       },
