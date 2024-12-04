@@ -17,7 +17,7 @@ DeployEx is currently used by:
 
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
-[![Watch the video](docs/static/deployex_monitoring_app_tls.png)](https://github.com/user-attachments/assets/188adc35-c022-4061-84ad-0e2d47af614e)
+[![Watch the video](docs/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
 
 ## 🔉 Features
 
