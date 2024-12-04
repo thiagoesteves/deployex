@@ -6,6 +6,9 @@ defmodule DeployexWeb.TracingLive do
   alias Deployex.Tracer, as: DeployexT
   alias DeployexWeb.Components.MultiSelectList
 
+  @default_max_messages "3"
+  @default_session_timeout_seconds "30"
+
   @impl true
   def render(assigns) do
     unselected_services_keys =
@@ -500,7 +503,10 @@ defmodule DeployexWeb.TracingLive do
   end
 
   defp default_form_options do
-    %{"max_messages" => "3", "session_timeout_seconds" => "30"}
+    %{
+      "max_messages" => @default_max_messages,
+      "session_timeout_seconds" => @default_session_timeout_seconds
+    }
   end
 
   defp node_info_new do
