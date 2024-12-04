@@ -60,7 +60,7 @@ defmodule DeployexWeb.ObserverLive do
       |> assign(unselected_apps_keys: unselected_apps_keys)
 
     ~H"""
-    <div class="min-h-screen bg-white ">
+    <div class="min-h-screen bg-white">
       <div class="flex">
         <MultiSelect.content
           id="observer-multi-select"
@@ -73,7 +73,7 @@ defmodule DeployexWeb.ObserverLive do
             %{name: "services", keys: @unselected_services_keys},
             %{name: "apps", keys: @unselected_apps_keys}
           ]}
-          show_options={@show_apps_options}
+          show_options={@show_observer_options}
         />
         <button
           id="observer-multi-select-update"
@@ -105,7 +105,7 @@ defmodule DeployexWeb.ObserverLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
-    # Adds notification is node is up or down
+    # Subscribe to notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
     {:ok,
@@ -114,7 +114,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
      |> assign(:current_selected_id, reset_current_selected_id())
-     |> assign(:show_apps_options, false)}
+     |> assign(:show_observer_options, false)}
   end
 
   def mount(_params, _session, socket) do
@@ -124,7 +124,7 @@ defmodule DeployexWeb.ObserverLive do
      |> assign(:node_data, %{})
      |> assign(:observer_data, %{})
      |> assign(:current_selected_id, reset_current_selected_id())
-     |> assign(:show_apps_options, false)}
+     |> assign(:show_observer_options, false)}
   end
 
   @impl true
@@ -138,14 +138,10 @@ defmodule DeployexWeb.ObserverLive do
   end
 
   @impl true
-  @spec handle_event(<<_::64, _::_*8>>, any(), %{
-          :assigns => atom() | map(),
-          optional(any()) => any()
-        }) :: {:noreply, map()}
   def handle_event("toggle-options", _value, socket) do
-    show_apps_options = !socket.assigns.show_apps_options
+    show_observer_options = !socket.assigns.show_observer_options
 
-    {:noreply, socket |> assign(:show_apps_options, show_apps_options)}
+    {:noreply, socket |> assign(:show_observer_options, show_observer_options)}
   end
 
   def handle_event(

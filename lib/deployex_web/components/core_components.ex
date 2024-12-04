@@ -619,6 +619,7 @@ defmodule DeployexWeb.CoreComponents do
   attr :row_id, :any, default: nil, doc: "the function for generating the row id"
   attr :row_click, :any, default: nil, doc: "the function for handling phx-click on each row"
   attr :transition, :boolean, default: false
+  attr :h_max_size, :string, default: "max-h-[600px]"
 
   attr :row_item, :any,
     default: &Function.identity/1,
@@ -638,7 +639,11 @@ defmodule DeployexWeb.CoreComponents do
 
     ~H"""
     <div class="px-4 sm:overflow-visible sm:px-0 ">
-      <div id={"#{@id}-table"} class="block overflow-y-auto max-h-[600px]" phx-hook="ScrollBottom">
+      <div
+        id={"#{@id}-table"}
+        class={["block overflow-y-auto", "#{@h_max_size}"]}
+        phx-hook="ScrollBottom"
+      >
         <table class="items-center w-full border-collapse ">
           <thead class="text-xs text-left align-middle leading-6 bg-white text-blueGray-500 uppercase sticky top-0 z-10">
             <tr>
@@ -678,7 +683,7 @@ defmodule DeployexWeb.CoreComponents do
               >
                 <div class="block px-1 py-1 pr-6 text-xs font-mono ">
                   <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
-                  <span class={["relative", i == 0 && "font-semibold text-zinc-900"]}>
+                  <span class={["relative", i == 0 && "whitespace-nowrap font-semibold text-zinc-900"]}>
                     <%= render_slot(col, @row_item.(row)) %>
                   </span>
                 </div>

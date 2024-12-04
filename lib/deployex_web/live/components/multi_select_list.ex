@@ -1,6 +1,6 @@
-defmodule DeployexWeb.Components.MultiSelect do
+defmodule DeployexWeb.Components.MultiSelectList do
   @moduledoc """
-  Multi select box
+  Multi select list box
 
   References:
    * https://www.creative-tim.com/twcomponents/component/multi-select
@@ -41,7 +41,13 @@ defmodule DeployexWeb.Components.MultiSelect do
                         <%= "#{item.name}:#{key}" %>
                       </div>
                       <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-remove-item", "@", "-")}
+                        id={
+                          String.replace(
+                            "#{@id}-#{item.name}-#{key}-remove-item",
+                            ["@", ".", "/"],
+                            "-"
+                          )
+                        }
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -112,17 +118,29 @@ defmodule DeployexWeb.Components.MultiSelect do
                   time: 300
                 )
               }>
-                <%= for item <- @unselected do %>
-                  <div class="w-full flex-wrap">
-                    <div class="flex items-start p-2">
-                      <div class="text-xs font-bold text-black"><%= item.name %>:</div>
-                    </div>
+                <% n_columns = length(@unselected) %>
+                <div class={["flex grid mt-1 gap-1 items-top", "grid-cols-#{n_columns}"]}>
+                  <%= for item <- @unselected do %>
+                    <div class="rounded-lg bg-white border border-solid border-blueGray-100 block overflow-y-auto max-h-[300px]">
+                      <div class="flex items-start bg-white p-2 sticky top-0 z-10">
+                        <%= if item[:info] do %>
+                          <div class=" text-xs font-bold text-black"><%= item.name %>
+                            <%= item.info %>:</div>
+                        <% else %>
+                          <div class=" text-xs font-bold text-black"><%= item.name %>:</div>
+                        <% end %>
+                      </div>
 
-                    <div class="flex flex-wrap">
                       <%= for key <- item.keys do %>
                         <button
-                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
-                          class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
+                          id={
+                            String.replace(
+                              "#{@id}-#{item.name}-#{key}-add-item",
+                              ["@", ".", "/"],
+                              "-"
+                            )
+                          }
+                          class="flex justify-center items-center m-1 font-medium  px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                           phx-click="multi-select-add-item"
                           phx-value-key={key}
                           phx-value-item={item.name}
@@ -151,8 +169,8 @@ defmodule DeployexWeb.Components.MultiSelect do
                         </button>
                       <% end %>
                     </div>
-                  </div>
-                <% end %>
+                  <% end %>
+                </div>
               </div>
             </div>
           </div>
@@ -163,15 +181,17 @@ defmodule DeployexWeb.Components.MultiSelect do
   end
 
   def border_item_color("services"), do: "border-teal-300"
-  def border_item_color("logs"), do: "border-yellow-400"
-  def border_item_color("apps"), do: "border-blue-400"
+  def border_item_color("modules"), do: "border-red-500"
+  def border_item_color("functions"), do: "border-blue-400"
+  def border_item_color("match_spec"), do: "border-yellow-400"
   # coveralls-ignore-start
   def border_item_color(_), do: "border-gray-300"
   # coveralls-ignore-stop
 
   def text_item_color("services"), do: "text-teal-700"
-  def text_item_color("logs"), do: "text-yellow-700"
-  def text_item_color("apps"), do: "text-blue-700"
+  def text_item_color("modules"), do: "text-red-500"
+  def text_item_color("functions"), do: "text-blue-400"
+  def text_item_color("match_spec"), do: "text-yellow-700"
   # coveralls-ignore-start
   def text_item_color(_), do: "text-teal-700"
   # coveralls-ignore-stop

@@ -19,7 +19,7 @@ defmodule DeployexWeb.LogsLive do
       |> assign(unselected_logs_keys: unselected_logs_keys)
 
     ~H"""
-    <div class="min-h-screen bg-gray-500 ">
+    <div class="min-h-screen bg-white">
       <div class="flex">
         <MultiSelect.content
           id="log-multi-select"
