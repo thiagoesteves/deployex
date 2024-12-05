@@ -203,6 +203,43 @@ defmodule DeployexWeb.Observer.IndexTest do
     refute html =~ "Connected"
   end
 
+  test "Select Service+Apps and select a process that is dead or doesn't exist", %{conn: conn} do
+    node = Node.self() |> to_string
+    service = String.replace(node, "@", "-")
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/observer")
+
+    index_live
+    |> element("#observer-multi-select-toggle-options")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-apps-kernel-add-item")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-services-#{service}-add-item")
+    |> render_click()
+
+    series_name = "#{Node.self()}::kernel"
+
+    id = "#PID<0.0.11111>"
+
+    html =
+      index_live
+      |> element("#observer-tree")
+      |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
+
+    # Check the Process information is not being shown
+    assert html =~ "Process #PID&lt;0.0.11111&gt; is either dead or protected"
+  end
+
   test "Select Service+Apps and select a port to request information", %{conn: conn} do
     node = Node.self() |> to_string
     service = String.replace(node, "@", "-")
@@ -248,6 +285,43 @@ defmodule DeployexWeb.Observer.IndexTest do
     refute html =~ "Heap Size"
     assert html =~ "Os Pid"
     assert html =~ "Connected"
+  end
+
+  test "Select Service+Apps and select a port that is dead or doesn't exist", %{conn: conn} do
+    node = Node.self() |> to_string
+    service = String.replace(node, "@", "-")
+
+    Deployex.RpcMock
+    |> stub(:call, fn node, module, function, args, timeout ->
+      :rpc.call(node, module, function, args, timeout)
+    end)
+    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/observer")
+
+    index_live
+    |> element("#observer-multi-select-toggle-options")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-apps-kernel-add-item")
+    |> render_click()
+
+    index_live
+    |> element("#observer-multi-select-services-#{service}-add-item")
+    |> render_click()
+
+    series_name = "#{Node.self()}::kernel"
+
+    id = "#Port<0.100>"
+
+    html =
+      index_live
+      |> element("#observer-tree")
+      |> render_hook("request-process", %{"id" => id, "series_name" => series_name})
+
+    # Check the Port information is not being shown
+    assert html =~ "Port #Port&lt;0.100&gt; is either dead or protected"
   end
 
   test "Select Service+Apps and select a reference to request information", %{conn: conn} do
