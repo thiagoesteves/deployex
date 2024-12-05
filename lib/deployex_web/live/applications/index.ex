@@ -107,7 +107,7 @@ defmodule DeployexWeb.ApplicationsLive do
           Are you sure you want to restart deployex?
         </p>
         <p :if={@selected_instance != "0"}>
-          Are you sure you want to restart instance <%= "#{@selected_instance}" %>?
+          Are you sure you want to restart instance {"#{@selected_instance}"}?
         </p>
         <:footer>
           <Confirm.cancel_button id={@selected_instance}>Cancel</Confirm.cancel_button>
@@ -122,7 +122,7 @@ defmodule DeployexWeb.ApplicationsLive do
       <Confirm.content id="app-set-mode-modal-0">
         <:header>Attention</:header>
         <p>
-          Are you sure you want to set to <%= "#{@mode_confirmation.mode_or_version}" %>?
+          Are you sure you want to set to {"#{@mode_confirmation.mode_or_version}"}?
         </p>
         <:footer>
           <Confirm.cancel_button id="mode">

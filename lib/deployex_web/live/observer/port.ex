@@ -39,10 +39,10 @@ defmodule DeployexWeb.Observer.Port do
             <div class="flex grid grid-cols-3  gap-1 items-top">
               <.table_process id="port-overview-table" title="Overview" rows={@port_overview}>
                 <:col :let={item}>
-                  <span><%= item.name %></span>
+                  <span>{item.name}</span>
                 </:col>
                 <:col :let={item}>
-                  <%= item.value %>
+                  {item.value}
                 </:col>
               </.table_process>
             </div>

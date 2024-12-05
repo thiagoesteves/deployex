@@ -55,22 +55,21 @@ defmodule DeployexWeb.Observer.Process do
             <div class="flex grid grid-cols-3  gap-1 items-top">
               <.table_process id="process-overview-table" title="Overview" rows={@process_overview}>
                 <:col :let={item}>
-                  <span><%= item.name %></span>
+                  <span>{item.name}</span>
                 </:col>
                 <:col :let={item}>
-                  <%= item.value %>
+                  {item.value}
                 </:col>
               </.table_process>
 
               <.table_process id="process-memory-table" title="Memory" rows={@process_memory}>
                 <:col :let={item}>
-                  <span><%= item.name %></span>
+                  <span>{item.name}</span>
                 </:col>
                 <:col :let={item}>
-                  <%= item.value %>
+                  {item.value}
                 </:col>
               </.table_process>
-
               <.relations title="State" value={"#{inspect(@info.state)}"} />
             </div>
 
@@ -91,11 +90,11 @@ defmodule DeployexWeb.Observer.Process do
     ~H"""
     <div class=" text-sm text-center block rounded-lg bg-white border border-solid border-blueGray-100 shadow-secondary-1 text-surface">
       <div class="font-mono font-semibold bg-gray-100  border-b-2 border-neutral-100 px-6 py-1">
-        <%= @title %>
+        {@title}
       </div>
       <div class="p-2">
         <span class="text-xs font-mono leading-tight">
-          <%= @value %>
+          {@value}
         </span>
       </div>
     </div>

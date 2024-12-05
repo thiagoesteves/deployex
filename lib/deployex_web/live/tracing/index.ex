@@ -162,16 +162,16 @@ defmodule DeployexWeb.TracingLive do
         <div class="bg-white w-full shadow-lg rounded">
           <.table_logs id="live-logs" h_max_size="max-h-[400px]" rows={@streams.tracing_messages}>
             <:col :let={{_id, tracing_message}} label="SERVICE">
-              <span><%= tracing_message.service %></span>
+              <span>{tracing_message.service}</span>
             </:col>
             <:col :let={{_id, tracing_message}} label="INDEX">
-              <span><%= tracing_message.index %></span>
+              <span>{tracing_message.index}</span>
             </:col>
             <:col :let={{_id, tracing_message}} label="TYPE">
-              <span><%= tracing_message.type %></span>
+              <span>{tracing_message.type}</span>
             </:col>
             <:col :let={{_id, tracing_message}} label="CONTENT">
-              <%= tracing_message.content %>
+              {tracing_message.content}
             </:col>
           </.table_logs>
         </div>

@@ -25,7 +25,7 @@ defmodule DeployexWeb.Components.MultiSelect do
             <div class="my-2 p-1 flex border border-gray-300 bg-white rounded ">
               <div class="flex flex-auto flex-wrap">
                 <div class="flex text-ms font-normal items-center p-2 py-1 bg-gray-200  rounded border-gray-200 ">
-                  <%= @selected_text %>
+                  {@selected_text}
                 </div>
 
                 <%= for item <- @selected do %>
@@ -38,7 +38,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                         "text-xs font-normal leading-none max-w-full flex-initial",
                         text_item_color(item.name)
                       ]}>
-                        <%= "#{item.name}:#{key}" %>
+                        {"#{item.name}:#{key}"}
                       </div>
                       <button
                         id={String.replace("#{@id}-#{item.name}-#{key}-remove-item", "@", "-")}
@@ -115,7 +115,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                 <%= for item <- @unselected do %>
                   <div class="w-full flex-wrap">
                     <div class="flex items-start p-2">
-                      <div class="text-xs font-bold text-black"><%= item.name %>:</div>
+                      <div class="text-xs font-bold text-black">{item.name}:</div>
                     </div>
 
                     <div class="flex flex-wrap">
@@ -128,7 +128,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                           phx-value-item={item.name}
                         >
                           <div class="text-xs font-normal leading-none max-w-full flex-initial">
-                            <%= key %>
+                            {key}
                           </div>
                           <div class="flex flex-auto flex-row-reverse">
                             <div>

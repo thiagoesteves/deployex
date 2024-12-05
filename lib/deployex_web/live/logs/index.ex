@@ -52,14 +52,14 @@ defmodule DeployexWeb.LogsLive do
                   style={"background-color: #{log_message.color};"}
                 >
                 </span>
-                <span><%= log_message.service %></span>
+                <span>{log_message.service}</span>
               </div>
             </:col>
             <:col :let={{_id, log_message}} label="TYPE">
-              <%= log_message.type %>
+              {log_message.type}
             </:col>
             <:col :let={{_id, log_message}} label="CONTENT">
-              <%= log_message.content %>
+              {log_message.content}
             </:col>
           </.table_logs>
         </div>
