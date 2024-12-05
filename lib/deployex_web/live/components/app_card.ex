@@ -46,14 +46,14 @@ defmodule DeployexWeb.Components.AppCard do
             style="width: 32px; height: 32px;opacity: 0.7; margin-right: 20px;"
           />
           <strong class="font-mono  text-2xl text-black font-bold">
-            <%= "#{@name}" %>
+            {"#{@name}"}
           </strong>
         </p>
 
         <p :if={@supervisor == false} class="flex  tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3">Instance</span>
           <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
-            <%= @instance %>
+            {@instance}
           </span>
         </p>
 
@@ -88,14 +88,14 @@ defmodule DeployexWeb.Components.AppCard do
         >
           <span class="text-xs font-bold ml-3 ">Last ghosted version</span>
           <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
-            <%= @last_ghosted_version %>
+            {@last_ghosted_version}
           </span>
         </p>
 
         <p class="flex items-center tracking-tight pt-3 justify-between">
           <span class="text-xs font-bold ml-3 ">uptime</span>
           <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-blue-400 border border-blue-400">
-            <%= @uptime %>
+            {@uptime}
           </span>
         </p>
 
@@ -198,11 +198,11 @@ defmodule DeployexWeb.Components.AppCard do
     <%= cond do %>
       <% @restarts > 0 -> %>
         <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse">
-          <%= @restarts %>
+          {@restarts}
         </span>
       <% true -> %>
         <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
-          <%= @restarts %>
+          {@restarts}
         </span>
     <% end %>
     """
@@ -312,7 +312,7 @@ defmodule DeployexWeb.Components.AppCard do
       <% @status == :running and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
           <.restart_buttom instance={@instance} restart_path={@restart_path} />
-          <%= @version %> [running]
+          {@version} [running]
         </div>
       <% @status == :pre_commands -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
@@ -321,7 +321,7 @@ defmodule DeployexWeb.Components.AppCard do
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
           <.restart_buttom instance={@instance} restart_path={@restart_path} />
-          <%= @version %> [starting]
+          {@version} [starting]
         </div>
       <% true -> %>
         <div class={[@default_spec_class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>

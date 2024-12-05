@@ -26,7 +26,7 @@ defmodule DeployexWeb.Observer.Attention do
             <span class="sr-only">Info</span>
             <h3 class="text-sm font-medium">Attention</h3>
           </div>
-          <div class="ml-2 mr-2 mt-2 mb-2 text-xs"><%= @message %></div>
+          <div class="ml-2 mr-2 mt-2 mb-2 text-xs">{@message}</div>
         </div>
       </div>
     </div>
