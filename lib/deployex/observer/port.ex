@@ -14,6 +14,7 @@ defmodule Deployex.Observer.Port do
     ...> [h | _] = :erlang.ports()
     ...> assert %{connected: _, id: _, name: _, os_pid: _} = Port.info(h)
     ...> assert :undefined = Port.info(nil)
+    ...> assert :undefined = Port.info("")
   """
   @spec info(atom(), port()) ::
           :undefined | %{connected: any(), id: any(), name: any(), os_pid: any()}

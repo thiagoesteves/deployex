@@ -138,9 +138,9 @@ defmodule DeployexWeb.ObserverLive do
           </div>
         </div>
         <%= if @current_selected_id.type == "pid" do %>
-          <Process.content info={@current_selected_id.info} />
+          <Process.content id={@current_selected_id.id_string} info={@current_selected_id.info} />
         <% else %>
-          <Port.content info={@current_selected_id.info} />
+          <Port.content id={@current_selected_id.id_string} info={@current_selected_id.info} />
         <% end %>
       </div>
     </div>
