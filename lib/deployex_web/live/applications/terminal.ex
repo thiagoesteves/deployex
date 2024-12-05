@@ -21,8 +21,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     ~H"""
     <div>
       <.header>
-        <%= "Terminal for #{@monitored_app_name} [#{@id}]" %>
-        <:subtitle>Bin: <%= @bin_path %></:subtitle>
+        {"Terminal for #{@monitored_app_name} [#{@id}]"}
+        <:subtitle>Bin: {@bin_path}</:subtitle>
       </.header>
 
       <div

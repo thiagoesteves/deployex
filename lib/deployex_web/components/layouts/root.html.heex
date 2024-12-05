@@ -6,13 +6,13 @@
     <meta name="csrf-token" content={get_csrf_token()} />
 
     <.live_title suffix=" · Monitoring Elixir Apps">
-      <%= assigns[:page_title] || "Deployex" %>
+      {assigns[:page_title] || "Deployex"}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
   <body class="bg-white antialiased">
-    <%= @inner_content %>
+    {@inner_content}
   </body>
 </html>

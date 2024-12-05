@@ -110,7 +110,7 @@ defmodule Deployex.Status do
   """
   @impl true
   @spec subscribe() :: :ok
-  def subscribe, do: default().subscribe
+  def subscribe, do: default().subscribe()
 
   @doc """
   Set the current version map
@@ -132,14 +132,14 @@ defmodule Deployex.Status do
   """
   @impl true
   @spec ghosted_version_list :: list()
-  def ghosted_version_list, do: default().ghosted_version_list
+  def ghosted_version_list, do: default().ghosted_version_list()
 
   @doc """
   Retrieve the history version list
   """
   @impl true
   @spec history_version_list :: list()
-  def history_version_list, do: default().history_version_list
+  def history_version_list, do: default().history_version_list()
 
   @doc """
   Retrieve the history version list by instance

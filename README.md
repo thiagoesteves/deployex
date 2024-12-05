@@ -80,6 +80,13 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 ## 📁 Getting Started
 
+> [!WARNING]
+> Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP major version to prevent malfunctions.
+
+| DeployEx version   |      Default major OTP version      | 
+|----------|-------------|
+| __0.3.0__ | __26__ |
+
 ### Running the application
 
 You can kickstart the setup with the following commands, the default number of replicas is 3:

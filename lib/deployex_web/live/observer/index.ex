@@ -134,7 +134,7 @@ defmodule DeployexWeb.ObserverLive do
         <div>
           <div id="observer-tree" class="ml-5 mr-5 mt-10" phx-hook="ObserverEChart" data-merge={false}>
             <div id="observer-tree-chart" style="width: 100%; height: 600px;" phx-update="ignore" />
-            <div id="observer-tree-data" hidden><%= Jason.encode!(@chart_tree_data) %></div>
+            <div id="observer-tree-data" hidden>{Jason.encode!(@chart_tree_data)}</div>
           </div>
         </div>
         <%= if @current_selected_id.type == "pid" do %>

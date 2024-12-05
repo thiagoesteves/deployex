@@ -16,6 +16,7 @@
  * [[`PR-84`](https://github.com/thiagoesteves/deployex/pull/84)] Refactoring Terminal Server
  * [[`PR-86`](https://github.com/thiagoesteves/deployex/pull/86)] Adding Live Observer option
  * [[`PR-88`](https://github.com/thiagoesteves/deployex/pull/88)] Adding Live Tracing option
+ * [[`PR-91`](https://github.com/thiagoesteves/deployex/pull/91)] Updated liveview and OTP to 26.2.5.6
 
 ## 0.3.0-rc22 (2024-11-04)
 

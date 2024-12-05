@@ -11,8 +11,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     ~H"""
     <div>
       <.header>
-        <%= "#{@title} [#{@id}]" %>
-        <:subtitle><%= @subtitle %></:subtitle>
+        {"#{@title} [#{@id}]"}
+        <:subtitle>{@subtitle}</:subtitle>
       </.header>
 
       <div class="bg-white w-full shadow-lg rounded">
@@ -24,7 +24,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
                 style={"background-color: #{log_message.color};"}
               >
               </span>
-              <span><%= log_message.content %></span>
+              <span>{log_message.content}</span>
             </div>
           </:col>
         </.table_logs>
