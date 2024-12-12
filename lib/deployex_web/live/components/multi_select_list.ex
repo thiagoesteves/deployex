@@ -25,7 +25,7 @@ defmodule DeployexWeb.Components.MultiSelectList do
             <div class="my-2 p-1 flex border border-gray-300 bg-white rounded ">
               <div class="flex flex-auto flex-wrap">
                 <div class="flex text-ms font-normal items-center p-2 py-1 bg-gray-200  rounded border-gray-200 ">
-                  <%= @selected_text %>
+                  {@selected_text}
                 </div>
 
                 <%= for item <- @selected do %>
@@ -38,7 +38,7 @@ defmodule DeployexWeb.Components.MultiSelectList do
                         "text-xs font-normal leading-none max-w-full flex-initial",
                         text_item_color(item.name)
                       ]}>
-                        <%= "#{item.name}:#{key}" %>
+                        {"#{item.name}:#{key}"}
                       </div>
                       <button
                         id={
@@ -124,10 +124,10 @@ defmodule DeployexWeb.Components.MultiSelectList do
                     <div class="rounded-lg bg-white border border-solid border-blueGray-100 block overflow-y-auto max-h-[300px]">
                       <div class="flex items-start bg-white p-2 sticky top-0 z-10">
                         <%= if item[:info] do %>
-                          <div class=" text-xs font-bold text-black"><%= item.name %>
-                            <%= item.info %>:</div>
+                          <div class=" text-xs font-bold text-black">{item.name}
+                            {item.info}:</div>
                         <% else %>
-                          <div class=" text-xs font-bold text-black"><%= item.name %>:</div>
+                          <div class=" text-xs font-bold text-black">{item.name}:</div>
                         <% end %>
                       </div>
 
@@ -146,7 +146,7 @@ defmodule DeployexWeb.Components.MultiSelectList do
                           phx-value-item={item.name}
                         >
                           <div class="text-xs font-normal leading-none max-w-full flex-initial">
-                            <%= key %>
+                            {key}
                           </div>
                           <div class="flex flex-auto flex-row-reverse">
                             <div>

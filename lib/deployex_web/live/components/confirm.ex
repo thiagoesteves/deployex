@@ -25,12 +25,12 @@ defmodule DeployexWeb.Components.Confirm do
             <div class="p-6 mx-auto mb-2 bg-white">
               <header class="mb-6 text-center">
                 <h3 class="mb-3 text-lg font-bold text-gray-900">
-                  <%= render_slot(@header) %>
+                  {render_slot(@header)}
                 </h3>
               </header>
-              <%= render_slot(@inner_block) %>
+              {render_slot(@inner_block)}
               <footer class="flex mt-6 gap-x-10">
-                <%= render_slot(@footer) %>
+                {render_slot(@footer)}
               </footer>
             </div>
           </div>
@@ -50,7 +50,7 @@ defmodule DeployexWeb.Components.Confirm do
       class="flex-1 px-4 py-2 border border-gray-800 rounded-full"
       phx-click="confirm-close-modal"
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
@@ -68,7 +68,7 @@ defmodule DeployexWeb.Components.Confirm do
       phx-click={@event}
       phx-value-id={@value}
     >
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </button>
     """
   end
