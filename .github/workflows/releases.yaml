@@ -92,7 +92,7 @@ jobs:
           name: deployex.sh
           path: .
 
-  build3:
+  createRelease:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
     needs: [buildUbuntu2004, buildUbuntu2204, copyInstaller]
