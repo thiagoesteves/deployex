@@ -81,11 +81,11 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 ## 📁 Getting Started
 
 > [!WARNING]
-> Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP major version to prevent malfunctions.
+> Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP version to prevent malfunctions.
 
 | DeployEx version   |      Default major OTP version      | 
 |----------|-------------|
-| __0.3.0__ | __26__ |
+| __0.3.0__ | __26.2.5.6__ |
 
 ### Running the application
 
