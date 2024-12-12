@@ -1,6 +1,6 @@
 # CHANGELOG (v0.3.0)
 
-## 0.3.0-rc23 ()
+## 0.3.0-rc23 (2024-12-12)
 
 ### Backwards incompatible changes for 0.3.0-rc22
  * None
