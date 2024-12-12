@@ -4,7 +4,7 @@ defmodule Deployex.MixProject do
   def project do
     [
       app: :deployex,
-      version: "0.3.0-rc23",
+      version: "0.3.0-rc23-hash",
       elixir: "~> 1.15",
       name: "DeployEx",
       source_url: "https://github.com/thiagoesteves/deployex",
