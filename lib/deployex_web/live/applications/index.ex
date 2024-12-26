@@ -9,15 +9,18 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Components.Confirm
+  alias DeployexWeb.Components.SystemBar
 
   @manual_version_max_list 10
 
   @impl true
   def render(assigns) do
     ~H"""
+    <SystemBar.content info={@host_info} />
+
     <div class="min-h-screen bg-gray-700 ">
-      <div class="p-10">
-        <div class="grid grid-cols-3  gap-10 items-center p-30">
+      <div class="p-5">
+        <div class="grid grid-cols-3  gap-5 items-center p-30">
           <%= for app <- @monitoring_apps_data do %>
             <DeployexWeb.Components.AppCard.content
               supervisor={app.supervisor}
@@ -143,7 +146,11 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
+    # Subscribe tor eceive Application Status
     Status.subscribe()
+
+    # Subscribe to receive System info
+    Deployex.System.subscribe()
 
     {:ok, monitoring} = Deployex.Status.monitoring()
 
@@ -158,6 +165,7 @@ defmodule DeployexWeb.ApplicationsLive do
     socket =
       socket
       |> assign(:node, Node.self())
+      |> assign(:host_info, nil)
       |> assign(:monitoring_apps_data, monitoring)
       |> assign(:monitored_app_name, Status.monitored_app_name())
       |> assign(:monitored_app_lang, Status.monitored_app_lang())
@@ -178,6 +186,7 @@ defmodule DeployexWeb.ApplicationsLive do
     {:ok,
      socket
      |> assign(:node, Node.self())
+     |> assign(:host_info, nil)
      |> assign(:monitoring_apps_data, [])
      |> assign(:monitored_app_name, nil)
      |> assign(:monitored_app_lang, nil)
@@ -244,6 +253,10 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  def handle_info({:update_system_info, host_info}, socket) do
+    {:noreply, assign(socket, :host_info, host_info)}
+  end
+
   def handle_info(
         {:monitoring_app_updated, source_node, monitoring_apps_data},
         %{assigns: %{node: node}} = socket

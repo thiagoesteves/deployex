@@ -63,7 +63,7 @@ defmodule DeployexWeb.ObserverLive do
 
     ~H"""
     <div class="min-h-screen bg-white">
-      <div class="flex items-center mt-1">
+      <div class="flex items-center">
         <div
           id="live-tracing-alert"
           class="p-2 border-l-8 border-blue-400 rounded-l-lg bg-gray-300 text-blue-500"

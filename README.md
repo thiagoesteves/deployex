@@ -47,6 +47,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
  * Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
  * Supports process observability with links and information for all connected applications.
  * Supports safe tracing for all connected applications.
+ * Provides visualization of Host System memory and CPU usage.
  * Provides easy access to the host shell (tmux).
  * Provides installer script to be used with ubuntu hosts.
  * Provides status information per instance:

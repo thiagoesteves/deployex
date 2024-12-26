@@ -40,6 +40,13 @@ defmodule Deployex.OpSys do
   @spec send(integer(), String.t()) :: :ok
   def send(process_pid, message), do: default().send(process_pid, message)
 
+  @doc """
+  Check the current Operational System type
+  """
+  @impl true
+  @spec os_type() :: {:unix | :win32, atom()}
+  def os_type, do: default().os_type()
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
