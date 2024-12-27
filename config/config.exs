@@ -107,7 +107,7 @@ config :deployex, Deployex.Status, adapter: Deployex.Status.Application
 
 config :deployex, Deployex.Upgrade, adapter: Deployex.Upgrade.Application
 
-config :deployex, Deployex.OpSys, adapter: Deployex.OpSys.Erlexec
+config :deployex, Deployex.OpSys, adapter: Deployex.OpSys.Local
 
 config :deployex, Deployex.Storage, adapter: Deployex.Storage.Local
 

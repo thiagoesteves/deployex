@@ -1,5 +1,19 @@
 # CHANGELOG (v0.3.0)
 
+## 0.3.0-rc24 ()
+
+### Backwards incompatible changes for 0.3.0-rc23
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-92`](https://github.com/thiagoesteves/deployex/pull/92)] Adding System Info bar to Applications and Live Tracing
+
 ## 0.3.0-rc23 (2024-12-12)
 
 ### Backwards incompatible changes for 0.3.0-rc22

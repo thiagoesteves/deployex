@@ -5,6 +5,7 @@ defmodule DeployexWeb.TracingLive do
 
   alias Deployex.Tracer, as: DeployexT
   alias DeployexWeb.Components.MultiSelectList
+  alias DeployexWeb.Components.SystemBar
 
   @default_max_messages "3"
   @default_session_timeout_seconds "30"
@@ -53,11 +54,13 @@ defmodule DeployexWeb.TracingLive do
       |> assign(show_tracing_options: show_tracing_options)
 
     ~H"""
+    <SystemBar.content info={@host_info} />
+
     <div class="min-h-screen bg-white">
-      <div class="flex items-center mt-1">
+      <div class="flex items-center">
         <div
           id="live-tracing-alert"
-          class="p-2 border-l-8 border-red-400 rounded-l-lg bg-gray-300 text-red-500"
+          class="p-2 border-l-8 border-yellow-400 rounded-l-lg bg-gray-300 text-yellow-600"
           role="alert"
         >
           <div class="flex items-center">
@@ -74,7 +77,7 @@ defmodule DeployexWeb.TracingLive do
               <span class="sr-only">Info</span>
               <h3 class="text-sm font-medium">Attention</h3>
             </div>
-            <div class="ml-2 mr-2 mt-2 mb-2 text-xs">
+            <div class="ml-2 mr-2 mt-2 mb-2 text-xs text-red-500">
               Incorrect use of the <b>:dbg</b>
               tracer in production can lead to performance degradation, latency and crashes.
               <b>DeployEx Live tracing</b>
@@ -185,9 +188,13 @@ defmodule DeployexWeb.TracingLive do
     # Subscribe to notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
+    # Subscribe to receive System info
+    Deployex.System.subscribe()
+
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
+     |> assign(:host_info, nil)
      |> assign(:node_data, %{})
      |> assign(:trace_session_id, nil)
      |> assign(:show_tracing_options, false)
@@ -199,6 +206,7 @@ defmodule DeployexWeb.TracingLive do
     {:ok,
      socket
      |> assign(:node_info, node_info_new())
+     |> assign(:host_info, nil)
      |> assign(:node_data, %{})
      |> assign(:trace_session_id, nil)
      |> assign(:show_tracing_options, false)
@@ -456,6 +464,10 @@ defmodule DeployexWeb.TracingLive do
   end
 
   @impl true
+  def handle_info({:update_system_info, host_info}, socket) do
+    {:noreply, assign(socket, :host_info, host_info)}
+  end
+
   def handle_info({:nodeup, _node}, %{assigns: %{node_info: node_info}} = socket) do
     node_info =
       update_node_info(

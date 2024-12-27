@@ -1,6 +1,7 @@
-defmodule Deployex.OpSys.Erlexec do
+defmodule Deployex.OpSys.Local do
   @moduledoc """
-    Erlexec implementation of the operational system adapter
+    This module implements the operational system adapter, linking system
+    functions to their respective functions and/or libraries.
   """
 
   @behaviour Deployex.OpSys.Adapter
@@ -19,4 +20,7 @@ defmodule Deployex.OpSys.Erlexec do
 
   @impl true
   def send(process_pid, message), do: :exec.send(process_pid, message)
+
+  @impl true
+  def os_type, do: :os.type()
 end

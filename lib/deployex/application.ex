@@ -42,6 +42,7 @@ defmodule Deployex.Application do
 
     defp application_servers do
       [
+        Deployex.System.Server,
         Deployex.Status.Application,
         {Deployment,
          [

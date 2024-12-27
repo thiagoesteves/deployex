@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Observer.TracingTest do
+defmodule DeployexWeb.Tracing.IndexTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -213,7 +213,7 @@ defmodule DeployexWeb.Observer.TracingTest do
     :timer.sleep(50)
 
     assert render(index_live) =~ "Deployex.Common.uptime_to_string"
-    assert render(index_live) =~ "caller: {DeployexWeb.Observer.TracingTest"
+    assert render(index_live) =~ "caller: {DeployexWeb.Tracing.IndexTest"
 
     index_live
     |> element("#tracing-multi-select-stop", "STOP")
