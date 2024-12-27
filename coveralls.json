@@ -5,7 +5,7 @@
     "lib/deployex/application.ex",
     "lib/deployex/monitor/adapter.ex",
     "lib/deployex/op_sys/adapter.ex",
-    "lib/deployex/op_sys/erlexec.ex",
+    "lib/deployex/op_sys/local.ex",
     "lib/deployex/release/adapter.ex",
     "lib/deployex/status/adapter.ex",
     "lib/deployex/upgrade/adapter.ex",
