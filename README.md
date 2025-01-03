@@ -63,17 +63,12 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 ## ⚠️ Next steps
 
-### Release Version: 0.3.0 is coming soon!!!
-
-### What is coming for the Release Version: 0.4.0
+### What is coming next
 
 - [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
-- [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
+- [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Continuous improvement in UI design.
-
-### No version defined yet
-
 - [ ] 💤 Health checks via OTP distribution
 - [ ] 💤 Secrets from Environment variables to allow installation on servers with no cloud provider
 - [ ] 💤 Orchestrate distributed databasses like [Khepri](https://github.com/rabbitmq/khepri)
