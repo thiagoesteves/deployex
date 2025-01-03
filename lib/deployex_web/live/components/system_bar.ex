@@ -18,7 +18,7 @@ defmodule DeployexWeb.Components.SystemBar do
         |> assign(description: "--")
         |> assign(memory_used: 0)
         |> assign(memory_max: "--")
-        |> assign(cpu: 0)
+        |> assign(cpu: 0.00)
         |> assign(cpus_used: 0)
         |> assign(cpus_max: "--")
       else

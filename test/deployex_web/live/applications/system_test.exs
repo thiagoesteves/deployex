@@ -41,7 +41,7 @@ defmodule DeployexWeb.Applications.SystemTest do
          description: description,
          memory_free: 17_201_512_448,
          memory_total: 68_719_476_736,
-         cpu: 211,
+         cpu: 211.4,
          cpus: 5
        }}
     )

@@ -73,7 +73,7 @@ defmodule Deployex.SystemTest do
                       description: ^os_description,
                       memory_free: 1_263_837_184,
                       memory_total: 2_055_806_976,
-                      cpu: 31,
+                      cpu: 31.4,
                       cpus: 2
                     }},
                    1_000
@@ -144,7 +144,7 @@ defmodule Deployex.SystemTest do
                       description: ^os_description,
                       memory_free: 17_201_512_448,
                       memory_total: 68_719_476_736,
-                      cpu: 211,
+                      cpu: 211.4,
                       cpus: 5
                     }},
                    1_000

@@ -112,7 +112,7 @@ defmodule Deployex.System.Server do
           memory_free: memory_free,
           memory_total: memory_total,
           cpus: cpus,
-          cpu: trunc(cpu)
+          cpu: Float.round(cpu, 2)
         }
 
       {:unix, :darwin} ->
@@ -159,7 +159,7 @@ defmodule Deployex.System.Server do
           memory_free: page_size * page_free,
           memory_total: memory_total,
           cpus: cpus,
-          cpu: trunc(cpu)
+          cpu: Float.round(cpu, 2)
         }
 
       {:win32, _} ->
