@@ -649,7 +649,7 @@ defmodule DeployexWeb.CoreComponents do
             <tr>
               <th
                 :for={col <- @col}
-                class="p-1 pb-1 pr-6 font-semibold border border-solid border-blueGray-100 border-l-0 border-r-0 font-normal"
+                class="p-1 pb-1 pr-6 font-semibold border border-solid border-blueGray-100 border-l-0 border-t-0 border-r-0 font-normal"
               >
                 {col[:label]}
               </th>

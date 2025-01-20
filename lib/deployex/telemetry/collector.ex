@@ -117,37 +117,45 @@ defmodule Deployex.Telemetry.Collector do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(service, key))
   end
 
-  def list_by_instance(instance) do
+  def list_data_by_instance(instance) do
     instance
     |> node_by_instance()
     |> :ets.tab2list()
   end
 
-  def list_by_instance_key(instance, key) do
+  def list_data_by_instance_key(instance, key, options \\ []) do
     instance
     |> node_by_instance()
-    |> list_by_service_key(key)
+    |> list_data_by_service_key(key, options)
   end
 
-  def list_by_service_key(service, key) when is_binary(service) do
+  def list_data_by_service_key(service, key, options \\ [])
+
+  def list_data_by_service_key(service, key, options) when is_binary(service) do
     service
     |> String.to_existing_atom()
-    |> list_by_service_key(key)
+    |> list_data_by_service_key(key, options)
   end
 
-  def list_by_service_key(service, key) when is_atom(service) do
-    to = trunc(System.os_time(:millisecond) / @minute_to_milliseconds)
-    from = to - 15
+  def list_data_by_service_key(service, key, options) when is_atom(service) do
+    from = Keyword.get(options, :from, 15)
+    order = Keyword.get(options, :order, :asc)
 
-    Enum.reduce(from..to, [], fn minute, acc ->
-      case :ets.lookup(service, "#{key}|#{minute}") do
-        [{_, value}] ->
-          value ++ acc
+    now_minutes = trunc(System.os_time(:millisecond) / @minute_to_milliseconds)
+    from_minutes = now_minutes - from
 
-        _ ->
-          acc
-      end
-    end)
+    result =
+      Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
+        case :ets.lookup(service, "#{key}|#{minute}") do
+          [{_, value}] ->
+            value ++ acc
+
+          _ ->
+            acc
+        end
+      end)
+
+    if order == :asc, do: Enum.reverse(result), else: result
   end
 
   def get_keys_by_instance(instance) do

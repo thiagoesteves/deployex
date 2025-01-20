@@ -32,7 +32,8 @@ defmodule DeployexWeb.Components.MultiSelectList do
                   <%= for key <- item.keys do %>
                     <div class={[
                       "flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full border",
-                      border_item_color(item.name)
+                      border_item_color(item.name),
+                      bg_item_color(item.name)
                     ]}>
                       <div class={[
                         "text-xs font-normal leading-none max-w-full flex-initial",
@@ -186,6 +187,14 @@ defmodule DeployexWeb.Components.MultiSelectList do
   def border_item_color("match_spec"), do: "border-yellow-400"
   # coveralls-ignore-start
   def border_item_color(_), do: "border-gray-300"
+  # coveralls-ignore-stop
+
+  def bg_item_color("services"), do: "bg-teal-50"
+  def bg_item_color("modules"), do: "bg-red-50"
+  def bg_item_color("functions"), do: "bg-blue-50"
+  def bg_item_color("match_spec"), do: "bg-yellow-50"
+  # coveralls-ignore-start
+  def bg_item_color(_), do: "bg-gray-50"
   # coveralls-ignore-stop
 
   def text_item_color("services"), do: "text-teal-700"
