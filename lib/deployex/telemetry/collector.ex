@@ -7,10 +7,11 @@ defmodule Deployex.Telemetry.Collector do
 
   alias Deployex.Storage
 
-  @metric_key_tables "metric-keys"
+  @metric_keys "metric-keys"
   @nodes_table :nodes_list
 
   @minute_to_milliseconds 60_000
+  @data_retention_period_min 1
 
   ### ==========================================================================
   ### Callback functions
@@ -22,7 +23,7 @@ defmodule Deployex.Telemetry.Collector do
   end
 
   @impl true
-  def init(_args) do
+  def init(args) do
     Process.flag(:trap_exit, true)
 
     :ets.new(@nodes_table, [:set, :protected, :named_table])
@@ -34,10 +35,14 @@ defmodule Deployex.Telemetry.Collector do
       node = String.to_atom("#{Storage.sname(instance)}@#{hostname}")
       # Create metric tables for the node
       :ets.new(node, [:set, :protected, :named_table])
-      :ets.insert(node, {@metric_key_tables, []})
-      # Add the node to the nodes list table to avoid dynamic atom creation
+      :ets.insert(node, {@metric_keys, []})
+      # Add the node to the nodes list table to improve performance
       :ets.insert(@nodes_table, {instance, node})
     end)
+
+    args
+    |> Keyword.get(:data_retention_period_min, :timer.minutes(@data_retention_period_min))
+    |> :timer.send_interval(:prune_expired_entries)
 
     Logger.info("Initialising telemetry collector server")
 
@@ -49,10 +54,8 @@ defmodule Deployex.Telemetry.Collector do
         {:telemetry, %{metrics: metrics, reporter: reporter, measurements: measurements}},
         state
       ) do
-    now_to_minute = fn now -> trunc(now / @minute_to_milliseconds) end
-
     now = System.os_time(:millisecond)
-    minute = now_to_minute.(now)
+    minute = unix_to_minute(now)
 
     keys = get_keys_by_node(reporter)
 
@@ -62,7 +65,7 @@ defmodule Deployex.Telemetry.Collector do
 
         current_data =
           case :ets.lookup(reporter, timed_key) do
-            [{_, value}] -> [data | value]
+            [{_, current_list_data}] -> [data | current_list_data]
             _ -> [data]
           end
 
@@ -82,7 +85,7 @@ defmodule Deployex.Telemetry.Collector do
       end)
 
     if new_keys != [] do
-      :ets.insert(reporter, {@metric_key_tables, new_keys ++ keys})
+      :ets.insert(reporter, {@metric_keys, new_keys ++ keys})
 
       Phoenix.PubSub.broadcast(
         Deployex.PubSub,
@@ -90,6 +93,30 @@ defmodule Deployex.Telemetry.Collector do
         {:metrics_new_keys, reporter, new_keys}
       )
     end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(:prune_expired_entries, state) do
+    now_minutes = unix_to_minute()
+    deletion_period_to = now_minutes - @data_retention_period_min - 1
+    deletion_period_from = deletion_period_to - 2
+
+    prune_keys = fn node, key ->
+      Enum.each(deletion_period_from..deletion_period_to, fn timestamp ->
+        :ets.delete(node, metric_key(key, timestamp))
+      end)
+    end
+
+    Storage.instance_list()
+    |> Enum.each(fn instance ->
+      node = node_by_instance(instance)
+
+      node
+      |> get_keys_by_node()
+      |> Enum.each(&prune_keys.(node, &1))
+    end)
 
     {:noreply, state}
   end
@@ -109,11 +136,11 @@ defmodule Deployex.Telemetry.Collector do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, keys_topic())
   end
 
-  def subscribe_for_updates(service, key) do
+  def subscribe_for_new_data(service, key) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, metrics_topic(service, key))
   end
 
-  def unsubscribe_for_updates(service, key) do
+  def unsubscribe_for_new_data(service, key) do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(service, key))
   end
 
@@ -141,12 +168,12 @@ defmodule Deployex.Telemetry.Collector do
     from = Keyword.get(options, :from, 15)
     order = Keyword.get(options, :order, :asc)
 
-    now_minutes = trunc(System.os_time(:millisecond) / @minute_to_milliseconds)
+    now_minutes = unix_to_minute()
     from_minutes = now_minutes - from
 
     result =
       Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
-        case :ets.lookup(service, "#{key}|#{minute}") do
+        case :ets.lookup(service, metric_key(key, minute)) do
           [{_, value}] ->
             value ++ acc
 
@@ -174,8 +201,14 @@ defmodule Deployex.Telemetry.Collector do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  defp metric_key(metric, timestamp), do: "#{metric}|#{timestamp}"
+
+  defp unix_to_minute(time \\ System.os_time(:millisecond)),
+    do: trunc(time / @minute_to_milliseconds)
+
   defp get_keys_by_node(node) do
-    case :ets.lookup(node, @metric_key_tables) do
+    case :ets.lookup(node, @metric_keys) do
       [{_, value}] -> value
       _ -> []
     end
@@ -189,12 +222,12 @@ defmodule Deployex.Telemetry.Collector do
   ### ==========================================================================
   defp prepare_timeseries_data(%{name: name} = metric, measurements, now, minute)
        when name in ["vm.memory.total"] do
-    {name, "#{name}|#{minute}",
+    {name, metric_key(name, minute),
      %{timestamp: now, value: metric.value, unit: metric.unit, metadata: measurements}}
   end
 
   defp prepare_timeseries_data(%{name: name} = metric, _measurements, now, minute) do
-    {name, "#{name}|#{minute}",
+    {name, metric_key(name, minute),
      %{timestamp: now, value: metric.value, unit: metric.unit, tags: metric.tags}}
   end
 end

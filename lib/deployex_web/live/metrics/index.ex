@@ -191,7 +191,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_metrics_keys, socket, fn metric_key, acc ->
-        Collector.unsubscribe_for_updates(service_key, metric_key)
+        Collector.unsubscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -216,7 +216,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        Collector.unsubscribe_for_updates(service_key, metric_key)
+        Collector.unsubscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -243,7 +243,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_metrics_keys, socket, fn metric_key, acc ->
-        Collector.subscribe_for_updates(service_key, metric_key)
+        Collector.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -274,7 +274,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        Collector.subscribe_for_updates(service_key, metric_key)
+        Collector.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -376,8 +376,8 @@ defmodule DeployexWeb.MetricsLive do
       service = Collector.node_by_instance(instance) |> to_string
       [name, _hostname] = String.split(service, "@")
 
-      metrics_keys = (metrics_keys ++ instance_metrics_keys) |> Enum.uniq()
-      services_keys = services_keys ++ [service]
+      metrics_keys = (metrics_keys ++ instance_metrics_keys) |> Enum.sort() |> Enum.uniq()
+      services_keys = Enum.sort(services_keys ++ [service])
 
       node =
         if service in selected_services_keys do
