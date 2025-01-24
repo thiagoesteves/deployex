@@ -24,8 +24,6 @@ defmodule Deployex.Telemetry.Collector do
 
   @impl true
   def init(args) do
-    Process.flag(:trap_exit, true)
-
     :ets.new(@nodes_table, [:set, :protected, :named_table])
 
     {:ok, hostname} = :inet.gethostname()
@@ -124,38 +122,46 @@ defmodule Deployex.Telemetry.Collector do
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
+  @spec collect_data(any()) :: :ok
   def collect_data(event) do
     GenServer.cast(__MODULE__, {:telemetry, event})
   end
 
+  @spec subscribe_for_new_keys() :: :ok | {:error, term}
   def subscribe_for_new_keys do
     Phoenix.PubSub.subscribe(Deployex.PubSub, keys_topic())
   end
 
+  @spec unsubscribe_for_new_keys() :: :ok
   def unsubscribe_for_new_keys do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, keys_topic())
   end
 
+  @spec subscribe_for_new_data(String.t(), String.t()) :: :ok | {:error, term}
   def subscribe_for_new_data(service, key) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, metrics_topic(service, key))
   end
 
+  @spec unsubscribe_for_new_data(String.t(), String.t()) :: :ok
   def unsubscribe_for_new_data(service, key) do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(service, key))
   end
 
+  @spec list_data_by_instance(integer()) :: list()
   def list_data_by_instance(instance) do
     instance
     |> node_by_instance()
     |> :ets.tab2list()
   end
 
+  @spec list_data_by_instance_key(integer(), String.t(), Keyword.t()) :: list()
   def list_data_by_instance_key(instance, key, options \\ []) do
     instance
     |> node_by_instance()
     |> list_data_by_service_key(key, options)
   end
 
+  @spec list_data_by_service_key(atom() | String.t(), String.t(), Keyword.t()) :: list()
   def list_data_by_service_key(service, key, options \\ [])
 
   def list_data_by_service_key(service, key, options) when is_binary(service) do
@@ -185,12 +191,14 @@ defmodule Deployex.Telemetry.Collector do
     if order == :asc, do: Enum.reverse(result), else: result
   end
 
+  @spec get_keys_by_instance(integer()) :: list()
   def get_keys_by_instance(instance) do
     instance
     |> node_by_instance()
     |> get_keys_by_node()
   end
 
+  @spec node_by_instance(integer()) :: nil | atom()
   def node_by_instance(instance) do
     case :ets.lookup(@nodes_table, instance) do
       [{_, value}] -> value
@@ -206,6 +214,8 @@ defmodule Deployex.Telemetry.Collector do
 
   defp unix_to_minute(time \\ System.os_time(:millisecond)),
     do: trunc(time / @minute_to_milliseconds)
+
+  defp get_keys_by_node(nil), do: []
 
   defp get_keys_by_node(node) do
     case :ets.lookup(node, @metric_keys) do
