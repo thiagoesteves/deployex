@@ -21,9 +21,6 @@ defmodule Deployex.TelemetryTest do
     Collector.collect_data(build_vm_memory_total(node))
 
     assert_receive {:metrics_new_keys, ^node, ["vm.memory.total"]}, 1_000
-
-    # Validate by inspection
-    Collector.unsubscribe_for_new_keys()
   end
 
   test "[un]subscribe_for_new_data/0", %{node: node} do

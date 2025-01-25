@@ -45,7 +45,7 @@ defmodule DeployexWeb.MetricsLive do
 
         <.form
           for={@form}
-          id="metric-update-form"
+          id="metrics-update-form"
           class="flex ml-2 mr-2 text-xs text-center text-black whitespace-nowrap gap-5"
           phx-change="form-update"
         >
@@ -117,6 +117,9 @@ defmodule DeployexWeb.MetricsLive do
 
     # Subscribe to receive System info
     Deployex.System.subscribe()
+
+    # Subscribe to notifications if any node is UP or Down
+    :net_kernel.monitor_nodes(true)
 
     {:ok,
      socket
@@ -320,9 +323,17 @@ defmodule DeployexWeb.MetricsLive do
         node_info.selected_metrics_keys
       )
 
-    {:noreply,
-     socket
-     |> assign(:node_info, node_info)}
+    {:noreply, assign(socket, :node_info, node_info)}
+  end
+
+  def handle_info({:nodeup, _node}, %{assigns: %{node_info: node_info}} = socket) do
+    node_info =
+      update_node_info(
+        node_info.selected_services_keys,
+        node_info.selected_metrics_keys
+      )
+
+    {:noreply, assign(socket, :node_info, node_info)}
   end
 
   defp data_key(service, metric), do: "#{service}::#{metric}"

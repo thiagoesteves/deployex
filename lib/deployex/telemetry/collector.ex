@@ -7,6 +7,8 @@ defmodule Deployex.Telemetry.Collector do
 
   alias Deployex.Storage
 
+  @behaviour Deployex.Telemetry.Adapter
+
   @metric_keys "metric-keys"
   @nodes_table :nodes_list
 
@@ -120,48 +122,29 @@ defmodule Deployex.Telemetry.Collector do
   end
 
   ### ==========================================================================
-  ### Public functions
+  ### Deployex.Telemetry.Adapter implementation
   ### ==========================================================================
-  @spec collect_data(any()) :: :ok
+  @impl true
   def collect_data(event) do
     GenServer.cast(__MODULE__, {:telemetry, event})
   end
 
-  @spec subscribe_for_new_keys() :: :ok | {:error, term}
+  @impl true
   def subscribe_for_new_keys do
     Phoenix.PubSub.subscribe(Deployex.PubSub, keys_topic())
   end
 
-  @spec unsubscribe_for_new_keys() :: :ok
-  def unsubscribe_for_new_keys do
-    Phoenix.PubSub.unsubscribe(Deployex.PubSub, keys_topic())
-  end
-
-  @spec subscribe_for_new_data(String.t(), String.t()) :: :ok | {:error, term}
+  @impl true
   def subscribe_for_new_data(node, key) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, metrics_topic(node, key))
   end
 
-  @spec unsubscribe_for_new_data(String.t(), String.t()) :: :ok
+  @impl true
   def unsubscribe_for_new_data(node, key) do
     Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(node, key))
   end
 
-  @spec list_data_by_instance(integer()) :: list()
-  def list_data_by_instance(instance) do
-    instance
-    |> node_by_instance()
-    |> :ets.tab2list()
-  end
-
-  @spec list_data_by_instance_key(integer(), String.t(), Keyword.t()) :: list()
-  def list_data_by_instance_key(instance, key, options \\ []) do
-    instance
-    |> node_by_instance()
-    |> list_data_by_node_key(key, options)
-  end
-
-  @spec list_data_by_node_key(atom() | String.t(), String.t(), Keyword.t()) :: list()
+  @impl true
   def list_data_by_node_key(node, key, options \\ [])
 
   def list_data_by_node_key(node, key, options) when is_binary(node) do
@@ -191,19 +174,37 @@ defmodule Deployex.Telemetry.Collector do
     if order == :asc, do: Enum.reverse(result), else: result
   end
 
-  @spec get_keys_by_instance(integer()) :: list()
+  @impl true
   def get_keys_by_instance(instance) do
     instance
     |> node_by_instance()
     |> get_keys_by_node()
   end
 
-  @spec node_by_instance(integer()) :: nil | atom()
+  @impl true
   def node_by_instance(instance) do
     case :ets.lookup(@nodes_table, instance) do
       [{_, value}] -> value
       _ -> nil
     end
+  end
+
+  ### ==========================================================================
+  ### Helper functions
+  ### ==========================================================================
+
+  @spec list_data_by_instance(integer()) :: list()
+  def list_data_by_instance(instance) do
+    instance
+    |> node_by_instance()
+    |> :ets.tab2list()
+  end
+
+  @spec list_data_by_instance_key(integer(), String.t(), Keyword.t()) :: list()
+  def list_data_by_instance_key(instance, key, options \\ []) do
+    instance
+    |> node_by_instance()
+    |> list_data_by_node_key(key, options)
   end
 
   ### ==========================================================================
@@ -219,8 +220,13 @@ defmodule Deployex.Telemetry.Collector do
 
   defp get_keys_by_node(node) do
     case :ets.lookup(node, @metric_keys) do
-      [{_, value}] -> value
-      _ -> []
+      [{_, value}] ->
+        value
+
+      # coveralls-ignore-start
+      _ ->
+        []
+        # coveralls-ignore-stop
     end
   end
 

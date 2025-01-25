@@ -46,4 +46,140 @@ defmodule DeployexWeb.Metrics.IndexTest do
 
     assert html =~ "Live Metrics"
   end
+
+  test "GET /metrics + new key", %{conn: conn, node_list: node_list} do
+    test_pid_process = self()
+
+    metric = "fake.phoenix.metric"
+
+    Deployex.TelemetryMock
+    |> expect(:subscribe_for_new_keys, fn -> :ok end)
+    |> stub(:node_by_instance, fn instance ->
+      if instance == 3, do: send(test_pid_process, {:liveview_pid, self()})
+      node_list[instance]
+    end)
+    |> stub(:get_keys_by_instance, fn _instance ->
+      # 0, 1, 2, 3: return []
+      # > 3: return [metric]
+      called = Process.get("get_keys_by_instance", 0)
+      Process.put("get_keys_by_instance", called + 1)
+
+      if called > 3 do
+        send(test_pid_process, :added_metric)
+        [metric]
+      else
+        []
+      end
+    end)
+
+    {:ok, liveview, html} = live(conn, ~p"/metrics")
+
+    liveview
+    |> element("#metrics-multi-select-toggle-options")
+    |> render_click()
+
+    assert_receive {:liveview_pid, liveview_pid}, 1_000
+
+    refute html =~ "#{metric}"
+
+    send(liveview_pid, {:metrics_new_keys, nil, nil})
+
+    assert_receive :added_metric, 1_000
+
+    html = render(liveview)
+
+    assert html =~ "#{metric}"
+  end
+
+  test "GET /metrics + update form", %{conn: conn, node_list: node_list} do
+    test_pid_process = self()
+
+    Deployex.TelemetryMock
+    |> expect(:subscribe_for_new_keys, fn -> :ok end)
+    |> stub(:node_by_instance, fn instance ->
+      if instance == 3, do: send(test_pid_process, {:liveview_pid, self()})
+      node_list[instance]
+    end)
+    |> stub(:get_keys_by_instance, fn _instance -> [] end)
+
+    {:ok, liveview, _html} = live(conn, ~p"/metrics")
+
+    liveview
+    |> element("#metrics-multi-select-toggle-options")
+    |> render_click()
+
+    assert_receive {:liveview_pid, _liveview_pid}, 1_000
+
+    time = "1 minute"
+
+    liveview
+    |> element("#metrics-update-form")
+    |> render_change(%{num_cols: 1, start_time: time}) =~ time
+
+    time = "5 minutes"
+
+    liveview
+    |> element("#metrics-update-form")
+    |> render_change(%{num_cols: 2, start_time: time}) =~ time
+
+    time = "15 minutes"
+
+    liveview
+    |> element("#metrics-update-form")
+    |> render_change(%{num_cols: 3, start_time: time}) =~ time
+
+    time = "30 minutes"
+
+    liveview
+    |> element("#metrics-update-form")
+    |> render_change(%{num_cols: 4, start_time: time}) =~ time
+  end
+
+  test "GET /metrics + node up", %{conn: conn, node_list: node_list} do
+    test_pid_process = self()
+
+    fake_node = :myapp@nohost
+
+    Deployex.TelemetryMock
+    |> expect(:subscribe_for_new_keys, fn -> :ok end)
+    |> stub(:node_by_instance, fn instance ->
+      called = Process.get("node_by_instance", 0)
+      Process.put("node_by_instance", called + 1)
+
+      cond do
+        # First iteration, send notification in the last node
+        instance == 3 && called == 3 ->
+          send(test_pid_process, {:liveview_pid, self()})
+          node_list[instance]
+
+        # Second iteration, send notification in the last node and
+        # change node name to the new one
+        instance == 3 && called == 7 ->
+          send(test_pid_process, :added_node)
+          fake_node
+
+        true ->
+          node_list[instance]
+      end
+    end)
+    |> stub(:get_keys_by_instance, fn _instance -> [] end)
+
+    {:ok, liveview, html} = live(conn, ~p"/metrics")
+
+    liveview
+    |> element("#metrics-multi-select-toggle-options")
+    |> render_click()
+
+    assert_receive {:liveview_pid, liveview_pid}, 1_000
+
+    refute html =~ "#{fake_node}"
+
+    send(liveview_pid, {:nodeup, fake_node})
+
+    assert_receive :added_node, 1_000
+
+    html = render(liveview)
+
+    assert html =~ "#{fake_node}"
+  end
 end

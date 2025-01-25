@@ -42,7 +42,13 @@ defmodule DeployexWeb.Components.MultiSelect do
                         {"#{item.name}:#{key}"}
                       </div>
                       <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-remove-item", "@", "-")}
+                        id={
+                          String.replace(
+                            "#{@id}-#{item.name}-#{key}-remove-item",
+                            ["@", ".", "/"],
+                            "-"
+                          )
+                        }
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -122,7 +128,13 @@ defmodule DeployexWeb.Components.MultiSelect do
                     <div class="flex flex-wrap">
                       <%= for key <- item.keys do %>
                         <button
-                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
+                          id={
+                            String.replace(
+                              "#{@id}-#{item.name}-#{key}-add-item",
+                              ["@", ".", "/"],
+                              "-"
+                            )
+                          }
                           class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                           phx-click="multi-select-add-item"
                           phx-value-key={key}

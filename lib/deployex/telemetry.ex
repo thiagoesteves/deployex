@@ -22,12 +22,6 @@ defmodule Deployex.Telemetry do
   def subscribe_for_new_keys, do: default().subscribe_for_new_keys()
 
   @doc """
-  Unsubscribe for new keys notifications
-  """
-  @spec unsubscribe_for_new_keys() :: :ok
-  def unsubscribe_for_new_keys, do: default().unsubscribe_for_new_keys()
-
-  @doc """
   Subscribe for new data notifications for the respective node/key
   """
   @spec subscribe_for_new_data(String.t(), String.t()) :: :ok | {:error, term}
@@ -38,19 +32,6 @@ defmodule Deployex.Telemetry do
   """
   @spec unsubscribe_for_new_data(String.t(), String.t()) :: :ok
   def unsubscribe_for_new_data(node, key), do: default().unsubscribe_for_new_data(node, key)
-
-  @doc """
-  Fetch all data by instance
-  """
-  @spec list_data_by_instance(integer()) :: list()
-  def list_data_by_instance(instance), do: default().list_data_by_instance(instance)
-
-  @doc """
-  Fetch data by instance and key
-  """
-  @spec list_data_by_instance_key(integer(), String.t(), Keyword.t()) :: list()
-  def list_data_by_instance_key(instance, key, options),
-    do: default().list_data_by_instance_key(instance, key, options)
 
   @doc """
   Fetch data by node and key
