@@ -118,9 +118,6 @@ defmodule DeployexWeb.MetricsLive do
     # Subscribe to receive System info
     Deployex.System.subscribe()
 
-    # Subscribe to notifications if any node is UP or Down
-    :net_kernel.monitor_nodes(true)
-
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
@@ -317,16 +314,6 @@ defmodule DeployexWeb.MetricsLive do
         {:metrics_new_keys, _service, _new_keys},
         %{assigns: %{node_info: node_info}} = socket
       ) do
-    node_info =
-      update_node_info(
-        node_info.selected_services_keys,
-        node_info.selected_metrics_keys
-      )
-
-    {:noreply, assign(socket, :node_info, node_info)}
-  end
-
-  def handle_info({:nodeup, _node}, %{assigns: %{node_info: node_info}} = socket) do
     node_info =
       update_node_info(
         node_info.selected_services_keys,
