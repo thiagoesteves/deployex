@@ -95,7 +95,7 @@ defmodule Deployex.TelemetryTest do
     assert [_ | _] = Collector.list_data_by_instance(1)
   end
 
-  test "list_data_by_service_key/3", %{node: node} do
+  test "list_data_by_node_key/3", %{node: node} do
     key_name = "test.phoenix"
 
     Collector.subscribe_for_new_data(node, key_name)
@@ -111,7 +111,7 @@ defmodule Deployex.TelemetryTest do
              %{timestamp: _, unit: _, value: 3, tags: _},
              %{timestamp: _, unit: _, value: 4, tags: _},
              %{timestamp: _, unit: _, value: 5, tags: _}
-           ] = Collector.list_data_by_service_key(node |> to_string(), key_name, order: :asc)
+           ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
 
     assert [
              %{timestamp: _, unit: _, value: 5, tags: _},
@@ -119,7 +119,7 @@ defmodule Deployex.TelemetryTest do
              %{timestamp: _, unit: _, value: 3, tags: _},
              %{timestamp: _, unit: _, value: 2, tags: _},
              %{timestamp: _, unit: _, value: 1, tags: _}
-           ] = Collector.list_data_by_service_key(node |> to_string(), key_name, order: :desc)
+           ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :desc)
 
     assert [
              %{timestamp: _, unit: _, value: 1, tags: _},
@@ -127,7 +127,7 @@ defmodule Deployex.TelemetryTest do
              %{timestamp: _, unit: _, value: 3, tags: _},
              %{timestamp: _, unit: _, value: 4, tags: _},
              %{timestamp: _, unit: _, value: 5, tags: _}
-           ] = Collector.list_data_by_service_key(node |> to_string(), key_name)
+           ] = Collector.list_data_by_node_key(node |> to_string(), key_name)
   end
 
   test "Pruning expiring entries", %{node: node, pid: pid} do
@@ -150,12 +150,12 @@ defmodule Deployex.TelemetryTest do
              %{timestamp: _, unit: _, value: 3, tags: _},
              %{timestamp: _, unit: _, value: 4, tags: _},
              %{timestamp: _, unit: _, value: 5, tags: _}
-           ] = Collector.list_data_by_service_key(node |> to_string(), key_name, order: :asc)
+           ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
 
     send(pid, :prune_expired_entries)
     :timer.sleep(100)
 
-    assert [] = Collector.list_data_by_service_key(node |> to_string(), key_name, order: :asc)
+    assert [] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
   end
 
   defp build_vm_memory_total(node) do

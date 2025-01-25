@@ -7,11 +7,12 @@ defmodule DeployexWeb.Metrics.SystemTest do
   setup [
     :set_mox_global,
     :verify_on_exit!,
-    :log_in_default_user
+    :log_in_default_user,
+    :node_list
   ]
 
-  test "GET /metrics with system info", %{conn: conn} do
-    node = Node.self() |> to_string
+  test "GET /metrics with system info", %{conn: conn, node_list: node_list} do
+    node = node_list[0] |> to_string
     service = String.replace(node, "@", "-")
 
     test_pid_process = self()
@@ -19,12 +20,13 @@ defmodule DeployexWeb.Metrics.SystemTest do
     description = "15.1.1"
     total_memory = "64.00"
 
-    Deployex.RpcMock
-    |> stub(:call, fn node, module, function, args, timeout ->
-      send(test_pid_process, {:liveview_pid, self()})
-      :rpc.call(node, module, function, args, timeout)
+    Deployex.TelemetryMock
+    |> expect(:subscribe_for_new_keys, fn -> :ok end)
+    |> stub(:node_by_instance, fn instance ->
+      if instance == 3, do: send(test_pid_process, {:liveview_pid, self()})
+      node_list[instance]
     end)
-    |> stub(:pinfo, fn pid, information -> :rpc.pinfo(pid, information) end)
+    |> stub(:get_keys_by_instance, fn _ -> [] end)
 
     {:ok, liveview, _html} = live(conn, ~p"/metrics")
 

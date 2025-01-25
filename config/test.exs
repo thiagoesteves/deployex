@@ -40,6 +40,9 @@ config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
 # Config Mock for Rpc
 config :deployex, Deployex.Rpc, adapter: Deployex.RpcMock
 
+# Config Mock for Telemetry
+config :deployex, Deployex.Telemetry, adapter: Deployex.TelemetryMock
+
 config :deployex, Deployex.Deployment, delay_between_deploys_ms: 10
 
 # Disable swoosh api client as it is only required for production adapters.
