@@ -113,6 +113,8 @@ config :deployex, Deployex.Storage, adapter: Deployex.Storage.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 
+config :deployex, Deployex.Telemetry, adapter: Deployex.Telemetry.Collector
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

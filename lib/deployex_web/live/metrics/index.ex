@@ -1,7 +1,7 @@
 defmodule DeployexWeb.MetricsLive do
   use DeployexWeb, :live_view
 
-  alias Deployex.Telemetry.Collector
+  alias Deployex.Telemetry
   alias DeployexWeb.Components.Metrics.Phoenix
   alias DeployexWeb.Components.Metrics.VmMemory
   alias DeployexWeb.Components.MultiSelect
@@ -113,7 +113,7 @@ defmodule DeployexWeb.MetricsLive do
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
     # Subscribe to notifications if new metric is received
-    Collector.subscribe_for_new_keys()
+    Telemetry.subscribe_for_new_keys()
 
     # Subscribe to receive System info
     Deployex.System.subscribe()
@@ -167,7 +167,7 @@ defmodule DeployexWeb.MetricsLive do
           |> stream(data_key, [], reset: true)
           |> stream(
             data_key,
-            Collector.list_data_by_service_key(service_key, metric_key, from: start_time_integer),
+            Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time_integer),
             dom_id: &"#{data_key}-#{&1.timestamp}"
           )
           |> assign_metric_config(data_key, %{"transition" => false})
@@ -191,7 +191,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_metrics_keys, socket, fn metric_key, acc ->
-        Collector.unsubscribe_for_new_data(service_key, metric_key)
+        Telemetry.unsubscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -216,7 +216,7 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        Collector.unsubscribe_for_new_data(service_key, metric_key)
+        Telemetry.unsubscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
@@ -243,14 +243,14 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_metrics_keys, socket, fn metric_key, acc ->
-        Collector.subscribe_for_new_data(service_key, metric_key)
+        Telemetry.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
         acc
         |> stream(
           data_key,
-          Collector.list_data_by_service_key(service_key, metric_key, from: start_time),
+          Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time),
           dom_id: &"#{data_key}-#{&1.timestamp}"
         )
         |> assign_metric_config(data_key, %{"transition" => false})
@@ -274,14 +274,14 @@ defmodule DeployexWeb.MetricsLive do
 
     socket =
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, acc ->
-        Collector.subscribe_for_new_data(service_key, metric_key)
+        Telemetry.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
 
         acc
         |> stream(
           data_key,
-          Collector.list_data_by_service_key(service_key, metric_key, from: start_time),
+          Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time),
           dom_id: &"#{data_key}-#{&1.timestamp}"
         )
         |> assign_metric_config(data_key, %{"transition" => false})
@@ -372,8 +372,8 @@ defmodule DeployexWeb.MetricsLive do
                                      metrics_keys: metrics_keys,
                                      node: node
                                    } = acc ->
-      instance_metrics_keys = Collector.get_keys_by_instance(instance)
-      service = Collector.node_by_instance(instance) |> to_string
+      instance_metrics_keys = Telemetry.get_keys_by_instance(instance)
+      service = Telemetry.node_by_instance(instance) |> to_string
       [name, _hostname] = String.split(service, "@")
 
       metrics_keys = (metrics_keys ++ instance_metrics_keys) |> Enum.sort() |> Enum.uniq()

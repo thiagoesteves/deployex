@@ -12,6 +12,7 @@
     "lib/deployex/storage/adapter.ex",
     "lib/deployex/rpc/adapter.ex",
     "lib/deployex/rpc/local.ex",
+    "lib/deployex/telemetry/adapter.ex",
     "lib/deployex/mailer.ex",
     "lib/deployex/macros.ex",
     "lib/deployex/observer/helper.ex",

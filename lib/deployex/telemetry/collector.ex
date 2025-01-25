@@ -138,13 +138,13 @@ defmodule Deployex.Telemetry.Collector do
   end
 
   @spec subscribe_for_new_data(String.t(), String.t()) :: :ok | {:error, term}
-  def subscribe_for_new_data(service, key) do
-    Phoenix.PubSub.subscribe(Deployex.PubSub, metrics_topic(service, key))
+  def subscribe_for_new_data(node, key) do
+    Phoenix.PubSub.subscribe(Deployex.PubSub, metrics_topic(node, key))
   end
 
   @spec unsubscribe_for_new_data(String.t(), String.t()) :: :ok
-  def unsubscribe_for_new_data(service, key) do
-    Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(service, key))
+  def unsubscribe_for_new_data(node, key) do
+    Phoenix.PubSub.unsubscribe(Deployex.PubSub, metrics_topic(node, key))
   end
 
   @spec list_data_by_instance(integer()) :: list()
@@ -158,19 +158,19 @@ defmodule Deployex.Telemetry.Collector do
   def list_data_by_instance_key(instance, key, options \\ []) do
     instance
     |> node_by_instance()
-    |> list_data_by_service_key(key, options)
+    |> list_data_by_node_key(key, options)
   end
 
-  @spec list_data_by_service_key(atom() | String.t(), String.t(), Keyword.t()) :: list()
-  def list_data_by_service_key(service, key, options \\ [])
+  @spec list_data_by_node_key(atom() | String.t(), String.t(), Keyword.t()) :: list()
+  def list_data_by_node_key(node, key, options \\ [])
 
-  def list_data_by_service_key(service, key, options) when is_binary(service) do
-    service
+  def list_data_by_node_key(node, key, options) when is_binary(node) do
+    node
     |> String.to_existing_atom()
-    |> list_data_by_service_key(key, options)
+    |> list_data_by_node_key(key, options)
   end
 
-  def list_data_by_service_key(service, key, options) when is_atom(service) do
+  def list_data_by_node_key(node, key, options) when is_atom(node) do
     from = Keyword.get(options, :from, 15)
     order = Keyword.get(options, :order, :asc)
 
@@ -179,7 +179,7 @@ defmodule Deployex.Telemetry.Collector do
 
     result =
       Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
-        case :ets.lookup(service, metric_key(key, minute)) do
+        case :ets.lookup(node, metric_key(key, minute)) do
           [{_, value}] ->
             value ++ acc
 
@@ -225,7 +225,7 @@ defmodule Deployex.Telemetry.Collector do
   end
 
   defp keys_topic, do: "metrics::keys"
-  defp metrics_topic(service, key), do: "metrics::#{service}::#{key}"
+  defp metrics_topic(node, key), do: "metrics::#{node}::#{key}"
 
   ### ==========================================================================
   ### Hanlde data Telemetry.DeployexReporter.Metrics.V1
