@@ -12,8 +12,7 @@ defmodule DeployexWeb.Metrics.SystemTest do
   ]
 
   test "GET /metrics with system info", %{conn: conn, node_list: node_list} do
-    node = node_list[0] |> to_string
-    service = String.replace(node, "@", "-")
+    service = String.replace(node_list[0] |> to_string, "@", "-")
 
     test_pid_process = self()
     host = "macOS"
