@@ -3,7 +3,7 @@ defmodule Deployex.Telemetry.Adapter do
   Behaviour that defines the telemetry adapter callback
   """
 
-  @callback collect_data(any()) :: :ok
+  @callback push_data(any()) :: :ok
   @callback subscribe_for_new_keys() :: :ok | {:error, term}
   @callback subscribe_for_new_data(String.t(), String.t()) :: :ok | {:error, term}
   @callback unsubscribe_for_new_data(String.t(), String.t()) :: :ok

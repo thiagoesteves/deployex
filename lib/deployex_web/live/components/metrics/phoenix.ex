@@ -116,7 +116,7 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
     ~H"""
     <div class="flex px-4 py-1 items-center rounded-full bg-gray-200">
       <span class="text-cyan-600 font-semibold text-[9px] ">
-        {DateTime.from_unix!(@timestamp, :millisecond)}
+        {@timestamp |> DateTime.from_unix!(:millisecond) |> DateTime.to_string()}
       </span>
     </div>
     """

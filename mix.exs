@@ -135,7 +135,7 @@ defmodule Deployex.MixProject do
       {:ex_aws_s3, "~> 2.0"},
       {:hackney, "~> 1.9"},
       {:goth, "~> 1.4"},
-      {:telemetry_deployex, "~> 0.1.0-rc2"},
+      {:telemetry_deployex, "~> 0.1.0-rc4"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},

@@ -21,7 +21,7 @@ defmodule Deployex.TelemetryTest do
 
     node
     |> TelemetryFixtures.build_reporter_vm_memory_total()
-    |> Collector.collect_data()
+    |> Collector.push_data()
 
     assert_receive {:metrics_new_keys, ^node, ["vm.memory.total"]}, 1_000
   end
@@ -31,7 +31,7 @@ defmodule Deployex.TelemetryTest do
 
     node
     |> TelemetryFixtures.build_reporter_vm_memory_total()
-    |> Collector.collect_data()
+    |> Collector.push_data()
 
     assert_receive {:metrics_new_data, ^node, "vm.memory.total",
                     %Deployex.Telemetry.Data{timestamp: _, unit: _, value: _, measurements: _}},
@@ -46,7 +46,7 @@ defmodule Deployex.TelemetryTest do
 
     node
     |> TelemetryFixtures.build_reporter_vm_memory_total()
-    |> Collector.collect_data()
+    |> Collector.push_data()
 
     assert_receive {:metrics_new_data, ^node, "vm.memory.total",
                     %Deployex.Telemetry.Data{timestamp: _, unit: _, value: _, measurements: _}},
@@ -64,7 +64,7 @@ defmodule Deployex.TelemetryTest do
 
     Collector.subscribe_for_new_data(node, key_name)
 
-    Enum.each(1..5, &Collector.collect_data(build_metric(node, key_name, &1)))
+    Enum.each(1..5, &Collector.push_data(build_metric(node, key_name, &1)))
 
     assert_receive {:metrics_new_data, ^node, ^key_name, %{timestamp: _, unit: _, value: 5}},
                    1_000
@@ -91,7 +91,7 @@ defmodule Deployex.TelemetryTest do
 
     Collector.subscribe_for_new_data(node, key_name)
 
-    Enum.each(1..5, &Collector.collect_data(build_metric(node, key_name, &1)))
+    Enum.each(1..5, &Collector.push_data(build_metric(node, key_name, &1)))
 
     assert_receive {:metrics_new_data, ^node, ^key_name, %{timestamp: _, unit: _, value: 5}},
                    1_000
@@ -104,7 +104,7 @@ defmodule Deployex.TelemetryTest do
 
     Collector.subscribe_for_new_data(node, key_name)
 
-    Enum.each(1..5, &Collector.collect_data(build_metric(node, key_name, &1)))
+    Enum.each(1..5, &Collector.push_data(build_metric(node, key_name, &1)))
 
     assert_receive {:metrics_new_data, ^node, ^key_name, %{timestamp: _, unit: _, value: 5}},
                    1_000
@@ -142,7 +142,7 @@ defmodule Deployex.TelemetryTest do
     Collector.subscribe_for_new_data(node, key_name)
 
     with_mock System, os_time: fn _ -> now - 120_000 end do
-      Enum.each(1..5, &Collector.collect_data(build_metric(node, key_name, &1)))
+      Enum.each(1..5, &Collector.push_data(build_metric(node, key_name, &1)))
 
       assert_receive {:metrics_new_data, ^node, ^key_name, %{timestamp: _, unit: _, value: 5}},
                      1_000

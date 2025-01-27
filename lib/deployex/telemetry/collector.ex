@@ -125,7 +125,7 @@ defmodule Deployex.Telemetry.Collector do
   ### Deployex.Telemetry.Adapter implementation
   ### ==========================================================================
   @impl true
-  def collect_data(event) do
+  def push_data(event) do
     GenServer.cast(__MODULE__, {:telemetry, event})
   end
 

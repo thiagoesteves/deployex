@@ -4,6 +4,7 @@ defmodule DeployexWeb.MetricsLive do
   alias Deployex.Telemetry
   alias DeployexWeb.Components.Metrics.Phoenix
   alias DeployexWeb.Components.Metrics.VmMemory
+  alias DeployexWeb.Components.Metrics.VmRunQueue
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Components.SystemBar
 
@@ -95,6 +96,13 @@ defmodule DeployexWeb.MetricsLive do
                   metrics={Map.get(@streams, data_key)}
                 />
                 <VmMemory.content
+                  title={"#{metric} [#{app.name}]"}
+                  service={service}
+                  metric={metric}
+                  cols={@form.params["num_cols"]}
+                  metrics={Map.get(@streams, data_key)}
+                />
+                <VmRunQueue.content
                   title={"#{metric} [#{app.name}]"}
                   service={service}
                   metric={metric}

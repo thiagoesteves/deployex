@@ -33,8 +33,8 @@ defmodule Deployex.Telemetry do
   to be called via RPC.
   """
   # coveralls-ignore-start
-  @spec collect_data(any()) :: :ok
-  def collect_data(event), do: default().collect_data(event)
+  @spec push_data(any()) :: :ok
+  def push_data(event), do: default().push_data(event)
   # coveralls-ignore-stop
 
   @doc """

@@ -59,7 +59,11 @@ defmodule DeployexWeb.Components.Metrics.VmMemory do
 
     {series_data, categories_data} =
       Enum.reduce(metrics, {empty_series_data, []}, fn metric, {series_data, categories_data} ->
-        timestamp = DateTime.from_unix!(metric.timestamp, :millisecond) |> DateTime.to_string()
+        timestamp =
+          metric.timestamp
+          |> trunc()
+          |> DateTime.from_unix!(:millisecond)
+          |> DateTime.to_string()
 
         {%{
            atom: series_data.atom ++ [metric.measurements.atom],
