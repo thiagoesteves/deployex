@@ -162,13 +162,14 @@ defmodule DeployexWeb.MetricsLive do
       Enum.reduce(node_info.selected_services_keys, socket, fn service_key, service_acc ->
         Enum.reduce(node_info.selected_metrics_keys, service_acc, fn metric_key, metric_acc ->
           data_key = data_key(service_key, metric_key)
+          dom_id_fun = &"#{data_key}-#{&1.timestamp}"
 
           metric_acc
           |> stream(data_key, [], reset: true)
           |> stream(
             data_key,
             Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time_integer),
-            dom_id: &"#{data_key}-#{&1.timestamp}"
+            dom_id: dom_id_fun
           )
           |> assign_metric_config(data_key, %{"transition" => false})
         end)
@@ -246,12 +247,13 @@ defmodule DeployexWeb.MetricsLive do
         Telemetry.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
+        dom_id_fun = &"#{data_key}-#{&1.timestamp}"
 
         acc
         |> stream(
           data_key,
           Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time),
-          dom_id: &"#{data_key}-#{&1.timestamp}"
+          dom_id: dom_id_fun
         )
         |> assign_metric_config(data_key, %{"transition" => false})
       end)
@@ -277,12 +279,13 @@ defmodule DeployexWeb.MetricsLive do
         Telemetry.subscribe_for_new_data(service_key, metric_key)
 
         data_key = data_key(service_key, metric_key)
+        dom_id_fun = &"#{data_key}-#{&1.timestamp}"
 
         acc
         |> stream(
           data_key,
           Telemetry.list_data_by_node_key(service_key, metric_key, from: start_time),
-          dom_id: &"#{data_key}-#{&1.timestamp}"
+          dom_id: dom_id_fun
         )
         |> assign_metric_config(data_key, %{"transition" => false})
       end)

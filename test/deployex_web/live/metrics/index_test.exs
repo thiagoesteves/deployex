@@ -6,6 +6,7 @@ defmodule DeployexWeb.Metrics.IndexTest do
 
   alias Deployex.Fixture.Monitoring
   alias Deployex.Fixture.Status, as: FixtureStatus
+  alias Deployex.TelemetryFixtures
 
   setup [
     :set_mox_global,
@@ -92,20 +93,41 @@ defmodule DeployexWeb.Metrics.IndexTest do
   end
 
   test "GET /metrics + update form", %{conn: conn, node_list: node_list} do
+    node = node_list[1] |> to_string
+    service_id = String.replace(node, "@", "-")
+    metric = "vm.memory.total"
+    metric_id = String.replace(metric, ".", "-")
+
     test_pid_process = self()
 
     Deployex.TelemetryMock
     |> expect(:subscribe_for_new_keys, fn -> :ok end)
+    |> expect(:subscribe_for_new_data, fn ^node, ^metric -> :ok end)
+    |> stub(:list_data_by_node_key, fn ^node, ^metric, _ ->
+      [
+        TelemetryFixtures.build_telemetry_data_vm_total_memory(),
+        TelemetryFixtures.build_telemetry_data_vm_total_memory(),
+        TelemetryFixtures.build_telemetry_data_vm_total_memory()
+      ]
+    end)
     |> stub(:node_by_instance, fn instance ->
       if instance == 3, do: send(test_pid_process, {:liveview_pid, self()})
       node_list[instance]
     end)
-    |> stub(:get_keys_by_instance, fn _instance -> [] end)
+    |> stub(:get_keys_by_instance, fn _instance -> [metric] end)
 
     {:ok, liveview, _html} = live(conn, ~p"/metrics")
 
     liveview
     |> element("#metrics-multi-select-toggle-options")
+    |> render_click()
+
+    liveview
+    |> element("#metrics-multi-select-metrics-#{metric_id}-add-item")
+    |> render_click()
+
+    liveview
+    |> element("#metrics-multi-select-services-#{service_id}-add-item")
     |> render_click()
 
     assert_receive {:liveview_pid, _liveview_pid}, 1_000

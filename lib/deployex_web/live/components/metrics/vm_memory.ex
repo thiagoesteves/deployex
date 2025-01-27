@@ -62,15 +62,15 @@ defmodule DeployexWeb.Components.Metrics.VmMemory do
         timestamp = DateTime.from_unix!(metric.timestamp, :millisecond) |> DateTime.to_string()
 
         {%{
-           atom: series_data.atom ++ [metric.metadata.atom],
-           atom_used: series_data.atom_used ++ [metric.metadata.atom_used],
-           binary: series_data.binary ++ [metric.metadata.binary],
-           code: series_data.code ++ [metric.metadata.code],
-           ets: series_data.ets ++ [metric.metadata.ets],
-           processes: series_data.processes ++ [metric.metadata.processes],
-           processes_used: series_data.processes_used ++ [metric.metadata.processes_used],
-           system: series_data.system ++ [metric.metadata.system],
-           total: series_data.total ++ [metric.metadata.total]
+           atom: series_data.atom ++ [metric.measurements.atom],
+           atom_used: series_data.atom_used ++ [metric.measurements.atom_used],
+           binary: series_data.binary ++ [metric.measurements.binary],
+           code: series_data.code ++ [metric.measurements.code],
+           ets: series_data.ets ++ [metric.measurements.ets],
+           processes: series_data.processes ++ [metric.measurements.processes],
+           processes_used: series_data.processes_used ++ [metric.measurements.processes_used],
+           system: series_data.system ++ [metric.measurements.system],
+           total: series_data.total ++ [metric.measurements.total]
          }, categories_data ++ [timestamp]}
       end)
 

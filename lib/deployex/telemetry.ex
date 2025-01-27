@@ -5,15 +5,37 @@ defmodule Deployex.Telemetry do
 
   @behaviour Deployex.Telemetry.Adapter
 
+  defmodule Data do
+    @moduledoc """
+    Structure to handle the telemetry event
+    """
+    @type t :: %__MODULE__{
+            timestamp: non_neg_integer(),
+            value: integer() | float(),
+            unit: String.t(),
+            tags: map(),
+            measurements: map()
+          }
+
+    defstruct timestamp: nil,
+              value: "",
+              unit: "",
+              tags: %{},
+              measurements: %{}
+  end
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
 
   @doc """
-  This function pushes events to the Telemetry module
+  This function pushes events to the Telemetry module, it is expected
+  to be called via RPC.
   """
+  # coveralls-ignore-start
   @spec collect_data(any()) :: :ok
   def collect_data(event), do: default().collect_data(event)
+  # coveralls-ignore-stop
 
   @doc """
   Subscribe for new keys notifications

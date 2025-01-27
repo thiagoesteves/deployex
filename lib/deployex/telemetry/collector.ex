@@ -61,7 +61,7 @@ defmodule Deployex.Telemetry.Collector do
 
     new_keys =
       Enum.reduce(metrics, [], fn metric, acc ->
-        {key, timed_key, data} = prepare_timeseries_data(metric, measurements, now, minute)
+        {key, timed_key, data} = build_telemetry_data(metric, measurements, now, minute)
 
         current_data =
           case :ets.lookup(reporter, timed_key) do
@@ -236,14 +236,14 @@ defmodule Deployex.Telemetry.Collector do
   ### ==========================================================================
   ### Hanlde data Telemetry.DeployexReporter.Metrics.V1
   ### ==========================================================================
-  defp prepare_timeseries_data(%{name: name} = metric, measurements, now, minute)
-       when name in ["vm.memory.total"] do
+  defp build_telemetry_data(%{name: name} = metric, measurements, now, minute) do
     {name, metric_key(name, minute),
-     %{timestamp: now, value: metric.value, unit: metric.unit, metadata: measurements}}
-  end
-
-  defp prepare_timeseries_data(%{name: name} = metric, _measurements, now, minute) do
-    {name, metric_key(name, minute),
-     %{timestamp: now, value: metric.value, unit: metric.unit, tags: metric.tags}}
+     %Deployex.Telemetry.Data{
+       timestamp: now,
+       value: metric.value,
+       unit: metric.unit,
+       tags: metric.tags,
+       measurements: measurements
+     }}
   end
 end

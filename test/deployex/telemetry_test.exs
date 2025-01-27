@@ -4,6 +4,7 @@ defmodule Deployex.TelemetryTest do
   import Mock
 
   alias Deployex.Telemetry.Collector
+  alias Deployex.TelemetryFixtures
 
   setup do
     {:ok, hostname} = :inet.gethostname()
@@ -18,7 +19,9 @@ defmodule Deployex.TelemetryTest do
   test "[un]subscribe_for_new_keys/0", %{node: node} do
     Collector.subscribe_for_new_keys()
 
-    Collector.collect_data(build_vm_memory_total(node))
+    node
+    |> TelemetryFixtures.build_reporter_vm_memory_total()
+    |> Collector.collect_data()
 
     assert_receive {:metrics_new_keys, ^node, ["vm.memory.total"]}, 1_000
   end
@@ -26,10 +29,12 @@ defmodule Deployex.TelemetryTest do
   test "[un]subscribe_for_new_data/0", %{node: node} do
     Collector.subscribe_for_new_data(node, "vm.memory.total")
 
-    Collector.collect_data(build_vm_memory_total(node))
+    node
+    |> TelemetryFixtures.build_reporter_vm_memory_total()
+    |> Collector.collect_data()
 
     assert_receive {:metrics_new_data, ^node, "vm.memory.total",
-                    %{timestamp: _, unit: _, value: _, metadata: _}},
+                    %Deployex.Telemetry.Data{timestamp: _, unit: _, value: _, measurements: _}},
                    1_000
 
     # Validate by inspection
@@ -39,10 +44,12 @@ defmodule Deployex.TelemetryTest do
   test "get_keys_by_instance/1 valid instance", %{node: node} do
     Collector.subscribe_for_new_data(node, "vm.memory.total")
 
-    Collector.collect_data(build_vm_memory_total(node))
+    node
+    |> TelemetryFixtures.build_reporter_vm_memory_total()
+    |> Collector.collect_data()
 
     assert_receive {:metrics_new_data, ^node, "vm.memory.total",
-                    %{timestamp: _, unit: _, value: _, metadata: _}},
+                    %Deployex.Telemetry.Data{timestamp: _, unit: _, value: _, measurements: _}},
                    1_000
 
     assert ["vm.memory.total"] == Collector.get_keys_by_instance(1)
@@ -63,19 +70,19 @@ defmodule Deployex.TelemetryTest do
                    1_000
 
     assert [
-             %{timestamp: _, unit: _, value: 1, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 5, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _}
            ] = Collector.list_data_by_instance_key(1, key_name, order: :asc)
 
     assert [
-             %{timestamp: _, unit: _, value: 5, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 1, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _}
            ] = Collector.list_data_by_instance_key(1, key_name, order: :desc)
   end
 
@@ -103,27 +110,27 @@ defmodule Deployex.TelemetryTest do
                    1_000
 
     assert [
-             %{timestamp: _, unit: _, value: 1, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 5, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _}
            ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
 
     assert [
-             %{timestamp: _, unit: _, value: 5, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 1, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _}
            ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :desc)
 
     assert [
-             %{timestamp: _, unit: _, value: 1, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 5, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _}
            ] = Collector.list_data_by_node_key(node |> to_string(), key_name)
   end
 
@@ -142,45 +149,17 @@ defmodule Deployex.TelemetryTest do
     end
 
     assert [
-             %{timestamp: _, unit: _, value: 1, tags: _},
-             %{timestamp: _, unit: _, value: 2, tags: _},
-             %{timestamp: _, unit: _, value: 3, tags: _},
-             %{timestamp: _, unit: _, value: 4, tags: _},
-             %{timestamp: _, unit: _, value: 5, tags: _}
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 1, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 2, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 3, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 4, tags: _},
+             %Deployex.Telemetry.Data{timestamp: _, unit: _, value: 5, tags: _}
            ] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
 
     send(pid, :prune_expired_entries)
     :timer.sleep(100)
 
     assert [] = Collector.list_data_by_node_key(node |> to_string(), key_name, order: :asc)
-  end
-
-  defp build_vm_memory_total(node) do
-    %{
-      metrics: [
-        %TelemetryDeployex.Metrics{
-          name: "vm.memory.total",
-          version: "0.1.0-rc3",
-          value: 67_341.795,
-          unit: " kilobyte",
-          info: "",
-          tags: %{},
-          type: "summary"
-        }
-      ],
-      reporter: node,
-      measurements: %{
-        atom: 999_681,
-        atom_used: 991_582,
-        binary: 1_675_976,
-        code: 17_108_729,
-        ets: 1_733_464,
-        processes: 31_075_760,
-        processes_used: 31_051_664,
-        system: 36_266_035,
-        total: 67_341_795
-      }
-    }
   end
 
   defp build_metric(node, name, value) do

@@ -16,11 +16,11 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
       "phoenix.endpoint.start.system_time",
       "phoenix.endpoint.stop.duration",
       "phoenix.router_dispatch.start.system_time",
-      # "phoenix.router_dispatch.exception.duration",
+      "phoenix.router_dispatch.exception.duration",
       "phoenix.router_dispatch.stop.duration",
       "phoenix.socket_connected.duration",
-      "phoenix.channel_joined.duration"
-      # "phoenix.channel_handled_in.duration"
+      "phoenix.channel_joined.duration",
+      "phoenix.channel_handled_in.duration"
     ]
 
   def content(assigns) do
@@ -47,9 +47,9 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
                 <.timestamp timestamp={metric.value} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Method">
-                <.method value={metric.tags.method} />
+                <.method value={metric.tags[:method]} />
               </:col>
-              <:col :let={{_timestamp, metric}} label="Route">{metric.tags.route}</:col>
+              <:col :let={{_timestamp, metric}} label="Route">{metric.tags[:route]}</:col>
             </.table_metrics>
           <% @metric == "phoenix.router_dispatch.stop.duration" -> %>
             <.table_metrics id={"#{@service}-#{@metric}"} rows={@metrics} transition={@transition}>
@@ -57,14 +57,14 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
                 <.timestamp timestamp={metric.timestamp} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Method">
-                <.method value={metric.tags.method} />
+                <.method value={metric.tags[:method]} />
               </:col>
-              <:col :let={{_timestamp, metric}} label="Route">{metric.tags.route}</:col>
+              <:col :let={{_timestamp, metric}} label="Route">{metric.tags[:route]}</:col>
               <:col :let={{_timestamp, metric}} label="Duration">
                 <.duration value={metric.value} unit={metric.unit} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Status">
-                <.html_status status={metric.tags.status} />
+                <.html_status status={metric.tags[:status]} />
               </:col>
             </.table_metrics>
           <% @metric == "phoenix.endpoint.start.system_time" -> %>
@@ -76,7 +76,7 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
                 <.timestamp timestamp={metric.value} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Method">
-                <.method value={metric.tags.method} />
+                <.method value={metric.tags[:method]} />
               </:col>
             </.table_metrics>
           <% @metric == "phoenix.endpoint.stop.duration" -> %>
@@ -85,16 +85,16 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
                 <.timestamp timestamp={metric.timestamp} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Method">
-                <.method value={metric.tags.method} />
+                <.method value={metric.tags[:method]} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Duration">
                 <.duration value={metric.value} unit={metric.unit} />
               </:col>
               <:col :let={{_timestamp, metric}} label="Status">
-                <.html_status status={metric.tags.status} />
+                <.html_status status={metric.tags[:status]} />
               </:col>
             </.table_metrics>
-          <% @metric in ["phoenix.socket_connected.duration", "phoenix.channel_joined.duration"] -> %>
+          <% true -> %>
             <.table_metrics id={"#{@service}-#{@metric}"} rows={@metrics} transition={@transition}>
               <:col :let={{_timestamp, metric}} label="Collected Time">
                 <.timestamp timestamp={metric.timestamp} />
@@ -103,7 +103,6 @@ defmodule DeployexWeb.Components.Metrics.Phoenix do
                 <.duration value={metric.value} unit={metric.unit} />
               </:col>
             </.table_metrics>
-          <% true -> %>
         <% end %>
       </div>
     </div>
