@@ -6,12 +6,12 @@
 
 DeployEx is a lightweight tool designed for managing deployments for Beam applications (Elixir, Gleam and Erlang) without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
-DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
+DeployEx serves as a centralized deployment runner, consolidating essential deployment information, including the current version and release package contents. Based on the package contents, it can execute either a full deployment or a hot-upgrade. On the development side, your CI/CD pipeline manages the creation and updating of packages for the target release.
 
 DeployEx is currently used by:
  * [Calori Web Server](https://github.com/thiagoesteves/calori) for __Elixir__ applications and you can check it at [homepage](https://calori.com.br).
- * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications and you can check it at [homepage](https://gleam.deployex.pro).
- * [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for __Erlang__ applications and you can check it at [homepage](https://erlang.deployex.pro).
+ * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications.
+ * [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for __Erlang__ applications.
 
 ![Deployment Architecture](docs/static/deployex.png)
 
@@ -33,6 +33,8 @@ Upon deployment, the following dashboard becomes available, providing easy acces
  * Supports the following cloud providers:
    - Amazon Web Services (AWS)
    - Google Cloud Provisioning (GCP)
+ * Supports live metrics with a retention time of 30 minutes, or until DeployEx restarts, as it relies on ETS tables for storage:
+   - Elixir applications using the [Telemetry Deployex](https://github.com/thiagoesteves/telemetry_deployex) library.
  * Provides rollback functionality if a monitored app version remains unstable for 10 minutes.
  * Rolled-back monitored app versions are ghosted, preventing their redeployment.
  * Ensures all instances remain connected to the OTP distribution, including DeployEx itself.
