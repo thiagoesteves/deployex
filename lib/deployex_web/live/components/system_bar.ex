@@ -39,7 +39,7 @@ defmodule DeployexWeb.Components.SystemBar do
       end
 
     ~H"""
-    <div class="items-center">
+    <div class="items-center mb-0.5 mt-0.5">
       <div
         id="live-memory-bar"
         class="flex p-1 border-l-8 border-blue-400 rounded bg-gray-300 text-blue-500"

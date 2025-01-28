@@ -50,6 +50,22 @@ defmodule DeployexWeb.ConnCase do
   end
 
   @doc """
+  Setup helper that sets the node for a monitored application
+
+      setup :node_list
+  """
+  def node_list(params) do
+    {:ok, hostname} = :inet.gethostname()
+
+    Map.put(params, :node_list, %{
+      0 => Node.self(),
+      1 => :"testapp-1@#{hostname}",
+      2 => :"testapp-2@#{hostname}",
+      3 => :"testapp-3@#{hostname}"
+    })
+  end
+
+  @doc """
   Logs the given `user` into the `conn`.
 
   It returns an updated `conn`.

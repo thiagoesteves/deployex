@@ -31,8 +31,9 @@ defmodule DeployexWeb.Components.MultiSelect do
                 <%= for item <- @selected do %>
                   <%= for key <- item.keys do %>
                     <div class={[
-                      "flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full border",
-                      border_item_color(item.name)
+                      "flex justify-center items-center m-1 font-medium py-1 px-2 rounded-full border",
+                      border_item_color(item.name),
+                      bg_item_color(item.name)
                     ]}>
                       <div class={[
                         "text-xs font-normal leading-none max-w-full flex-initial",
@@ -41,7 +42,13 @@ defmodule DeployexWeb.Components.MultiSelect do
                         {"#{item.name}:#{key}"}
                       </div>
                       <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-remove-item", "@", "-")}
+                        id={
+                          String.replace(
+                            "#{@id}-#{item.name}-#{key}-remove-item",
+                            ["@", ".", "/"],
+                            "-"
+                          )
+                        }
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -121,7 +128,13 @@ defmodule DeployexWeb.Components.MultiSelect do
                     <div class="flex flex-wrap">
                       <%= for key <- item.keys do %>
                         <button
-                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
+                          id={
+                            String.replace(
+                              "#{@id}-#{item.name}-#{key}-add-item",
+                              ["@", ".", "/"],
+                              "-"
+                            )
+                          }
                           class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                           phx-click="multi-select-add-item"
                           phx-value-key={key}
@@ -165,13 +178,23 @@ defmodule DeployexWeb.Components.MultiSelect do
   def border_item_color("services"), do: "border-teal-300"
   def border_item_color("logs"), do: "border-yellow-400"
   def border_item_color("apps"), do: "border-blue-400"
+  def border_item_color("metrics"), do: "border-yellow-400"
   # coveralls-ignore-start
   def border_item_color(_), do: "border-gray-300"
+  # coveralls-ignore-stop
+
+  def bg_item_color("services"), do: "bg-teal-50"
+  def bg_item_color("logs"), do: "bg-yellow-50"
+  def bg_item_color("apps"), do: "bg-blue-50"
+  def bg_item_color("metrics"), do: "bg-yellow-50"
+  # coveralls-ignore-start
+  def bg_item_color(_), do: "bg-gray-50"
   # coveralls-ignore-stop
 
   def text_item_color("services"), do: "text-teal-700"
   def text_item_color("logs"), do: "text-yellow-700"
   def text_item_color("apps"), do: "text-blue-700"
+  def text_item_color("metrics"), do: "text-yellow-700"
   # coveralls-ignore-start
   def text_item_color(_), do: "text-teal-700"
   # coveralls-ignore-stop

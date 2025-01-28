@@ -53,6 +53,7 @@ defmodule DeployexWeb.Router do
       live "/applications/:instance/terminal", ApplicationsLive, :terminal
       live "/applications/:instance/versions", ApplicationsLive, :versions
       live "/applications/:instance/restart", ApplicationsLive, :restart
+      live "/metrics", MetricsLive, :index
     end
   end
 

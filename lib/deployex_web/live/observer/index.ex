@@ -66,7 +66,7 @@ defmodule DeployexWeb.ObserverLive do
       <div class="flex items-center">
         <div
           id="live-tracing-alert"
-          class="p-2 border-l-8 border-blue-400 rounded-l-lg bg-gray-300 text-blue-500"
+          class="p-2 mt-0.5 border-l-8 border-blue-400 rounded-l-lg bg-gray-300 text-blue-500"
           role="alert"
         >
           <div class="flex items-center">
@@ -517,6 +517,11 @@ defmodule DeployexWeb.ObserverLive do
       tooltip: %{
         trigger: "item",
         triggerOn: "mousemove"
+      },
+      toolbox: %{
+        feature: %{
+          saveAsImage: %{}
+        }
       },
       notMerge: true,
       legend: [

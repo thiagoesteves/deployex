@@ -36,7 +36,7 @@ defmodule Deployex.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # NOTE: Skip starting the development and status server when running tests.
+  # NOTE: Skip starting the these servers when running tests.
   if_not_test do
     alias Deployex.Deployment
 
@@ -49,7 +49,8 @@ defmodule Deployex.Application do
            timeout_rollback: Application.fetch_env!(:deployex, Deployment)[:timeout_rollback],
            schedule_interval: Application.fetch_env!(:deployex, Deployment)[:schedule_interval],
            name: Deployment
-         ]}
+         ]},
+        Deployex.Telemetry.Server
       ]
     end
   else

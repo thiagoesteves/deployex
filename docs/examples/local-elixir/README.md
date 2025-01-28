@@ -39,8 +39,8 @@ export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 # save the file :wq
 ```
 
-## The next steps are needed ONLY for Hot upgrades
-Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
+## Steps for supporting Hot upgrades (Optional)
+Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ for supporting hotupgrades:
 ```elixir
 def deps do
   [
@@ -49,7 +49,7 @@ def deps do
 end
 ```
 
-You also need to add the following lines in the mix project
+You also need to add the following lines in the `mix.exs` file:
 ```elixir
   def project do
     [
@@ -77,6 +77,33 @@ live_reload: [
     ~r"priv/gettext/.*(po)$"
   ]
 ]
+```
+
+## Steps for allowing Live Metrics (Optional)
+
+Add [Telemetry Deployex](https://github.com/thiagoesteves/telemetry_deployex) library __ONLY__ for supporting live metrics:
+```elixir
+def deps do
+  [
+    {:telemetry_deployex, "~> 0.1.0-rc4"}
+  ]
+end
+```
+
+Open the telemetry file at `lib/myphoenixapp_web/telemetry.ex` and add the following line in the init function:
+
+```elixir
+@impl true
+def init(_arg) do
+  children = [
+    # Telemetry poller will execute the given period measurements
+    # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
+    {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
+    # Add reporters as children of your supervision tree.
+    {TelemetryDeployex, metrics: metrics()} <---------- Add here
+  ]
+  Supervisor.init(children, strategy: :one_for_one)
+end
 ```
 
 ## Generate a release
