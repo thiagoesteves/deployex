@@ -1,4 +1,4 @@
-defmodule Deployex.Telemetry.Collector do
+defmodule Deployex.Telemetry.Server do
   @moduledoc """
   GenServer that collects the telemetry data received
   """
@@ -12,8 +12,7 @@ defmodule Deployex.Telemetry.Collector do
   @metric_keys "metric-keys"
   @nodes_table :nodes_list
 
-  @minute_to_milliseconds 60_000
-  @data_retention_period_min 1
+  @one_minute_in_milliseconds 60_000
 
   ### ==========================================================================
   ### Callback functions
@@ -25,7 +24,7 @@ defmodule Deployex.Telemetry.Collector do
   end
 
   @impl true
-  def init(args) do
+  def init(_args) do
     :ets.new(@nodes_table, [:set, :protected, :named_table])
 
     {:ok, hostname} = :inet.gethostname()
@@ -40,11 +39,9 @@ defmodule Deployex.Telemetry.Collector do
       :ets.insert(@nodes_table, {instance, node})
     end)
 
-    args
-    |> Keyword.get(:data_retention_period_min, :timer.minutes(@data_retention_period_min))
-    |> :timer.send_interval(:prune_expired_entries)
+    :timer.send_interval(data_retention_period(), :prune_expired_entries)
 
-    Logger.info("Initialising telemetry collector server")
+    Logger.info("Initialising Telemetry server")
 
     {:ok, %{}}
   end
@@ -55,7 +52,7 @@ defmodule Deployex.Telemetry.Collector do
         state
       ) do
     now = System.os_time(:millisecond)
-    minute = unix_to_minute(now)
+    minute = unix_to_minutes(now)
 
     keys = get_keys_by_node(reporter)
 
@@ -99,8 +96,9 @@ defmodule Deployex.Telemetry.Collector do
 
   @impl true
   def handle_info(:prune_expired_entries, state) do
-    now_minutes = unix_to_minute()
-    deletion_period_to = now_minutes - @data_retention_period_min - 1
+    now_minutes = unix_to_minutes()
+    retention_period = trunc(data_retention_period() / @one_minute_in_milliseconds)
+    deletion_period_to = now_minutes - retention_period - 1
     deletion_period_from = deletion_period_to - 2
 
     prune_keys = fn node, key ->
@@ -157,7 +155,7 @@ defmodule Deployex.Telemetry.Collector do
     from = Keyword.get(options, :from, 15)
     order = Keyword.get(options, :order, :asc)
 
-    now_minutes = unix_to_minute()
+    now_minutes = unix_to_minutes()
     from_minutes = now_minutes - from
 
     result =
@@ -211,10 +209,13 @@ defmodule Deployex.Telemetry.Collector do
   ### Private functions
   ### ==========================================================================
 
+  defp data_retention_period,
+    do: Application.fetch_env!(:deployex, Deployex.Telemetry)[:data_retention_period]
+
   defp metric_key(metric, timestamp), do: "#{metric}|#{timestamp}"
 
-  defp unix_to_minute(time \\ System.os_time(:millisecond)),
-    do: trunc(time / @minute_to_milliseconds)
+  defp unix_to_minutes(time \\ System.os_time(:millisecond)),
+    do: trunc(time / @one_minute_in_milliseconds)
 
   defp get_keys_by_node(nil), do: []
 

@@ -41,7 +41,9 @@ config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
 config :deployex, Deployex.Rpc, adapter: Deployex.RpcMock
 
 # Config Mock for Telemetry
-config :deployex, Deployex.Telemetry, adapter: Deployex.TelemetryMock
+config :deployex, Deployex.Telemetry,
+  adapter: Deployex.TelemetryMock,
+  data_retention_period: :timer.minutes(1)
 
 config :deployex, Deployex.Deployment, delay_between_deploys_ms: 10
 

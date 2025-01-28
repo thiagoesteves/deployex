@@ -50,7 +50,7 @@ defmodule Deployex.Application do
            schedule_interval: Application.fetch_env!(:deployex, Deployment)[:schedule_interval],
            name: Deployment
          ]},
-        Deployex.Telemetry.Collector
+        Deployex.Telemetry.Server
       ]
     end
   else
