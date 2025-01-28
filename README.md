@@ -65,7 +65,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 ### What is coming next
 
-- [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
+- [X] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
 - [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
 - [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Continuous improvement in UI design.
@@ -81,6 +81,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 | DeployEx version   |      Default major OTP version      | 
 |----------|-------------|
+| __0.4.0-rc1__ | __26.2.5.6__ |
 | __0.3.0__ | __26.2.5.6__ |
 
 ### Running the application
