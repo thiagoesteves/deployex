@@ -10,6 +10,4 @@ defmodule Deployex.Rpc.Adapter do
               args :: list,
               timeout :: 0..4_294_967_295 | :infinity
             ) :: any() | {:badrpc, any()}
-
-  @callback pinfo(pid :: pid, information :: list | atom()) :: any() | :undefined
 end

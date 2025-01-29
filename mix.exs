@@ -108,7 +108,7 @@ defmodule Deployex.MixProject do
       {:phoenix, "~> 1.7.12"},
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 1.0.0"},
+      {:phoenix_live_view, "~> 1.0.3"},
       {:floki, ">= 0.30.0", only: :test},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
@@ -141,7 +141,8 @@ defmodule Deployex.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
-      {:goth, "~> 1.4"}
+      {:goth, "~> 1.4"},
+      {:observer_web, "~> 0.1.0"}
     ]
   end
 

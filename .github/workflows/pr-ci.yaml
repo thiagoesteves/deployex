@@ -92,6 +92,9 @@ jobs:
       - name: Install Elixir dependencies
         run: mix do deps.get, compile --warnings-as-errors
 
+      - name: Run mix deps.unlock
+        run: mix deps.unlock --check-unused
+
       - name: Credo
         run: mix credo --strict
 
