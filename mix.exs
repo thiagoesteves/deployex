@@ -142,7 +142,8 @@ defmodule Deployex.MixProject do
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
       {:goth, "~> 1.4"},
-      {:observer_web, "~> 0.1.0"}
+      {:observer_web,
+       github: "thiagoesteves/observer_web", ref: "359eed457e74eef8f037855caede4f8963e755b1"}
     ]
   end
 

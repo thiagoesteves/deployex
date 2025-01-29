@@ -42,15 +42,12 @@ defmodule DeployexWeb.Router do
   scope "/", DeployexWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    # coveralls-ignore-start
-    observer_dashboard("/observer")
-    # coveralls-ignore-stop
-
     live_session :require_authenticated_user,
       on_mount: [{DeployexWeb.UserAuth, :ensure_authenticated}] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
       live "/logs", LogsLive, :index
+      live "/embedded-observer", ObserverLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
@@ -58,6 +55,10 @@ defmodule DeployexWeb.Router do
       live "/applications/:instance/versions", ApplicationsLive, :versions
       live "/applications/:instance/restart", ApplicationsLive, :restart
     end
+
+    # coveralls-ignore-start
+    observer_dashboard("/observer")
+    # coveralls-ignore-stop
   end
 
   # Other scopes may use custom stacks.
