@@ -1,6 +1,6 @@
 # CHANGELOG (v0.3.1)
 
-## 0.3.1 🚀 ()
+## 0.3.1 ()
 
 ### Backwards incompatible changes for 0.3.0
  * None
@@ -12,7 +12,7 @@
  * [[`PR-95`](https://github.com/thiagoesteves/deployex/pull/95)] Replacing hackney for Finch to remove vulnerability reported by GHSAvq52-99r9-h5pw
 
 ### Enhancements
- * None
+ * [[`PR-94`](https://github.com/thiagoesteves/deployex/pull/94)] Adding Observer feature from the Observer Web library
 
 # CHANGELOG (v0.3.0)
 

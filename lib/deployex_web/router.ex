@@ -3,6 +3,8 @@ defmodule DeployexWeb.Router do
 
   import DeployexWeb.UserAuth
 
+  import Observer.Web.Router
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -40,13 +42,15 @@ defmodule DeployexWeb.Router do
   scope "/", DeployexWeb do
     pipe_through [:browser, :require_authenticated_user]
 
+    # coveralls-ignore-start
+    observer_dashboard("/observer")
+    # coveralls-ignore-stop
+
     live_session :require_authenticated_user,
       on_mount: [{DeployexWeb.UserAuth, :ensure_authenticated}] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
       live "/logs", LogsLive, :index
-      live "/observer", ObserverLive, :index
-      live "/tracing", TracingLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:instance/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:instance/logs/stderr", ApplicationsLive, :logs_stderr
