@@ -7,7 +7,7 @@ defmodule Deployex.ConfigProvider.AwsTest do
 
   test "secrets/3 with success" do
     with_mocks([
-      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end]},
+      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end, get_env: fn _env -> nil end]},
       {ExAws, [],
        [
          request: fn _data, _options ->
@@ -52,7 +52,7 @@ defmodule Deployex.ConfigProvider.AwsTest do
 
   test "secrets/3 with request error" do
     with_mocks([
-      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end]},
+      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end, get_env: fn _env -> nil end]},
       {ExAws, [],
        [
          request: fn _data, _options -> {:ok, :invalid_data} end

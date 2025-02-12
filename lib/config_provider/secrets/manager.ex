@@ -43,9 +43,6 @@ defmodule Deployex.ConfigProvider.Secrets.Manager do
       Logger.info("  - No secrets retrieved, local environment")
       config
     else
-      {:ok, _} = Application.ensure_all_started(:hackney)
-      {:ok, _} = Application.ensure_all_started(:ex_aws)
-
       Logger.info("  - Trying to retrieve secrets: #{secrets_adapter} - #{secrets_path}")
 
       secrets = secrets_adapter.secrets(config, secrets_path, opts)
