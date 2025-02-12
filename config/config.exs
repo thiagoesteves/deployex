@@ -99,7 +99,8 @@ config :ex_aws,
     {:system, "AWS_SECRET_ACCESS_KEY"},
     {:awscli, :system, 30},
     :instance_role
-  ]
+  ],
+  http_client: Deployex.Aws.ExAwsHttpClient
 
 config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Application
 

@@ -4,7 +4,7 @@ defmodule Deployex.MixProject do
   def project do
     [
       app: :deployex,
-      version: "0.3.0",
+      version: "0.3.1",
       elixir: "~> 1.15",
       name: "DeployEx",
       source_url: "https://github.com/thiagoesteves/deployex",
@@ -133,7 +133,6 @@ defmodule Deployex.MixProject do
       {:erlexec, "~> 2.0.6"},
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
-      {:hackney, "~> 1.9"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},

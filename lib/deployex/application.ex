@@ -17,8 +17,8 @@ defmodule Deployex.Application do
         Deployex.Tracer.Server,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
-        # Start the Finch HTTP client for sending emails
-        {Finch, name: Deployex.Finch}
+        {Finch, name: Deployex.Finch},
+        {Finch, name: ExAws.Request.Finch}
       ] ++
         application_servers() ++
         gcp_app_credentials() ++

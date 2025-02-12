@@ -9,9 +9,10 @@ defmodule Deployex.ConfigProvider.Secrets.Gcp do
   # alias ExAws.Operation.JSON
 
   @doc """
-  secrets/2.
+  secrets/3.
 
   Args:
+    - The current config
     - secret_path_id: Path to the secret content, e. g. deployex-{app}-prod-secrets
     - opts is just the return value of init/1.
   """
@@ -19,6 +20,7 @@ defmodule Deployex.ConfigProvider.Secrets.Gcp do
   def secrets(config, secret_path, _opts) do
     goth_name = Deployex.SecretManager.Goth
 
+    {:ok, _} = Application.ensure_all_started(:finch)
     {:ok, _} = Application.ensure_all_started(:goth)
 
     file_credentials = Keyword.get(config, :goth) |> Keyword.get(:file_credentials)
@@ -26,7 +28,7 @@ defmodule Deployex.ConfigProvider.Secrets.Gcp do
     source = {:service_account, Jason.decode!(file_credentials)}
 
     children = [
-      {Finch, name: FinchSecretManagerClient},
+      {Finch, name: FinchGcpSecretManagerClient},
       {Goth, name: goth_name, source: source}
     ]
 
@@ -47,7 +49,7 @@ defmodule Deployex.ConfigProvider.Secrets.Gcp do
     data =
       :get
       |> Finch.build(path, headers, [])
-      |> Finch.request(FinchSecretManagerClient)
+      |> Finch.request(FinchGcpSecretManagerClient)
       |> case do
         {:ok, %Finch.Response{body: body}} ->
           Jason.decode!(body)["payload"]["data"]
