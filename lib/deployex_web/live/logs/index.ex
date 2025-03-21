@@ -1,9 +1,9 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
-  alias Deployex.Log
   alias Deployex.Terminal
   alias DeployexWeb.Components.MultiSelect
+  alias DeployexWeb.Helper
 
   @impl true
   def render(assigns) do
@@ -286,7 +286,7 @@ defmodule DeployexWeb.LogsLive do
         message
         |> String.split(["\n", "\r"], trim: true)
         |> Enum.map(fn content ->
-          color = Log.log_message_color(content, log_key)
+          color = Helper.log_message_color(content, log_key)
 
           %{
             id: Deployex.Common.uuid4(),

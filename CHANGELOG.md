@@ -1,6 +1,34 @@
 # CHANGELOG (0.3.x)
 
-## 0.3.1 (2025-03-21)
+## 0.3.3 ()
+
+### Backwards incompatible changes for 0.3.2
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Adding new server to persist logs within ets tables
+
+## 0.3.2 🚀 (2025-03-21)
+
+### Backwards incompatible changes for 0.3.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Updated Observer Web version and other libraries
+
+## 0.3.1 🚀 (2025-03-21)
 
 ### Backwards incompatible changes for 0.3.0
  * None
