@@ -8,16 +8,20 @@ DeployEx is a lightweight tool designed for managing deployments for Beam applic
 
 DeployEx acts as a central deployment runner, gathering crucial deployment data such as the current version and release package contents. The content of the release package enables it to run for a full deployment or a hot-upgrade. Meanwhile, on the development front, your CI/CD pipeline takes charge of crafting and updating packages for the target release. This integration ensures that DeployEx is always equipped with the latest packages, ready to facilitate deployments.
 
+To learn more about DeployEx and the advantages of removing containerized abstractions from your deployment process, check out the talk [Bring back the power of Beam deployments with DeployEx](https://www.youtube.com/watch?v=MV4ROe6xmlI) at CODE BEAM America 2025.
+
 DeployEx is currently used by:
  * [Calori Web Server](https://github.com/thiagoesteves/calori) for __Elixir__ applications and you can check it at [homepage](https://calori.com.br).
- * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications and you can check it at [homepage](https://gleam.deployex.pro).
- * [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for __Erlang__ applications and you can check it at [homepage](https://erlang.deployex.pro).
+ * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications.
+ * [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for __Erlang__ applications.
 
 ![Deployment Architecture](docs/static/deployex.png)
 
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
 [![Watch the video](docs/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
+
+https://www.youtube.com/watch?v=MV4ROe6xmlI
 
 ## 🔉 Features
 
@@ -45,7 +49,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
    - IEx shell for monitored Elixir apps and DeployEx.
    - Erlang shell for monitored Gleam/Erlang apps.
  * Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
- * Supports process observability with links and information for all connected applications.
+ * Supports observability for all connected applications via [Observer Web](https://github.com/thiagoesteves/observer_web).
  * Supports safe tracing for all connected applications.
  * Provides visualization of Host System memory and CPU usage.
  * Provides easy access to the host shell (tmux).
@@ -65,8 +69,9 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 ### What is coming next
 
-- [ ] 🚧 Add telemetry support for DeployEx to capture metrics and telemetry via OTP distribution.
 - [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
+- [ ] 💤 Support for shutting down applications before run out of memory.
+- [ ] 💤 Handle different apps within the same DeployEx instances.
 - [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Continuous improvement in UI design.
 - [ ] 💤 Health checks via OTP distribution
@@ -79,9 +84,10 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 > [!WARNING]
 > Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP version to prevent malfunctions.
 
-| DeployEx version   |      Default major OTP version      | 
+| DeployEx version   |      Default OTP version      | 
 |----------|-------------|
 | __0.3.0__ | __26.2.5.6__ |
+| __0.3.1__ | __26.2.5.6__ |
 
 ### Running the application
 
