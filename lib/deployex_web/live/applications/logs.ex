@@ -3,8 +3,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
 
   require Logger
 
-  alias Deployex.Log
   alias Deployex.Terminal
+  alias DeployexWeb.Helper
 
   @impl true
   def render(assigns) do
@@ -81,7 +81,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
             :logs_stderr -> "stderr"
           end
 
-        color = Log.log_message_color(content, log_key)
+        color = Helper.log_message_color(content, log_key)
 
         %{id: log_counter + index, content: content, color: color}
       end)

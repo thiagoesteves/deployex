@@ -114,6 +114,11 @@ config :deployex, Deployex.Storage, adapter: Deployex.Storage.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 
+# Configure Logs retention time for 60 minutes
+config :deployex, Deployex.Logs,
+  adapter: Deployex.Logs.Server,
+  data_retention_period: :timer.minutes(60)
+
 # Configure Observer Web retention time for 60 minutes
 config :observer_web, ObserverWeb.Telemetry,
   data_retention_period: :timer.minutes(60),
