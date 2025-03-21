@@ -39,7 +39,7 @@ export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 # save the file :wq
 ```
 
-## The next steps are needed ONLY for Hot upgrades
+## Configuring your app to allow Hot upgrades (optional)
 Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
 ```elixir
 def deps do
@@ -77,6 +77,22 @@ live_reload: [
     ~r"priv/gettext/.*(po)$"
   ]
 ]
+```
+
+## Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
+Add [Observer Web](https://github.com/thiagoesteves/observer_web)
+```elixir
+def deps do
+  [
+    {:observer_web, "~> 0.1.0"}
+  ]
+end
+```
+
+Open the `config/config.exs` and add the following configuration
+```elixir
+config :observer_web, ObserverWeb.Telemetry,
+  mode: :broadcast
 ```
 
 ## Generate a release
