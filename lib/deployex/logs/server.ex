@@ -199,17 +199,17 @@ defmodule Deployex.Logs.Server do
 
   @impl true
   def subscribe_for_new_log_types do
-    Phoenix.PubSub.subscribe(ObserverWeb.PubSub, new_log_types_topic())
+    Phoenix.PubSub.subscribe(Deployex.PubSub, new_log_types_topic())
   end
 
   @impl true
   def subscribe_for_new_logs(node, key) do
-    Phoenix.PubSub.subscribe(ObserverWeb.PubSub, logs_topic(node, key))
+    Phoenix.PubSub.subscribe(Deployex.PubSub, logs_topic(node, key))
   end
 
   @impl true
   def unsubscribe_for_new_logs(node, key) do
-    Phoenix.PubSub.unsubscribe(ObserverWeb.PubSub, logs_topic(node, key))
+    Phoenix.PubSub.unsubscribe(Deployex.PubSub, logs_topic(node, key))
   end
 
   @impl true

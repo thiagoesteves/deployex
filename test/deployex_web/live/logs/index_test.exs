@@ -42,7 +42,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
@@ -79,7 +79,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
@@ -116,7 +116,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
@@ -160,7 +160,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
@@ -204,7 +204,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stderr.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stderr.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stderr.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->
@@ -263,7 +263,7 @@ defmodule DeployexWeb.Logs.IndexTest do
       os_pid = 123_456
 
       expected_path = "/var/log/deployex/deployex-stdout.log"
-      expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+      expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
       message = unquote(type)
       expected_color = unquote(color)
 
@@ -325,7 +325,7 @@ defmodule DeployexWeb.Logs.IndexTest do
       os_pid = 123_456
 
       expected_path = "/var/log/deployex/deployex-stderr.log"
-      expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stderr.log"
+      expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stderr.log"
       message = unquote(type)
 
       Deployex.OpSysMock
@@ -371,7 +371,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
     message = "My beautiful message"
 
     Deployex.OpSysMock
@@ -422,7 +422,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     os_pid = 123_456
 
     expected_path = "/var/log/deployex/deployex-stdout.log"
-    expected_cmd = "tail -f -n 0 /var/log/deployex/deployex-stdout.log"
+    expected_cmd = "tail -F -n 0 /var/log/deployex/deployex-stdout.log"
 
     Deployex.OpSysMock
     |> expect(:run, fn ^expected_cmd, [:monitor, :stdout] ->

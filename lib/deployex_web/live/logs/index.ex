@@ -118,9 +118,7 @@ defmodule DeployexWeb.LogsLive do
         terminal_server = current_config[data_key]["terminal_server"]
         Terminal.async_terminate(terminal_server)
 
-        acc
-        |> stream(data_key, [], reset: true)
-        |> update_current_config(data_key, %{
+        update_current_config(acc, data_key, %{
           "transition" => false,
           "terminal_server" => nil
         })
@@ -146,9 +144,7 @@ defmodule DeployexWeb.LogsLive do
         terminal_server = current_config[data_key]["terminal_server"]
         Terminal.async_terminate(terminal_server)
 
-        acc
-        |> stream(data_key, [], reset: true)
-        |> update_current_config(data_key, %{
+        update_current_config(acc, data_key, %{
           "transition" => false,
           "terminal_server" => nil
         })
@@ -175,7 +171,7 @@ defmodule DeployexWeb.LogsLive do
         path = log_path(app.instance, log_key)
 
         if File.exists?(path) do
-          commands = "tail -f -n 0 #{path}"
+          commands = "tail -F -n 0 #{path}"
           options = [:stdout]
 
           {:ok, _pid} =
@@ -190,8 +186,7 @@ defmodule DeployexWeb.LogsLive do
 
         data_key = data_key(service_key, log_key)
 
-        acc
-        |> update_current_config(data_key, %{
+        update_current_config(acc, data_key, %{
           "transition" => false
         })
       end)
@@ -216,7 +211,7 @@ defmodule DeployexWeb.LogsLive do
         path = log_path(app.instance, log_key)
 
         if File.exists?(path) do
-          commands = "tail -f -n 0 #{path}"
+          commands = "tail -F -n 0 #{path}"
           options = [:stdout]
 
           {:ok, _pid} =
@@ -231,8 +226,7 @@ defmodule DeployexWeb.LogsLive do
 
         data_key = data_key(service_key, log_key)
 
-        acc
-        |> update_current_config(data_key, %{
+        update_current_config(acc, data_key, %{
           "transition" => false
         })
       end)
