@@ -9,6 +9,7 @@ defmodule Deployex.Logs.Server do
   @behaviour Deployex.Logs.Adapter
 
   alias Deployex.Logs.Data
+  alias Deployex.Storage
   alias Deployex.Terminal
 
   @logs_storage_table :logs_storage_table
@@ -59,110 +60,48 @@ defmodule Deployex.Logs.Server do
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
-    # List all nodes including self()
-    nodes = [Node.self()] ++ Node.list()
+    {:ok, hostname} = :inet.gethostname()
+
+    instance_to_node = fn instance ->
+      :"#{Storage.sname(instance)}@#{hostname}"
+    end
+
+    # List all expected nodes within the cluster
+    expected_nodes = Enum.map(Storage.instance_list(), &instance_to_node.(&1))
+
+    node_logs_tables =
+      Enum.reduce(expected_nodes, %{}, fn node, acc ->
+        case maybe_init_log_table(node) do
+          nil -> acc
+          table -> Map.put(acc, node, table)
+        end
+      end)
 
     {:ok,
      %{
-       nodes: nodes,
+       expected_nodes: expected_nodes,
        persist_data?: persist_data?.(),
-       node_logs_tables: Enum.reduce(nodes, %{}, &initialize_log_table(&1, &2)),
+       node_logs_tables: node_logs_tables,
        data_retention_period: data_retention_period
      }}
   end
 
   @impl true
-  def handle_info({:terminal_update, event}, state) do
-    handle_log_update(event, state)
-  end
-
-  def handle_info({:nodeup, node}, state) do
-    nodes = state.nodes ++ [node]
-
-    if node |> node_log_table() |> ets_table_exists?() do
-      {:noreply, %{state | nodes: nodes}}
-    else
-      {:noreply,
-       %{
-         state
-         | nodes: nodes,
-           node_logs_tables: initialize_log_table(node, state.node_logs_tables)
-       }}
-    end
-  end
-
   def handle_info(
-        {:nodedown, node},
-        %{nodes: nodes, persist_data?: persist_data?, node_logs_tables: node_logs_tables} =
-          state
-      ) do
-    node_log_table = Map.get(node_logs_tables, node)
-    now = System.os_time(:millisecond)
-    minute = unix_to_minutes(now)
-
-    node
-    |> get_types_by_node()
-    |> Enum.each(fn log_type ->
-      if persist_data? do
-        timed_log_type_key = log_type_key(log_type, minute)
-
-        data = %Data{
-          timestamp: now,
-          log: "DeployEx detected node down for node: #{node}"
-        }
-
-        # credo:disable-for-lines:2
-        current_data =
-          case :ets.lookup(node_log_table, timed_log_type_key) do
-            [{_, current_list_data}] -> [data | current_list_data]
-            _ -> [data]
-          end
-
-        :ets.insert(node_log_table, {timed_log_type_key, current_data})
-
-        notify_new_log_data(node, log_type, data)
-      end
-    end)
-
-    nodes = nodes -- [node]
-
-    {:noreply, %{state | nodes: nodes}}
-  end
-
-  def handle_info(
-        :prune_expired_entries,
-        %{node_logs_tables: tables, data_retention_period: data_retention_period} = state
-      ) do
-    now_minutes = unix_to_minutes()
-    retention_period = trunc(data_retention_period / @one_minute_in_milliseconds)
-    deletion_period_to = now_minutes - retention_period - 1
-    deletion_period_from = deletion_period_to - 2
-
-    prune_keys = fn key, table ->
-      Enum.each(deletion_period_from..deletion_period_to, fn timestamp ->
-        :ets.delete(table, log_type_key(key, timestamp))
-      end)
-    end
-
-    Enum.each(tables, fn {node, table} ->
-      node
-      |> get_types_by_node()
-      |> Enum.each(&prune_keys.(&1, table))
-    end)
-
-    {:noreply, state}
-  end
-
-  defp handle_log_update(
+        {:terminal_update,
          %{
            metadata: %{context: :terminal_logs, node: reporter, type: log_key},
            myself: _pid,
            message: message
-         },
-         %{nodes: nodes, persist_data?: persist_data?, node_logs_tables: node_logs_tables} =
-           state
-       ) do
-    if reporter in nodes do
+         }},
+        %{
+          expected_nodes: expected_nodes,
+          persist_data?: persist_data?,
+          node_logs_tables: node_logs_tables
+        } =
+          state
+      ) do
+    if reporter in expected_nodes do
       node_log_table = Map.get(node_logs_tables, reporter)
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
@@ -189,6 +128,92 @@ defmodule Deployex.Logs.Server do
         )
       end
     end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:terminal_update, _event}, state), do: {:noreply, state}
+
+  def handle_info({:nodeup, node}, %{expected_nodes: expected_nodes} = state) do
+    if node |> node_log_table() |> ets_table_exists?() do
+      {:noreply, state}
+    else
+      case maybe_init_log_table(node, expected_nodes) do
+        nil ->
+          {:noreply, state}
+
+        table ->
+          node_logs_tables = Map.put(state.node_logs_tables, node, table)
+
+          {:noreply, %{state | node_logs_tables: node_logs_tables}}
+      end
+    end
+  end
+
+  def handle_info(
+        {:nodedown, node},
+        %{
+          persist_data?: persist_data?,
+          node_logs_tables: node_logs_tables,
+          expected_nodes: expected_nodes
+        } =
+          state
+      ) do
+    if node in expected_nodes do
+      node_log_table = Map.get(node_logs_tables, node)
+      now = System.os_time(:millisecond)
+      minute = unix_to_minutes(now)
+
+      node
+      |> get_types_by_node()
+      |> Enum.each(fn log_type ->
+        if persist_data? do
+          timed_log_type_key = log_type_key(log_type, minute)
+
+          data = %Data{
+            timestamp: now,
+            log: "DeployEx detected node down for node: #{node}"
+          }
+
+          # credo:disable-for-lines:2
+          current_data =
+            case :ets.lookup(node_log_table, timed_log_type_key) do
+              [{_, current_list_data}] -> [data | current_list_data]
+              _ -> [data]
+            end
+
+          :ets.insert(node_log_table, {timed_log_type_key, current_data})
+
+          notify_new_log_data(node, log_type, data)
+        end
+      end)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:nodedown, _node}, state), do: {:noreply, state}
+
+  def handle_info(
+        :prune_expired_entries,
+        %{node_logs_tables: tables, data_retention_period: data_retention_period} = state
+      ) do
+    now_minutes = unix_to_minutes()
+    retention_period = trunc(data_retention_period / @one_minute_in_milliseconds)
+    deletion_period_to = now_minutes - retention_period - 1
+    deletion_period_from = deletion_period_to - 2
+
+    prune_keys = fn key, table ->
+      Enum.each(deletion_period_from..deletion_period_to, fn timestamp ->
+        :ets.delete(table, log_type_key(key, timestamp))
+      end)
+    end
+
+    Enum.each(tables, fn {node, table} ->
+      node
+      |> get_types_by_node()
+      |> Enum.each(&prune_keys.(&1, table))
+    end)
 
     {:noreply, state}
   end
@@ -311,16 +336,15 @@ defmodule Deployex.Logs.Server do
     )
   end
 
-  defp initialize_log_table(node, current_map) do
-    table = node_log_table(node)
+  defp maybe_init_log_table(node, expected_nodes) do
+    if node in expected_nodes do
+      maybe_init_log_table(node)
+    else
+      nil
+    end
+  end
 
-    # Create Logs table
-    :ets.new(table, [:set, :protected, :named_table])
-    :ets.insert(table, {@logs_types, []})
-
-    # Add node the to registry
-    ets_append_to_list(@logs_storage_table, @registry_key, node)
-
+  defp maybe_init_log_table(node) do
     instance = get_instance(node)
 
     create_terminal = fn log_type ->
@@ -328,49 +352,55 @@ defmodule Deployex.Logs.Server do
       commands = "tail -F -n 0 #{path}"
       options = [:"#{log_type}"]
 
-      File.exists?(path) &&
-        Terminal.new(%Terminal{
-          instance: instance,
-          commands: commands,
-          options: options,
-          target: self(),
-          timeout_session: :infinity,
-          metadata: %{context: :terminal_logs, node: node, type: log_type}
-        })
+      Terminal.new(%Terminal{
+        instance: instance,
+        commands: commands,
+        options: options,
+        target: self(),
+        timeout_session: :infinity,
+        metadata: %{context: :terminal_logs, node: node, type: log_type}
+      })
     end
 
-    if instance != nil do
+    log_files_exist? = fn instance ->
+      ["stdout", "stderr"]
+      |> Enum.all?(fn log_type ->
+        instance
+        |> log_path(log_type)
+        |> File.exists?()
+      end)
+    end
+
+    if log_files_exist?.(instance) do
+      table = node_log_table(node)
+
+      # Create Logs table
+      :ets.new(table, [:set, :protected, :named_table])
+      :ets.insert(table, {@logs_types, []})
+
+      # Add node the to registry
+      ets_append_to_list(@logs_storage_table, @registry_key, node)
+
       ["stdout", "stderr"]
       |> Enum.each(&create_terminal.(&1))
-    end
 
-    Map.put(current_map, node, table)
+      table
+    else
+      nil
+    end
   end
 
   defp get_instance(node) do
-    [sname, hostname] = String.split("#{node}", ["@"])
+    [sname, _hostname] = String.split("#{node}", ["@"])
 
-    hostname? = fn ->
-      {:ok, deployex_hostname} = :inet.gethostname()
-
-      hostname == "#{deployex_hostname}"
-    end
-
-    deployex? = sname == "deployex"
-
-    cond do
-      hostname?.() and deployex? ->
-        0
-
-      hostname?.() and not deployex? ->
-        [_name, instance] = String.split(sname, ["-"])
-        String.to_integer(instance)
-
-      true ->
-        nil
+    if sname == "deployex" do
+      0
+    else
+      [_name, instance] = String.split(sname, ["-"])
+      String.to_integer(instance)
     end
   end
 
-  defp log_path(instance, "stdout"), do: Deployex.Storage.stdout_path(instance)
-  defp log_path(instance, "stderr"), do: Deployex.Storage.stderr_path(instance)
+  defp log_path(instance, "stdout"), do: Storage.stdout_path(instance)
+  defp log_path(instance, "stderr"), do: Storage.stderr_path(instance)
 end

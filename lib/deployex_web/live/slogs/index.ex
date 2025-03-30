@@ -8,31 +8,16 @@ defmodule DeployexWeb.SlogsLive do
 
   @impl true
   def render(assigns) do
-    selected_services = assigns.node_info.selected_services_keys
-    selected_logs_keys = assigns.node_info.selected_logs_keys
-
     unselected_services_keys =
       assigns.node_info.services_keys -- assigns.node_info.selected_services_keys
 
     unselected_logs_keys =
       assigns.node_info.logs_keys -- assigns.node_info.selected_logs_keys
 
-    log_messages =
-      Enum.reduce(selected_services, [], fn service_key, service_acc ->
-        service_acc ++
-          Enum.reduce(selected_logs_keys, [], fn log_key, log_key_acc ->
-            data = Logs.list_data_by_node_log_type(service_key, log_key, [])
-
-            log_key_acc ++ normalize_logs(data, service_key, log_key)
-          end)
-      end)
-      |> Enum.sort(&(&1.timestamp <= &2.timestamp))
-
     assigns =
       assigns
       |> assign(unselected_services_keys: unselected_services_keys)
       |> assign(unselected_logs_keys: unselected_logs_keys)
-      |> assign(log_messages: log_messages)
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -84,6 +69,7 @@ defmodule DeployexWeb.SlogsLive do
      |> assign(:node_info, update_node_info())
      |> assign(:node_data, %{})
      |> assign(form: to_form(default_form_options()))
+     |> assign(:log_messages, [])
      |> assign(:show_log_options, false)}
   end
 
@@ -94,6 +80,7 @@ defmodule DeployexWeb.SlogsLive do
      |> assign(:node_info, node_info_new())
      |> assign(:node_data, %{})
      |> assign(form: to_form(default_form_options()))
+     |> assign(:log_messages, [])
      |> assign(:show_log_options, false)}
   end
 
@@ -119,7 +106,12 @@ defmodule DeployexWeb.SlogsLive do
         node_info.selected_logs_keys
       )
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    log_messages = update_log_messages(node_info)
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:log_messages, log_messages)}
   end
 
   def handle_event(
@@ -133,7 +125,12 @@ defmodule DeployexWeb.SlogsLive do
         node_info.selected_logs_keys -- [log_key]
       )
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    log_messages = update_log_messages(node_info)
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:log_messages, log_messages)}
   end
 
   def handle_event(
@@ -147,7 +144,12 @@ defmodule DeployexWeb.SlogsLive do
         node_info.selected_logs_keys
       )
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    log_messages = update_log_messages(node_info)
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:log_messages, log_messages)}
   end
 
   def handle_event(
@@ -161,13 +163,30 @@ defmodule DeployexWeb.SlogsLive do
         node_info.selected_logs_keys ++ [log_key]
       )
 
-    {:noreply, assign(socket, :node_info, node_info)}
+    log_messages = update_log_messages(node_info)
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:log_messages, log_messages)}
   end
 
   def handle_event("toggle-options", _value, socket) do
     show_log_options = !socket.assigns.show_log_options
 
     {:noreply, socket |> assign(:show_log_options, show_log_options)}
+  end
+
+  defp update_log_messages(node_info) do
+    Enum.reduce(node_info.selected_services_keys, [], fn service_key, service_acc ->
+      service_acc ++
+        Enum.reduce(node_info.selected_logs_keys, [], fn log_key, log_key_acc ->
+          data = Logs.list_data_by_node_log_type(service_key, log_key, [])
+
+          log_key_acc ++ normalize_logs(data, service_key, log_key)
+        end)
+    end)
+    |> Enum.sort(&(&1.timestamp <= &2.timestamp))
   end
 
   defp normalize_logs(data, service_key, log_key) do
