@@ -164,29 +164,30 @@ defmodule Deployex.Logs.Server do
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      node
-      |> get_types_by_node()
-      |> Enum.each(fn log_type ->
-        if persist_data? do
-          timed_log_type_key = log_type_key(log_type, minute)
+      log_types = get_types_by_node(node)
 
-          data = %Data{
-            timestamp: now,
-            log: "DeployEx detected node down for node: #{node}"
-          }
+      # Report Node Down if stderr is available
+      log_type = "stderr"
 
-          # credo:disable-for-lines:2
-          current_data =
-            case :ets.lookup(node_log_table, timed_log_type_key) do
-              [{_, current_list_data}] -> [data | current_list_data]
-              _ -> [data]
-            end
+      if log_type in log_types and persist_data? do
+        timed_log_type_key = log_type_key(log_type, minute)
 
-          :ets.insert(node_log_table, {timed_log_type_key, current_data})
+        data = %Data{
+          timestamp: now,
+          log: "DeployEx detected node down for node: #{node}"
+        }
 
-          notify_new_log_data(node, log_type, data)
-        end
-      end)
+        # credo:disable-for-lines:2
+        current_data =
+          case :ets.lookup(node_log_table, timed_log_type_key) do
+            [{_, current_list_data}] -> [data | current_list_data]
+            _ -> [data]
+          end
+
+        :ets.insert(node_log_table, {timed_log_type_key, current_data})
+
+        notify_new_log_data(node, log_type, data)
+      end
     end
 
     {:noreply, state}

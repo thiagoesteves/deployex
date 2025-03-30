@@ -3,6 +3,8 @@ defmodule DeployexWeb.Helper do
   This module contains functions to be shared among other modules
   """
 
+  alias Deployex.Common
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
@@ -53,5 +55,28 @@ defmodule DeployexWeb.Helper do
       true ->
         "#E5E5E5"
     end
+  end
+
+  def normalize_logs(data, service, log_type) do
+    Enum.reduce(data, [], fn data, acc ->
+      acc ++ normalize_log(data, service, log_type)
+    end)
+  end
+
+  def normalize_log(%{log: log, timestamp: timestamp}, service, log_type) do
+    log
+    |> String.split(["\n", "\r"], trim: true)
+    |> Enum.map(fn content ->
+      color = log_message_color(content, log_type)
+
+      %{
+        id: Common.uuid4(),
+        timestamp: timestamp,
+        content: content,
+        color: color,
+        service: service,
+        type: log_type
+      }
+    end)
   end
 end
