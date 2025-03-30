@@ -107,7 +107,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
 
   defp tail_if_exists(%{assigns: %{id: id, action: action}} = socket, path) do
     if File.exists?(path) do
-      commands = "tail -f -n 10 #{path}"
+      commands = "tail -F -n 10 #{path}"
       options = [:stdout]
 
       {:ok, _pid} =
