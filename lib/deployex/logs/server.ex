@@ -1,6 +1,6 @@
 defmodule Deployex.Logs.Server do
   @moduledoc """
-  GenServer that collects the telemetry data received
+  GenServer that collects and store the logs received
   """
   use GenServer
 
@@ -8,13 +8,15 @@ defmodule Deployex.Logs.Server do
 
   @behaviour Deployex.Logs.Adapter
 
-  alias Deployex.Logs.Data
+  alias Deployex.Logs.Message
   alias Deployex.Storage
   alias Deployex.Terminal
 
   @logs_storage_table :logs_storage_table
   @logs_types "log-types"
   @registry_key "registry-nodes"
+
+  @available_log_types ["stdout", "stderr"]
 
   @one_minute_in_milliseconds 60_000
   @retention_data_delete_interval :timer.minutes(1)
@@ -109,7 +111,7 @@ defmodule Deployex.Logs.Server do
       log_keys = get_types_by_node(reporter)
       timed_log_type_key = log_type_key(log_key, minute)
 
-      data = %Data{
+      data = %Message{
         timestamp: now,
         log: message
       }
@@ -172,7 +174,7 @@ defmodule Deployex.Logs.Server do
       if log_type in log_types and persist_data? do
         timed_log_type_key = log_type_key(log_type, minute)
 
-        data = %Data{
+        data = %Message{
           timestamp: now,
           log: "DeployEx detected node down for node: #{node}"
         }
@@ -287,7 +289,7 @@ defmodule Deployex.Logs.Server do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp node_log_table(node), do: String.to_atom("#{node}::deployex-logs")
+  defp node_log_table(node), do: String.to_atom("deployex-logs::#{node}")
 
   defp log_type_key(type, timestamp), do: "#{type}|#{timestamp}"
 
@@ -364,7 +366,7 @@ defmodule Deployex.Logs.Server do
     end
 
     log_files_exist? = fn instance ->
-      ["stdout", "stderr"]
+      @available_log_types
       |> Enum.all?(fn log_type ->
         instance
         |> log_path(log_type)
@@ -382,8 +384,7 @@ defmodule Deployex.Logs.Server do
       # Add node the to registry
       ets_append_to_list(@logs_storage_table, @registry_key, node)
 
-      ["stdout", "stderr"]
-      |> Enum.each(&create_terminal.(&1))
+      Enum.each(@available_log_types, &create_terminal.(&1))
 
       table
     else

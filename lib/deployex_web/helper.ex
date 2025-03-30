@@ -4,6 +4,7 @@ defmodule DeployexWeb.Helper do
   """
 
   alias Deployex.Common
+  alias Deployex.Logs.Message
 
   ### ==========================================================================
   ### Public functions
@@ -57,13 +58,26 @@ defmodule DeployexWeb.Helper do
     end
   end
 
-  def normalize_logs(data, service, log_type) do
-    Enum.reduce(data, [], fn data, acc ->
-      acc ++ normalize_log(data, service, log_type)
+  @doc """
+  Normalizes a list of log messages into a standardized format.
+
+  This function processes a collection of log messages, converting each message 
+  into a normalized format containing expected attributes such as color, service 
+  identifiers, and categorization.
+  """
+  def normalize_logs(messages, service, log_type) do
+    Enum.reduce(messages, [], fn message, acc ->
+      acc ++ normalize_log(message, service, log_type)
     end)
   end
 
-  def normalize_log(%{log: log, timestamp: timestamp}, service, log_type) do
+  @doc """
+  Normalizes a single Message struct into one or more standardized log entries.
+
+  This function takes a Message struct and breaks it down into individual log entries,
+  splitting on newlines and applying the appropriate formatting and metadata to each line.
+  """
+  def normalize_log(%Message{log: log, timestamp: timestamp}, service, log_type) do
     log
     |> String.split(["\n", "\r"], trim: true)
     |> Enum.map(fn content ->

@@ -1,11 +1,11 @@
 defmodule Deployex.Logs do
   @moduledoc """
-  This module will provide Log server abstraction
+  This module will provide Logs server abstraction
   """
 
   @behaviour Deployex.Logs.Adapter
 
-  defmodule Data do
+  defmodule Message do
     @moduledoc """
     Structure to handle the log event
     """

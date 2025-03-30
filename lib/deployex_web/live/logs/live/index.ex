@@ -23,7 +23,7 @@ defmodule DeployexWeb.LogsLive do
     <div class="min-h-screen bg-white">
       <div class="flex">
         <MultiSelect.content
-          id="log-multi-select"
+          id="logs-live-multi-select"
           selected_text="Selected logs"
           selected={[
             %{name: "services", keys: @node_info.selected_services},
@@ -36,8 +36,8 @@ defmodule DeployexWeb.LogsLive do
           show_options={@show_log_options}
         />
         <button
-          id="log-multi-select-reset"
-          phx-click="logs-reset"
+          id="logs-live-multi-select-reset"
+          phx-click="logs-live-reset"
           class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
         >
           RESET
@@ -45,7 +45,7 @@ defmodule DeployexWeb.LogsLive do
       </div>
       <div class="p-2">
         <div class="bg-white w-full shadow-lg rounded">
-          <.table_logs id="live-logs" rows={@streams.log_messages}>
+          <.table_logs id="logs-live-table" rows={@streams.log_messages}>
             <:col :let={{_id, log_message}} label="SERVICE">
               <div class="flex">
                 <span
@@ -168,7 +168,7 @@ defmodule DeployexWeb.LogsLive do
     {:noreply, socket |> assign(:show_log_options, show_log_options)}
   end
 
-  def handle_event("logs-reset", _value, socket) do
+  def handle_event("logs-live-reset", _value, socket) do
     {:noreply, stream(socket, :log_messages, [], reset: true)}
   end
 

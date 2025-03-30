@@ -1,6 +1,6 @@
 defmodule Deployex.Logs.Adapter do
   @moduledoc """
-  Behaviour that defines the telemetry adapter callback
+  Behaviour that defines the logs adapter callback
   """
 
   @callback subscribe_for_new_log_types() :: :ok | {:error, term}

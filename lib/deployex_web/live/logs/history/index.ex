@@ -2,6 +2,7 @@ defmodule DeployexWeb.HistoryLive do
   use DeployexWeb, :live_view
 
   alias Deployex.Logs
+  alias Deployex.Logs.Message
   alias DeployexWeb.Components.Attention
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
@@ -25,7 +26,7 @@ defmodule DeployexWeb.HistoryLive do
     ~H"""
     <div class="min-h-screen bg-white">
       <Attention.content
-        id="metrics"
+        id="logs-history-attention"
         title="Configuration"
         class="border-orange-400 text-orange-500 rounded-r-xl w-full"
         message={@attention_msg}
@@ -33,7 +34,7 @@ defmodule DeployexWeb.HistoryLive do
         <:inner_form>
           <.form
             for={@form}
-            id="metrics-update-form"
+            id="logs-history-update-form"
             class="flex ml-2 mr-2 text-xs rounded-r-xl text-center text-black whitespace-nowrap gap-5"
             phx-change="form-update"
           >
@@ -50,7 +51,7 @@ defmodule DeployexWeb.HistoryLive do
       <div class="bg-white">
         <div class="flex">
           <MultiSelect.content
-            id="static-log-multi-select"
+            id="logs-history-multi-select"
             selected_text="Selected logs"
             selected={[
               %{name: "services", keys: @node_info.selected_services},
@@ -65,7 +66,7 @@ defmodule DeployexWeb.HistoryLive do
         </div>
         <div class="p-2">
           <div class="bg-white w-full shadow-lg rounded">
-            <.table_logs id="static-live-logs" rows={@log_messages}>
+            <.table_logs id="logs-history-table" rows={@log_messages}>
               <:col :let={log_message} label="SERVICE">
                 <div class="flex">
                   <span
@@ -95,7 +96,6 @@ defmodule DeployexWeb.HistoryLive do
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
-     |> assign(:node_data, %{})
      |> assign(form: to_form(default_form_options()))
      |> assign(:log_messages, [])
      |> assign(:show_log_options, false)}
@@ -106,7 +106,6 @@ defmodule DeployexWeb.HistoryLive do
     {:ok,
      socket
      |> assign(:node_info, node_info_new())
-     |> assign(:node_data, %{})
      |> assign(form: to_form(default_form_options()))
      |> assign(:log_messages, [])
      |> assign(:show_log_options, false)}
@@ -232,9 +231,9 @@ defmodule DeployexWeb.HistoryLive do
     Enum.reduce(node_info.selected_services, [], fn service, service_acc ->
       service_acc ++
         Enum.reduce(node_info.selected_logs, [], fn log, log_acc ->
-          data = Logs.list_data_by_node_log_type(service, log, from: start_time_integer)
+          log_history = Logs.list_data_by_node_log_type(service, log, from: start_time_integer)
 
-          log_acc ++ Helper.normalize_logs(data, service, log)
+          log_acc ++ Helper.normalize_logs(log_history, service, log)
         end)
     end)
     |> Enum.sort(&(&1.timestamp <= &2.timestamp))
