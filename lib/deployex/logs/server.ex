@@ -134,22 +134,9 @@ defmodule Deployex.Logs.Server do
     {:noreply, state}
   end
 
-  def handle_info({:terminal_update, _event}, state), do: {:noreply, state}
-
-  def handle_info({:nodeup, node}, %{expected_nodes: expected_nodes} = state) do
-    if node |> node_log_table() |> ets_table_exists?() do
-      {:noreply, state}
-    else
-      case maybe_init_log_table(node, expected_nodes) do
-        nil ->
-          {:noreply, state}
-
-        table ->
-          node_logs_tables = Map.put(state.node_logs_tables, node, table)
-
-          {:noreply, %{state | node_logs_tables: node_logs_tables}}
-      end
-    end
+  def handle_info({:nodeup, _node}, state) do
+    # Do Nothing, nodes are static assigned
+    {:noreply, state}
   end
 
   def handle_info(
@@ -166,12 +153,10 @@ defmodule Deployex.Logs.Server do
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      log_types = get_types_by_node(node)
-
-      # Report Node Down if stderr is available
+      # Report Node Down at stderr
       log_type = "stderr"
 
-      if log_type in log_types and persist_data? do
+      if persist_data? do
         timed_log_type_key = log_type_key(log_type, minute)
 
         data = %Message{
@@ -179,14 +164,7 @@ defmodule Deployex.Logs.Server do
           log: "DeployEx detected node down for node: #{node}"
         }
 
-        # credo:disable-for-lines:2
-        current_data =
-          case :ets.lookup(node_log_table, timed_log_type_key) do
-            [{_, current_list_data}] -> [data | current_list_data]
-            _ -> [data]
-          end
-
-        :ets.insert(node_log_table, {timed_log_type_key, current_data})
+        ets_append_to_list(node_log_table, timed_log_type_key, data)
 
         notify_new_log_data(node, log_type, data)
       end
@@ -194,8 +172,6 @@ defmodule Deployex.Logs.Server do
 
     {:noreply, state}
   end
-
-  def handle_info({:nodedown, _node}, state), do: {:noreply, state}
 
   def handle_info(
         :prune_expired_entries,
@@ -298,7 +274,9 @@ defmodule Deployex.Logs.Server do
 
   defp ets_table_exists?(table_name) do
     case :ets.info(table_name) do
+      # coveralls-ignore-start
       :undefined -> false
+      # coveralls-ignore-stop
       _info -> true
     end
   end
@@ -309,7 +287,9 @@ defmodule Deployex.Logs.Server do
       value
     else
       _ ->
+        # coveralls-ignore-start
         default_return
+        # coveralls-ignore-stop
     end
   end
 
@@ -337,14 +317,6 @@ defmodule Deployex.Logs.Server do
       logs_topic(reporter, log_type),
       {:logs_new_data, reporter, log_type, data}
     )
-  end
-
-  defp maybe_init_log_table(node, expected_nodes) do
-    if node in expected_nodes do
-      maybe_init_log_table(node)
-    else
-      nil
-    end
   end
 
   defp maybe_init_log_table(node) do

@@ -13,6 +13,7 @@ defmodule Deployex.Terminal.Supervisor do
 
   @impl true
   def init(_init_arg) do
+    # , max_restarts: 30, max_seconds: 1)
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 

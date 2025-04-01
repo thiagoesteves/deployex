@@ -18,8 +18,7 @@ defmodule Deployex.Application do
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         {Finch, name: Deployex.Finch},
-        {Finch, name: ExAws.Request.Finch},
-        {Deployex.Logs.Server, logs_config()}
+        {Finch, name: ExAws.Request.Finch}
       ] ++
         application_servers() ++
         gcp_app_credentials() ++
@@ -40,8 +39,11 @@ defmodule Deployex.Application do
   if_not_test do
     alias Deployex.Deployment
 
+    defp logs_config, do: Application.fetch_env!(:deployex, Deployex.Logs)
+
     defp application_servers do
       [
+        {Deployex.Logs.Server, logs_config()},
         Deployex.System.Server,
         Deployex.Status.Application,
         {Deployment,
@@ -67,8 +69,6 @@ defmodule Deployex.Application do
         [{Goth, name: Deployex.Goth, source: source}]
     end
   end
-
-  defp logs_config, do: Application.fetch_env!(:deployex, Deployex.Logs)
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.

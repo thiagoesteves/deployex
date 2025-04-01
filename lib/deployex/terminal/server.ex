@@ -70,9 +70,10 @@ defmodule Deployex.Terminal.Server do
   def handle_continue(:open_erlexec_connection, %{instance: instance, metadata: metadata} = state) do
     case OpSys.run(state.commands, state.options) do
       {:ok, _pid, process} ->
-        Logger.info(
+        message =
           "Initializing Terminal instance: #{instance} - #{inspect(metadata)} at process os_pid: #{process}"
-        )
+
+        Logger.info(message)
 
         state = %{state | message: "", process: process}
 
