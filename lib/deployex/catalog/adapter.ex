@@ -1,6 +1,6 @@
-defmodule Deployex.Storage.Adapter do
+defmodule Deployex.Catalog.Adapter do
   @moduledoc """
-  Behaviour that defines the storage adapter callback
+  Behaviour that defines the catalog adapter callback
   """
 
   @type bin_service :: :current | :new
@@ -28,6 +28,6 @@ defmodule Deployex.Storage.Adapter do
   @callback add_ghosted_version(map()) :: {:ok, list()}
   @callback add_user_session_token(Deployex.Accounts.UserToken.t()) :: :ok
   @callback get_user_session_token_by_token(String.t()) :: Deployex.Accounts.UserToken.t() | nil
-  @callback config() :: Deployex.Storage.Config.t()
-  @callback config_update(Deployex.Storage.Config.t()) :: {:ok, Deployex.Storage.Config.t()}
+  @callback config() :: Deployex.Catalog.Config.t()
+  @callback config_update(Deployex.Catalog.Config.t()) :: {:ok, Deployex.Catalog.Config.t()}
 end

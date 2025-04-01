@@ -7,12 +7,12 @@ defmodule Deployex.DeploymentTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Deployex.Catalog
   alias Deployex.Deployment
-  alias Deployex.Fixture.Storage, as: FixtureStorage
-  alias Deployex.Storage
+  alias Deployex.Fixture.Catalog, as: FixtureCatalog
 
   setup do
-    FixtureStorage.cleanup()
+    FixtureCatalog.cleanup()
   end
 
   describe "Initialization tests" do
@@ -448,8 +448,8 @@ defmodule Deployex.DeploymentTest do
       manual_version = "1.0.0"
       manual_version_map = %{version: manual_version, hash: "local", pre_commands: []}
 
-      Storage.config_update(%{
-        Storage.config()
+      Catalog.config_update(%{
+        Catalog.config()
         | mode: :manual,
           manual_version: manual_version_map
       })
@@ -518,8 +518,8 @@ defmodule Deployex.DeploymentTest do
 
       manual_version = "1.0.0"
 
-      Storage.config_update(%{
-        Storage.config()
+      Catalog.config_update(%{
+        Catalog.config()
         | mode: :automatic,
           manual_version: nil
       })

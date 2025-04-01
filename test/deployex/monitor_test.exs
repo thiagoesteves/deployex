@@ -9,11 +9,11 @@ defmodule Deployex.MonitorTest do
 
   alias Deployex.Common
   alias Deployex.Fixture.Binary
-  alias Deployex.Fixture.Storage
+  alias Deployex.Fixture.Catalog
   alias Deployex.Monitor.Application, as: MonitorApp
 
   setup do
-    Storage.cleanup()
+    Catalog.cleanup()
   end
 
   describe "Initialization tests" do

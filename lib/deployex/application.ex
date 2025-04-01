@@ -12,7 +12,7 @@ defmodule Deployex.Application do
     children =
       [
         DeployexWeb.Telemetry,
-        Deployex.Storage.Local,
+        Deployex.Catalog.Local,
         Deployex.Monitor.Supervisor,
         Deployex.Terminal.Supervisor,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},

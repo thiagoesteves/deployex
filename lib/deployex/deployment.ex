@@ -16,11 +16,11 @@ defmodule Deployex.Deployment do
   use GenServer
   require Logger
 
+  alias Deployex.Catalog
   alias Deployex.Common
   alias Deployex.Monitor
   alias Deployex.Release
   alias Deployex.Status
-  alias Deployex.Storage
   alias Deployex.Upgrade
 
   defstruct instances: 1,
@@ -49,14 +49,14 @@ defmodule Deployex.Deployment do
     schedule_new_deployment(schedule_interval)
 
     deployments =
-      Storage.replicas_list()
+      Catalog.replicas_list()
       |> Enum.reduce(%{}, fn instance, acc ->
         Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
       end)
 
     {:ok,
      %__MODULE__{
-       instances: Storage.replicas(),
+       instances: Catalog.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
@@ -197,7 +197,7 @@ defmodule Deployex.Deployment do
 
     if current_app_version != nil do
       {:ok, _} =
-        Monitor.start_service(Storage.monitored_app_lang(), state.current, new_deploy_ref)
+        Monitor.start_service(Catalog.monitored_app_lang(), state.current, new_deploy_ref)
 
       set_timeout_to_rollback(state, new_deploy_ref)
     else
@@ -279,7 +279,7 @@ defmodule Deployex.Deployment do
         deploy_ref: new_deploy_ref
       )
 
-      {:ok, _} = Monitor.start_service(Storage.monitored_app_lang(), instance, new_deploy_ref)
+      {:ok, _} = Monitor.start_service(Catalog.monitored_app_lang(), instance, new_deploy_ref)
     end)
 
     set_timeout_to_rollback(state, new_deploy_ref)
@@ -299,8 +299,8 @@ defmodule Deployex.Deployment do
 
       case Upgrade.execute(
              instance,
-             Storage.monitored_app_name(),
-             Storage.monitored_app_lang(),
+             Catalog.monitored_app_name(),
+             Catalog.monitored_app_lang(),
              from_version,
              release.version
            ) do

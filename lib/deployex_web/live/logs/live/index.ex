@@ -1,8 +1,8 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
+  alias Deployex.Catalog
   alias Deployex.Logs
-  alias Deployex.Storage
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
 
@@ -202,10 +202,10 @@ defmodule DeployexWeb.LogsLive do
     {:ok, hostname} = :inet.gethostname()
 
     instance_to_node = fn instance ->
-      :"#{Storage.sname(instance)}@#{hostname}"
+      :"#{Catalog.sname(instance)}@#{hostname}"
     end
 
-    Storage.instance_list()
+    Catalog.instance_list()
     |> Enum.reduce(initial_map, fn instance,
                                    %{
                                      services_keys: services_keys,

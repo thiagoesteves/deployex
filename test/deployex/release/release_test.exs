@@ -6,12 +6,12 @@ defmodule Deployex.ReleaseTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployex.Fixture.Storage, as: FixtureStorage
+  alias Deployex.Catalog
+  alias Deployex.Fixture.Catalog, as: FixtureCatalog
   alias Deployex.Release
-  alias Deployex.Storage
 
   setup do
-    FixtureStorage.cleanup()
+    FixtureCatalog.cleanup()
   end
 
   test "get_current_version_map/1 automatic mode" do
@@ -25,9 +25,9 @@ defmodule Deployex.ReleaseTest do
   end
 
   test "get_current_version_map/1 manual mode non-optional field" do
-    config = Storage.config()
+    config = Catalog.config()
 
-    Storage.config_update(%{
+    Catalog.config_update(%{
       config
       | mode: :manual,
         manual_version: %{"version" => "1.0.0", "hash" => "local"}
@@ -44,8 +44,8 @@ defmodule Deployex.ReleaseTest do
       version: "1.0.0"
     }
 
-    config = Storage.config()
-    Storage.config_update(%{config | mode: :manual, manual_version: expected_version})
+    config = Catalog.config()
+    Catalog.config_update(%{config | mode: :manual, manual_version: expected_version})
 
     assert expected_version == Release.get_current_version_map()
   end

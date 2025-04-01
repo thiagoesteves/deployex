@@ -4,6 +4,8 @@ defmodule DeployexWeb.Applications.ModeTest do
   import Phoenix.LiveViewTest
   import Mox
 
+  alias Deployex.Catalog
+
   setup [
     :set_mox_global,
     :verify_on_exit!,
@@ -80,7 +82,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
       {:ok,
-       %Deployex.Storage.Config{
+       %Catalog.Config{
          mode: :manual,
          manual_version: FixtureStatus.version(%{version: expected_manual_version})
        }}
@@ -124,7 +126,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
       {:ok,
-       %Deployex.Storage.Config{
+       %Catalog.Config{
          mode: :automatic,
          manual_version: FixtureStatus.version(%{version: "1.0.1"})
        }}

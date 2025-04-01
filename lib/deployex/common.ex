@@ -183,11 +183,12 @@ defmodule Deployex.Common do
 
   ## Examples
 
+    iex> alias Deployex.Catalog
     iex> alias Deployex.Common
-    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{"mode" => "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{mode: "manual"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: "v1"} = Common.cast_schema_fields(%{manual_version: "v1"}, %Deployex.Storage.Config{}, atoms: [:mode])
-    ...> %Deployex.Storage.Config{mode: :automatic, manual_version: nil} = Common.cast_schema_fields(nil, %Deployex.Storage.Config{}, atoms: [:mode])
+    ...> %Catalog.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{"mode" => "manual"}, %Catalog.Config{}, atoms: [:mode])
+    ...> %Catalog.Config{mode: :manual, manual_version: nil} = Common.cast_schema_fields(%{mode: "manual"}, %Catalog.Config{}, atoms: [:mode])
+    ...> %Catalog.Config{mode: :automatic, manual_version: "v1"} = Common.cast_schema_fields(%{manual_version: "v1"}, %Catalog.Config{}, atoms: [:mode])
+    ...> %Catalog.Config{mode: :automatic, manual_version: nil} = Common.cast_schema_fields(nil, %Catalog.Config{}, atoms: [:mode])
   """
   def cast_schema_fields(data, struct, attrs \\ [])
 

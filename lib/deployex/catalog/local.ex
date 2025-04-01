@@ -1,4 +1,4 @@
-defmodule Deployex.Storage.Local do
+defmodule Deployex.Catalog.Local do
   @moduledoc """
   This module handles the storage information using local files and ets tables
   for temporary data
@@ -8,7 +8,7 @@ defmodule Deployex.Storage.Local do
 
   alias Deployex.Common
 
-  @behaviour Deployex.Storage.Adapter
+  @behaviour Deployex.Catalog.Adapter
 
   require Logger
 
@@ -54,7 +54,7 @@ defmodule Deployex.Storage.Local do
   end
 
   ### ==========================================================================
-  ### Deployex.Storage.Adapter callback functions
+  ### Deployex.Catalog.Adapter callback functions
   ### ==========================================================================
 
   @impl true

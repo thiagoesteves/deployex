@@ -5,11 +5,11 @@ defmodule Deployex.Monitor.Application do
   use GenServer
   require Logger
 
+  alias Deployex.Catalog
   alias Deployex.Common
   alias Deployex.Deployment
   alias Deployex.OpSys
   alias Deployex.Status
-  alias Deployex.Storage
 
   @behaviour Deployex.Monitor.Adapter
 
@@ -254,7 +254,7 @@ defmodule Deployex.Monitor.Application do
          } = state,
          version_map
        ) do
-    app_exec = Storage.bin_path(instance, language, :current)
+    app_exec = Catalog.bin_path(instance, language, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -266,8 +266,8 @@ defmodule Deployex.Monitor.Application do
         OpSys.run_link(
           run_app_bin(language, instance, app_exec, "start"),
           [
-            {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
-            {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
+            {:stdout, Catalog.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
+            {:stderr, Catalog.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
           ]
         )
 
@@ -298,7 +298,7 @@ defmodule Deployex.Monitor.Application do
   defp run_app_bin(language, instance, executable_path, command)
 
   defp run_app_bin("elixir", instance, executable_path, command) do
-    server_port = Storage.monitored_app_start_port() + (instance - 1)
+    server_port = Catalog.monitored_app_start_port() + (instance - 1)
     path = Common.remove_deployex_from_path()
 
     """
@@ -312,9 +312,9 @@ defmodule Deployex.Monitor.Application do
   end
 
   defp run_app_bin("erlang", instance, executable_path, "start") do
-    server_port = Storage.monitored_app_start_port() + (instance - 1)
+    server_port = Catalog.monitored_app_start_port() + (instance - 1)
     path = Common.remove_deployex_from_path()
-    app_name = Storage.monitored_app_name()
+    app_name = Catalog.monitored_app_name()
     cookie = Common.cookie()
 
     ssl_options =
@@ -338,8 +338,8 @@ defmodule Deployex.Monitor.Application do
   end
 
   defp run_app_bin("gleam", instance, executable_path, "start") do
-    server_port = Storage.monitored_app_start_port() + (instance - 1)
-    app_name = Storage.monitored_app_name()
+    server_port = Catalog.monitored_app_start_port() + (instance - 1)
+    app_name = Catalog.monitored_app_name()
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
 
@@ -383,7 +383,7 @@ defmodule Deployex.Monitor.Application do
          pre_commands,
          bin_service
        ) do
-    migration_exec = Storage.bin_path(instance, language, bin_service)
+    migration_exec = Catalog.bin_path(instance, language, bin_service)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
@@ -394,8 +394,8 @@ defmodule Deployex.Monitor.Application do
 
       OpSys.run(run_app_bin(language, instance, migration_exec, pre_command), [
         :sync,
-        {:stdout, Storage.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
-        {:stderr, Storage.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
+        {:stdout, Catalog.stdout_path(instance) |> to_charlist, [:append, {:mode, 0o600}]},
+        {:stderr, Catalog.stderr_path(instance) |> to_charlist, [:append, {:mode, 0o600}]}
       ])
       |> case do
         {:ok, _} ->
@@ -414,7 +414,7 @@ defmodule Deployex.Monitor.Application do
 
   defp cleanup_beam_process(instance) do
     case OpSys.run(
-           "kill -9 $(ps -ax | grep \"#{Storage.monitored_app_name()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+           "kill -9 $(ps -ax | grep \"#{Catalog.monitored_app_name()}/#{instance}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
            [:sync, :stdout, :stderr]
          ) do
       {:ok, _} ->

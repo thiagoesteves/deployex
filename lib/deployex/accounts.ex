@@ -7,7 +7,7 @@ defmodule Deployex.Accounts do
   """
 
   alias Deployex.Accounts.{User, UserToken}
-  alias Deployex.Storage
+  alias Deployex.Catalog
 
   @default_user "admin"
 
@@ -39,7 +39,7 @@ defmodule Deployex.Accounts do
   """
   def generate_user_session_token(user) do
     {token, user_token} = UserToken.build_session_token(user.username)
-    Deployex.Storage.add_user_session_token(user_token)
+    Catalog.add_user_session_token(user_token)
     token
   end
 
@@ -48,7 +48,7 @@ defmodule Deployex.Accounts do
   """
   def get_user_by_session_token(token) do
     token
-    |> Storage.get_user_session_token_by_token()
+    |> Catalog.get_user_session_token_by_token()
     |> UserToken.verify_session_token()
     |> case do
       nil -> nil
