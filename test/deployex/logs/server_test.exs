@@ -4,6 +4,7 @@ defmodule Deployex.Logs.ServerTest do
   import Mock
   import Mox
 
+  alias Deployex.Fixture.Nodes, as: FixtureNodes
   alias Deployex.Logs.Message
   alias Deployex.Logs.Server
   alias Deployex.Terminal
@@ -13,23 +14,6 @@ defmodule Deployex.Logs.ServerTest do
     :verify_on_exit!,
     :create_consumer
   ]
-
-  test "[un]subscribe_for_new_log_types/0", %{node: node, pid: pid} do
-    Server.subscribe_for_new_log_types()
-    log_type = "new-log-types"
-
-    send(
-      pid,
-      {:terminal_update,
-       %{
-         metadata: %{context: :terminal_logs, node: node, type: log_type},
-         myself: self(),
-         message: "[info] simple log"
-       }}
-    )
-
-    assert_receive {:logs_new_keys, ^node, [^log_type]}, 1_000
-  end
 
   test "[un]subscribe_for_new_logs/0", %{node: node, pid: pid} do
     log_type = "new-log-type"
@@ -225,8 +209,10 @@ defmodule Deployex.Logs.ServerTest do
 
     assert_receive {:server_pid, pid}, 1_000
 
+    node = FixtureNodes.test_node(1)
+
     context
-    |> Map.put(:node, :"testapp-1@MacBookPro")
+    |> Map.put(:node, String.to_atom(node))
     |> Map.put(:pid, pid)
   end
 end

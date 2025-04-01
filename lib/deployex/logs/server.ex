@@ -122,12 +122,6 @@ defmodule Deployex.Logs.Server do
 
       if log_key not in log_keys do
         :ets.insert(node_log_table, {@logs_types, [log_key] ++ log_keys})
-
-        Phoenix.PubSub.broadcast(
-          Deployex.PubSub,
-          new_log_types_topic(),
-          {:logs_new_keys, reporter, [log_key]}
-        )
       end
     end
 
@@ -200,12 +194,6 @@ defmodule Deployex.Logs.Server do
   ### ==========================================================================
   ### ObserverWeb.Telemetry.Adapter implementation
   ### ==========================================================================
-
-  @impl true
-  def subscribe_for_new_log_types do
-    Phoenix.PubSub.subscribe(Deployex.PubSub, new_log_types_topic())
-  end
-
   @impl true
   def subscribe_for_new_logs(node, key) do
     Phoenix.PubSub.subscribe(Deployex.PubSub, logs_topic(node, key))
@@ -308,7 +296,6 @@ defmodule Deployex.Logs.Server do
   end
 
   # NOTE: PubSub topics
-  defp new_log_types_topic, do: "logs::types"
   defp logs_topic(node, type), do: "logs::#{node}::#{type}"
 
   defp notify_new_log_data(reporter, log_type, data) do

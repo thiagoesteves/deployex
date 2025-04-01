@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Logs.IndexTest do
+defmodule DeployexWeb.Logs.Live.IndexTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -10,7 +10,8 @@ defmodule DeployexWeb.Logs.IndexTest do
   setup [
     :set_mox_global,
     :verify_on_exit!,
-    :log_in_default_user
+    :log_in_default_user,
+    :add_test_node
   ]
 
   test "GET /applications check buttom", %{conn: conn} do
@@ -28,20 +29,23 @@ defmodule DeployexWeb.Logs.IndexTest do
            |> render_click()
   end
 
-  test "GET /logs", %{conn: conn} do
+  test "GET /logs/live", %{conn: conn} do
+    Deployex.LogsMock
+    |> stub(:get_types_by_node, fn _node -> ["stderr"] end)
+
     {:ok, _index_live, html} = live(conn, ~p"/logs/live")
 
     assert html =~ "Live Logs"
   end
 
-  test "Add Service + Stdout", %{conn: conn} do
-    node = "testapp-1@MacBookPro"
+  test "Add Service + Stdout", %{conn: conn, test_node: node} do
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
 
     Deployex.LogsMock
+    |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
@@ -64,14 +68,14 @@ defmodule DeployexWeb.Logs.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add Stdout + Service", %{conn: conn} do
-    node = "testapp-1@MacBookPro"
+  test "Add Stdout + Service", %{conn: conn, test_node: node} do
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
 
     Deployex.LogsMock
+    |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
@@ -94,8 +98,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add/Remove Service + Stdout", %{conn: conn} do
-    node = "testapp-1@MacBookPro"
+  test "Add/Remove Service + Stdout", %{conn: conn, test_node: node} do
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
@@ -103,6 +106,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     Deployex.LogsMock
     |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
+    |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> expect(:unsubscribe_for_new_logs, fn ^node, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
@@ -133,8 +137,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add/Remove Stdout + Service", %{conn: conn} do
-    node = "testapp-1@MacBookPro"
+  test "Add/Remove Stdout + Service", %{conn: conn, test_node: node} do
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
@@ -142,6 +145,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     Deployex.LogsMock
     |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
+    |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> expect(:unsubscribe_for_new_logs, fn ^node, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
@@ -187,17 +191,20 @@ defmodule DeployexWeb.Logs.IndexTest do
     12 => %{type: "none", color: "#E5E5E5"}
   }
   |> Enum.each(fn {element, %{type: type, color: color}} ->
-    test "#{element} - Send Stdout #{type} message from erlexec server", %{conn: conn} do
+    test "#{element} - Send Stdout #{type} message from erlexec server", %{
+      conn: conn,
+      test_node: node
+    } do
       message = unquote(type)
       expected_color = unquote(color)
 
-      node = "testapp-1@MacBookPro"
       service_id = String.replace(node, "@", "-")
       log_type = "stdout"
       test_pid_process = self()
       ref = make_ref()
 
       Deployex.LogsMock
+      |> stub(:get_types_by_node, fn _node -> [log_type] end)
       |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
         send(test_pid_process, {:handle_ref_event, ref, self()})
         :ok
@@ -226,16 +233,16 @@ defmodule DeployexWeb.Logs.IndexTest do
     end
   end)
 
-  test "Reset Stream button", %{conn: conn} do
+  test "Reset Stream button", %{conn: conn, test_node: node} do
     message = "my-debug-msg"
 
-    node = "testapp-1@MacBookPro"
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
 
     Deployex.LogsMock
+    |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref, self()})
       :ok

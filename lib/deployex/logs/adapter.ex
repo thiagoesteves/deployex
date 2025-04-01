@@ -3,7 +3,6 @@ defmodule Deployex.Logs.Adapter do
   Behaviour that defines the logs adapter callback
   """
 
-  @callback subscribe_for_new_log_types() :: :ok | {:error, term}
   @callback subscribe_for_new_logs(String.t(), String.t()) :: :ok | {:error, term}
   @callback unsubscribe_for_new_logs(String.t(), String.t()) :: :ok
   @callback list_data_by_node_log_type(atom() | String.t(), String.t(), Keyword.t()) :: list()

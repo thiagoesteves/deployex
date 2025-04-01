@@ -12,7 +12,7 @@
  * None
 
 ### Enhancements
- * [[`PR-100`](https://github.com/thiagoesteves/deployex/pull/100)] Adding new log mode to persist logs within ets tables
+ * [[`PR-100`](https://github.com/thiagoesteves/deployex/pull/100)] Adding new log server to persist logs within ets tables
 
 ## 0.3.2 🚀 (2025-03-21)
 

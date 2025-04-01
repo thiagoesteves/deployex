@@ -23,12 +23,6 @@ defmodule Deployex.Logs do
   ### ==========================================================================
 
   @doc """
-  Subscribe for new log types notifications
-  """
-  @spec subscribe_for_new_log_types() :: :ok | {:error, term}
-  def subscribe_for_new_log_types, do: default().subscribe_for_new_log_types()
-
-  @doc """
   Subscribe for new log notifications for the respective node/log_type
   """
   @spec subscribe_for_new_logs(String.t(), String.t()) :: :ok | {:error, term}

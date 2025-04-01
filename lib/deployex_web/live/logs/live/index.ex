@@ -182,7 +182,7 @@ defmodule DeployexWeb.LogsLive do
   defp node_info_new do
     %{
       services_keys: [],
-      logs_keys: ["stdout", "stderr"],
+      logs_keys: [],
       selected_services: [],
       selected_logs: [],
       node: []
@@ -212,8 +212,12 @@ defmodule DeployexWeb.LogsLive do
                                      logs_keys: logs_keys,
                                      node: node
                                    } = acc ->
-      service = instance |> instance_to_node.() |> to_string
+      service_node = instance_to_node.(instance)
+      service = to_string(service_node)
       services_keys = services_keys ++ [service]
+
+      node_logs_keys = Logs.get_types_by_node(service_node)
+      logs_keys = (logs_keys ++ node_logs_keys) |> Enum.uniq()
 
       node =
         if service in selected_services do
