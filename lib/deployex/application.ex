@@ -14,6 +14,7 @@ defmodule Deployex.Application do
         DeployexWeb.Telemetry,
         Deployex.Storage.Local,
         Deployex.Monitor.Supervisor,
+        Deployex.Terminal.Supervisor,
         {DNSCluster, query: Application.get_env(:deployex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Deployex.PubSub},
         {Finch, name: Deployex.Finch},
@@ -25,8 +26,7 @@ defmodule Deployex.Application do
           # Start a worker by calling: Deployex.Worker.start_link(arg)
           # {Deployex.Worker, arg},
           # Start to serve requests, typically the last entry
-          DeployexWeb.Endpoint,
-          Deployex.Terminal.Supervisor
+          DeployexWeb.Endpoint
         ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -39,8 +39,11 @@ defmodule Deployex.Application do
   if_not_test do
     alias Deployex.Deployment
 
+    defp logs_config, do: Application.fetch_env!(:deployex, Deployex.Logs)
+
     defp application_servers do
       [
+        {Deployex.Logs.Server, logs_config()},
         Deployex.System.Server,
         Deployex.Status.Application,
         {Deployment,

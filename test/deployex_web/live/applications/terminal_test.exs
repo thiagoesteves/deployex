@@ -146,7 +146,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
              assert_receive {:handle_ref_event, ^ref}, 1_000
            end) =~
-             "Error while trying to run the commands for instance: 1, reason: {:error, :invalid_cookie}"
+             "Error while trying to run the commands for instance: 1 - :iex_terminal, reason: {:error, :invalid_cookie}"
   end
 
   test "Send Character to iex terminal", %{conn: conn} do

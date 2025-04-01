@@ -1,5 +1,19 @@
 # CHANGELOG (0.3.x)
 
+## 0.3.3 ()
+
+### Backwards incompatible changes for 0.3.2
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-100`](https://github.com/thiagoesteves/deployex/pull/100)] Adding new log server to persist logs within ets tables
+
 ## 0.3.2 🚀 (2025-03-21)
 
 ### Backwards incompatible changes for 0.3.1

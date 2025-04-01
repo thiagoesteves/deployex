@@ -67,10 +67,13 @@ defmodule Deployex.Terminal.Server do
   end
 
   @impl true
-  def handle_continue(:open_erlexec_connection, %{instance: instance} = state) do
+  def handle_continue(:open_erlexec_connection, %{instance: instance, metadata: metadata} = state) do
     case OpSys.run(state.commands, state.options) do
       {:ok, _pid, process} ->
-        Logger.info("Initializing terminal instance: #{instance} at process pid: #{process}")
+        message =
+          "Initializing Terminal instance: #{instance} - #{inspect(metadata)} at process os_pid: #{process}"
+
+        Logger.info(message)
 
         state = %{state | message: "", process: process}
 
@@ -81,7 +84,7 @@ defmodule Deployex.Terminal.Server do
 
       reason ->
         Logger.error(
-          "Error while trying to run the commands for instance: #{state.instance}, reason: #{inspect(reason)}"
+          "Error while trying to run the commands for instance: #{instance} - #{inspect(metadata)}, reason: #{inspect(reason)}"
         )
 
         {:stop, :normal, state}

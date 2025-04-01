@@ -10,6 +10,7 @@
     "lib/deployex/status/adapter.ex",
     "lib/deployex/upgrade/adapter.ex",
     "lib/deployex/storage/adapter.ex",
+    "lib/deployex/logs/adapter.ex",
     "lib/deployex/rpc/adapter.ex",
     "lib/deployex/rpc/local.ex",
     "lib/deployex/mailer.ex",
