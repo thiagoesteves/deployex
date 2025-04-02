@@ -5,8 +5,8 @@ defmodule Deployex.Release.Local do
 
   @behaviour Deployex.Release.Adapter
 
+  alias Deployex.Catalog
   alias Deployex.Status
-  alias Deployex.Storage
   alias Deployex.Upgrade
 
   require Logger
@@ -20,7 +20,7 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def get_current_version_map do
-    app_name = Storage.monitored_app_name()
+    app_name = Catalog.monitored_app_name()
 
     file_path = "#{bucket()}/versions/#{app_name}/#{env()}/current.json"
 
@@ -39,13 +39,13 @@ defmodule Deployex.Release.Local do
   """
   @impl true
   def download_and_unpack(instance, version) do
-    app_name = Storage.monitored_app_name()
-    app_lang = Storage.monitored_app_lang()
+    app_name = Catalog.monitored_app_name()
+    app_lang = Catalog.monitored_app_lang()
 
     download_path = "#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
 
     Status.clear_new(instance)
-    new_path = Storage.new_path(instance)
+    new_path = Catalog.new_path(instance)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 

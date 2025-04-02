@@ -110,7 +110,7 @@ config :deployex, Deployex.Upgrade, adapter: Deployex.Upgrade.Application
 
 config :deployex, Deployex.OpSys, adapter: Deployex.OpSys.Local
 
-config :deployex, Deployex.Storage, adapter: Deployex.Storage.Local
+config :deployex, Deployex.Catalog, adapter: Deployex.Catalog.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 

@@ -8,8 +8,8 @@ defmodule Deployex.Logs.Server do
 
   @behaviour Deployex.Logs.Adapter
 
+  alias Deployex.Catalog
   alias Deployex.Logs.Message
-  alias Deployex.Storage
   alias Deployex.Terminal
 
   @logs_storage_table :logs_storage_table
@@ -65,11 +65,11 @@ defmodule Deployex.Logs.Server do
     {:ok, hostname} = :inet.gethostname()
 
     instance_to_node = fn instance ->
-      :"#{Storage.sname(instance)}@#{hostname}"
+      :"#{Catalog.sname(instance)}@#{hostname}"
     end
 
     # List all expected nodes within the cluster
-    expected_nodes = Enum.map(Storage.instance_list(), &instance_to_node.(&1))
+    expected_nodes = Enum.map(Catalog.instance_list(), &instance_to_node.(&1))
 
     node_logs_tables =
       Enum.reduce(expected_nodes, %{}, fn node, acc ->
@@ -362,6 +362,6 @@ defmodule Deployex.Logs.Server do
     end
   end
 
-  defp log_path(instance, "stdout"), do: Storage.stdout_path(instance)
-  defp log_path(instance, "stderr"), do: Storage.stderr_path(instance)
+  defp log_path(instance, "stdout"), do: Catalog.stdout_path(instance)
+  defp log_path(instance, "stderr"), do: Catalog.stderr_path(instance)
 end

@@ -5,8 +5,8 @@ defmodule Deployex.UpgradeAppTest do
   import Mock
   import ExUnit.CaptureLog
 
-  alias Deployex.Fixture.Storage, as: FixtureStorage
-  alias Deployex.Storage
+  alias Deployex.Catalog
+  alias Deployex.Fixture.Catalog, as: FixtureCatalog
   alias Deployex.Upgrade.Application, as: UpgradeApp
 
   @valid_appup_file """
@@ -101,7 +101,7 @@ defmodule Deployex.UpgradeAppTest do
   @expected_timeout 300_000
 
   setup do
-    FixtureStorage.cleanup()
+    FixtureCatalog.cleanup()
     {:ok, hostname} = :inet.gethostname()
 
     app_name = "testapp"
@@ -163,8 +163,8 @@ defmodule Deployex.UpgradeAppTest do
     to_version: to_version,
     base_path: base_path
   } do
-    new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    current_releases_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    current_releases_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(current_releases_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
@@ -191,7 +191,7 @@ defmodule Deployex.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
 
@@ -214,7 +214,7 @@ defmodule Deployex.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/testapp-0.2.0/ebin"
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/testapp.appup", @invalid_appup_file)
 
@@ -257,10 +257,10 @@ defmodule Deployex.UpgradeAppTest do
     to_version: to_version,
     base_path: base_path
   } do
-    new_lib_ebin_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
-    new_releases_path = "#{Storage.new_path(instance)}/releases"
-    current_releases_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_priv_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
+    new_releases_path = "#{Catalog.new_path(instance)}/releases"
+    current_releases_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(new_lib_priv_path)
@@ -369,9 +369,9 @@ defmodule Deployex.UpgradeAppTest do
   } do
     root = ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
-    new_lib_priv_path = "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
-    current_lib_ebin_path = "#{Storage.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    current_releases_path = "#{Storage.current_path(instance)}/releases"
+    new_lib_priv_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
+    current_lib_ebin_path = "#{Catalog.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    current_releases_path = "#{Catalog.current_path(instance)}/releases"
 
     File.mkdir_p!(new_lib_priv_path)
     File.mkdir_p!(current_lib_ebin_path)
@@ -530,7 +530,7 @@ defmodule Deployex.UpgradeAppTest do
     instance: instance,
     to_version: to_version
   } do
-    current_bin_path = "#{Storage.current_path(instance)}/bin"
+    current_bin_path = "#{Catalog.current_path(instance)}/bin"
 
     File.mkdir_p!(current_bin_path)
 
@@ -554,7 +554,7 @@ defmodule Deployex.UpgradeAppTest do
     instance: instance,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
 
@@ -577,7 +577,7 @@ defmodule Deployex.UpgradeAppTest do
     instance: instance,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
@@ -601,7 +601,7 @@ defmodule Deployex.UpgradeAppTest do
     instance: instance,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
@@ -645,7 +645,7 @@ defmodule Deployex.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")

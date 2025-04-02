@@ -50,8 +50,8 @@ defmodule Deployex.Upgrade.Application do
 
   @timeout 300_000
 
+  alias Deployex.Catalog
   alias Deployex.Rpc
-  alias Deployex.Storage
 
   @behaviour Deployex.Upgrade.Adapter
 
@@ -107,7 +107,7 @@ defmodule Deployex.Upgrade.Application do
   @spec update_sys_config_from_installed_version(atom(), integer(), String.t(), charlist()) ::
           :ok | {:error, any()}
   def update_sys_config_from_installed_version(node, instance, "elixir", to_version) do
-    rel_vsn_dir = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    rel_vsn_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
     # Read the build time config from build.config
@@ -140,7 +140,7 @@ defmodule Deployex.Upgrade.Application do
 
   @spec return_original_sys_config(integer(), String.t(), charlist()) :: :ok | {:error, atom()}
   def return_original_sys_config(instance, "elixir", to_version) do
-    rel_vsn_dir = "#{Storage.current_path(instance)}/releases/#{to_version}"
+    rel_vsn_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
 
@@ -174,10 +174,10 @@ defmodule Deployex.Upgrade.Application do
   def check(instance, app_name, app_lang, download_path, from_version, to_version) do
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file =
-        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
+        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
 
       ebin_app_up_file =
-        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
 
       if File.exists?(priv_app_up_file) do
         File.cp!(priv_app_up_file, ebin_app_up_file)
@@ -185,7 +185,7 @@ defmodule Deployex.Upgrade.Application do
     end
 
     add_version_to_rel_file = fn ->
-      releases = "#{Storage.new_path(instance)}/releases"
+      releases = "#{Catalog.new_path(instance)}/releases"
 
       if File.exists?("#{releases}/#{app_name}.rel") do
         File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
@@ -198,12 +198,12 @@ defmodule Deployex.Upgrade.Application do
     end
 
     with [file_path] <-
-           Path.wildcard("#{Storage.new_path(instance)}/lib/#{app_name}-*/ebin/*.appup"),
+           Path.wildcard("#{Catalog.new_path(instance)}/lib/#{app_name}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do
       Logger.warning("HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}")
 
       # Copy binary to the release folder under the version directory
-      dest_dir = "#{Storage.current_path(instance)}/releases/#{to_version}"
+      dest_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
 
       File.rm_rf(dest_dir)
 
@@ -264,10 +264,10 @@ defmodule Deployex.Upgrade.Application do
 
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file =
-        "#{Storage.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
+        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
 
       ebin_app_up_file =
-        "#{Storage.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+        "#{Catalog.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
 
       if File.exists?(priv_app_up_file) do
         File.cp!(priv_app_up_file, ebin_app_up_file)
@@ -275,7 +275,7 @@ defmodule Deployex.Upgrade.Application do
     end
 
     add_version_to_rel_file = fn ->
-      releases = "#{Storage.current_path(instance)}/releases"
+      releases = "#{Catalog.current_path(instance)}/releases"
 
       if File.exists?("#{releases}/#{app_name}.rel") do
         File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
@@ -351,8 +351,8 @@ defmodule Deployex.Upgrade.Application do
 
         if app_lang == "erlang" do
           File.cp!(
-            "#{Storage.current_path(instance)}/bin/#{app_name}-#{to_version}",
-            "#{Storage.current_path(instance)}/bin/#{app_name}"
+            "#{Catalog.current_path(instance)}/bin/#{app_name}-#{to_version}",
+            "#{Catalog.current_path(instance)}/bin/#{app_name}"
           )
         end
 
@@ -374,7 +374,7 @@ defmodule Deployex.Upgrade.Application do
   @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
   def connect(instance) do
     {:ok, hostname} = :inet.gethostname()
-    app_sname = Storage.sname(instance)
+    app_sname = Catalog.sname(instance)
     # NOTE: The command below represents the creation of an atom. However, with OTP distribution,
     #       all connected nodes share the same atoms, including its name.
     node = :"#{app_sname}@#{hostname}"

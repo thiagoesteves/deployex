@@ -4,9 +4,10 @@ defmodule Deployex.Status.Application do
   """
 
   use GenServer
+
+  alias Deployex.Catalog
   alias Deployex.Common
   alias Deployex.Monitor
-  alias Deployex.Storage
 
   @behaviour Deployex.Status.Adapter
 
@@ -32,7 +33,7 @@ defmodule Deployex.Status.Application do
     |> Keyword.get(:update_apps_interval, @update_apps_interval)
     |> :timer.send_interval(:update_apps)
 
-    {:ok, %{instances: Storage.replicas(), monitoring: []}}
+    {:ok, %{instances: Catalog.replicas(), monitoring: []}}
   end
 
   @impl true
@@ -50,7 +51,7 @@ defmodule Deployex.Status.Application do
     deployex = update_deployex_app()
 
     monitoring_apps =
-      Storage.replicas_list()
+      Catalog.replicas_list()
       |> Enum.map(fn instance ->
         update_monitored_app_name(instance)
       end)
@@ -76,10 +77,10 @@ defmodule Deployex.Status.Application do
   end
 
   @impl true
-  def monitored_app_name, do: Storage.monitored_app_name()
+  def monitored_app_name, do: Catalog.monitored_app_name()
 
   @impl true
-  def monitored_app_lang, do: Storage.monitored_app_lang()
+  def monitored_app_lang, do: Catalog.monitored_app_lang()
 
   @impl true
   def subscribe, do: Phoenix.PubSub.subscribe(Deployex.PubSub, @apps_data_updated_topic)
@@ -92,7 +93,7 @@ defmodule Deployex.Status.Application do
   @impl true
   def current_version_map(instance) do
     instance
-    |> Storage.versions()
+    |> Catalog.versions()
     |> Enum.at(0)
     |> case do
       nil ->
@@ -115,20 +116,20 @@ defmodule Deployex.Status.Application do
       inserted_at: NaiveDateTime.utc_now()
     }
 
-    Storage.add_version(params)
+    Catalog.add_version(params)
   end
 
   @impl true
-  def add_ghosted_version(version), do: Storage.add_ghosted_version(version)
+  def add_ghosted_version(version), do: Catalog.add_ghosted_version(version)
 
   @impl true
   def ghosted_version_list do
-    Storage.ghosted_versions()
+    Catalog.ghosted_versions()
   end
 
   @impl true
   def history_version_list do
-    Storage.versions()
+    Catalog.versions()
   end
 
   @impl true
@@ -138,17 +139,17 @@ defmodule Deployex.Status.Application do
 
   @impl true
   def history_version_list(instance) do
-    Storage.versions(instance)
+    Catalog.versions(instance)
   end
 
   @impl true
   def clear_new(instance) do
     instance
-    |> Storage.new_path()
+    |> Catalog.new_path()
     |> File.rm_rf()
 
     instance
-    |> Storage.new_path()
+    |> Catalog.new_path()
     |> File.mkdir_p()
 
     :ok
@@ -158,12 +159,12 @@ defmodule Deployex.Status.Application do
   def update(instance) do
     # Remove previous path
     instance
-    |> Storage.previous_path()
+    |> Catalog.previous_path()
     |> File.rm_rf()
 
     # Move current to previous and new to current
-    File.rename(Storage.current_path(instance), Storage.previous_path(instance))
-    File.rename(Storage.new_path(instance), Storage.current_path(instance))
+    File.rename(Catalog.current_path(instance), Catalog.previous_path(instance))
+    File.rename(Catalog.new_path(instance), Catalog.current_path(instance))
     :ok
   end
 
@@ -176,18 +177,18 @@ defmodule Deployex.Status.Application do
   ### Private functions
   ### ==========================================================================
   defp do_set_mode(:automatic = mode, _version) do
-    config = Storage.config()
-    Storage.config_update(%{config | mode: mode})
+    config = Catalog.config()
+    Catalog.config_update(%{config | mode: mode})
   end
 
   defp do_set_mode(:manual = mode, version) do
     versions = history_version_list()
 
-    %Deployex.Storage.Config{
+    %Catalog.Config{
       mode: mode,
       manual_version: Enum.find(versions, &(&1.version == version))
     }
-    |> Storage.config_update()
+    |> Catalog.config_update()
   end
 
   defp update_deployex_app do
@@ -203,7 +204,7 @@ defmodule Deployex.Status.Application do
         list -> Enum.at(list, 0).version
       end
 
-    config = Storage.config()
+    config = Catalog.config()
 
     %Deployex.Status{
       name: "deployex",

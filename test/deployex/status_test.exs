@@ -6,12 +6,12 @@ defmodule Deployex.StatusAppTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployex.Fixture.Storage, as: StorageFixture
+  alias Deployex.Catalog
+  alias Deployex.Fixture.Catalog, as: CatalogFixture
   alias Deployex.Status.Application, as: StatusApp
-  alias Deployex.Storage
 
   setup do
-    StorageFixture.cleanup()
+    CatalogFixture.cleanup()
 
     release = %Deployex.Release.Version{
       version: "1.0.0",
@@ -30,7 +30,7 @@ defmodule Deployex.StatusAppTest do
   end
 
   test "current_version_map/1 no version configured" do
-    StorageFixture.cleanup()
+    CatalogFixture.cleanup()
 
     assert StatusApp.current_version(1) == nil
     assert StatusApp.current_version(2) == nil
@@ -362,7 +362,7 @@ defmodule Deployex.StatusAppTest do
                pre_commands: [],
                version: "1.0.1"
              }
-           } = Storage.config()
+           } = Catalog.config()
   end
 
   test "Test set mode configuration to manual [invalid version]" do
@@ -401,7 +401,7 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
 
-    assert %{mode: :manual, manual_version: nil} = Storage.config()
+    assert %{mode: :manual, manual_version: nil} = Catalog.config()
   end
 
   test "Test set mode configuration to automatic" do
@@ -440,11 +440,11 @@ defmodule Deployex.StatusAppTest do
     assert {:ok, monitoring} = Deployex.Status.Application.monitoring(name)
     assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
 
-    assert %{mode: :automatic, manual_version: nil} = Storage.config()
+    assert %{mode: :automatic, manual_version: nil} = Catalog.config()
   end
 
   test "update" do
-    path = Storage.new_path(1)
+    path = Catalog.new_path(1)
     assert :ok = StatusApp.update(1)
     refute File.exists?(path)
   end

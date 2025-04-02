@@ -100,7 +100,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     bin_path =
       instance
       |> String.to_integer()
-      |> Deployex.Storage.bin_path(app_lang, :current)
+      |> Deployex.Catalog.bin_path(app_lang, :current)
 
     path = Common.remove_deployex_from_path()
     suffix = if instance == "0", do: "", else: "-#{instance}"
