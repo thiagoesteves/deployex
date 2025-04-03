@@ -1,6 +1,6 @@
 # CHANGELOG (0.3.x)
 
-## 0.3.3 ()
+## 0.3.3 (2025-04-03)
 
 ### Backwards incompatible changes for 0.3.2
  * None
@@ -14,6 +14,7 @@
 ### Enhancements
  * [[`PR-100`](https://github.com/thiagoesteves/deployex/pull/100)] Adding new log server to persist logs within ets tables
  * [[`PR-102`](https://github.com/thiagoesteves/deployex/pull/102)] Rename Deployex.Storage to Deployex.Catalog
+ * [[`PR-103`](https://github.com/thiagoesteves/deployex/pull/103)] Updated Observer Web
 
 ## 0.3.2 🚀 (2025-03-21)
 
