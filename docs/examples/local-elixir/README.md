@@ -4,7 +4,7 @@ For local testing, the root path used for distribution releases and versions is 
 
 Create the required release folders:
 ```bash
-export monitored_app_name=myphoenixapp
+export monitored_app_name=myumbrella
 mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
@@ -57,7 +57,7 @@ You also need to add the following lines in the mix project
       compilers: Mix.compilers() ++ [:gen_appup, :appup],
       releases: [
         myphoenixapp: [
-          steps: [:assemble, &Jellyfish.Releases.Copy.relfile/1, :tar]
+          steps: [:assemble, &Jellyfish.generate/1, :tar]
         ]
       ],
       ...
@@ -111,9 +111,9 @@ No appups, nothing to move to the release
 
 Move the release file to the distributed folder and updated the version:
 ```bash
-export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+export app_name=myumbrella
+cp -R _build/prod/${app_name}-0.1.1.tar.gz ~/Workspace/Esl/deployex/tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > ~/Workspace/Esl/deployex/tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 ## Running DeployEx and deploy the app

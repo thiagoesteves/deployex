@@ -32,9 +32,10 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
    - `gleam export` for Gleam.
    - `rebar3 as prod tar` for Erlang.
  * Supports hot code reloading for:
-   - Elixir applications using the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library.
-   - Erlang applications using the [rebar3_appup_plugin](https://github.com/lrascao/rebar3_appup_plugin) plugin.
- * Supports the following cloud providers:
+   - Elixir application using the [Jellyfish][jyf] library.
+   - Elixir umbrella applications using the [Jellyfish][jyf] library.
+   - Erlang application using the [rebar3_appup_plugin](https://github.com/lrascao/rebar3_appup_plugin) plugin.
+ * Supports the following cloud providers (with terraform files):
    - Amazon Web Services (AWS)
    - Google Cloud Provisioning (GCP)
  * Provides rollback functionality if a monitored app version remains unstable for 10 minutes.
@@ -49,7 +50,7 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
    - IEx shell for monitored Elixir apps and DeployEx.
    - Erlang shell for monitored Gleam/Erlang apps.
  * Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
- * Supports observability for all connected applications via [Observer Web](https://github.com/thiagoesteves/observer_web).
+ * Supports observability for all connected applications via [Observer Web][owb].
  * Supports safe tracing for all connected applications.
  * Provides visualization of Host System memory and CPU usage.
  * Provides easy access to the host shell (tmux).
@@ -69,9 +70,9 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
 
 ### What is coming next
 
-- [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
-- [ ] 💤 Support for shutting down applications before run out of memory.
 - [ ] 💤 Handle different apps within the same DeployEx instances.
+- [ ] 💤 Support for shutting down applications before run out of memory.
+- [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
 - [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
 - [ ] 💤 Continuous improvement in UI design.
 - [ ] 💤 Health checks via OTP distribution
@@ -81,13 +82,18 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
 
 ## 📁 Getting Started
 
-> [!WARNING]
-> Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP version to prevent malfunctions.
+Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP version to prevent malfunctions.
 
-| DeployEx version   |      Default OTP version      | 
-|----------|-------------|
-| __0.3.0__ | __26.2.5.6__ |
-| __0.3.1__ | __26.2.5.6__ |
+> [!WARNING]
+> To ensure stability, security, and compatibility, this repository defaults to using one major version behind the latest release for both OTP and Phoenix. This approach prioritizes reliability while still benefiting from well-tested updates.
+
+| DeployEx version | Default OTP version | Default Phoenix version |
+|----------|-------------|-------------|
+| __0.3.4__ | __26.2.5.10__ | __1.17__ |
+| __0.3.3__ | __26.2.5.6__ | __1.17__ |
+| __0.3.2__ | __26.2.5.6__ | __1.17__ |
+| __0.3.1__ | __26.2.5.6__ | __1.17__ |
+| __0.3.0__ | __26.2.5.6__ | __1.17__ |
 
 ### Running the application
 
@@ -131,7 +137,7 @@ Expected location in the release folder:
 ```
 
 Expected JSON format for `current.json`:
-```bash
+```json
 {
   "version": "1.0.0",
   "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], # optional field
@@ -160,7 +166,7 @@ DeployEx application typically requires several environment variables to be defi
 |----------|-------------|------:|------|------|
 | __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws or gcp secrets | -/- | secret key used for encryption |
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws or gcp secrets | -/- | erlang cookie |
-| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | $2b$1...5PAYTZjNQ42ASi | aws or gcp secrets | -/- | Hashed admin password for authentication |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | 2b1...5PAYTZjNQ42ASi | aws or gcp secrets | -/- | Hashed admin password for authentication |
 | __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
 | __DEPLOYEX_MONITORED_APP_LANG__ | __elixir__, __gleam__ or __erlang__  | system ENV | -/- |  Monitored app language |
 | __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
@@ -216,9 +222,16 @@ Within the secrets, the following key-value pairs are required:
 
 ## 🏠 Running DeployEx locally
 
- * [Elixir Applications](docs/examples/local-elixir/README.md)
- * [Gleam Applications](docs/examples/local-gleam/README.md)
- * [Erlang Applications](docs/examples/local-erlang/README.md)
+ * [Elixir Application](docs/examples/local-elixir/README.md)
+ * [Gleam Application](docs/examples/local-gleam/README.md)
+ * [Erlang Application](docs/examples/local-erlang/README.md)
+
+### Recommended Supporting Repositories
+
+For local testing and development, check out these complementary repositories:
+
+ * [Elixir - myphoenixapp](https://github.com/thiagoesteves/myphoenixapp)
+ * [Elixir - myumbrella](https://github.com/thiagoesteves/myumbrella)
 
 
 ## 🔨 Throubleshooting
@@ -317,40 +330,6 @@ DeployEx operates by monitoring applications and versions using folders and file
 /var/lib/deployex/service/${monitored_app}/${instance}/current/${monitored_app}
 ```
 
-The deployment process involves several steps to ensure smooth transitions:
-
-### Full deployment
-
-1. *__Download and Unpack the New Version:__*
- The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
-2. *__Check if the release contain a hot-upgrade or full deployment:__*
- DeployEx will check the release file received and if it is a full deployment, goes to the step 3 .
-3. *__Stop the Current Application:__*
-The currently running application instance is stopped to prepare for the new deployment.
-4. *__Delete the Previous Service Folder:__*
- The `previous` service folder, containing the previous version of the application, is deleted to make space for the new version.
-5. *__Move the Current Service:__*
- The `current` service folder, representing the current version of the application, is moved to the `previous` service folder. Simultaneously, the `new` service folder is moved to become the new `current` service folder.
-6. *__Run pre_commands:__*
- Before starting the application, DeployEx will attempt to run any pre_commands (if set) using the `current` service folder.
-7. *__Start the Application:__*
- Finally, the application is started using the version now residing in the `current` service folder, ensuring that the latest version is active and operational.
-
-By following this process, DeployEx facilitates deployments, ensuring that applications are updated while minimizing downtime.
-
-### Hot-upgrades
-
-For this scenario, there will be no moving files/folders since the target is to keep the current service folder updated. The sequence is:
-
-1. *__Download and Unpack the New Version:__*
- The new version of the application is downloaded and unpacked into the `new` service folder, ready for deployment.
-2. *__Check if the release contain a hot-upgrade or full deployment:__*
- DeployEx will check the release file received and if it is a hot-upgrade, goes to the step 3 .
-3. *__Run pre_commands:__*
- Before executing the hot-upgrade, DeployEx will attempt to run any pre_commands (if set) using the `new` service folder.
-4. *__Execute the Hotupgrade checks and verification__*
- DeployEx will try to run the hotupgrade sequence and if succeeds, it makes the changes permanent. In any case of failure, it tries to execute a full deployment with the same release file.
-
 ## 🗨️ Getting involved
 
 ☎️ **Contact us:**
@@ -361,5 +340,8 @@ Feel free to contact me on [Linkedin](https://www.linkedin.com/in/thiago-cesar-c
 Copyright (c) 2024, Thiago Esteves.
 
 DeployEx source code is licensed under the [MIT License](LICENSE.md).
+
+[jyf]: https://github.com/thiagoesteves/jellyfish
+[owb]: https://github.com/thiagoesteves/observer_web
 
 
