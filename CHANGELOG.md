@@ -12,7 +12,7 @@
  * None
 
 ### Enhancements
- * [[`PR-100`](https://github.com/thiagoesteves/deployex/pull/100)] Updating hot upgrade to support elixir umbrella applications
+ * [[`PR-104`](https://github.com/thiagoesteves/deployex/pull/104)] Updating hot upgrade to support elixir umbrella applications
 
 ## 0.3.3 🚀 (2025-04-03)
 
