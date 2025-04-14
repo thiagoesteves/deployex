@@ -1,28 +1,31 @@
-# 🏠 Running DeployEx and Monitored Elixir Application locally
+# 🏠 Running DeployEx and Monitored Elixir Umbrella Application locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
 Create the required release folders:
 ```bash
-export monitored_app_name=myphoenixapp
+export monitored_app_name=myumbrella
 mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
 mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 ```
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-## Creating an Elixir phoenix app (default name is `myphoenixapp`)
+## Creating an Elixir phoenix app (default name is `myumbrella`)
 
 In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
 > [!NOTE]
-> A project [myphoenixapp](https://github.com/thiagoesteves/myphoenixapp) is also available for consulting
+> A project [myumbrella](https://github.com/thiagoesteves/myumbrella) is also available for consulting
 
 ```bash
 mix local.hex
 mix archive.install hex phx_new
-mix phx.new myphoenixapp --no-ecto
-cd myphoenixapp
+mix new myumbrella --umbrella
+cd myumbrella/apps
+mix new app1 --sup
+mix new app2 --sup
+mix phx.new app_web --no-ecto
 ```
 
 ## Add env.sh.eex file in the release folder to configure the OTP distribution
@@ -43,7 +46,12 @@ export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 ```
 
 ## Configuring your app to allow Hot upgrades (optional)
-Add [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__ if the application will need hotupgrades
+Add the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__
+if your application will need hot upgrades. The dependency should be added at the 
+root path (not in specific apps). For umbrella applications, check the [Umbrella Support](https://github.com/thiagoesteves/jellyfish?tab=readme-ov-file#elixir-umbrella-applications)
+documentation to learn how to share the same version between apps and properly
+enable hot upgrades across the entire umbrella.
+
 ```elixir
 def deps do
   [
@@ -58,8 +66,13 @@ You also need to add the following line in the mix project
     [
       ...
       releases: [
-        myphoenixapp: [
-          steps: [:assemble, &Jellyfish.generate/1, :tar] # <-------
+        myumbrella: [
+          applications: [
+            app_1: :permanent,
+            app_2: :permanent,
+            app_web: :permanent
+          ],
+          steps: [:assemble, &Jellyfish.generate/1, :tar]
         ]
       ],
       ...
@@ -69,20 +82,22 @@ You also need to add the following line in the mix project
 Open the `config/prod.exs` and replace the static manifest for a live reload
 
 ```elixir
-#config :myphoenixapp, MyphoenixappWeb.Endpoint,
-#  cache_static_manifest: "priv/static/cache_manifest.json"
-# Since the application is using the Hot upgrade, the manifest cannot be static
-config :myphoenixapp, MyphoenixappWeb.Endpoint,
-live_reload: [
-  patterns: [
-    ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-    ~r"priv/gettext/.*(po)$"
+# before starting your production server.
+# config :app_web, AppWebWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
+config :app_web, AppWebWeb.Endpoint,
+  live_reload: [
+    patterns: [
+      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$"
+    ]
   ]
-]
 ```
 
 ## Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
-Add [Observer Web](https://github.com/thiagoesteves/observer_web)
+Add [Observer Web](https://github.com/thiagoesteves/observer_web) to one of your applications, 
+preferably the Phoenix application. This allows your application to broadcast metrics that 
+can be collected and visualized by DeployEx.
+
 ```elixir
 def deps do
   [
@@ -104,20 +119,25 @@ mix deps.get
 MIX_ENV=prod mix assets.deploy
 MIX_ENV=prod mix release
 ...
-Generated myphoenixapp app
+==> app_web
 Check your digested files at "priv/static"
-* assembling myphoenixapp-0.1.0 on MIX_ENV=prod
+* assembling myumbrella-0.1.0 on MIX_ENV=prod
 * using config/runtime.exs to configure the release at runtime
-* creating _build/prod/rel/myphoenixapp/releases/0.1.0/env.sh
+* creating _build/prod/rel/myumbrella/releases/0.1.0/env.sh
 * hot-upgrade Checking if previous versions are available
+==> app_1
  versions: ["0.1.0"] current: 0.1.0 - No appups
-* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/rel/myphoenixapp/releases/myphoenixapp-0.1.0.rel
-* building /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/myphoenixapp-0.1.0.tar.gz
+==> app_2
+ versions: ["0.1.0"] current: 0.1.0 - No appups
+==> app_web
+ versions: ["0.1.0"] current: 0.1.0 - No appups
+* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myumbrella/_build/prod/rel/myumbrella/releases/myumbrella-0.1.0.rel
+* building /Users/testeves/Workspace/Esl/myumbrella/_build/prod/myumbrella-0.1.0.tar.gz
 ```
 
 Move the release file to the distributed folder and updated the version:
 ```bash
-export app_name=myphoenixapp
+export app_name=myumbrella
 cp -R _build/prod/${app_name}-0.1.0.tar.gz ~/Workspace/Esl/deployex/tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > ~/Workspace/Esl/deployex/tmp/${app_name}/versions/${app_name}/local/current.json
 ```
@@ -128,9 +148,10 @@ Move back to the DeployEx project and run the command line with the required ENV
 
 *__NOTE:  All env vars that are available for DeployEx will also be available to the `monitored_app`__*
 ```bash
+export DEPLOYEX_MONITORED_APP_NAME=myumbrella
 export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
 export PHX_SERVER=true
-export DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod # In case your monitored add is using ecto
+export DATABASE_URL=ecto://postgres:postgres@localhost:5432/myumbrella_prod # In case your monitored add is using ecto
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
@@ -139,7 +160,7 @@ iex --sname deployex --cookie cookie -S mix phx.server
 [info] Full deploy instance: 1 deploy_ref: 32656.
 [info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/1/current/bin/myumbrella
 [info]  # Starting application
 [info]  # Running instance: 1, monitoring pid = #PID<0.790.0>, OS process = 36891 deploy_ref: 32656.
 [info]  # Application instance: 1 is running
@@ -158,29 +179,28 @@ Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. Th
 
 ### Full deployment
 
-In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myphoenixapp` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
+In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myumbrella` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
 
 1. Remove any previously generated files and generate a new release
 ```bash
-cp myphoenixapp
+cp myumbrella
 rm -rf _build/prod
 MIX_ENV=prod mix assets.deploy
 MIX_ENV=prod mix release
 ...
-Generated myphoenixapp app
+Generated myumbrella app
+No appups, nothing to move to the release
 Check your digested files at "priv/static"
-* assembling myphoenixapp-0.1.1 on MIX_ENV=prod
+No appups, nothing to move to the release
+* assembling myumbrella-0.1.1 on MIX_ENV=prod
 * using config/runtime.exs to configure the release at runtime
-* creating _build/prod/rel/myphoenixapp/releases/0.1.1/env.sh
-* hot-upgrade Checking if previous versions are available
- versions: ["0.1.1"] current: 0.1.1 - No appups
-* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/rel/myphoenixapp/releases/myphoenixapp-0.1.1.rel
-* building /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/myphoenixapp-0.1.1.tar.gz
+* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myumbrella/_build/prod/rel/myumbrella/releases/myumbrella-0.1.1.rel
+* building /Users/testeves/Workspace/Esl/myumbrella/_build/prod/myumbrella-0.1.1.tar.gz
 ```
 
 2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
-export app_name=myphoenixapp
+export app_name=myumbrella
 cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
@@ -194,7 +214,7 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 [warning] Remaining beam app removed for instance: 1
 [info] Initialising monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/1/current/bin/myumbrella
 [info]  # Starting application
 [info]  # Running instance: 1, monitoring pid = #PID<0.843.0>, OS process = 37992 deploy_ref: 37406.
 [info]  # Application instance: 1 is running
@@ -209,22 +229,38 @@ For this scenario, the project must first be compiled to the current version and
 1. Since the application is already compiled for `0.1.1`, change the `mix.exs` to `0.1.2`, apply any other changes if you want to test and execute the command:
 ```bash
 MIX_ENV=prod mix assets.deploy
+MIX_ENV=prod mix compile --force
 MIX_ENV=prod mix release
 ...
-Generated myphoenixapp app
+==> app_web
 Check your digested files at "priv/static"
-* assembling myphoenixapp-0.1.2 on MIX_ENV=prod
+==> app_1
+Compiling 3 files (.ex)
+Generated app_1 app
+==> app_2
+Compiling 3 files (.ex)
+Generated app_2 app
+==> app_web
+Compiling 13 files (.ex)
+Generated app_web app
+Release myumbrella-0.1.2 already exists. Overwrite? [Yn] Y
+* assembling myumbrella-0.1.2 on MIX_ENV=prod
 * using config/runtime.exs to configure the release at runtime
-* creating _build/prod/rel/myphoenixapp/releases/0.1.2/env.sh
+* creating _build/prod/rel/myumbrella/releases/0.1.2/env.sh
 * hot-upgrade Checking if previous versions are available
- versions: ["0.1.1", "0.1.2"] current: 0.1.2 - appups: myphoenixapp/rel/appups/
-* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/rel/myphoenixapp/releases/myphoenixapp-0.1.2.rel
-* building /Users/testeves/Workspace/Esl/myphoenixapp/_build/prod/myphoenixapp-0.1.2.tar.gz
+==> app_1
+ versions: ["0.1.1", "0.1.2"] current: 0.1.2 - appups: app_1/rel/appups/
+==> app_2
+ versions: ["0.1.1", "0.1.2"] current: 0.1.2 - appups: app_2/rel/appups/
+==> app_web
+ versions: ["0.1.1", "0.1.2"] current: 0.1.2 - appups: app_web/rel/appups/
+* hot-upgrade copying release file to /Users/testeves/Workspace/Esl/myumbrella/_build/prod/rel/myumbrella/releases/myumbrella-0.1.2.rel
+* building /Users/testeves/Workspace/Esl/myumbrella/_build/prod/myumbrella-0.1.2.tar.gz
 ```
 
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
-export app_name=myphoenixapp
+export app_name=myumbrella
 cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
@@ -293,9 +329,9 @@ EOF
 )
 ```
 
-4. Ensure that `myphoenixapp` also utilizes the same options and certificate by updating `rel/env.sh.eex`:
+4. Ensure that `myumbrella` also utilizes the same options and certificate by updating `rel/env.sh.eex`:
 ```bash
-cd myphoenixapp
+cd myumbrella
 vi rel/env.sh.eex
 # Add the following line
 #!/bin/sh
@@ -308,7 +344,7 @@ export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
-After making these changes, create and publish a new version `0.1.3` for `myphoenixapp` and run the DeployEx with the command from item 5. After the deployment, you should see the following dashboard:
+After making these changes, create and publish a new version `0.1.3` for `myumbrella` and run the DeployEx with the command from item 5. After the deployment, you should see the following dashboard:
 
 ![mTLS Dashboard](../../static/deployex_monitoring_app_tls.png)
 

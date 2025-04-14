@@ -223,6 +223,7 @@ Within the secrets, the following key-value pairs are required:
 ## 🏠 Running DeployEx locally
 
  * [Elixir Application](docs/examples/local-elixir/README.md)
+ * [Elixir Umbrella Application](docs/examples/local-elixir-umbrella/README.md)
  * [Gleam Application](docs/examples/local-gleam/README.md)
  * [Erlang Application](docs/examples/local-erlang/README.md)
 
