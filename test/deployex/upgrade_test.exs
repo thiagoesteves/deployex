@@ -9,6 +9,22 @@ defmodule Deployex.UpgradeAppTest do
   alias Deployex.Fixture.Catalog, as: FixtureCatalog
   alias Deployex.Upgrade.Application, as: UpgradeApp
 
+  @valid_jellyfish_file """
+    {
+      "name": "testapp",
+      "from": "0.1.0",
+      "to": "0.2.0"
+    }
+  """
+
+  @invalid_jellyfish_version """
+    {
+      "name": "testapp",
+      "from": "9.9.9",
+      "to": "0.2.0"
+    }
+  """
+
   @valid_appup_file """
       { "0.2.0",
       [{ "0.1.0",
@@ -153,7 +169,7 @@ defmodule Deployex.UpgradeAppTest do
                         from_version,
                         to_version
                       )
-           end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, result"
+           end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, reason"
   end
 
   test "check/1 Elixir valid appup, return hot upgrade detected", %{
@@ -168,6 +184,7 @@ defmodule Deployex.UpgradeAppTest do
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(current_releases_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
     File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
@@ -182,10 +199,10 @@ defmodule Deployex.UpgradeAppTest do
                       )
 
              assert File.exists?("#{current_releases_path}/#{app_name}.tar.gz")
-           end) =~ "HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}"
+           end) =~ "HOT UPGRADE version DETECTED - [%{\"from\" => \"0.1.0\""
   end
 
-  test "check/1 Elixir invalid appup version, return hot upgrade detected", %{
+  test "check/1 Elixir invalid appup version, return hot upgrade not detected", %{
     app_name: app_name,
     instance: instance,
     from_version: from_version,
@@ -194,6 +211,7 @@ defmodule Deployex.UpgradeAppTest do
     new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
@@ -205,10 +223,36 @@ defmodule Deployex.UpgradeAppTest do
                         from_version,
                         to_version
                       )
-           end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, result"
+           end) =~
+             "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
   end
 
-  test "check/1 Elixir invalid appup file, return hot upgrade detected", %{
+  test "check/1 Elixir invalid jellyfish version, return hot upgrade not detected", %{
+    app_name: app_name,
+    instance: instance,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    File.mkdir_p!(new_lib_ebin_path)
+    File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @invalid_jellyfish_version)
+
+    assert capture_log(fn ->
+             assert {:ok, :full_deployment} =
+                      UpgradeApp.check(
+                        instance,
+                        app_name,
+                        "elixir",
+                        ".",
+                        from_version,
+                        to_version
+                      )
+           end) =~
+             "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
+  end
+
+  test "check/1 Elixir invalid appup file, return hot upgrade not detected", %{
     app_name: app_name,
     instance: instance,
     from_version: from_version,
@@ -217,6 +261,7 @@ defmodule Deployex.UpgradeAppTest do
     new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/testapp.appup", @invalid_appup_file)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
@@ -228,7 +273,32 @@ defmodule Deployex.UpgradeAppTest do
                         from_version,
                         to_version
                       )
-           end) =~ "Error while reading appup file, reason:"
+           end) =~
+             "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :error_reading_file"
+  end
+
+  test "check/1 Elixir appup file not found, return hot upgrade not detected", %{
+    app_name: app_name,
+    instance: instance,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/testapp-0.2.0/ebin"
+    File.mkdir_p!(new_lib_ebin_path)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
+
+    assert capture_log(fn ->
+             assert {:ok, :full_deployment} =
+                      UpgradeApp.check(
+                        instance,
+                        app_name,
+                        "elixir",
+                        ".",
+                        from_version,
+                        to_version
+                      )
+           end) =~
+             "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found"
   end
 
   test "check/1 Erlang full deployment", %{
@@ -297,7 +367,7 @@ defmodule Deployex.UpgradeAppTest do
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
                       UpgradeApp.check(instance, app_name, "gleam", ".", from_version, to_version)
-           end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, result"
+           end) =~ "HOT UPGRADE version NOT SUPPORTED, full deployment required"
   end
 
   test "which_releases/1", %{node: node} do

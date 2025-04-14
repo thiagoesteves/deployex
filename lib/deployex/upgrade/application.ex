@@ -171,30 +171,49 @@ defmodule Deployex.Upgrade.Application do
     )
   end
 
-  def check(instance, app_name, app_lang, download_path, from_version, to_version) do
-    cp_appup_priv_to_ebin = fn ->
-      priv_app_up_file =
-        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
+  def check(instance, app_name, "elixir", download_path, from_version, to_version) do
+    # NOTE: Single file for single elixir app or multiple files for umbrella
+    jellyfish_files = Path.wildcard("#{Catalog.new_path(instance)}/lib/*-*/ebin/jellyfish.json")
 
-      ebin_app_up_file =
-        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+    case check_jellyfish_files(jellyfish_files, from_version, to_version) do
+      {:ok, jellyfish_info} ->
+        Logger.warning("HOT UPGRADE version DETECTED - #{inspect(jellyfish_info)}")
 
-      if File.exists?(priv_app_up_file) do
-        File.cp!(priv_app_up_file, ebin_app_up_file)
-      end
+        # Copy binary to the release folder under the version directory
+        dest_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+
+        File.rm_rf(dest_dir)
+
+        File.mkdir_p!(dest_dir)
+
+        File.cp!(download_path, "#{dest_dir}/#{app_name}.tar.gz")
+
+        {:ok, :hot_upgrade}
+
+      {:error, reason} ->
+        Logger.warning(
+          "HOT UPGRADE version NOT DETECTED, full deployment required, reason: #{inspect(reason)}"
+        )
+
+        {:ok, :full_deployment}
+    end
+  end
+
+  def check(instance, app_name, "erlang", download_path, from_version, to_version) do
+    priv_app_up_file =
+      "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
+
+    ebin_app_up_file =
+      "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+
+    if File.exists?(priv_app_up_file) do
+      File.cp!(priv_app_up_file, ebin_app_up_file)
     end
 
-    add_version_to_rel_file = fn ->
-      releases = "#{Catalog.new_path(instance)}/releases"
+    releases = "#{Catalog.new_path(instance)}/releases"
 
-      if File.exists?("#{releases}/#{app_name}.rel") do
-        File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
-      end
-    end
-
-    if app_lang == "erlang" do
-      cp_appup_priv_to_ebin.()
-      add_version_to_rel_file.()
+    if File.exists?("#{releases}/#{app_name}.rel") do
+      File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
     end
 
     with [file_path] <-
@@ -222,11 +241,62 @@ defmodule Deployex.Upgrade.Application do
     end
   end
 
+  def check(_instance, _app_name, "gleam", _download_path, _from_version, _to_version) do
+    Logger.warning("HOT UPGRADE version NOT SUPPORTED, full deployment required")
+
+    {:ok, :full_deployment}
+  end
+
+  defp check_jellyfish_files(files, from_version, to_version) do
+    response =
+      Enum.reduce_while(files, [], fn file, acc ->
+        appup_info = file |> File.read!() |> Jason.decode!()
+        dir = Path.dirname(file)
+
+        with true <- "#{from_version}" == appup_info["from"],
+             true <- "#{to_version}" == appup_info["to"],
+             [appup] <- Path.wildcard("#{dir}/*.appup"),
+             :ok <- check_app_up(appup, from_version, to_version) do
+          {:cont, acc ++ [appup_info]}
+        else
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+
+          false ->
+            {:halt, {:error, :no_match_versions}}
+
+          _ ->
+            {:halt, []}
+        end
+      end)
+
+    case response do
+      [] ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+
+      jellyfish_info ->
+        {:ok, jellyfish_info}
+    end
+  end
+
   @spec check_app_up(binary(), charlist(), charlist()) ::
           :ok | {:error, :error_reading_file | :no_match_versions}
   def check_app_up(file_path, from_version, to_version) do
+    match_version_upgrade? = fn list, from_version, to_version ->
+      Enum.any?(list, fn
+        {^to_version, [{^from_version, _}], [{^from_version, _}]} ->
+          true
+
+        _app_up ->
+          false
+      end)
+    end
+
     with {:ok, app_up_list} <- :file.consult(file_path),
-         true <- match_version_upgrade?(app_up_list, from_version, to_version) do
+         true <- match_version_upgrade?.(app_up_list, from_version, to_version) do
       :ok
     else
       false ->
@@ -390,15 +460,5 @@ defmodule Deployex.Upgrade.Application do
 
         {:error, :not_connecting}
     end
-  end
-
-  defp match_version_upgrade?(list, from_version, to_version) do
-    Enum.any?(list, fn
-      {^to_version, [{^from_version, _}], [{^from_version, _}]} ->
-        true
-
-      _app_up ->
-        false
-    end)
   end
 end

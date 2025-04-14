@@ -1,5 +1,19 @@
 # CHANGELOG (0.3.x)
 
+## 0.3.4 🚀 ()
+
+### Backwards incompatible changes for 0.3.3
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-104`](https://github.com/thiagoesteves/deployex/pull/104)] Updating hot upgrade to support elixir umbrella applications
+
 ## 0.3.3 🚀 (2025-04-03)
 
 ### Backwards incompatible changes for 0.3.2
