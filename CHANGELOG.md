@@ -1,9 +1,9 @@
 # CHANGELOG (0.3.x)
 
-## 0.3.4 🚀 ()
+## 0.3.4 🚀 (2025-04-14)
 
 ### Backwards incompatible changes for 0.3.3
- * None
+ * This version onwards requires Jellyfish > v0.2.2 for hot upgrades
 
 ### Installer Actions
  * None
