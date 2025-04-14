@@ -11,7 +11,7 @@ mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-## Creating an Elixir phoenix app (default name is `myumbrella`)
+## Creating an Elixir phoenix umbrella app (default name is `myumbrella`)
 
 In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
@@ -138,8 +138,8 @@ Check your digested files at "priv/static"
 Move the release file to the distributed folder and updated the version:
 ```bash
 export app_name=myumbrella
-cp -R _build/prod/${app_name}-0.1.0.tar.gz ~/Workspace/Esl/deployex/tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > ~/Workspace/Esl/deployex/tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 ## Running DeployEx and deploy the app

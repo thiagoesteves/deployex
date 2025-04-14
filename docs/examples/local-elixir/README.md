@@ -59,7 +59,7 @@ You also need to add the following line in the mix project
       ...
       releases: [
         myphoenixapp: [
-          steps: [:assemble, &Jellyfish.generate/1, :tar] # <-------
+          steps: [:assemble, &Jellyfish.generate/1, :tar]
         ]
       ],
       ...
@@ -118,8 +118,8 @@ Check your digested files at "priv/static"
 Move the release file to the distributed folder and updated the version:
 ```bash
 export app_name=myphoenixapp
-cp -R _build/prod/${app_name}-0.1.0.tar.gz ~/Workspace/Esl/deployex/tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > ~/Workspace/Esl/deployex/tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
 ## Running DeployEx and deploy the app
