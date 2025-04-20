@@ -15,3 +15,18 @@ config :swoosh, local: false
 
 # Do not print debug messages in production
 config :logger, level: :info
+
+config :deployex,
+  base_path: "/var/lib/deployex",
+  monitored_app_log_path: "/var/log"
+
+config :deployex, DeployexWeb.Endpoint,
+  url: [port: 443, scheme: "https"],
+  http: [
+    # Enable IPv6 and bind on all interfaces.
+    # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+    # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
+    # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+    ip: {0, 0, 0, 0, 0, 0, 0, 0}
+  ],
+  server: true

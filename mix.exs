@@ -28,6 +28,7 @@ defmodule Deployex.MixProject do
           include_executable_for: [:unix],
           steps: [:assemble, :tar],
           config_providers: [
+            {Deployex.ConfigProvider.Env.Config, nil},
             {Deployex.ConfigProvider.Secrets.Manager, nil}
           ]
         ]
@@ -142,7 +143,8 @@ defmodule Deployex.MixProject do
       {:excoveralls, "~> 0.18", only: :test},
       {:mock, "~> 0.3.0", only: :test},
       {:goth, "~> 1.4"},
-      {:observer_web, "~> 0.1.0"}
+      {:observer_web, "~> 0.1.0"},
+      {:yaml_elixir, "~> 2.0"}
     ]
   end
 

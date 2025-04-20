@@ -15,13 +15,23 @@
 import Config
 
 config :deployex,
+  settings: [
+    %{
+      "name" => "myphoenixapp",
+      "app_lang" => "elixir",
+      "initial_port" => 4000,
+      "replicas" => 3,
+      "env" => [%{"key" => "MYPHOENIXAPP_PHX_SERVER", "value" => true}]
+    }
+  ],
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
   bin_dir: "/opt/deployex/bin",
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
   replicas: 3,
-  monitored_app_start_port: 4000
+  monitored_app_start_port: 4000,
+  monitored_app_env: []
 
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
