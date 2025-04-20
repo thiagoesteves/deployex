@@ -10,39 +10,6 @@ env:
   SHELL: /usr/bin/bash
 
 jobs:
-  buildUbuntu2004:
-    if: github.event.base_ref != 'refs/heads/main'
-    runs-on: ubuntu-20.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          version-file: .tool-versions
-          version-type: strict
-
-      - name: Install libcap-dev [recommended by erlexec]
-        run: sudo apt-get install libcap-dev -y
-
-      - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
-
-      - name: Assets Deploy
-        run: mix assets.deploy
-
-      - name: Compile and Generate a Release
-        run: mix release
-
-      - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz deployex-ubuntu-20.04.tar.gz
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: deployex-ubuntu-20.04.tar.gz
-          path: .
-
   buildUbuntu2204:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-22.04
@@ -95,17 +62,11 @@ jobs:
   upload_aws:
     if: github.event.base_ref != 'refs/heads/main'
     name: Upload files to AWS environment
-    needs: [buildUbuntu2004, buildUbuntu2204, copyInstaller]
-    runs-on: ubuntu-20.04
+    needs: [buildUbuntu2204, copyInstaller]
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
-     - name: Download ubuntu-20.04 artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: deployex-ubuntu-20.04.tar.gz
-         path: .
-
      - name: Download ubuntu-22.04 artefact
        uses: actions/download-artifact@v4
        with:
@@ -118,15 +79,6 @@ jobs:
          name: deployex.sh
          path: .
  
-     - name: Upload ubuntu-20.04 artefact
-       uses: prewk/s3-cp-action@v2
-       with:
-         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         aws_region: "sa-east-1"
-         source: "deployex-ubuntu-20.04.tar.gz"
-         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
-
      - name: Upload ubuntu-22.04 artefact
        uses: prewk/s3-cp-action@v2
        with:
