@@ -11,6 +11,7 @@ defmodule Deployex.Catalog.Adapter do
   @callback instance_list() :: list()
   @callback monitored_app_name() :: String.t()
   @callback monitored_app_lang() :: String.t()
+  @callback monitored_app_env() :: list()
   @callback monitored_app_start_port() :: integer()
   @callback stdout_path(integer()) :: binary()
   @callback stderr_path(integer()) :: binary()

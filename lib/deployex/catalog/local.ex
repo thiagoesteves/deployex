@@ -95,6 +95,9 @@ defmodule Deployex.Catalog.Local do
   def monitored_app_lang, do: Application.fetch_env!(:deployex, :monitored_app_lang)
 
   @impl true
+  def monitored_app_env, do: Application.fetch_env!(:deployex, :monitored_app_env)
+
+  @impl true
   def monitored_app_start_port, do: Application.get_env(:deployex, :monitored_app_start_port)
 
   @impl true

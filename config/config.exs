@@ -15,15 +15,6 @@
 import Config
 
 config :deployex,
-  settings: [
-    %{
-      "name" => "myphoenixapp",
-      "app_lang" => "elixir",
-      "initial_port" => 4000,
-      "replicas" => 3,
-      "env" => [%{"key" => "MYPHOENIXAPP_PHX_SERVER", "value" => true}]
-    }
-  ],
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
   bin_dir: "/opt/deployex/bin",
@@ -124,12 +115,12 @@ config :deployex, Deployex.Catalog, adapter: Deployex.Catalog.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 
-# Configure Logs retention time for 60 minutes
+# Configure Logs retention time
 config :deployex, Deployex.Logs,
   adapter: Deployex.Logs.Server,
   data_retention_period: :timer.minutes(60)
 
-# Configure Observer Web retention time for 60 minutes
+# Configure Observer Web retention time
 config :observer_web, ObserverWeb.Telemetry,
   data_retention_period: :timer.minutes(60),
   mode: :observer

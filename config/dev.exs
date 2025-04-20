@@ -83,7 +83,12 @@ config :deployex,
   base_path: "/tmp/deployex/varlib",
   monitored_app_name: monitored_app_name,
   monitored_app_lang: monitored_app_lang,
-  monitored_app_log_path: "/tmp/#{monitored_app_name}"
+  monitored_app_log_path: "/tmp/#{monitored_app_name}",
+  monitored_app_env: [
+    "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
+    "PHX_SERVER=true",
+    "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+  ]
 
 config :deployex, Deployex.Release,
   adapter: Deployex.Release.Local,
