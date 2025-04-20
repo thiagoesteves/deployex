@@ -39,8 +39,8 @@ defmodule Deployex.ConfigProvider.Env.Config do
         port = data["port"]
 
         # Telemetry Config
-        metrics_retention_time = data["metrics_retention_time"]
-        logs_retention_time = data["logs_retention_time"]
+        metrics_retention_time_ms = data["metrics_retention_time_ms"]
+        logs_retention_time_ms = data["logs_retention_time_ms"]
 
         # Deployment Config
         deploy_timeout_rollback_ms = data["deploy_timeout_rollback_ms"]
@@ -125,7 +125,7 @@ defmodule Deployex.ConfigProvider.Env.Config do
              ]},
             {Deployex.Logs,
              [
-               {:data_retention_period, logs_retention_time}
+               {:data_retention_period, logs_retention_time_ms}
              ]}
           ],
           ex_aws: [
@@ -137,7 +137,7 @@ defmodule Deployex.ConfigProvider.Env.Config do
           observer_web: [
             {ObserverWeb.Telemetry,
              [
-               {:data_retention_period, metrics_retention_time}
+               {:data_retention_period, metrics_retention_time_ms}
              ]}
           ]
         )

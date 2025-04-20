@@ -12,8 +12,8 @@ otp_version: 26
 os_target: "ubuntu-20.04"
 deploy_timeout_rollback_ms: 600000
 deploy_schedule_interval_ms: 5000
-metrics_retention_time: 3600000
-logs_retention_time: 3600000
+metrics_retention_time_ms: 3600000
+logs_retention_time_ms: 3600000
 applications:
   - name: "myphoenixapp"
     language: "elixir"
