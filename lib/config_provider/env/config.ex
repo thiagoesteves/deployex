@@ -49,7 +49,7 @@ defmodule Deployex.ConfigProvider.Env.Config do
         updated_config = [
           deployex: [
             {:env, env},
-            {:name, name},
+            {:monitored_app_name, name},
             {:replicas, replicas},
             {:monitored_app_lang, monitored_app_lang},
             {:monitored_app_start_port, monitored_app_start_port},
