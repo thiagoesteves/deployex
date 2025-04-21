@@ -6,7 +6,7 @@
  * Changed configurable variables to be consumed from a YAML file instead of json, it requires new installation
 
 ### Installer Actions
- * Update deployex-config.json to deployex.yaml to support new configuration. (see examples at the [deployex.yaml](https://github.com/thiagoesteves/deployex/devops/installer/deployex.yaml))
+ * Update deployex-config.json to deployex.yaml to support new configuration. (see examples at the [deployex-aws.yaml](https://github.com/thiagoesteves/deployex/devops/installer/deployex-aws.yaml))
  * Update deployex.sh to be able to install using new configuration
 
 ### Bug fixes
