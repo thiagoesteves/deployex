@@ -115,6 +115,9 @@ config :deployex, Deployex.Catalog, adapter: Deployex.Catalog.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 
+# Default GCP credentials are empty
+config :goth, file_credentials: nil
+
 # Configure Logs retention time
 config :deployex, Deployex.Logs,
   adapter: Deployex.Logs.Server,
