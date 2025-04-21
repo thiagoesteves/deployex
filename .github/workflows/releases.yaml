@@ -12,7 +12,7 @@ env:
 jobs:
   buildUbuntu2204:
     if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -36,16 +36,16 @@ jobs:
         run: mix release
 
       - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz deployex-ubuntu-22.04.tar.gz
+        run: mv _build/prod/*.tar.gz deployex-ubuntu-24.04.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: deployex-ubuntu-22.04.tar.gz
+          name: deployex-ubuntu-24.04.tar.gz
           path: .
 
   copyInstaller:
     if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -63,14 +63,14 @@ jobs:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
     needs: [buildUbuntu2204, copyInstaller]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-     - name: Download ubuntu-22.04 artefact
+     - name: Download ubuntu-24.04 artefact
        uses: actions/download-artifact@v4
        with:
-         name: deployex-ubuntu-22.04.tar.gz
+         name: deployex-ubuntu-24.04.tar.gz
          path: .
 
      - name: Download installer artefact
@@ -82,5 +82,5 @@ jobs:
      - name: Release the files
        uses: ncipollo/release-action@v1
        with:
-         artifacts: "deployex-ubuntu-22.04.tar.gz, deployex.sh"
+         artifacts: "deployex-ubuntu-24.04.tar.gz, deployex.sh"
          bodyFile: "CHANGELOG.md"

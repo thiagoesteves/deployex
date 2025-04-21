@@ -30,24 +30,6 @@ DEPLOYEX_SERVICE_DIR=/opt/deployex/service
 DEPLOYEX_LOG_PATH=/var/log/deployex
 DEPLOYEX_VAR_LIB=/var/lib/deployex
 
-# Copied from https://stackoverflow.com/questions/5014632/how-can-i-parse-a-yaml-file-from-a-linux-shell-script
-parse_yaml() {
-   local prefix=$2
-   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-   sed -ne "s|^\($s\):|\1|" \
-        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
-   awk -F$fs '{
-      indent = length($1)/2;
-      vname[indent] = $2;
-      for (i in vname) {if (i > indent) {delete vname[i]}}
-      if (length($3) > 0) {
-         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
-         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
-      }
-   }'
-}
-
 remove_deployex() {
     echo "#           Removing Deployex              #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
@@ -65,7 +47,7 @@ remove_deployex() {
 }
 
 install_deployex() {
-    local yaml_file="${1}"
+    local yaml_file=$(realpath "${1}")
     local otp_tls_certificates="${2}"
     local app_name="${3}"
 
@@ -175,57 +157,23 @@ if [ ! -f "$config_file" ]; then
     exit 1
 fi
 
-# Load variables from JSON config file
-# if ! variables=$(jq -e '. | {
-#       app_name,
-#       app_lang,
-#       replicas, 
-#       account_name, 
-#       deployex_hostname, 
-#       release_adapter, 
-#       release_bucket,
-#       secrets_adapter, 
-#       secrets_path, 
-#       aws_region,
-#       google_credentials,
-#       version,
-#       os_target, 
-#       deploy_timeout_rollback_ms,
-#       deploy_schedule_interval_ms}' "$config_file"); then
-#     echo "Failed to parse JSON config file."
-#     exit 1
-# fi
-
-# Assign variables
-# eval "$(echo "$variables" | jq -r '@sh "
-#   app_name=\(.app_name)
-#   app_lang=\(.app_lang)
-#   replicas=\(.replicas)
-#   account_name=\(.account_name)
-#   deployex_hostname=\(.deployex_hostname)
-#   release_adapter=\(.release_adapter)
-#   release_bucket=\(.release_bucket)
-#   secrets_adapter=\(.secrets_adapter)
-#   secrets_path=\(.secrets_path)
-#   aws_region=\(.aws_region)
-#   google_credentials=\(.google_credentials)
-#   version=\(.version)
-#   os_target=\(.os_target)
-#   deploy_timeout_rollback_ms=\(.deploy_timeout_rollback_ms)
-#   deploy_schedule_interval_ms=\(.deploy_schedule_interval_ms)"')"
-
-parse_yaml "$config_file"
+version=$(yq eval '.version' "$config_file")
+otp_version=$(yq eval '.otp_version' "$config_file")
+otp_tls_certificates=$(yq eval '.otp_tls_certificates' "$config_file")
+os_target=$(yq eval '.os_target' "$config_file")
+app_name=$(yq eval '.applications[0].name' "$config_file")
 
 # Check if all required parameters are provided based on the operation
 if [ "$operation" == "install" ]; then
     if [[ -z "$version" || 
           -z "$otp_version" ||
           -z "$otp_tls_certificates" ||
+          -z "$app_name" ||
           -z "$os_target" ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$config_file" "$otp_tls_certificates" "calori"
+    install_deployex "$config_file" "$otp_tls_certificates" "$app_name"
     update_deployex "$version" "$os_target"
 elif [ "$operation" == "update" ]; then
     if [[ -z "$version" || -z "$os_target" ]]; then

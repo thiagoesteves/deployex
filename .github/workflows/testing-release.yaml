@@ -12,7 +12,7 @@ env:
 jobs:
   buildUbuntu2204:
     if: github.event.base_ref != 'refs/heads/main'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -36,16 +36,16 @@ jobs:
         run: mix release
 
       - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz deployex-ubuntu-22.04.tar.gz
+        run: mv _build/prod/*.tar.gz deployex-ubuntu-24.04.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: deployex-ubuntu-22.04.tar.gz
+          name: deployex-ubuntu-24.04.tar.gz
           path: .
 
   copyInstaller:
     if: github.event.base_ref != 'refs/heads/main'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -63,14 +63,14 @@ jobs:
     if: github.event.base_ref != 'refs/heads/main'
     name: Upload files to AWS environment
     needs: [buildUbuntu2204, copyInstaller]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-     - name: Download ubuntu-22.04 artefact
+     - name: Download ubuntu-24.04 artefact
        uses: actions/download-artifact@v4
        with:
-         name: deployex-ubuntu-22.04.tar.gz
+         name: deployex-ubuntu-24.04.tar.gz
          path: .
 
      - name: Download installer artefact
@@ -79,13 +79,13 @@ jobs:
          name: deployex.sh
          path: .
  
-     - name: Upload ubuntu-22.04 artefact
+     - name: Upload ubuntu-24.04 artefact
        uses: prewk/s3-cp-action@v2
        with:
          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
          aws_region: "sa-east-1"
-         source: "deployex-ubuntu-22.04.tar.gz"
+         source: "deployex-ubuntu-24.04.tar.gz"
          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
 
      - name: Upload installer artefact
