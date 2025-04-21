@@ -5,7 +5,6 @@ release_adapter: "gcp-storage"
 release_bucket: "myapp-prod-distribution"
 secrets_adapter: "gcp"
 secrets_path: "deployex-myapp-prod-secrets"
-aws_region: "sa-east-1"
 google_credentials: "/home/ubuntu/gcp-config.json"
 version: "0.4.0"
 otp_version: 26

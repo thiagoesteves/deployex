@@ -20,6 +20,14 @@ defmodule Deployex.ConfigProvider.Env.ConfigTest do
       {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_path end]}
     ]) do
       assert [
+               {:ex_aws, [region: "sa-east-1"]},
+               {:observer_web,
+                [
+                  "Elixir.ObserverWeb.Telemetry": [
+                    mode: :observer,
+                    data_retention_period: 3_600_000
+                  ]
+                ]},
                {:deployex,
                 [
                   {:env, "prod"},
@@ -29,30 +37,26 @@ defmodule Deployex.ConfigProvider.Env.ConfigTest do
                   {:monitored_app_start_port, 4000},
                   {:monitored_app_env,
                    ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"]},
-                  {Deployex.Release,
-                   [adapter: Deployex.Release.S3, bucket: "myapp-prod-distribution"]},
-                  {Deployex.ConfigProvider.Secrets.Manager,
+                  {DeployexWeb.Endpoint,
                    [
-                     adapter: Deployex.ConfigProvider.Secrets.Aws,
-                     path: "deployex-myapp-prod-secrets"
+                     url: [port: 443, scheme: "https", host: "deployex.example.com"],
+                     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
                    ]},
+                  {Deployex.Logs, [data_retention_period: 3_600_000]},
                   {Deployex.Deployment,
                    [
                      delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
                      schedule_interval: 5000
                    ]},
-                  {DeployexWeb.Endpoint,
+                  {Deployex.Release,
+                   [adapter: Deployex.Release.S3, bucket: "myapp-prod-distribution"]},
+                  {Deployex.ConfigProvider.Secrets.Manager,
                    [
-                     url: [port: 443, scheme: "https", host: "deployex.example.com"],
-                     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
-                   ]},
-                  {Deployex.Logs, [data_retention_period: 3_600_000]}
-                ]},
-               {:ex_aws, [region: "sa-east-1"]},
-               {:goth, [file_credentials: "/home/ubuntu/gcp-config.json"]},
-               {:observer_web,
-                [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 3_600_000]}]}
+                     adapter: Deployex.ConfigProvider.Secrets.Aws,
+                     path: "deployex-myapp-prod-secrets"
+                   ]}
+                ]}
              ] =
                Config.load(
                  [
@@ -87,6 +91,10 @@ defmodule Deployex.ConfigProvider.Env.ConfigTest do
       {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_path end]}
     ]) do
       assert [
+               {:ex_aws, [region: "not-set"]},
+               {:observer_web,
+                [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 3_600_000]}]},
+               {:goth, [file_credentials: "/home/ubuntu/gcp-config.json"]},
                {:deployex,
                 [
                   {:env, "prod"},
@@ -96,30 +104,26 @@ defmodule Deployex.ConfigProvider.Env.ConfigTest do
                   {:monitored_app_start_port, 4000},
                   {:monitored_app_env,
                    ["MYPHOENIXAPP_PHX_SERVER=false", "MYPHOENIXAPP_PHX_SERVER2=false"]},
-                  {Deployex.Release,
-                   [adapter: Deployex.Release.GcpStorage, bucket: "myapp-prod-distribution"]},
-                  {Deployex.ConfigProvider.Secrets.Manager,
+                  {DeployexWeb.Endpoint,
                    [
-                     adapter: Deployex.ConfigProvider.Secrets.Gcp,
-                     path: "deployex-myapp-prod-secrets"
+                     url: [port: 443, scheme: "https", host: "deployex.example.com"],
+                     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
                    ]},
+                  {Deployex.Logs, [data_retention_period: 3_600_000]},
                   {Deployex.Deployment,
                    [
                      delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
                      schedule_interval: 5000
                    ]},
-                  {DeployexWeb.Endpoint,
+                  {Deployex.Release,
+                   [adapter: Deployex.Release.GcpStorage, bucket: "myapp-prod-distribution"]},
+                  {Deployex.ConfigProvider.Secrets.Manager,
                    [
-                     url: [port: 443, scheme: "https", host: "deployex.example.com"],
-                     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
-                   ]},
-                  {Deployex.Logs, [data_retention_period: 3_600_000]}
-                ]},
-               {:ex_aws, [region: "sa-east-1"]},
-               {:goth, [file_credentials: "/home/ubuntu/gcp-config.json"]},
-               {:observer_web,
-                [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 3_600_000]}]}
+                     adapter: Deployex.ConfigProvider.Secrets.Gcp,
+                     path: "deployex-myapp-prod-secrets"
+                   ]}
+                ]}
              ] =
                Config.load(
                  [
