@@ -10,7 +10,7 @@ env:
   SHELL: /usr/bin/bash
 
 jobs:
-  buildUbuntu2204:
+  buildUbuntu2404:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -62,7 +62,7 @@ jobs:
   upload_aws:
     if: github.event.base_ref != 'refs/heads/main'
     name: Upload files to AWS environment
-    needs: [buildUbuntu2204, copyInstaller]
+    needs: [buildUbuntu2404, copyInstaller]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
