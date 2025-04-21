@@ -1,4 +1,4 @@
-defmodule Deployex.ConfigProvider.AwsTest do
+defmodule Deployex.ConfigProvider.Secrets.AwsTest do
   use ExUnit.Case, async: false
 
   import Mock
@@ -7,7 +7,6 @@ defmodule Deployex.ConfigProvider.AwsTest do
 
   test "secrets/3 with success" do
     with_mocks([
-      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end, get_env: fn _env -> nil end]},
       {ExAws, [],
        [
          request: fn _data, _options ->
@@ -20,6 +19,7 @@ defmodule Deployex.ConfigProvider.AwsTest do
        ]}
     ]) do
       assert [
+               {:ex_aws, [region: "us-east-2"]},
                {:deployex,
                 [
                   {Deployex.ConfigProvider.Secrets.Manager,
@@ -43,7 +43,8 @@ defmodule Deployex.ConfigProvider.AwsTest do
                      {Deployex.ConfigProvider.Secrets.Manager,
                       adapter: Deployex.ConfigProvider.Secrets.Aws, path: "any-env-path"},
                      {:env, "prod"}
-                   ]
+                   ],
+                   ex_aws: [region: "us-east-2"]
                  ],
                  []
                )
@@ -52,7 +53,6 @@ defmodule Deployex.ConfigProvider.AwsTest do
 
   test "secrets/3 with request error" do
     with_mocks([
-      {System, [], [fetch_env!: fn "AWS_REGION" -> "region" end, get_env: fn _env -> nil end]},
       {ExAws, [],
        [
          request: fn _data, _options -> {:ok, :invalid_data} end
@@ -83,7 +83,8 @@ defmodule Deployex.ConfigProvider.AwsTest do
                 {Deployex.ConfigProvider.Secrets.Manager,
                  adapter: Deployex.ConfigProvider.Secrets.Aws, path: "any-env-path"},
                 {:env, "prod"}
-              ]
+              ],
+              ex_aws: [region: "us-east-1"]
             ],
             []
           )

@@ -91,6 +91,18 @@ defmodule Deployex.Catalog do
   def monitored_app_lang, do: default().monitored_app_lang()
 
   @doc """
+  Return the app environment vars that will be set
+
+  ## Examples
+
+    iex> alias Deployex.Catalog
+    ...> assert Catalog.monitored_app_env() == []
+  """
+  @impl true
+  @spec monitored_app_env() :: list()
+  def monitored_app_env, do: default().monitored_app_env()
+
+  @doc """
   Return the monitored app phoenix port
 
   ## Examples

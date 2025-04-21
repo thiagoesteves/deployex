@@ -1,6 +1,6 @@
 defmodule Deployex.ConfigProvider.Secrets.Manager do
   @moduledoc """
-  https://hexdocs.pm/elixir/1.14.0-rc.1/Config.Provider.html
+  https://hexdocs.pm/elixir/main/Config.Provider.html
 
   Fetch secrets from AWS Secrets Manager, then load those secrets into configs.
 

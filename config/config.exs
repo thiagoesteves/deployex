@@ -21,7 +21,8 @@ config :deployex,
   bin_path: "/opt/deployex/bin/deployex",
   log_path: "/var/log/deployex",
   replicas: 3,
-  monitored_app_start_port: 4000
+  monitored_app_start_port: 4000,
+  monitored_app_env: []
 
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
@@ -114,12 +115,15 @@ config :deployex, Deployex.Catalog, adapter: Deployex.Catalog.Local
 
 config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
 
-# Configure Logs retention time for 60 minutes
+# Default GCP credentials are empty
+config :goth, file_credentials: nil
+
+# Configure Logs retention time
 config :deployex, Deployex.Logs,
   adapter: Deployex.Logs.Server,
   data_retention_period: :timer.minutes(60)
 
-# Configure Observer Web retention time for 60 minutes
+# Configure Observer Web retention time
 config :observer_web, ObserverWeb.Telemetry,
   data_retention_period: :timer.minutes(60),
   mode: :observer

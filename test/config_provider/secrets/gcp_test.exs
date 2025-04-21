@@ -1,4 +1,4 @@
-defmodule Deployex.ConfigProvider.GcpTest do
+defmodule Deployex.ConfigProvider.Secrets.GcpTest do
   use ExUnit.Case, async: false
 
   import Mock

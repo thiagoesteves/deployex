@@ -1,4 +1,4 @@
-defmodule Deployex.ConfigProvider.ManagerTest do
+defmodule Deployex.ConfigProvider.Secrets.ManagerTest do
   use ExUnit.Case, async: false
 
   import Mock

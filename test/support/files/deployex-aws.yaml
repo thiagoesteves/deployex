@@ -1,0 +1,34 @@
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+secrets_adapter: "aws"
+secrets_path: "deployex-myapp-prod-secrets"
+aws_region: "sa-east-1"
+version: "0.4.0"
+otp_version: 26
+os_target: "ubuntu-20.04"
+deploy_timeout_rollback_ms: 600000
+deploy_schedule_interval_ms: 5000
+metrics_retention_time_ms: 3600000
+logs_retention_time_ms: 3600000
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+    initial_port: 4000
+    replicas: 3
+    env:
+      - key: MYPHOENIXAPP_PHX_SERVER
+        value: true
+      - key: MYPHOENIXAPP_PHX_SERVER2
+        value: true
+  - name: "myumbrella"
+    language: "erlang"
+    initial_port: 4050
+    replicas: 2
+    env:
+      - key: MYUMBRELLA_PHX_SERVER
+        value: true
+      - key: MYUMBRELLA_PHX_SERVER2
+        value: true

@@ -300,10 +300,12 @@ defmodule Deployex.Monitor.Application do
   defp run_app_bin("elixir", instance, executable_path, command) do
     server_port = Catalog.monitored_app_start_port() + (instance - 1)
     path = Common.remove_deployex_from_path()
+    app_env = compose_app_env(Catalog.monitored_app_env())
 
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+    #{app_env}
     export PATH=#{path}
     export RELEASE_NODE_SUFFIX=-#{instance}
     export PORT=#{server_port}
@@ -316,6 +318,7 @@ defmodule Deployex.Monitor.Application do
     path = Common.remove_deployex_from_path()
     app_name = Catalog.monitored_app_name()
     cookie = Common.cookie()
+    app_env = compose_app_env(Catalog.monitored_app_env())
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -327,6 +330,7 @@ defmodule Deployex.Monitor.Application do
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+    #{app_env}
     export PATH=#{path}
     export RELX_REPLACE_OS_VARS=true
     export RELEASE_NODE=#{app_name}-#{instance}
@@ -342,6 +346,7 @@ defmodule Deployex.Monitor.Application do
     app_name = Catalog.monitored_app_name()
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
+    app_env = compose_app_env(Catalog.monitored_app_env())
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -353,6 +358,7 @@ defmodule Deployex.Monitor.Application do
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+    #{app_env}
     export PATH=#{path}
     export PORT=#{server_port}
     PACKAGE=#{app_name}
@@ -373,6 +379,14 @@ defmodule Deployex.Monitor.Application do
 
     Logger.warning(msg)
     "echo \"#{msg}\""
+  end
+
+  defp compose_app_env([]), do: ""
+
+  defp compose_app_env(env_list) do
+    Enum.reduce(env_list, "export ", fn env, acc ->
+      acc <> "#{env} "
+    end)
   end
 
   # credo:disable-for-lines:28

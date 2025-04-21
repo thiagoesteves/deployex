@@ -10,9 +10,9 @@ env:
   SHELL: /usr/bin/bash
 
 jobs:
-  buildUbuntu2004:
+  buildUbuntu2404:
     if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -36,49 +36,16 @@ jobs:
         run: mix release
 
       - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz deployex-ubuntu-20.04.tar.gz
+        run: mv _build/prod/*.tar.gz deployex-ubuntu-24.04.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: deployex-ubuntu-20.04.tar.gz
-          path: .
-
-  buildUbuntu2204:
-    if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-22.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          version-file: .tool-versions
-          version-type: strict
-
-      - name: Install libcap-dev [recommended by erlexec]
-        run: sudo apt-get install libcap-dev -y
-
-      - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
-
-      - name: Assets Deploy
-        run: mix assets.deploy
-
-      - name: Compile and Generate a Release
-        run: mix release
-
-      - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz deployex-ubuntu-22.04.tar.gz
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: deployex-ubuntu-22.04.tar.gz
+          name: deployex-ubuntu-24.04.tar.gz
           path: .
 
   copyInstaller:
     if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -95,21 +62,15 @@ jobs:
   createRelease:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
-    needs: [buildUbuntu2004, buildUbuntu2204, copyInstaller]
-    runs-on: ubuntu-22.04
+    needs: [buildUbuntu2404, copyInstaller]
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-     - name: Download ubuntu-20.04 artefact
+     - name: Download ubuntu-24.04 artefact
        uses: actions/download-artifact@v4
        with:
-         name: deployex-ubuntu-20.04.tar.gz
-         path: .
-
-     - name: Download ubuntu-22.04 artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: deployex-ubuntu-22.04.tar.gz
+         name: deployex-ubuntu-24.04.tar.gz
          path: .
 
      - name: Download installer artefact
@@ -121,5 +82,5 @@ jobs:
      - name: Release the files
        uses: ncipollo/release-action@v1
        with:
-         artifacts: "deployex-ubuntu-20.04.tar.gz, deployex-ubuntu-22.04.tar.gz, deployex.sh"
+         artifacts: "deployex-ubuntu-24.04.tar.gz, deployex.sh"
          bodyFile: "CHANGELOG.md"
