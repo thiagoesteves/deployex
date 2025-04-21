@@ -100,13 +100,13 @@ DEPLOYEX_SYSTEMD_FILE="
 update_deployex() {
   local VERSION="$1"
   local OS_TARGET="$2"
+  local OTP_VERSION="$3"
     echo ""
     echo "#           Updating Deployex              #"
     cd /tmp
     echo "# Download the deployex version: ${VERSION} #"
     rm -f deployex-ubuntu-*.tar.gz
-    #wget https://github.com/thiagoesteves/deployex/releases/download/${VERSION}/deployex-${OS_TARGET}.tar.gz
-    wget https://deployex-testing-storage.s3.sa-east-1.amazonaws.com/deployex-${OS_TARGET}.tar.gz
+    wget https://github.com/thiagoesteves/deployex/releases/download/${VERSION}/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
     if [ $? != 0 ]; then
             echo "Error while trying to download the version: ${VERSION}"
             exit
@@ -117,7 +117,7 @@ update_deployex() {
     rm -rf ${DEPLOYEX_SERVICE_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
     cd ${DEPLOYEX_OPT_DIR}
-    tar xf /tmp/deployex-${OS_TARGET}.tar.gz
+    tar xf /tmp/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
     echo "# Start systemd                            #"
     echo "# Start new service                        #"
     systemctl daemon-reload
@@ -175,12 +175,12 @@ if [ "$operation" == "install" ]; then
     fi
     remove_deployex
     install_deployex "$config_file" "$otp_tls_certificates" "$app_name"
-    update_deployex "$version" "$os_target"
+    update_deployex "$version" "$os_target" "$otp_version"
 elif [ "$operation" == "update" ]; then
-    if [[ -z "$version" || -z "$os_target" ]]; then
+    if [[ -z "$version" || -z "$os_target" || -z "$otp_version" ]]; then
         usage
     fi
-    update_deployex "$version" "$os_target"
+    update_deployex "$version" "$os_target" "$otp_version"
 else
     usage
 fi

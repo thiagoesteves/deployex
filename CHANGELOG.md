@@ -6,7 +6,7 @@
  * Changed configurable variables to be consumed from a YAML file instead of json, it requires new installation
 
 ### Installer Actions
- * Update deployex-config.json to deployex.yaml to support new configuration. (see examples at the [deployex-aws.yaml](https://github.com/thiagoesteves/deployex/devops/installer/deployex-aws.yaml))
+ * Update deployex-config.json to deployex.yaml to support new configuration. See examples at the [deployex-aws.yaml](https://github.com/thiagoesteves/deployex/devops/installer/deployex-aws.yaml)
  * Update deployex.sh to be able to install using new configuration
 
 ### Bug fixes
@@ -14,14 +14,15 @@
 
 ### Enhancements
  * [[`PR-105`](https://github.com/thiagoesteves/deployex/pull/105)] Changing runtime load variables to use YAML file
- * Updated github actions to use ubuntu 24.04
+ * Updated github actions to use ubuntu 24.04 and release deployex for OTP 26 and OTP 27
  * Updated Documentation
 
 # Host Binaries Available
 
 This release includes binaries for the following Ubuntu versions:
 
- * Ubuntu 24.04
+ * Ubuntu 24.04 with OTP 26 - [deployex-ubuntu-24.04-otp-26.tar.gz](https://github.com/thiagoesteves/deployex/devops/releases/otp-26/.tool-versions)
+ * Ubuntu 24.04 with OTP 27 - [deployex-ubuntu-24.04-otp-27.tar.gz](https://github.com/thiagoesteves/deployex/devops/releases/otp-27/.tool-versions)
 
  You can use these pre-built binaries, or you can build your own if preferred.
 
