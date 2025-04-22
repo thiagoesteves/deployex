@@ -2,7 +2,7 @@
 
 > Who supervises the supervisor (of your application)?
 
-![Development](https://img.shields.io/badge/STATUS-Development_v0.3.0-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
+![Development](https://img.shields.io/badge/STATUS-Development%20v0.4.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
 
 DeployEx is a lightweight tool designed for managing deployments for Beam applications (Elixir, Gleam and Erlang) without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
@@ -82,18 +82,16 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
 
 ## 📁 Getting Started
 
-Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP version to prevent malfunctions.
+Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP Major version to prevent compatibility issues and system malfunctions. DeployEx releases will contain binaries for the following OTP versions:
 
-> [!WARNING]
-> To ensure stability, security, and compatibility, this repository defaults to using one major version behind the latest release for both OTP and Phoenix. This approach prioritizes reliability while still benefiting from well-tested updates.
-
-| DeployEx version | Default OTP version | Default Phoenix version |
+| DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> |
 |----------|-------------|-------------|
-| __0.3.4__ | __26.2.5.10__ | __1.17__ |
-| __0.3.3__ | __26.2.5.6__ | __1.17__ |
-| __0.3.2__ | __26.2.5.6__ | __1.17__ |
-| __0.3.1__ | __26.2.5.6__ | __1.17__ |
-| __0.3.0__ | __26.2.5.6__ | __1.17__ |
+| [__0.4.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.0)  | __26.2.5.10__ | __27.3.3__ |
+| [__0.3.4__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.4) | __26.2.5.10__ | -/- |
+| [__0.3.3__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.3) | __26.2.5.6__ | -/- |
+| [__0.3.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.2) | __26.2.5.6__ | -/- |
+| [__0.3.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.1) | __26.2.5.6__ | -/- |
+| [__0.3.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | __26.2.5.6__ | -/- |
 
 ### Running the application
 
@@ -101,17 +99,19 @@ You can kickstart the setup with the following commands, the default number of r
 ```bash
 mix deps.get
 iex --sname deployex --cookie cookie -S mix phx.server
-[info] Initialising deployment server
-[info] Running DeployexWeb.Endpoint with Bandit 1.5.7 at 127.0.0.1:5001 (http)
-[info] Access DeployexWeb.Endpoint at http://localhost:5001
-[watch] build finished, watching for changes...
-Erlang/OTP 26 [erts-14.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
+Erlang/OTP 27 [erts-15.2.6] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
-Interactive Elixir (1.16.0) - press Ctrl+C to exit (type h() ENTER for help)
+[info] Initializing System Server
+...
+[info] Initialising deployment server
+[info] Running DeployexWeb.Endpoint with Bandit 1.6.11 at 127.0.0.1:5001 (http)
+[info] Access DeployexWeb.Endpoint at http://localhost:5001
+Interactive Elixir (1.17.0) - press Ctrl+C to exit (type h() ENTER for help)
+[watch] build finished, watching for changes...
 
 Rebuilding...
 
-Done in 390ms.
+Done in 968ms.
 [error] Invalid version map at: /tmp/myphoenixapp/versions/myphoenixapp/local/current.json reason: enoent
 ```
 
@@ -140,7 +140,7 @@ Expected JSON format for `current.json`:
 ```json
 {
   "version": "1.0.0",
-  "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], # optional field
+  "pre_commands": [ "eval MyApp.Migrator.create", "eval MyApp.Migrator.migrate" ], // optional field
   "hash": "local"
 }
 ```
@@ -160,29 +160,57 @@ Expected location in the release folder:
 
 ### Environment Variables
 
-DeployEx application typically requires several environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
+DeployEx application typically requires a few environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
 
 | ENV NAME   |      EXAMPLE      |  SOURCE |  DEFAULT | DESCRIPTION |
 |----------|-------------|------:|------|------|
 | __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws or gcp secrets | -/- | secret key used for encryption |
 | __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws or gcp secrets | -/- | erlang cookie |
 | __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | 2b1...5PAYTZjNQ42ASi | aws or gcp secrets | -/- | Hashed admin password for authentication |
-| __DEPLOYEX_MONITORED_APP_NAME__ | myphoenixapp | system ENV | -/- | Monitored app name |
-| __DEPLOYEX_MONITORED_APP_LANG__ | __elixir__, __gleam__ or __erlang__  | system ENV | -/- |  Monitored app language |
-| __DEPLOYEX_CLOUD_ENVIRONMENT__ | prod | system ENV | -/- | cloud env name |
-| __AWS_REGION__ | us-east2 | system ENV | -/- | the aws region |
-| __GOOGLE_APPLICATION_CREDENTIALS__ | /path/to/file.json | system ENV | -/- | the google application credentials path |
-| __DEPLOYEX_PHX_HOST__ | example.com | system ENV | -/- | The hostname for your application |
-| __DEPLOYEX_PHX_PORT__ | 5001 | system ENV | 5001 | The port on which the application will run |
-| __DEPLOYEX_PHX_SERVER__ | true | system ENV | true | enable/disable server |
-| __DEPLOYEX_RELEASE_ADAPTER__ | __s3__ or __gcp-storage__ | system ENV | -/- | release adapter type |
-| __DEPLOYEX_RELEASE_BUCKET__ | myphoenixapp-prod-distribution | system ENV | -/- | release distribution bucket name |
-| __DEPLOYEX_SECRETS_ADAPTER__ | __aws__ or __gcp__ | system ENV | -/- | release adapter type |
-| __DEPLOYEX_SECRETS_PATH__ | deployex-myphoenixapp-prod-secrets | system ENV | -/- | secret path to be retrieved from |
-| __DEPLOYEX_MONITORED_APP_PORT__ | 4000 | system ENV | 4000 | the initial port for starting the monitored apps |
-| __DEPLOYEX_MONITORED_REPLICAS__ | 2 | system ENV | 3 | Number of replicas to monitor |
-| __DEPLOYEX_DEPLOY_TIMEOUT_ROLLBACK_MS__ | 600000 | system ENV | 600000 | The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back |
-| __DEPLOYEX_DEPLOY_SCHEDULE_INTERVAL_MS__ | 5000 | system ENV | 5000 | Periodic checking for new deployments |
+| __DEPLOYEX_CONFIG_YAML_PATH__ | /home/ubuntu/deployex.yaml | system ENV | -/- | Yaml configuration for Deployex and Monitored application |
+| __DEPLOYEX_OTP_TLS_CERT_PATH__ | /usr/local/share/ca-certificates | system ENV | -/- | If using mTLS, the certificate PATH is needed |
+
+Once DeployEx runs, it fetches the configuration from the YAML file described in the path `DEPLOYEX_CONFIG_YAML_PATH`. The YAML file configuration contains the following fields:
+
+```yaml
+account_name: "prod"                               # Deployex: Cloud/Environment Account name
+hostname: "deployex.myphoenixapp.com"              # Deployex: hostname
+port: 5001                                         # Deployex: port
+release_adapter: "s3"                              # Deployex: release adapter type s3 or gcp-storage
+release_bucket: "myphoenixapp-prod-distribution"   # Deployex: release distribution bucket name
+secrets_adapter: "aws"                             # Deployex: release adapter type aws or gcp
+secrets_path: "deployex-myphoenixapp-prod-secrets" # Deployex: secret path to be retrieved from
+aws_region: "sa-east-1"                            # Deployex: aws region (only for AWS)
+google_credentials: "/home/ubuntu/gcp-config.json" # Deployex: google credentials (only for GCP)
+version: "0.4.0-rc1"                               # Deployex: Version
+otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
+otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex: Path to the certificates that will be consumed by Deployex
+os_target: "ubuntu-24.04"                          # Deployex: Target OS server
+deploy_timeout_rollback_ms: 600000                 # Deployex: The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_schedule_interval_ms: 5000                  # Deployex: Periodic checking for new deployments
+metrics_retention_time_ms: 3600000                 # Deployex: Retention time for metrics
+logs_retention_time_ms: 3600000                    # Deployex: Retention time for logs
+applications:
+  - name: "myphoenixapp"                           # Application: Monitored app name
+    language: "elixir"                             # Application: App language (elixir, erlang or gleam)
+    initial_port: 4000                             # Application: The initial port for starting the monitored app
+    replicas: 2
+    env:                                           # Application: Environment variables
+      - key: MYPHOENIXAPP_PHX_HOST
+        value: "myphoenixapp.com"
+      - key: MYPHOENIXAPP_PHX_SERVER
+        value: true
+      - key: MYPHOENIXAPP_CLOUD_ENVIRONMENT
+        value: "prod"
+      - key: MYPHOENIXAPP_OTP_TLS_CERT_PATH
+        value:  "/usr/local/share/ca-certificates"
+      - key: MYPHOENIXAPP_SECRETS_ADAPTER
+        value: "aws"
+      - key: MYPHOENIXAPP_SECRETS_PATH
+        value: "myphoenixapp-prod-secrets"
+      - key: AWS_REGION
+        value: "sa-east-1"
+```
 
 For local testing, these variables are not expected or set to default values.
 
@@ -196,9 +224,9 @@ DeployEx offers a comprehensive set of Terraform examples for programmatically d
 
 ### Installation
 
-If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server - AWS](https://github.com/thiagoesteves/calori/blob/main/devops/aws/terraform/modules/standard-account/cloud-config.tpl)/[Calori Web Server - GCP](https://github.com/thiagoesteves/calori/blob/main/devops/gcp/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a JSON configuration file, an example of which can be found [here](/devops/installer/deployex-config.json). This JSON file can also export environment variables specific to the monitored applications.
+If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server - AWS](https://github.com/thiagoesteves/calori/blob/main/devops/aws/terraform/modules/standard-account/cloud-config.tpl)/[Calori Web Server - GCP](https://github.com/thiagoesteves/calori/blob/main/devops/gcp/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a YAML configuration file, an example of which can be found [here](/devops/installer/deployex-aws.yaml). This YAML file can also export environment variables specific to the monitored applications.
 
-Currently, the release and installation process supports Ubuntu versions 20.04 and 22.04. However, you have the option to manually compile and install DeployEx on your target system.
+Currently, the release and installation process supports Ubuntu version 24.04. However, you have the option to manually compile and install DeployEx on your target system.
 
 ### Pre-commands (Elixir only)
 

@@ -174,14 +174,14 @@ echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 ## Running DeployEx and deploy the app
 
-Move back to the DeployEx project and run the command line with the required ENV vars. 
+Move back to the DeployEx project and run the command line: 
 
-*__NOTE:  All env vars that are available for DeployEx will also be available to the `monitored_app`__*
+> [!ATTENTION]
+> The file `config/dev.exs` contains defaults for local development. You can modify environment variables by changing the `monitored_app_env` field. To customize the application name and language, use the environment variables `DEPLOYEX_MONITORED_APP_NAME` and `DEPLOYEX_MONITORED_APP_LANG`. Note that these environment variables and configurations only apply to development environments; production environments require configuration via YAML file.
+
 ```bash
 export DEPLOYEX_MONITORED_APP_NAME=myerlangapp
 export DEPLOYEX_MONITORED_APP_LANG=erlang
-export SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi
-export PHX_SERVER=true
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
@@ -303,7 +303,7 @@ In order to improve security, mutual TLS (`mTLS` for short) can be employed to e
 1. Generate the necessary certificates, DeployEx has a good examples of how to create self-signed tls certificates:
 ```bash
 cd deployex
-make tls-distribution-certs
+./tls-distribution-certs
 ```
 
 2. Copy the generated certificates to the `/tmp` folder:

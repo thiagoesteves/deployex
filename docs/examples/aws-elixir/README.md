@@ -25,6 +25,9 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 | MYAPPNAME_SECRET_KEY_BASE | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
 | MYAPPNAME_ERLANG_COOKIE | my-cookie |  |
 
+> [!ATTENTION]
+> The ENV vars `DEPLOYEX_CONFIG_YAML_PATH` and `DEPLOYEX_OTP_TLS_CERT_PATH` will be set automatically by the script `deployex.sh`.
+
 ### 3. Variables Configuration
 
 Rename the file [main_example.tf_](./environments/prod/main_example.tf_) to [main.tf](./environments/prod/main.tf) and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file](./modules/standard-account/variables.tf). These variables will be utilized across all Terraform templates to ensure correct setup.
@@ -130,7 +133,7 @@ chmod a+x deployex.sh
 Run the script to install (or update) deployex:
 
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex-config.json
+root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex.yaml
 #           Removing Deployex              #
 ...
 # Clean and create a new directory         #
@@ -142,22 +145,22 @@ Created symlink /etc/systemd/system/multi-user.target.wants/deployex.service →
 If you need to update Deployex, follow these steps to ensure that the configuration file reflects the new version:
 
 ```bash
-vi deployex-config.json
-{
- ...
-  "version": "0.3.0-rc15",
-  "os_target": "ubuntu-20.04",
-  ...
-}
+vi deployex.yaml
+...
+version: "0.4.0"
+otp_version: 27
+otp_tls_certificates: "/usr/local/share/ca-certificates"
+os_target: "ubuntu-24.04"
+...
 ```
 
 Once the file is updated, run the update command:
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex-config.json
+root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex.yaml
 ```
 
 > [!IMPORTANT]
-> Depending on the new version of DeployEx, you may need to update both the `deployex-config.json` file and the `deployex.sh` script
+> Depending on the new version of DeployEx, you may need to update both the `deployex.yaml` file and the `deployex.sh` script
 
 At this point, DeployEx should be running. You can view the logs using the following commands:
 ```bash
@@ -264,9 +267,3 @@ systemctl reload nginx
 
 > [!NOTE]
 > After the changes, It may require a reboot.
-
-The commands above will configure Nginx for the correct routing. Once this is set up, verify that the monitored app’s configuration file `/config/runtime.exs` points to the correct SCHEME/HOST/PORT, For example:
-
-```elixir
-    url: [host: "myappname.com", port: 443, scheme: "https"],
-```

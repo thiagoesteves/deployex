@@ -22,6 +22,11 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 | DEPLOYEX_SECRET_KEY_BASE | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
 | DEPLOYEX_ERLANG_COOKIE| my-cookie |  |
 | DEPLOYEX_ADMIN_HASHED_PASSWORD | $2b$12$...3Lu6ys538TW | Bcrypt.hash_pwd_salt("my-pass") |
+| MYAPPNAME_SECRET_KEY_BASE | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
+| MYAPPNAME_ERLANG_COOKIE | my-cookie |  |
+
+> [!ATTENTION]
+> The ENV vars `DEPLOYEX_CONFIG_YAML_PATH` and `DEPLOYEX_OTP_TLS_CERT_PATH` will be set automatically by the script `deployex.sh`.
 
 ### 3. Variables Configuration
 
@@ -48,7 +53,17 @@ Wait for the environment to be created. Once the provisioning is complete, you c
 
 #### Updating Secret Manager
 
-Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secret:
+Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secrets:
+
+ *  *__myappname-prod-secrets__*:
+
+Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs: (You may need to configure additional secrets if your application requires them)
+
+```bash
+# Update the secrets
+MYAPPNAME_SECRET_KEY_BASE=xxxxxxxxxx
+MYAPPNAME_ERLANG_COOKIE=xxxxxxxxxx
+```
 
 * *__deployex-myappname-prod-secrets__*
 
@@ -69,6 +84,9 @@ make tls-distribution-certs
 ```
 
 The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Click in each secret in AWS, then select "Retrieve Secret Value" and edit the secret by adding them as plain text, For guidance, you can refer to this [eaxample](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html).
+
+> [!WARNING]
+> __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match, as they will be used by the OTP distribution.
 
 ### 5. EC2 Provisioning (Manual Steps)
 
@@ -115,7 +133,7 @@ chmod a+x deployex.sh
 Run the script to install (or update) deployex:
 
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex-config.json
+root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex.yaml
 #           Removing Deployex              #
 ...
 # Clean and create a new directory         #
@@ -127,22 +145,22 @@ Created symlink /etc/systemd/system/multi-user.target.wants/deployex.service →
 If you need to update Deployex, follow these steps to ensure that the configuration file reflects the new version:
 
 ```bash
-vi deployex-config.json
-{
- ...
-  "version": "0.3.0-rc15",
-  "os_target": "ubuntu-22.04",
-  ...
-}
+vi deployex.yaml
+...
+version: "0.4.0"
+otp_version: 27
+otp_tls_certificates: "/usr/local/share/ca-certificates"
+os_target: "ubuntu-24.04"
+...
 ```
 
 Once the file is updated, run the update command:
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex-config.json
+root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex.yaml
 ```
 
 > [!IMPORTANT]
-> Depending on the new version of DeployEx, you may need to update both the `deployex-config.json` file and the `deployex.sh` script
+> Depending on the new version of DeployEx, you may need to update both the `deployex.yaml` file and the `deployex.sh` script
 
 At this point, DeployEx should be running. You can view the logs using the following commands:
 ```bash

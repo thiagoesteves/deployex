@@ -8,7 +8,6 @@
 packages:
  - unzip
  - nginx
- - jq
 
 write_files:
   - path: /home/ubuntu/install-otp-certificates.sh
@@ -41,8 +40,9 @@ write_files:
       secrets_path: "deployex-myappname-${account_name}-secrets"
       aws_region: "${aws_region}"
       version: "${deployex_version}"
-      otp_version: 26
-      os_target: "ubuntu-20.04"
+      otp_version: 27
+      otp_tls_certificates: "/usr/local/share/ca-certificates"
+      os_target: "ubuntu-24.04"
       deploy_timeout_rollback_ms: 600000
       deploy_schedule_interval_ms: 5000
       metrics_retention_time_ms: 3600000
@@ -51,7 +51,7 @@ write_files:
         - name: "myappname"
           language: "elixir"
           initial_port: 4000
-          replicas: 3
+          replicas: "${replicas}"
           env:
             - key: MYAPPNAME_PHX_HOST
               value: "${hostname}"
@@ -61,7 +61,8 @@ write_files:
               value: "${account_name}"
             - key: MYAPPNAME_OTP_TLS_CERT_PATH
               value: "/usr/local/share/ca-certificates"
- 
+            - key: AWS_REGION
+              value: "${aws_region}"
   - path: /home/ubuntu/config.json
     owner: root:root
     permissions: "0644"
@@ -190,6 +191,8 @@ runcmd:
   - ./aws/install
   - ./aws/install --update
   - /home/ubuntu/install-otp-certificates.sh
+  - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+  - chmod a+x /usr/local/bin/yq
   - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/ubuntu
   - chmod a+x /home/ubuntu/deployex.sh
   - /home/ubuntu/deployex.sh --install /home/ubuntu/deployex.yaml

@@ -8,7 +8,6 @@
 packages:
  - unzip
  - nginx
- - jq
 
 write_files:
   - path: /home/ubuntu/install-otp-certificates.sh
@@ -36,32 +35,40 @@ write_files:
         "type": "service_account" # Populate it after installation
         ...
       }
-  - path: /home/ubuntu/deployex-config.json
+  - path: /home/ubuntu/deployex.yaml
     owner: root:root
     permissions: "0644"
     content: |
-      {
-        "app_name": "myappname",
-        "app_lang": "elixir",
-        "replicas": ${replicas},
-        "account_name": "${account_name}",
-        "deployex_hostname": "${deployex_hostname}",
-        "release_adapter": "gcp-storage",
-        "release_bucket": "myappname-${account_name}-distribution",
-        "secrets_adapter": "gcp",
-        "secrets_path": "deployex-myappname-${account_name}-secrets",
-        "version": "${deployex_version}",
-        "google_credentials": "/home/ubuntu/gcp-config.json",
-        "os_target": "ubuntu-20.04",
-        "deploy_timeout_rollback_ms": 600000,
-        "deploy_schedule_interval_ms": 5000,
-        "env": {
-            "MYAPPNAME_PHX_HOST": "${hostname}",
-            "MYAPPNAME_PHX_SERVER": true,
-            "MYAPPNAME_CLOUD_ENVIRONMENT": "${account_name}",
-            "MYAPPNAME_OTP_TLS_CERT_PATH": "/usr/local/share/ca-certificates"
-        }
-      }
+      account_name: "${account_name}"
+      hostname: "${deployex_hostname}"
+      port: 5001
+      release_adapter: "gcp-storage"
+      release_bucket: "myappname-${account_name}-distribution"
+      secrets_adapter: "gcp"
+      secrets_path: "deployex-myappname-${account_name}-secrets"
+      google_credentials: "/home/ubuntu/gcp-config.json"
+      version: "${deployex_version}"
+      otp_version: 27
+      otp_tls_certificates: "/usr/local/share/ca-certificates"
+      os_target: "ubuntu-24.04"
+      deploy_timeout_rollback_ms: 600000
+      deploy_schedule_interval_ms: 5000
+      metrics_retention_time_ms: 3600000
+      logs_retention_time_ms: 3600000
+      applications:
+        - name: "myappname"
+          language: "elixir"
+          initial_port: 4000
+          replicas: "${replicas}"
+          env:
+            - key: MYAPPNAME_PHX_HOST
+              value: "${hostname}"
+            - key: MYAPPNAME_PHX_SERVER
+              value: true
+            - key: MYAPPNAME_CLOUD_ENVIRONMENT
+              value: "${account_name}"
+            - key: MYAPPNAME_OTP_TLS_CERT_PATH
+              value: "/usr/local/share/ca-certificates"
   - path: /etc/nginx/sites-available/default
     owner: root:root
     permissions: "0644"
@@ -140,8 +147,11 @@ write_files:
       }
 runcmd:
   - /home/ubuntu/install-otp-certificates.sh
+  - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+  - chmod a+x /usr/local/bin/yq
   - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/ubuntu
   - chmod a+x /home/ubuntu/deployex.sh
+  - /home/ubuntu/deployex.sh --install /home/ubuntu/deployex.yaml
   - systemctl enable --no-block nginx 
   - systemctl start --no-block nginx
   - reboot
