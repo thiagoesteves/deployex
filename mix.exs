@@ -12,8 +12,8 @@ defmodule Deployex.MixProject do
       name: "DeployEx",
       description:
         "Application designed for managing deployments for Beam applications (Elixir, Gleam and Erlang)",
-      source_url: "https://github.com/thiagoesteves/deployex",
-      homepage_url: "https://github.com/thiagoesteves/deployex",
+      source_url: @source_url,
+      homepage_url: @source_url,
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
