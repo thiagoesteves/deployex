@@ -7,7 +7,7 @@ defmodule Deployex.Deployment do
   This module follows a specific architecture for deployment management. It translates the expected behavior
   for the Deployment server.
 
-  ![Deployment Architecture](docs/static/deployment_architecture.png)
+  ![Deployment Architecture](guides/static/deployment_architecture.png)
 
   ## Usage
   To start the server, use `Deployex.Deployment.start_link/1` with appropriate options.
