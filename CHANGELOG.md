@@ -1,6 +1,6 @@
 # CHANGELOG (0.4.x)
 
-## 0.4.0 ()
+## 0.4.0 🚀 (2025-04-23)
 
 ### Backwards incompatible changes for 0.3.4
  * Changed configurable variables to be consumed from a YAML file instead of json, it requires new installation

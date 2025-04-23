@@ -15,11 +15,11 @@ DeployEx is currently used by:
  * [Cochito Web Server](https://github.com/chouzar/cochito) for __Gleam__ applications.
  * [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for __Erlang__ applications.
 
-![Deployment Architecture](docs/static/deployex.png)
+![Deployment Architecture](guides/static/deployex.png)
 
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
-[![Watch the video](docs/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
+[![Watch the video](guides/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
 
 https://www.youtube.com/watch?v=MV4ROe6xmlI
 
@@ -117,7 +117,7 @@ Done in 968ms.
 
 Now you can visit [`localhost:5001`](http://localhost:5001) from your browser and enter the credentials for the admin user, *__username: admin password: deployex__*. You should expect the following dashboard:
 
-![Empty Dashboard](docs/static/deployex_no_monitoring_app.png)
+![Empty Dashboard](guides/static/deployex_no_monitoring_app.png)
 
 > [!NOTE]
 > The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running DeployEx and Monitored app locally](https://github.com/thiagoesteves/deployex/tree/thi/add-erlang-hot-upgrade-support?tab=readme-ov-file#-running-deployex-locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command
@@ -218,9 +218,9 @@ For local testing, these variables are not expected or set to default values.
 
 DeployEx offers a comprehensive set of Terraform examples for programmatically deploying in AWS and GCP, including detailed step-by-step setup instructions:
 
- * [AWS deployment for Elixir](docs/examples/aws-elixir/README.md)
- * [GCP deployment for Elixir](docs/examples/gcp-elixir/README.md)
- * [AWS deployment for Gleam](docs/examples/aws-gleam/README.md)
+ * [AWS deployment for Elixir](guides/examples/aws-elixir/README.md)
+ * [GCP deployment for Elixir](guides/examples/gcp-elixir/README.md)
+ * [AWS deployment for Gleam](guides/examples/aws-gleam/README.md)
 
 ### Installation
 
@@ -250,10 +250,10 @@ Within the secrets, the following key-value pairs are required:
 
 ## 🏠 Running DeployEx locally
 
- * [Elixir Application](docs/examples/local-elixir/README.md)
- * [Elixir Umbrella Application](docs/examples/local-elixir-umbrella/README.md)
- * [Gleam Application](docs/examples/local-gleam/README.md)
- * [Erlang Application](docs/examples/local-erlang/README.md)
+ * [Elixir Application](guides/examples/local-elixir/README.md)
+ * [Elixir Umbrella Application](guides/examples/local-elixir-umbrella/README.md)
+ * [Gleam Application](guides/examples/local-gleam/README.md)
+ * [Erlang Application](guides/examples/local-erlang/README.md)
 
 ### Recommended Supporting Repositories
 

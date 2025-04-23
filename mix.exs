@@ -1,12 +1,17 @@
 defmodule Deployex.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/thiagoesteves/deployex"
+  @version "0.4.0"
+
   def project do
     [
       app: :deployex,
-      version: "0.4.0-rc1",
+      version: @version,
       elixir: "~> 1.15",
       name: "DeployEx",
+      description:
+        "Application designed for managing deployments for Beam applications (Elixir, Gleam and Erlang)",
       source_url: "https://github.com/thiagoesteves/deployex",
       homepage_url: "https://github.com/thiagoesteves/deployex",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -79,8 +84,8 @@ defmodule Deployex.MixProject do
       licenses: ["MIT"],
       links: %{
         Documentation: "https://hexdocs.pm/deployex",
-        Changelog: "https://hexdocs.pm/deployex/changelog.html",
-        GitHub: "https://github.com/deployex/deployex"
+        Changelog: "#{@source_url}/blob/main/CHANGELOG.md",
+        GitHub: @source_url
       }
     ]
   end
@@ -88,6 +93,9 @@ defmodule Deployex.MixProject do
   defp docs do
     [
       main: "Deployex",
+      source_ref: @version,
+      formatters: ["html"],
+      api_reference: false,
       extras: [
         "README.md",
         "LICENSE.md",
@@ -149,13 +157,13 @@ defmodule Deployex.MixProject do
   end
 
   defp copy_ex_doc(_) do
-    static_destination_path = "./doc/docs/static"
+    static_destination_path = "./doc/guides/static"
     File.mkdir_p!(static_destination_path)
-    File.cp_r("./docs/static", static_destination_path)
+    File.cp_r("./guides/static", static_destination_path)
 
-    examples_destination_path = "./doc/docs/examples"
+    examples_destination_path = "./doc/guides/examples"
     File.mkdir_p!(examples_destination_path)
-    File.cp_r("./docs/examples", examples_destination_path)
+    File.cp_r("./guides/examples", examples_destination_path)
   end
 
   # Aliases are shortcuts or tasks specific to the current project.
