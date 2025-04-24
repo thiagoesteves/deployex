@@ -66,19 +66,16 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
 > [!NOTE]
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.
 
-## ⚠️ Next steps
+## ⚠️ [Next steps](https://github.com/thiagoesteves/deployex/issues)
 
 ### What is coming next
 
-- [ ] 💤 Handle different apps within the same DeployEx instances.
-- [ ] 💤 Support for shutting down applications before run out of memory.
-- [ ] 💤 Integrate CPU utilization monitoring from the OTP distribution.
-- [ ] 💤 Lazy deployments for Phoenix apps (Delay Endpoint start to allow fast switch for full deployments)
-- [ ] 💤 Continuous improvement in UI design.
-- [ ] 💤 Health checks via OTP distribution
-- [ ] 💤 Secrets from Environment variables to allow installation on servers with no cloud provider
-- [ ] 💤 Orchestrate distributed databasses like [Khepri](https://github.com/rabbitmq/khepri)
-- [ ] 💤 Enhance installer to become an elixir app capable of hotupgrade DeployEx
+- [ ] [ISSUE-107](https://github.com/thiagoesteves/deployex/issues/107) - Move DeployEx to an Elixir umbrella project
+- [ ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
+- [ ] [ISSUE-108](https://github.com/thiagoesteves/deployex/issues/108) - Add Monitor for Beam/Memory limits and trigger shutdown 
+- [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
+- [ ] [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
+- [ ] [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
 
 ## 📁 Getting Started
 
