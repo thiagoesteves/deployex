@@ -5,6 +5,8 @@ defmodule Host.Application do
 
   use Application
 
+  @target Mix.env()
+
   @impl true
   def start(_type, _args) do
     children =
@@ -20,7 +22,7 @@ defmodule Host.Application do
   end
 
   defp maybe_add_gen_server do
-    if Mix.env() == :test do
+    if @target == :test do
       []
     else
       [Host.Memory.Server]

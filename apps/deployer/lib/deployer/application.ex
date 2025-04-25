@@ -7,6 +7,8 @@ defmodule Deployer.Application do
 
   alias Deployer.Deployment
 
+  @target Mix.env()
+
   @impl true
   def start(_type, _args) do
     children =
@@ -24,7 +26,7 @@ defmodule Deployer.Application do
   end
 
   defp maybe_add_gen_server do
-    if Mix.env() == :test do
+    if @target == :test do
       []
     else
       [

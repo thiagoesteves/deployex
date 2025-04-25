@@ -5,6 +5,8 @@ defmodule Sentinel.Application do
 
   use Application
 
+  @target Mix.env()
+
   @impl true
   def start(_type, _args) do
     children =
@@ -19,7 +21,7 @@ defmodule Sentinel.Application do
   end
 
   defp maybe_add_gen_server do
-    if Mix.env() == :test do
+    if @target == :test do
       []
     else
       [
