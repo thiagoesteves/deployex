@@ -62,7 +62,7 @@ jobs:
             deployex-
 
       - name: Run tests
-        run: mix coveralls.html
+        run: mix test --cover --warnings-as-errors
 
   analysis:
     name: Static Analysis
@@ -105,7 +105,7 @@ jobs:
         run: mix deps.audit
 
       - name: Mix Sobelow
-        run: mix sobelow --exit --threshold medium --skip -i Config.HTTPS
+        run: mix sobelow -r apps/deployex_web --exit --threshold medium --skip -i Config.HTTPS
 
       - name: Formatted
         run: mix format --check-formatted
