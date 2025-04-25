@@ -48,7 +48,7 @@ jobs:
         with:
           name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
           path: .
-  
+
   buildUbuntu2404Otp27:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
@@ -110,38 +110,47 @@ jobs:
     permissions:
       contents: write
     steps:
-     - name: Download ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
-         path: .
+      - name: Download ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
+          path: .
 
-     - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-         path: .
+      - name: Upload ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
+        uses: prewk/s3-cp-action@v2
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: "sa-east-1"
+          source: ${{ env.UBUNTU_2404_OTP_26_NAME }}
+          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
 
-     - name: Download installer artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: deployex.sh
-         path: .
- 
-     - name: Upload ubuntu-24.04 artefact
-       uses: prewk/s3-cp-action@v2
-       with:
-         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         aws_region: "sa-east-1"
-         source: "deployex-ubuntu-24.04.tar.gz"
-         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+      - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          path: .
 
-     - name: Upload installer artefact
-       uses: prewk/s3-cp-action@v2
-       with:
-         aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         aws_region: "sa-east-1"
-         source: "deployex.sh"
-         dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+      - name: Upload ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
+        uses: prewk/s3-cp-action@v2
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: "sa-east-1"
+          source: ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+
+      - name: Download installer artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployex.sh
+          path: .
+
+      - name: Upload installer artefact
+        uses: prewk/s3-cp-action@v2
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: "sa-east-1"
+          source: "deployex.sh"
+          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
