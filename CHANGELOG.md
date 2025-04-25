@@ -1,8 +1,8 @@
 # CHANGELOG (0.4.x)
 
-## 0.4.1  ()
+## 0.4.1 🚀 (2025-04-25)
 
-### Backwards incompatible changes for 0.4.1
+### Backwards incompatible changes for 0.4.0
  * None
 
 ### Installer Actions
