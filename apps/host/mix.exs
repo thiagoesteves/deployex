@@ -47,7 +47,7 @@ defmodule Host.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:erlexec, "~> 2.0.6"},
+      {:erlexec, "~> 2.0.7"},
       {:phoenix_pubsub, "~> 2.0"},
       {:jason, "~> 1.2"},
       # Static Analysis
