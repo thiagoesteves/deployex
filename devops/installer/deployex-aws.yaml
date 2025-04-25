@@ -7,7 +7,7 @@ secrets_adapter: "aws"
 secrets_path: "deployex-myapp-prod-secrets"
 aws_region: "sa-east-1"
 version: "0.4.0"
-otp_version: 26
+otp_version: 27
 otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
 deploy_timeout_rollback_ms: 600000

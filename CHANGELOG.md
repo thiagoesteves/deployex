@@ -1,5 +1,19 @@
 # CHANGELOG (0.4.x)
 
+## 0.4.1  ()
+
+### Backwards incompatible changes for 0.4.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [[`PR-113`](https://github.com/thiagoesteves/deployex/pull/113)] Moving project to Elixir Umbrella scaffolding
+
 ## 0.4.0 🚀 (2025-04-23)
 
 ### Backwards incompatible changes for 0.3.4

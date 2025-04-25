@@ -2,7 +2,7 @@ defmodule Deployex.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/thiagoesteves/deployex"
-  @version "0.5.0"
+  @version File.read!("version.txt")
 
   def project do
     [
@@ -43,7 +43,7 @@ defmodule Deployex.MixProject do
 
   defp description do
     """
-    Deployex is a tool designed for managing deployments for Elixir applications
+    Deployex is a tool designed for managing deployments for Beam applications (Elixir, Erlang and Gleam)
     """
   end
 
@@ -69,7 +69,7 @@ defmodule Deployex.MixProject do
 
   defp docs do
     [
-      main: "Deployer",
+      main: "readme",
       source_ref: @version,
       formatters: ["html"],
       api_reference: false,

@@ -6,7 +6,20 @@ import Config
 # which you should run after static files are built and
 # before starting your production server.
 config :deployex_web, DeployexWeb.Endpoint,
+  url: [port: 443, scheme: "https"],
+  http: [
+    # Enable IPv6 and bind on all interfaces.
+    # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+    # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
+    # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+    ip: {0, 0, 0, 0, 0, 0, 0, 0}
+  ],
+  server: true,
   cache_static_manifest: "priv/static/cache_manifest.json"
+
+config :foundation,
+  base_path: "/var/lib/deployex",
+  monitored_app_log_path: "/var/log"
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: DeployexWeb.Finch

@@ -21,8 +21,6 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 [![Watch the video](guides/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
 
-https://www.youtube.com/watch?v=MV4ROe6xmlI
-
 ## 🔉 Features
 
  * Monitors multiple Beam application instances (Elixir/Erlang/Gleam) and automatically restarts them if they crash for any reason.
@@ -70,7 +68,7 @@ https://www.youtube.com/watch?v=MV4ROe6xmlI
 
 ### What is coming next
 
-- [ ] [ISSUE-107](https://github.com/thiagoesteves/deployex/issues/107) - Move DeployEx to an Elixir umbrella project
+- [X] [ISSUE-107](https://github.com/thiagoesteves/deployex/issues/107) - Move DeployEx to an Elixir umbrella project
 - [ ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
 - [ ] [ISSUE-108](https://github.com/thiagoesteves/deployex/issues/108) - Add Monitor for Beam/Memory limits and trigger shutdown 
 - [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
@@ -83,6 +81,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> |
 |----------|-------------|-------------|
+| [__0.4.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.1)  | __26.2.5.11__ | __27.3.3__ |
 | [__0.4.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.0)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.3.4__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.4) | __26.2.5.10__ | -/- |
 | [__0.3.3__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.3) | __26.2.5.6__ | -/- |
@@ -181,18 +180,18 @@ aws_region: "sa-east-1"                            # Deployex: aws region (only 
 google_credentials: "/home/ubuntu/gcp-config.json" # Deployex: google credentials (only for GCP)
 version: "0.4.0-rc1"                               # Deployex: Version
 otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
-otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex: Path to the certificates that will be consumed by Deployex
+otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                          # Deployex: Target OS server
-deploy_timeout_rollback_ms: 600000                 # Deployex: The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
-deploy_schedule_interval_ms: 5000                  # Deployex: Periodic checking for new deployments
-metrics_retention_time_ms: 3600000                 # Deployex: Retention time for metrics
-logs_retention_time_ms: 3600000                    # Deployex: Retention time for logs
+deploy_timeout_rollback_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_schedule_interval_ms: 5000                  # Deployex (optional): Periodic checking for new deployments
+metrics_retention_time_ms: 3600000                 # Deployex (optional): Retention time for metrics
+logs_retention_time_ms: 3600000                    # Deployex (optional): Retention time for logs
 applications:
   - name: "myphoenixapp"                           # Application: Monitored app name
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)
     initial_port: 4000                             # Application: The initial port for starting the monitored app
     replicas: 2
-    env:                                           # Application: Environment variables
+    env:                                           # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
       - key: MYPHOENIXAPP_PHX_SERVER

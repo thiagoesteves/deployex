@@ -3,17 +3,6 @@ defmodule Foundation.AccountsTest do
 
   alias Foundation.Accounts
 
-  # setup do
-  #   Application.get_env(:foundation, :base_path) |> File.rm_rf()
-
-  #   # Remove any current.json file
-  #   monitored_app = Catalog.monitored_app_name()
-  #   current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
-  #   File.rm_rf(current_json_dir)
-
-  #   Catalog.setup()
-  # end
-
   test "get_user_by_username_and_password/2 success" do
     assert %Accounts.User{hashed_password: _, username: "admin"} =
              Accounts.get_user_by_username_and_password("admin", "deployex")
