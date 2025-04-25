@@ -5,9 +5,7 @@ defmodule Deployer.Application do
 
   use Application
 
-  alias Deployer.Deployment
-
-  @target Mix.env()
+  import Foundation.Macros
 
   @impl true
   def start(_type, _args) do
@@ -17,7 +15,7 @@ defmodule Deployer.Application do
         Deployer.Monitor.Supervisor,
         {Finch, name: Deployer.Finch},
         {Finch, name: ExAws.Request.Finch}
-      ] ++ maybe_add_gen_server() ++ gcp_app_credentials()
+      ] ++ application_servers() ++ gcp_app_credentials()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -25,10 +23,10 @@ defmodule Deployer.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp maybe_add_gen_server do
-    if @target == :test do
-      []
-    else
+  if_not_test do
+    alias Deployer.Deployment
+
+    defp application_servers do
       [
         Deployer.Status.Application,
         {Deployment,
@@ -39,6 +37,8 @@ defmodule Deployer.Application do
          ]}
       ]
     end
+  else
+    defp application_servers, do: []
   end
 
   defp gcp_app_credentials do

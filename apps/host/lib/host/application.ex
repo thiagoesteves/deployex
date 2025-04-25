@@ -5,7 +5,7 @@ defmodule Host.Application do
 
   use Application
 
-  @target Mix.env()
+  import Foundation.Macros
 
   @impl true
   def start(_type, _args) do
@@ -13,7 +13,7 @@ defmodule Host.Application do
       [
         {Phoenix.PubSub, name: Host.PubSub},
         Host.Terminal.Supervisor
-      ] ++ maybe_add_gen_server()
+      ] ++ application_servers()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -21,11 +21,11 @@ defmodule Host.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp maybe_add_gen_server do
-    if @target == :test do
-      []
-    else
+  if_not_test do
+    defp application_servers do
       [Host.Memory.Server]
     end
+  else
+    defp application_servers, do: []
   end
 end

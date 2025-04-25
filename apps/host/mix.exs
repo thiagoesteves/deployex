@@ -51,7 +51,9 @@ defmodule Host.MixProject do
       {:phoenix_pubsub, "~> 2.0"},
       {:jason, "~> 1.2"},
       # Static Analysis
-      {:mox, "~> 1.0", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      # Application dependencies
+      {:foundation, in_umbrella: true}
     ]
   end
 end

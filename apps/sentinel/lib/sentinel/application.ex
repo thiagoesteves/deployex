@@ -5,14 +5,14 @@ defmodule Sentinel.Application do
 
   use Application
 
-  @target Mix.env()
+  import Foundation.Macros
 
   @impl true
   def start(_type, _args) do
     children =
       [
         {Phoenix.PubSub, name: Sentinel.PubSub}
-      ] ++ maybe_add_gen_server()
+      ] ++ application_servers()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -20,15 +20,15 @@ defmodule Sentinel.Application do
     Supervisor.start_link(children, opts)
   end
 
-  defp maybe_add_gen_server do
-    if @target == :test do
-      []
-    else
+  if_not_test do
+    defp logs_config, do: Application.fetch_env!(:sentinel, Sentinel.Logs)
+
+    defp application_servers do
       [
         {Sentinel.Logs.Server, logs_config()}
       ]
     end
+  else
+    defp application_servers, do: []
   end
-
-  defp logs_config, do: Application.fetch_env!(:sentinel, Sentinel.Logs)
 end
