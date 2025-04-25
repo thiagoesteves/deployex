@@ -6,17 +6,17 @@ import Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :deployex, DeployexWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
+# Binding to loopback ipv4 address prevents access from other machines.
+config :deployex_web, DeployexWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 5001],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "5uEOcuaw3Kj/phO6Nw6G161eQk3KnF4F4T5cpdYvXgyTDnzR61hh/bYWXttnLzBJ",
+  secret_key_base: "EAFIHUkVb1tU+UAk5djoaK/sydHI6r2+3U6TPlyHuwpQ8mh4jjT5pJpcH0GcMpkg",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:deployex, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:deployex, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:deployex_web, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:deployex_web, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -43,7 +43,7 @@ config :deployex, DeployexWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :deployex, DeployexWeb.Endpoint,
+config :deployex_web, DeployexWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
@@ -53,7 +53,7 @@ config :deployex, DeployexWeb.Endpoint,
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :deployex, dev_routes: true
+config :deployex_web, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
@@ -78,7 +78,7 @@ config :swoosh, :api_client, false
 monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
 monitored_app_lang = System.get_env("DEPLOYEX_MONITORED_APP_LANG", "elixir")
 
-config :deployex,
+config :foundation,
   env: "local",
   base_path: "/tmp/deployex/varlib",
   monitored_app_name: monitored_app_name,
@@ -90,6 +90,6 @@ config :deployex,
     "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
   ]
 
-config :deployex, Deployex.Release,
-  adapter: Deployex.Release.Local,
+config :deployer, Deployer.Release,
+  adapter: Deployer.Release.Local,
   bucket: "/tmp/#{monitored_app_name}"

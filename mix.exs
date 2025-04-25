@@ -2,29 +2,17 @@ defmodule Deployex.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/thiagoesteves/deployex"
-  @version "0.4.1"
+  @version File.read!("version.txt")
 
   def project do
     [
-      app: :deployex,
+      name: "Deployex",
+      apps_path: "apps",
       version: @version,
-      elixir: "~> 1.15",
-      name: "DeployEx",
-      description:
-        "Application designed for managing deployments for Beam applications (Elixir, Gleam and Erlang)",
       source_url: @source_url,
       homepage_url: @source_url,
-      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test,
-        "coveralls.cobertura": :test
-      ],
       docs: docs(),
       package: package(),
       description: description(),
@@ -32,9 +20,16 @@ defmodule Deployex.MixProject do
         deployex: [
           include_executable_for: [:unix],
           steps: [:assemble, :tar],
+          applications: [
+            foundation: :permanent,
+            host: :permanent,
+            deployer: :permanent,
+            sentinel: :permanent,
+            deployex_web: :permanent
+          ],
           config_providers: [
-            {Deployex.ConfigProvider.Env.Config, nil},
-            {Deployex.ConfigProvider.Secrets.Manager, nil}
+            {Foundation.ConfigProvider.Env.Config, nil},
+            {Foundation.ConfigProvider.Secrets.Manager, nil}
           ]
         ]
       ],
@@ -46,34 +41,16 @@ defmodule Deployex.MixProject do
     ]
   end
 
-  # Configuration for the OTP application.
-  #
-  # Type `mix help compile.app` for more information.
-  def application do
-    env_specific_applications =
-      if Mix.env() == :dev do
-        [:wx, :observer]
-      else
-        []
-      end
-
-    [
-      mod: {Deployex.Application, []},
-      extra_applications: [:logger, :runtime_tools, :sasl | env_specific_applications]
-    ]
-  end
-
   defp description do
     """
-    Deployex is a tool designed for managing deployments for Elixir applications
+    Deployex is a tool designed for managing deployments for Beam applications (Elixir, Erlang and Gleam)
     """
   end
 
   defp package do
     [
       files: [
-        "lib",
-        "priv",
+        "apps",
         "mix.exs",
         "README.md",
         "LICENSE.md",
@@ -92,7 +69,7 @@ defmodule Deployex.MixProject do
 
   defp docs do
     [
-      main: "Deployex",
+      main: "readme",
       source_ref: @version,
       formatters: ["html"],
       api_reference: false,
@@ -101,58 +78,6 @@ defmodule Deployex.MixProject do
         "LICENSE.md",
         "CHANGELOG.md"
       ]
-    ]
-  end
-
-  # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
-
-  # Specifies your project dependencies.
-  #
-  # Type `mix help deps` for examples and options.
-  defp deps do
-    [
-      {:bcrypt_elixir, "~> 3.0"},
-      {:phoenix, "~> 1.7.12"},
-      {:phoenix_html, "~> 4.0"},
-      {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 1.0.3"},
-      {:floki, ">= 0.30.0", only: :test},
-      {:phoenix_live_dashboard, "~> 0.8.3"},
-      {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
-      {:heroicons,
-       github: "tailwindlabs/heroicons",
-       tag: "v2.1.1",
-       sparse: "optimized",
-       app: false,
-       compile: false,
-       depth: 1},
-      {:swoosh, "~> 1.5"},
-      {:finch, "~> 0.13"},
-      {:telemetry_metrics, "~> 1.0"},
-      {:telemetry_poller, "~> 1.0"},
-      {:gettext, "~> 0.20"},
-      {:jason, "~> 1.2"},
-      {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.2"},
-      {:briefly, "~> 0.4.1"},
-      {:configparser_ex, "~> 4.0"},
-      {:erlexec, "~> 2.0.6"},
-      {:ex_aws, "~> 2.1"},
-      {:ex_aws_s3, "~> 2.0"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
-      {:mox, "~> 1.0", only: :test},
-      {:excoveralls, "~> 0.18", only: :test},
-      {:mock, "~> 0.3.0", only: :test},
-      {:goth, "~> 1.4"},
-      {:observer_web, "~> 0.1.0"},
-      {:yaml_elixir, "~> 2.0"}
     ]
   end
 
@@ -166,23 +91,24 @@ defmodule Deployex.MixProject do
     File.cp_r("./guides/examples", examples_destination_path)
   end
 
-  # Aliases are shortcuts or tasks specific to the current project.
-  # For example, to install project dependencies and perform other setup tasks, run:
+  # Dependencies listed here are available only for this
+  # project and cannot be accessed from applications inside
+  # the apps folder.
   #
-  #     $ mix setup
-  #
-  # See the documentation for `Mix` for more info on aliases.
+  # Run "mix help deps" for examples and options.
+  defp deps do
+    [
+      {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:mock, "~> 0.3.0", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+    ]
+  end
+
   defp aliases do
     [
-      docs: ["docs", &copy_ex_doc/1],
-      setup: ["deps.get", "assets.setup", "assets.build"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind deployex", "esbuild deployex"],
-      "assets.deploy": [
-        "tailwind deployex --minify",
-        "esbuild deployex --minify",
-        "phx.digest"
-      ]
+      docs: ["docs", &copy_ex_doc/1]
     ]
   end
 end

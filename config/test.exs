@@ -2,7 +2,7 @@ import Config
 
 monitored_app_name = "testapp"
 
-config :deployex,
+config :foundation,
   env: "local",
   base_path: "/tmp/deployex/test/varlib",
   monitored_app_name: monitored_app_name,
@@ -12,40 +12,37 @@ config :deployex,
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :deployex, DeployexWeb.Endpoint,
+config :deployex_web, DeployexWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "hQ1CDXnnsqNi2+sEYF2SSOkj+SrzzqtbwtfjjHYgNDdH97obAtrDPjtN3HyAy6ns",
   server: false
 
-# In test we don't send emails.
-config :deployex, Deployex.Mailer, adapter: Swoosh.Adapters.Test
+# In test we don't send emails
+config :deployex_web, DeployexWeb.Mailer, adapter: Swoosh.Adapters.Test
 
-# Config Mock for Monitor
-config :deployex, Deployex.Monitor, adapter: Deployex.MonitorMock
+# Config Mocks for Deployer
+config :deployer, Deployer.Monitor, adapter: Deployer.MonitorMock
 
-# Config Mock for Monitor
-config :deployex, Deployex.Status, adapter: Deployex.StatusMock
-
-# Config Mock for Release
-config :deployex, Deployex.Release,
-  adapter: Deployex.ReleaseMock,
+config :deployer, Deployer.Release,
+  adapter: Deployer.ReleaseMock,
   bucket: "/tmp/#{monitored_app_name}"
 
-# Config Mock for Upgrade
-config :deployex, Deployex.Upgrade, adapter: Deployex.UpgradeMock
+config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 
-# Config Mock for Operational System
-config :deployex, Deployex.OpSys, adapter: Deployex.OpSysMock
+config :deployer, Deployer.Upgrade, adapter: Deployer.UpgradeMock
 
-# Config Mock for Rpc
-config :deployex, Deployex.Rpc, adapter: Deployex.RpcMock
+config :deployer, Deployer.Deployment, delay_between_deploys_ms: 10
 
-# Config Mock for Logs
-config :deployex, Deployex.Logs, adapter: Deployex.LogsMock
+# Config Mocks for Host
+config :host, Host.Commander, adapter: Host.CommanderMock
 
-config :deployex, Deployex.Deployment, delay_between_deploys_ms: 10
+# Config Mocks for Foundation
+config :foundation, Foundation.Rpc, adapter: Foundation.RpcMock
 
-# Disable swoosh api client as it is only required for production adapters.
+# Config Mock for Sentinel
+config :sentinel, Sentinel.Logs, adapter: Sentinel.LogsMock
+
+# Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
 # Print only warnings and errors during test
@@ -54,6 +51,6 @@ config :logger, level: :warning
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
+# Enable helpful, but potentially expensive runtime checks
 config :phoenix_live_view,
-  # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true

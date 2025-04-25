@@ -1,10 +1,12 @@
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Config module.
+# This file is responsible for configuring your umbrella
+# and **all applications** and their dependencies with the
+# help of the Config module.
 #
-# This configuration file is loaded before any dependency and
-# is restricted to this project.
-
-# General application configuration
+# Note that all applications in your umbrella share the
+# same configuration and dependencies, which is why they
+# all use the same configuration file. If you want different
+# configurations or dependencies per app, it is best to
+# move said applications out of the umbrella.
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Config module.
 #
@@ -14,7 +16,7 @@
 # General application configuration
 import Config
 
-config :deployex,
+config :foundation,
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
   bin_dir: "/opt/deployex/bin",
@@ -27,28 +29,23 @@ config :deployex,
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:
 #       > Bcrypt.hash_pwd_salt("deployex")
-config :deployex, Deployex.Accounts,
+config :foundation, Foundation.Accounts,
   admin_hashed_password:
     System.get_env(
       "DEPLOYEX_ADMIN_HASHED_PASSWORD",
       "$2b$12$vNAn.RJezPdQF7Dcy4c9Q.p34hdeNnkIaGTk80xdc/Rk18vWjUOC."
     )
 
-config :deployex, Deployex.Deployment,
-  timeout_rollback: :timer.minutes(10),
-  schedule_interval: :timer.seconds(5),
-  delay_between_deploys_ms: :timer.seconds(1)
-
 # Configures the endpoint
-config :deployex, DeployexWeb.Endpoint,
+config :deployex_web, DeployexWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: DeployexWeb.ErrorHTML, json: DeployexWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Deployex.PubSub,
-  live_view: [signing_salt: "t2YabqhV"]
+  pubsub_server: DeployexWeb.PubSub,
+  live_view: [signing_salt: "NiuvxePg"]
 
 # Configures the mailer
 #
@@ -57,37 +54,37 @@ config :deployex, DeployexWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :deployex, Deployex.Mailer, adapter: Swoosh.Adapters.Local
+config :deployex_web, DeployexWeb.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
-  deployex: [
+  deployex_web: [
     args:
       ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
-    cd: Path.expand("../assets", __DIR__),
+    cd: Path.expand("../apps/deployex_web/assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "3.4.0",
-  deployex: [
+  version: "3.4.3",
+  deployex_web: [
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css
       --output=../priv/static/assets/app.css
     ),
-    cd: Path.expand("../assets", __DIR__)
+    cd: Path.expand("../apps/deployex_web/assets", __DIR__)
   ]
-
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
 
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time [$level] $metadata $message\n",
   metadata: [:instance, :module, :function, :pid]
+
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
 
 # AWS Configuration
 config :ex_aws,
@@ -101,26 +98,34 @@ config :ex_aws,
     {:awscli, :system, 30},
     :instance_role
   ],
-  http_client: Deployex.Aws.ExAwsHttpClient
+  http_client: Deployer.Aws.ExAwsHttpClient
 
-config :deployex, Deployex.Monitor, adapter: Deployex.Monitor.Application
+config :deployer, Deployer.Deployment,
+  timeout_rollback: :timer.minutes(10),
+  schedule_interval: :timer.seconds(5),
+  delay_between_deploys_ms: :timer.seconds(1)
 
-config :deployex, Deployex.Status, adapter: Deployex.Status.Application
+# Foundation Adapters
+config :foundation, Foundation.Rpc, adapter: Foundation.Rpc.Local
 
-config :deployex, Deployex.Upgrade, adapter: Deployex.Upgrade.Application
+config :foundation, Foundation.Catalog, adapter: Foundation.Catalog.Local
 
-config :deployex, Deployex.OpSys, adapter: Deployex.OpSys.Local
+# Host Adapters
+config :host, Host.Commander, adapter: Host.Commander.Local
 
-config :deployex, Deployex.Catalog, adapter: Deployex.Catalog.Local
+# Deployer Adapters
+config :deployer, Deployer.Monitor, adapter: Deployer.Monitor.Application
 
-config :deployex, Deployex.Rpc, adapter: Deployex.Rpc.Local
+config :deployer, Deployer.Status, adapter: Deployer.Status.Application
+
+config :deployer, Deployer.Upgrade, adapter: Deployer.Upgrade.Application
 
 # Default GCP credentials are empty
 config :goth, file_credentials: nil
 
 # Configure Logs retention time
-config :deployex, Deployex.Logs,
-  adapter: Deployex.Logs.Server,
+config :sentinel, Sentinel.Logs,
+  adapter: Sentinel.Logs.Server,
   data_retention_period: :timer.minutes(60)
 
 # Configure Observer Web retention time

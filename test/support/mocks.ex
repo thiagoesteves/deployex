@@ -1,8 +1,0 @@
-Mox.defmock(Deployex.MonitorMock, for: Deployex.Monitor.Adapter)
-Mox.defmock(Deployex.StatusMock, for: Deployex.Status.Adapter)
-Mox.defmock(Deployex.ReleaseMock, for: Deployex.Release.Adapter)
-Mox.defmock(Deployex.UpgradeMock, for: Deployex.Upgrade.Adapter)
-Mox.defmock(Deployex.OpSysMock, for: Deployex.OpSys.Adapter)
-Mox.defmock(Deployex.RpcMock, for: Deployex.Rpc.Adapter)
-Mox.defmock(Deployex.LogsMock, for: Deployex.Logs.Adapter)
-Mox.defmock(Deployex.ConfigProvider.SecretsMock, for: Deployex.ConfigProvider.Secrets.Adapter)
