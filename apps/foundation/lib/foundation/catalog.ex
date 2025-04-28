@@ -115,7 +115,12 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.expected_nodes() == [:deployex@MacBookPro, :"testapp-1@MacBookPro", :"testapp-2@MacBookPro", :"testapp-3@MacBookPro"]
+    ...> nodes = Enum.map(Catalog.expected_nodes(), &Atom.to_string/1)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "deployex") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-1") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-2") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-3") end)
+
   """
   @impl true
   @spec expected_nodes() :: list()
