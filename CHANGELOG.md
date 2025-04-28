@@ -12,7 +12,7 @@
  * None
 
 ### Enhancements
- * Adding Shutdown mechanism based on hte BEAM metrics and host memory
+ * Implementing Warning and Shutdown mechanisms that respond to critical BEAM metrics and host memory thresholds to prevent system instability.
 
 ## 0.4.1 🚀 (2025-04-25)
 
