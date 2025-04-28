@@ -1,4 +1,5 @@
-Code.require_file("config/mix_shared.exs")
+# NOTE: Load shared configuration
+Code.require_file("mix/shared.exs")
 
 defmodule Deployex.MixProject do
   use Mix.Project
@@ -9,13 +10,13 @@ defmodule Deployex.MixProject do
     [
       name: "Deployex",
       apps_path: "apps",
-      version: MixShared.version(),
+      version: Mix.Shared.version(),
       source_url: @source_url,
       homepage_url: @source_url,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
-      test_coverage: MixShared.test_coverage(),
+      test_coverage: Mix.Shared.test_coverage(),
       package: package(),
       description: description(),
       releases: [
@@ -72,7 +73,7 @@ defmodule Deployex.MixProject do
   defp docs do
     [
       main: "readme",
-      source_ref: MixShared.version(),
+      source_ref: Mix.Shared.version(),
       formatters: ["html"],
       api_reference: false,
       extras: [
