@@ -222,7 +222,7 @@ DeployEx offers a comprehensive set of Terraform examples for programmatically d
 
 If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server - AWS](https://github.com/thiagoesteves/calori/blob/main/devops/aws/terraform/modules/standard-account/cloud-config.tpl)/[Calori Web Server - GCP](https://github.com/thiagoesteves/calori/blob/main/devops/gcp/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a YAML configuration file, an example of which can be found [here](/devops/installer/deployex-aws.yaml). This YAML file can also export environment variables specific to the monitored applications.
 
-Currently, the release and installation process supports Ubuntu version 24.04. However, you have the option to manually compile and install DeployEx on your target system.
+Currently, the release and installation process supports __Ubuntu version 24.04__. However, you have the option to manually compile and install DeployEx on your target system.
 
 ### Pre-commands (Elixir only)
 
