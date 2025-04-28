@@ -24,7 +24,7 @@ defmodule Sentinel.Monitoring.BeamVm.Server do
 
   @impl true
   def init(args) do
-    Logger.info("Initialising Beam VM Statistics Server")
+    Logger.info("Initializing Beam VM Statistics Server")
 
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)

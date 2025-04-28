@@ -22,7 +22,7 @@ defmodule Host.Memory.Server do
 
   @impl true
   def init(args) do
-    Logger.info("Initialising Host Memory Server")
+    Logger.info("Initializing Host Memory Server")
 
     state = memory_info()
 

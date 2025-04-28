@@ -44,7 +44,7 @@ defmodule Deployer.Deployment do
     timeout_rollback = Keyword.fetch!(args, :timeout_rollback)
     schedule_interval = Keyword.fetch!(args, :schedule_interval)
 
-    Logger.info("Initialising Deployment Server")
+    Logger.info("Initializing Deployment Server")
 
     schedule_new_deployment(schedule_interval)
 

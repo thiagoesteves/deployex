@@ -99,7 +99,7 @@ Erlang/OTP 27 [erts-15.2.6] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-t
 
 [info] Initializing System Server
 ...
-[info] Initialising deployment server
+[info] Initializing deployment server
 [info] Running DeployexWeb.Endpoint with Bandit 1.6.11 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
 Interactive Elixir (1.17.0) - press Ctrl+C to exit (type h() ENTER for help)

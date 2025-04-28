@@ -51,7 +51,7 @@ defmodule Deployer.Monitor.Application do
     |> String.to_atom()
     |> :ets.new([:set, :protected, :named_table])
 
-    Logger.info("Initialising monitor server for instance: #{instance} language: #{language}")
+    Logger.info("Initializing monitor server for instance: #{instance} language: #{language}")
 
     trigger_run_service(deploy_ref)
 

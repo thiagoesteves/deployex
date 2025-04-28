@@ -136,7 +136,7 @@ iex --sname deployex --cookie cookie -S mix phx.server
 [info] Update is needed at instance: 1 from: <no current set> to: 0.1.0.
 [warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
 [info] Full deploy instance: 1 deploy_ref: 32656.
-[info] Initialising monitor server for instance: 1
+[info] Initializing monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.0
 [info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
 [info]  # Starting application
@@ -191,7 +191,7 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 [info] Full deploy instance: 1 deploy_ref: 37406.
 [info] Requested instance: 1 to stop application pid: #PID<0.790.0>
 [warning] Remaining beam app removed for instance: 1
-[info] Initialising monitor server for instance: 1
+[info] Initializing monitor server for instance: 1
 [info] Ensure running requested for instance: 1 version: 0.1.1
 [info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
 [info]  # Starting application
