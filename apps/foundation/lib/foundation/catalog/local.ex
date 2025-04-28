@@ -101,6 +101,18 @@ defmodule Foundation.Catalog.Local do
   def monitored_app_start_port, do: Application.get_env(:foundation, :monitored_app_start_port)
 
   @impl true
+  def expected_nodes do
+    {:ok, hostname} = :inet.gethostname()
+
+    instance_to_node = fn instance ->
+      :"#{sname(instance)}@#{hostname}"
+    end
+
+    # List all expected nodes within the cluster
+    Enum.map(instance_list(), &instance_to_node.(&1))
+  end
+
+  @impl true
   def stdout_path(@deployex_instance) do
     log_path = Application.fetch_env!(:foundation, :log_path)
     "#{log_path}/deployex-stdout.log"

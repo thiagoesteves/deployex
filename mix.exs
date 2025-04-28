@@ -1,19 +1,21 @@
+Code.require_file("config/mix_shared.exs")
+
 defmodule Deployex.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/thiagoesteves/deployex"
-  @version File.read!("version.txt")
 
   def project do
     [
       name: "Deployex",
       apps_path: "apps",
-      version: @version,
+      version: MixShared.version(),
       source_url: @source_url,
       homepage_url: @source_url,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
+      test_coverage: MixShared.test_coverage(),
       package: package(),
       description: description(),
       releases: [
@@ -70,7 +72,7 @@ defmodule Deployex.MixProject do
   defp docs do
     [
       main: "readme",
-      source_ref: @version,
+      source_ref: MixShared.version(),
       formatters: ["html"],
       api_reference: false,
       extras: [

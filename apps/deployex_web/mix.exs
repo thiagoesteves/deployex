@@ -1,23 +1,21 @@
 defmodule DeployexWeb.MixProject do
   use Mix.Project
 
-  @version File.read!("../../version.txt")
-
   def project do
     [
       app: :deployex_web,
       name: "Deployex Web",
-      version: @version,
+      version: MixShared.version(),
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: "~> 1.14",
-      elixirc_paths: elixirc_paths(Mix.env()),
+      elixir: MixShared.elixir(),
+      elixirc_paths: MixShared.elixirc_paths(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      test_coverage: test_coverage()
+      test_coverage: MixShared.test_coverage()
     ]
   end
 
@@ -28,29 +26,6 @@ defmodule DeployexWeb.MixProject do
     [
       mod: {DeployexWeb.Application, []},
       extra_applications: [:logger, :runtime_tools]
-    ]
-  end
-
-  # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
-
-  def test_coverage do
-    [
-      summary: [threshold: 98],
-      ignore_modules: [
-        DeployexWeb.Application,
-        DeployexWeb.Layouts,
-        DeployexWeb.PageHTML,
-        DeployexWeb.Telemetry,
-        DeployexWeb.ErrorHTML,
-        DeployexWeb.CoreComponents,
-        DeployexWeb.Fixture.Status,
-        DeployexWeb.Fixture.Binary,
-        DeployexWeb.Fixture.Monitoring,
-        DeployexWeb.Fixture.Nodes,
-        DeployexWeb.Fixture.Terminal
-      ]
     ]
   end
 

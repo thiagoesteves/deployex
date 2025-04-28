@@ -110,6 +110,23 @@ defmodule Foundation.Catalog do
   def monitored_app_start_port, do: default().monitored_app_start_port()
 
   @doc """
+  Return a list of expected nodes, including deployex (instance 0)
+
+  ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> nodes = Enum.map(Catalog.expected_nodes(), &Atom.to_string/1)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "deployex") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-1") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-2") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-3") end)
+
+  """
+  @impl true
+  @spec expected_nodes() :: list()
+  def expected_nodes, do: default().expected_nodes()
+
+  @doc """
   Return the path for the stdout log file
 
   ## Examples

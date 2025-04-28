@@ -62,14 +62,8 @@ defmodule Sentinel.Logs.Server do
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
-    {:ok, hostname} = :inet.gethostname()
-
-    instance_to_node = fn instance ->
-      :"#{Catalog.sname(instance)}@#{hostname}"
-    end
-
     # List all expected nodes within the cluster
-    expected_nodes = Enum.map(Catalog.instance_list(), &instance_to_node.(&1))
+    expected_nodes = Catalog.expected_nodes()
 
     node_logs_tables =
       Enum.reduce(expected_nodes, %{}, fn node, acc ->
