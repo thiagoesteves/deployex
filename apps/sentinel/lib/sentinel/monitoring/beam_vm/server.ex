@@ -1,4 +1,4 @@
-defmodule Sentinel.BeamVm.Server do
+defmodule Sentinel.Monitoring.BeamVm.Server do
   @moduledoc """
   This server is responsible for periodically capturing system information
   and sending it to processes that are subscribed to it
@@ -6,11 +6,12 @@ defmodule Sentinel.BeamVm.Server do
   use GenServer
   require Logger
 
+  alias Foundation.Catalog
   alias Foundation.Rpc
 
   @update_info_interval :timer.seconds(1)
   @timeout 100
-  @beam_vm_info_updated_topic "beam_vm_info_updated"
+  @beam_vm_info_updated_topic "beam_vm_update_info"
 
   ### ==========================================================================
   ### GenServer Callbacks
@@ -25,7 +26,22 @@ defmodule Sentinel.BeamVm.Server do
   def init(args) do
     Logger.info("Initialising Beam VM Statistics Server")
 
-    state = %{} # application_info()
+    # Subscribe to receive notifications if any node is UP or Down
+    :net_kernel.monitor_nodes(true)
+
+    # List all expected nodes within the cluster
+    expected_nodes = Catalog.expected_nodes()
+
+    nodes =
+      Enum.reduce(Node.list() ++ [Node.self()], [], fn node, acc ->
+        if Enum.member?(expected_nodes, node) do
+          acc ++ [node]
+        else
+          acc
+        end
+      end)
+
+    state = %{expected_nodes: expected_nodes, nodes: nodes}
 
     args
     |> Keyword.get(:update_info_interval, @update_info_interval)
@@ -35,16 +51,41 @@ defmodule Sentinel.BeamVm.Server do
   end
 
   @impl true
-  def handle_info(:update_info, _state) do
-    state = %{} # application_info()
+  def handle_info(:update_info, %{nodes: nodes} = state) do
+    info =
+      Enum.reduce(nodes, %{}, fn node, acc ->
+        Map.put(acc, node, application_info(node))
+      end)
 
     Phoenix.PubSub.broadcast(
       Sentinel.PubSub,
       @beam_vm_info_updated_topic,
-      {:beam_vm_info, state}
+      {:beam_vm_update_info, info}
     )
 
     {:noreply, state}
+  end
+
+  def handle_info({:nodeup, node}, %{expected_nodes: expected_nodes, nodes: nodes} = state) do
+    updated_nodes =
+      if node in expected_nodes do
+        nodes ++ [node]
+      else
+        nodes
+      end
+
+    {:noreply, %{state | nodes: updated_nodes}}
+  end
+
+  def handle_info({:nodedown, node}, %{expected_nodes: expected_nodes, nodes: nodes} = state) do
+    updated_nodes =
+      if node in expected_nodes do
+        nodes -- [node]
+      else
+        nodes
+      end
+
+    {:noreply, %{state | nodes: updated_nodes}}
   end
 
   ### ==========================================================================
@@ -57,8 +98,7 @@ defmodule Sentinel.BeamVm.Server do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
-
-  def application_info(node) do
+  defp application_info(node) do
     total_memory =
       case Rpc.call(node, :erlang, :memory, [], @timeout) do
         [_head | _rest] = memory ->

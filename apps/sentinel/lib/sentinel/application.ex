@@ -12,7 +12,7 @@ defmodule Sentinel.Application do
     children =
       [
         {Phoenix.PubSub, name: Sentinel.PubSub},
-        Sentinel.BeamVm.Server
+        Sentinel.Monitoring.BeamVm.Server
       ] ++ application_servers()
 
     # See https://hexdocs.pm/elixir/Supervisor.html

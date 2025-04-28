@@ -13,6 +13,7 @@ defmodule Foundation.Catalog.Adapter do
   @callback monitored_app_lang() :: String.t()
   @callback monitored_app_env() :: list()
   @callback monitored_app_start_port() :: integer()
+  @callback expected_nodes() :: list()
   @callback stdout_path(integer()) :: binary()
   @callback stderr_path(integer()) :: binary()
   @callback sname(integer()) :: String.t()
