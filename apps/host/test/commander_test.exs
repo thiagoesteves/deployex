@@ -41,6 +41,4 @@ defmodule Host.CommanderTest do
 
     assert {:unix, :any} = Commander.os_type()
   end
-
-  # def os_type, do: default().os_type()
 end

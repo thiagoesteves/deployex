@@ -16,7 +16,7 @@ defmodule Deployer.Deployex do
   when running locally.
   """
   @spec force_terminate(non_neg_integer()) :: :ok
-  def force_terminate(sleep_time \\ 300) do
+  def force_terminate(sleep_time) do
     Logger.warning("Deployex was requested to terminate, see you soon!!!")
 
     :timer.sleep(sleep_time)

@@ -13,6 +13,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Host.Terminal.Server
 
   @manual_version_max_list 10
+  @deployex_terminate_delay 300
 
   @impl true
   def render(assigns) do
@@ -303,7 +304,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("restart", %{"id" => "0"}, socket) do
     # NOTE: Say goodbye to your monitored applications
-    Deployex.force_terminate()
+    Deployex.force_terminate(@deployex_terminate_delay)
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
