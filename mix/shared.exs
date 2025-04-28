@@ -38,6 +38,7 @@ defmodule Mix.Shared do
         Foundation.RpcMock,
         Foundation.Macros,
         Foundation.Application,
+        Foundation.Catalog.Version,
         # Host
         Host.Memory,
         Host.Commander.Local,
