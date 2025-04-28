@@ -1,5 +1,19 @@
 # CHANGELOG (0.4.x)
 
+## 0.4.2 ()
+
+### Backwards incompatible changes for 0.4.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Adding Shutdown mechanism based on hte BEAM metrics and host memory
+
 ## 0.4.1 🚀 (2025-04-25)
 
 ### Backwards incompatible changes for 0.4.0

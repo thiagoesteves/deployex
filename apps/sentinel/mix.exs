@@ -4,17 +4,17 @@ defmodule Sentinel.MixProject do
   def project do
     [
       app: :sentinel,
-      version: MixShared.version(),
+      version: Mix.Shared.version(),
       name: "Sentinel",
       build_path: "../../_build",
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      elixir: MixShared.elixir(),
-      elixirc_paths: MixShared.elixirc_paths(),
+      elixir: Mix.Shared.elixir(),
+      elixirc_paths: Mix.Shared.elixirc_paths(),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: MixShared.test_coverage()
+      test_coverage: Mix.Shared.test_coverage()
     ]
   end
 
