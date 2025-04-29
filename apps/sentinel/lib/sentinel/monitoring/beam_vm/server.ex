@@ -32,8 +32,10 @@ defmodule Sentinel.Monitoring.BeamVm.Server do
     # List all expected nodes within the cluster
     expected_nodes = Catalog.expected_nodes()
 
+    self_node = Node.self()
+
     nodes =
-      Enum.reduce(Node.list() ++ [Node.self()], [], fn node, acc ->
+      Enum.reduce(Node.list() ++ [self_node], [], fn node, acc ->
         if Enum.member?(expected_nodes, node) do
           acc ++ [node]
         else
@@ -41,7 +43,7 @@ defmodule Sentinel.Monitoring.BeamVm.Server do
         end
       end)
 
-    state = %{expected_nodes: expected_nodes, nodes: nodes}
+    state = %{expected_nodes: expected_nodes, nodes: nodes, self_node: self_node}
 
     args
     |> Keyword.get(:update_info_interval, @update_info_interval)
@@ -51,8 +53,8 @@ defmodule Sentinel.Monitoring.BeamVm.Server do
   end
 
   @impl true
-  def handle_info(:update_info, %{nodes: nodes} = state) do
-    info =
+  def handle_info(:update_info, %{nodes: nodes, self_node: self_node} = state) do
+    statistics =
       Enum.reduce(nodes, %{}, fn node, acc ->
         Map.put(acc, node, application_info(node))
       end)
@@ -60,7 +62,8 @@ defmodule Sentinel.Monitoring.BeamVm.Server do
     Phoenix.PubSub.broadcast(
       Sentinel.PubSub,
       @beam_vm_info_updated_topic,
-      {:beam_vm_update_info, info}
+      {:beam_vm_update_statistics,
+       %Sentinel.Monitoring.BeamVm{statistics: statistics, source_node: self_node}}
     )
 
     {:noreply, state}

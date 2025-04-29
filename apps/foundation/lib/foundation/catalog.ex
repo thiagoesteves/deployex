@@ -127,6 +127,21 @@ defmodule Foundation.Catalog do
   def expected_nodes, do: default().expected_nodes()
 
   @doc """
+  Return the respective instance based on the passed node
+
+  ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert Catalog.node_to_instance(:"testapp-1@nohost") == 1
+    ...> assert Catalog.node_to_instance(:"testapp-2@nohost") == 2
+    ...> assert Catalog.node_to_instance(:"testapp-3@nohost") == 3
+
+  """
+  @impl true
+  @spec node_to_instance(String.t() | atom()) :: non_neg_integer() | nil
+  def node_to_instance(node), do: default().node_to_instance(node)
+
+  @doc """
   Return the path for the stdout log file
 
   ## Examples

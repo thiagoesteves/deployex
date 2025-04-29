@@ -23,7 +23,7 @@ defmodule Sentinel.Monitoring.BeamVmTest do
 
     BeamVmServer.subscribe()
 
-    assert_receive {:beam_vm_update_info, %{}}, 1_000
+    assert_receive {:beam_vm_update_statistics, %{}}, 1_000
   end
 
   test "nodeup - expected node" do
@@ -53,17 +53,17 @@ defmodule Sentinel.Monitoring.BeamVmTest do
 
     BeamVmServer.subscribe()
 
-    assert_receive {:beam_vm_update_info, data}, 1_000
+    assert_receive {:beam_vm_update_statistics, %{statistics: statistics}}, 1_000
 
-    assert Map.get(data, node) == %{
-             port_count: expected_count,
-             port_limit: expected_count,
-             process_count: expected_count,
-             process_limit: expected_count,
-             atom_count: expected_count,
-             atom_limit: expected_count,
-             total_memory: expected_memory
-           }
+    assert %{
+             port_count: ^expected_count,
+             port_limit: ^expected_count,
+             process_count: ^expected_count,
+             process_limit: ^expected_count,
+             atom_count: ^expected_count,
+             atom_limit: ^expected_count,
+             total_memory: ^expected_memory
+           } = Map.get(statistics, node)
   end
 
   test "nodeup - expected node - rpc error" do
@@ -88,9 +88,9 @@ defmodule Sentinel.Monitoring.BeamVmTest do
 
     BeamVmServer.subscribe()
 
-    assert_receive {:beam_vm_update_info, data}, 1_000
+    assert_receive {:beam_vm_update_statistics, %{statistics: statistics}}, 1_000
 
-    assert Map.get(data, node) == %{
+    assert %{
              port_count: nil,
              port_limit: nil,
              process_count: nil,
@@ -98,7 +98,7 @@ defmodule Sentinel.Monitoring.BeamVmTest do
              atom_count: nil,
              atom_limit: nil,
              total_memory: nil
-           }
+           } = Map.get(statistics, node)
   end
 
   test "nodeup - invalid node" do
@@ -127,25 +127,24 @@ defmodule Sentinel.Monitoring.BeamVmTest do
 
   test "nodedown - invalid node" do
     name = "#{__MODULE__}-007" |> String.to_atom()
-    test_pid_process = self()
-    ref = make_ref()
 
     assert {:ok, pid} = BeamVmServer.start_link(name: name, update_info_interval: 10)
 
     node = Foundation.Catalog.expected_nodes() |> hd
 
     Foundation.RpcMock
-    |> stub(:call, fn
-      _node, _module, _function, _args, _timeout ->
-        Process.send_after(test_pid_process, {:handle_ref_event, ref}, 10)
-        :badrpc
-    end)
+    |> stub(:call, fn _node, _module, _function, _args, _timeout -> :badrpc end)
 
-    send(pid, {:nodeup, :invalid@node})
+    send(pid, {:nodedown, :invalid@node})
     send(pid, {:nodeup, node})
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
+    wait_all_messages(name)
 
     assert %{nodes: [^node]} = :sys.get_state(name)
+  end
+
+  # Note: Fetching the state guarantees that previous messages will be executed
+  defp wait_all_messages(name) do
+    %{expected_nodes: _expected_nodes} = :sys.get_state(name)
   end
 end

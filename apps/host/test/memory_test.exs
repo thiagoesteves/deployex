@@ -11,9 +11,6 @@ defmodule Host.MemoryTest do
   test "start_link/1 for Windows (Not Implemented yet)" do
     name = "#{__MODULE__}-001" |> String.to_atom()
 
-    Host.CommanderMock
-    |> expect(:os_type, fn -> {:win32, nil} end)
-
     assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
   end
 

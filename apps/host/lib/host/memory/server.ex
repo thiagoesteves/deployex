@@ -24,23 +24,21 @@ defmodule Host.Memory.Server do
   def init(args) do
     Logger.info("Initializing Host Memory Server")
 
-    state = memory_info()
-
     args
     |> Keyword.get(:update_info_interval, @update_info_interval)
     |> :timer.send_interval(:update_info)
 
-    {:ok, state}
+    {:ok, %{self_node: Node.self()}}
   end
 
   @impl true
-  def handle_info(:update_info, _state) do
-    state = memory_info()
+  def handle_info(:update_info, %{self_node: self_node} = state) do
+    memory_info = memory_info(self_node)
 
     Phoenix.PubSub.broadcast(
       Host.PubSub,
       @system_info_updated_topic,
-      {:update_system_info, state}
+      {:update_system_info, memory_info}
     )
 
     {:noreply, state}
@@ -69,7 +67,7 @@ defmodule Host.Memory.Server do
     end)
   end
 
-  defp memory_info do
+  defp memory_info(self_node) do
     case Commander.os_type() do
       {:unix, :linux} ->
         # Memory Info
@@ -106,6 +104,7 @@ defmodule Host.Memory.Server do
 
         %Host.Memory{
           host: "Linux",
+          source_node: self_node,
           description: description,
           memory_free: memory_free,
           memory_total: memory_total,
@@ -153,6 +152,7 @@ defmodule Host.Memory.Server do
 
         %Host.Memory{
           host: "macOS",
+          source_node: self_node,
           description: description,
           memory_free: page_size * page_free,
           memory_total: memory_total,
@@ -161,7 +161,7 @@ defmodule Host.Memory.Server do
         }
 
       {:win32, _} ->
-        %Host.Memory{host: "Windows"}
+        %Host.Memory{host: "Windows", source_node: self_node}
     end
   end
 end

@@ -113,6 +113,19 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
+  @spec node_to_instance(String.t() | atom()) :: non_neg_integer() | nil
+  def node_to_instance(node) when is_atom(node) do
+    node |> Atom.to_string() |> node_to_instance()
+  end
+
+  def node_to_instance(node) do
+    case String.split(node, ["@", "-"]) do
+      [_sname, instance, _hostname] -> String.to_integer(instance)
+      _ -> nil
+    end
+  end
+
+  @impl true
   def stdout_path(@deployex_instance) do
     log_path = Application.fetch_env!(:foundation, :log_path)
     "#{log_path}/deployex-stdout.log"
