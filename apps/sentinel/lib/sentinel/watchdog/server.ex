@@ -154,10 +154,6 @@ defmodule Sentinel.Watchdog.Server do
   ### Public APIs
   ### ==========================================================================
 
-  def list do
-    :ets.tab2list(@watchdog_data)
-  end
-
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
@@ -223,9 +219,9 @@ defmodule Sentinel.Watchdog.Server do
            warning_threshold: warning_threshold
          } = config
        )
-       when current < warning_threshold do
+       when current <= warning_threshold do
     Logger.warning(
-      "[#{node}] #{type} threshold normalized: current #{current}% < warning #{warning_threshold}%."
+      "[#{node}] #{type} threshold normalized: current #{current}% <= warning #{warning_threshold}%."
     )
 
     # Reset warning log flag, current value was normalized
