@@ -7,12 +7,12 @@ defmodule Host.Memory do
 
   @type t :: %__MODULE__{
           host: String.t(),
-          source_node: atom(),
+          source_node: nil | atom(),
           description: String.t(),
-          memory_free: non_neg_integer(),
-          memory_total: non_neg_integer(),
-          cpu: non_neg_integer(),
-          cpus: non_neg_integer()
+          memory_free: nil | non_neg_integer(),
+          memory_total: nil | non_neg_integer(),
+          cpu: nil | non_neg_integer(),
+          cpus: nil | non_neg_integer()
         }
 
   defstruct host: "",
