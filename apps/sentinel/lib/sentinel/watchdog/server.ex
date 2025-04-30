@@ -39,7 +39,7 @@ defmodule Sentinel.Watchdog.Server do
 
     # TODO: Capture configuration from YAML file
     :ets.insert(@watchdog_data, {{:system_info, :config}, %Sentinel.Watchdog.Data{}})
-    :ets.insert(@watchdog_data, {{:system_info, :data}, nil})
+    :ets.insert(@watchdog_data, {{:system_info, :data}, %Memory{}})
 
     Enum.each(expected_nodes, &reset_application_statistic/1)
 
@@ -62,27 +62,39 @@ defmodule Sentinel.Watchdog.Server do
 
   @impl true
   def handle_info(:watchdog_check, %{expected_nodes: expected_nodes} = state) do
-    check_limits = fn node, type ->
-      [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
+    check_monitored_app_limits = fn node ->
+      Enum.each(@monitored_app_limits, fn type ->
+        [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
 
-      case :ets.lookup(@watchdog_data, {node, :data, type}) do
-        [{_, nil}] ->
-          :ok
+        case :ets.lookup(@watchdog_data, {node, :data, type}) do
+          [{_, %{count: count, limit: limit}}] when is_nil(count) or is_nil(limit) ->
+            :ok
 
-        [{_, %{count: count, limit: limit}}] when is_nil(count) or is_nil(limit) ->
-          :ok
-
-        [{_, %{count: count, limit: limit}}] ->
-          current = trunc(count / limit * 100)
-          maybe_restart(node, type, current, config)
-      end
+          [{_, %{count: count, limit: limit}}] ->
+            current = trunc(count / limit * 100)
+            threshold_check_monitored_apps_limits(node, type, current, config)
+        end
+      end)
     end
 
-    Enum.each(expected_nodes, fn node ->
-      Enum.each(@monitored_app_limits, fn statistic ->
-        check_limits.(node, statistic)
-      end)
-    end)
+    Enum.each(expected_nodes, &check_monitored_app_limits.(&1))
+
+    # Check the application with highest usage in memory
+    top_consumer_node = app_with_highest_usage(expected_nodes)
+
+    [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+
+    case :ets.lookup(@watchdog_data, {:system_info, :data}) do
+      [{_, %{memory_free: memory_free, memory_total: memory_total}}]
+      when is_nil(memory_free) or is_nil(memory_total) ->
+        :ok
+
+      [{_, %{memory_free: memory_free, memory_total: memory_total}}] ->
+        current = trunc((memory_total - memory_free) / memory_total * 100)
+        IO.inspect(current)
+        IO.inspect(top_consumer_node)
+        IO.inspect(config)
+    end
 
     {:noreply, state}
   end
@@ -158,6 +170,21 @@ defmodule Sentinel.Watchdog.Server do
   ### Private Functions
   ### ==========================================================================
 
+  defp app_with_highest_usage(expected_nodes) do
+    {target_node, _memory} =
+      Enum.reduce(expected_nodes, {nil, 0}, fn node, {_node, memory} = acc ->
+        [{_, value}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+
+        if value != nil and value > memory do
+          {node, value}
+        else
+          acc
+        end
+      end)
+
+    target_node
+  end
+
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
       :ets.insert(@watchdog_data, {{node, :config, statistic}, %Sentinel.Watchdog.Data{}})
@@ -167,7 +194,7 @@ defmodule Sentinel.Watchdog.Server do
     :ets.insert(@watchdog_data, {{node, :data, :total_memory}, nil})
   end
 
-  defp maybe_restart(
+  defp threshold_check_monitored_apps_limits(
          node,
          type,
          current,
@@ -188,12 +215,11 @@ defmodule Sentinel.Watchdog.Server do
     :ok
   end
 
-  defp maybe_restart(
+  defp threshold_check_monitored_apps_limits(
          node,
          type,
          current,
          %{
-           restart_enabled: true,
            warning_log: false,
            warning_threshold: warning_threshold
          } = config
@@ -209,12 +235,11 @@ defmodule Sentinel.Watchdog.Server do
     :ok
   end
 
-  defp maybe_restart(
+  defp threshold_check_monitored_apps_limits(
          node,
          type,
          current,
          %{
-           restart_enabled: true,
            warning_log: true,
            warning_threshold: warning_threshold
          } = config
@@ -230,5 +255,5 @@ defmodule Sentinel.Watchdog.Server do
     :ok
   end
 
-  defp maybe_restart(_node, _type, _current, _config), do: :ok
+  defp threshold_check_monitored_apps_limits(_node, _type, _current, _config), do: :ok
 end

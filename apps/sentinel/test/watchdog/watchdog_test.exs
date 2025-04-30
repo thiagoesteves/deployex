@@ -188,8 +188,53 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     end)
   end
 
+  test "No warning if the statistic is inside the threshold" do
+    name = "#{__MODULE__}-006" |> String.to_atom()
+
+    self_node = Node.self()
+    node = FixtureNodes.test_node(1) |> String.to_atom()
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node, %{
+             total_memory: 1_000_000,
+             port_limit: 1_000,
+             port_count: 50,
+             atom_limit: 1_000,
+             atom_count: 50,
+             process_limit: 1_000,
+             process_count: 50
+           })
+       }}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message =~ ""
+
+    # Check Alarm is clear
+    assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {node, :config, :port})
+    assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {node, :config, :atom})
+
+    assert [{_, %{warning_log: false}}] =
+             :ets.lookup(@watchdog_data, {node, :config, :process})
+  end
+
   test "Monitored applications statistic warning" do
-    name = "#{__MODULE__}-005" |> String.to_atom()
+    name = "#{__MODULE__}-007" |> String.to_atom()
 
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
@@ -273,7 +318,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitored applications statistic - ignore nil data" do
-    name = "#{__MODULE__}-005" |> String.to_atom()
+    name = "#{__MODULE__}-008" |> String.to_atom()
 
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
@@ -310,6 +355,105 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert [{_, %{warning_log: false}}] =
              :ets.lookup(@watchdog_data, {node, :config, :process})
+  end
+
+  test "Monitored applications statistic restart" do
+    name = "#{__MODULE__}-009" |> String.to_atom()
+
+    self_node = Node.self()
+    node = FixtureNodes.test_node(1) |> String.to_atom()
+    expected_nodes = Catalog.expected_nodes() -- [self_node]
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    Deployer.MonitorMock
+    |> stub(:restart, fn _instance ->
+      send(pid, {:nodedown, node})
+      :ok
+    end)
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node, %{
+             total_memory: 1_000_000,
+             port_limit: 1_000,
+             port_count: 210,
+             atom_limit: 2_000,
+             atom_count: 420,
+             process_limit: 3_000,
+             process_count: 630
+           })
+       }}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message =~
+             "[#{node}] port threshold exceeded: current 21% > restart 20%. Initiating restart..."
+
+    assert message =~
+             "[#{node}] atom threshold exceeded: current 21% > restart 20%. Initiating restart..."
+
+    assert message =~
+             "[#{node}] process threshold exceeded: current 21% > restart 20%. Initiating restart..."
+
+    # Check reset after restart
+    Enum.each(expected_nodes, fn node ->
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :port})
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :atom})
+
+      assert [{_, %{count: nil, limit: nil}}] =
+               :ets.lookup(@watchdog_data, {node, :data, :process})
+
+      assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+    end)
+  end
+
+  test "Node Up doesn't change any status" do
+    name = "#{__MODULE__}-010" |> String.to_atom()
+
+    self_node = Node.self()
+    node = FixtureNodes.test_node(1) |> String.to_atom()
+    expected_nodes = Catalog.expected_nodes() -- [self_node]
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    # Check data is empty
+    Enum.each(expected_nodes, fn node ->
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :port})
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :atom})
+
+      assert [{_, %{count: nil, limit: nil}}] =
+               :ets.lookup(@watchdog_data, {node, :data, :process})
+
+      assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+    end)
+
+    send(pid, {:nodeup, node})
+
+    wait_message_processing(name)
+
+    # Check data is still empty
+    Enum.each(expected_nodes, fn node ->
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :port})
+      assert [{_, %{count: nil, limit: nil}}] = :ets.lookup(@watchdog_data, {node, :data, :atom})
+
+      assert [{_, %{count: nil, limit: nil}}] =
+               :ets.lookup(@watchdog_data, {node, :data, :process})
+
+      assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+    end)
   end
 
   # Note: Fetching the state guarantees that handle_info will be executed and the ETS table will be updated.
