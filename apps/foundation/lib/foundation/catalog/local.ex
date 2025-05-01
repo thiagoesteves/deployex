@@ -119,8 +119,10 @@ defmodule Foundation.Catalog.Local do
   end
 
   def node_to_instance(node) do
-    case String.split(node, ["@", "-"]) do
-      [_sname, instance, _hostname] -> String.to_integer(instance)
+    [sname, _hostname] = String.split(node, ["@"])
+
+    case String.split(sname, ["-"]) do
+      [_name, instance] -> String.to_integer(instance)
       _ -> nil
     end
   end

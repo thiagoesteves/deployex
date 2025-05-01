@@ -77,24 +77,29 @@ defmodule Sentinel.Watchdog.Server do
       end)
     end
 
-    Enum.each(expected_nodes, &check_monitored_app_limits.(&1))
+    check_system_memory_limits = fn ->
+      # Check the application with highest usage in memory
+      top_consumer_node = app_with_highest_usage(expected_nodes)
 
-    # Check the application with highest usage in memory
-    top_consumer_node = app_with_highest_usage(expected_nodes)
+      [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
 
-    [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+      case :ets.lookup(@watchdog_data, {:system_info, :data}) do
+        [{_, %{memory_free: memory_free, memory_total: memory_total}}]
+        when is_nil(memory_free) or is_nil(memory_total) ->
+          :ok
 
-    case :ets.lookup(@watchdog_data, {:system_info, :data}) do
-      [{_, %{memory_free: memory_free, memory_total: memory_total}}]
-      when is_nil(memory_free) or is_nil(memory_total) ->
-        :ok
+        [{_, %{memory_free: memory_free, memory_total: memory_total}}] ->
+          current = trunc((memory_total - memory_free) / memory_total * 100)
 
-      [{_, %{memory_free: memory_free, memory_total: memory_total}}] ->
-        current = trunc((memory_total - memory_free) / memory_total * 100)
-        IO.inspect(current)
-        IO.inspect(top_consumer_node)
-        IO.inspect(config)
+          threshold_check_system_memory(top_consumer_node, current, config)
+      end
     end
+
+    # Check System Memory
+    check_system_memory_limits.()
+
+    # Check Applications limits
+    Enum.each(expected_nodes, &check_monitored_app_limits.(&1))
 
     {:noreply, state}
   end
@@ -256,4 +261,66 @@ defmodule Sentinel.Watchdog.Server do
   end
 
   defp threshold_check_monitored_apps_limits(_node, _type, _current, _config), do: :ok
+
+  defp threshold_check_system_memory(nil, _current, _config), do: :ok
+
+  defp threshold_check_system_memory(
+         node,
+         current,
+         %{
+           restart_enabled: true,
+           restart_threshold: restart_threshold
+         }
+       )
+       when current > restart_threshold do
+    Logger.error(
+      "Total Memory threshold exceeded: current #{current}% > restart #{restart_threshold}%. Initiating restart for #{node} ..."
+    )
+
+    node
+    |> Catalog.node_to_instance()
+    |> Monitor.restart()
+
+    :ok
+  end
+
+  defp threshold_check_system_memory(
+         _node,
+         current,
+         %{
+           warning_log: false,
+           warning_threshold: warning_threshold
+         } = config
+       )
+       when current > warning_threshold do
+    Logger.warning(
+      "Total Memory threshold exceeded: current #{current}% > warning #{warning_threshold}%."
+    )
+
+    # Set flag indicating that warning log was emitted
+    :ets.insert(@watchdog_data, {{:system_info, :config}, %{config | warning_log: true}})
+
+    :ok
+  end
+
+  defp threshold_check_system_memory(
+         _node,
+         current,
+         %{
+           warning_log: true,
+           warning_threshold: warning_threshold
+         } = config
+       )
+       when current <= warning_threshold do
+    Logger.warning(
+      "Total Memory threshold normalized: current #{current}% <= warning #{warning_threshold}%."
+    )
+
+    # Reset warning log flag, current value was normalized
+    :ets.insert(@watchdog_data, {{:system_info, :config}, %{config | warning_log: false}})
+
+    :ok
+  end
+
+  defp threshold_check_system_memory(_node, _current, _config), do: :ok
 end

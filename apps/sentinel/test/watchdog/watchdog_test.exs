@@ -56,7 +56,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     )
 
     wait_message_processing(name)
-    assert [{_, nil}] = :ets.lookup(@watchdog_data, {:system_info, :data})
+    assert [{_, %Memory{}}] = :ets.lookup(@watchdog_data, {:system_info, :data})
   end
 
   test "handle_info/2 - update application statistics - valid source" do
@@ -188,7 +188,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     end)
   end
 
-  test "No warning if the statistic is inside the threshold" do
+  test "Monitore application - No warning if the statistic is inside the threshold" do
     name = "#{__MODULE__}-006" |> String.to_atom()
 
     self_node = Node.self()
@@ -223,7 +223,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
         wait_message_processing(name)
       end)
 
-    assert message =~ ""
+    assert message == ""
 
     # Check Alarm is clear
     assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {node, :config, :port})
@@ -233,7 +233,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              :ets.lookup(@watchdog_data, {node, :config, :process})
   end
 
-  test "Monitored applications statistic warning" do
+  test "Monitore application - statistic warning" do
     name = "#{__MODULE__}-007" |> String.to_atom()
 
     self_node = Node.self()
@@ -317,7 +317,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              :ets.lookup(@watchdog_data, {node, :config, :process})
   end
 
-  test "Monitored applications statistic - ignore nil data" do
+  test "Monitore application - ignore nil data" do
     name = "#{__MODULE__}-008" |> String.to_atom()
 
     self_node = Node.self()
@@ -357,7 +357,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              :ets.lookup(@watchdog_data, {node, :config, :process})
   end
 
-  test "Monitored applications statistic restart" do
+  test "Monitore application - restart" do
     name = "#{__MODULE__}-009" |> String.to_atom()
 
     self_node = Node.self()
@@ -454,6 +454,227 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
+  end
+
+  test "System memory - No warning if the consumed memory is inside the threshold" do
+    name = "#{__MODULE__}-006" |> String.to_atom()
+    memory_free = 900_000
+    memory_total = 1_000_000
+    self_node = Node.self()
+
+    node = FixtureNodes.test_node(1) |> String.to_atom()
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    send(
+      pid,
+      {:update_system_info,
+       %Memory{source_node: self_node, memory_free: memory_free, memory_total: memory_total}}
+    )
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node, %{
+             total_memory: 300_000,
+             port_limit: nil,
+             port_count: nil,
+             atom_limit: nil,
+             atom_count: nil,
+             process_limit: nil,
+             process_count: nil
+           })
+       }}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message == ""
+
+    # Check Alarm is clear
+    assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+  end
+
+  test "System memory - Warning if the consumed memory is above the warning threshold" do
+    name = "#{__MODULE__}-006" |> String.to_atom()
+    memory_free = 890_000
+    memory_total = 1_000_000
+    self_node = Node.self()
+
+    node = FixtureNodes.test_node(1) |> String.to_atom()
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    send(
+      pid,
+      {:update_system_info,
+       %Memory{source_node: self_node, memory_free: memory_free, memory_total: memory_total}}
+    )
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node, %{
+             total_memory: 300_000,
+             port_limit: nil,
+             port_count: nil,
+             atom_limit: nil,
+             atom_count: nil,
+             process_limit: nil,
+             process_count: nil
+           })
+       }}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message =~ "Total Memory threshold exceeded: current 11% > warning 10%."
+
+    # Check Alarm is set
+    assert [{_, %{warning_log: true}}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+
+    memory_free = 900_000
+
+    send(
+      pid,
+      {:update_system_info,
+       %Memory{source_node: self_node, memory_free: memory_free, memory_total: memory_total}}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message =~ "Total Memory threshold normalized: current 10% <= warning 10%."
+
+    # Check Alarm is clear
+    assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+  end
+
+  test "System memory - Restart if the consumed memory is above the restart threshold" do
+    name = "#{__MODULE__}-006" |> String.to_atom()
+    memory_free = 790_000
+    memory_total = 1_000_000
+    self_node = Node.self()
+
+    node_1 = FixtureNodes.test_node(1) |> String.to_atom()
+    node_2 = FixtureNodes.test_node(2) |> String.to_atom()
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    Deployer.MonitorMock
+    |> stub(:restart, fn 2 ->
+      send(pid, {:nodedown, node_2})
+      :ok
+    end)
+
+    send(
+      pid,
+      {:update_system_info,
+       %Memory{source_node: self_node, memory_free: memory_free, memory_total: memory_total}}
+    )
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node_1, %{
+             total_memory: 300_000,
+             port_limit: nil,
+             port_count: nil,
+             atom_limit: nil,
+             atom_count: nil,
+             process_limit: nil,
+             process_count: nil
+           })
+       }}
+    )
+
+    send(
+      pid,
+      {:beam_vm_update_statistics,
+       %BeamVm{
+         source_node: self_node,
+         statistics:
+           Map.put(%{}, node_2, %{
+             total_memory: 350_000,
+             port_limit: nil,
+             port_count: nil,
+             atom_limit: nil,
+             atom_count: nil,
+             process_limit: nil,
+             process_count: nil
+           })
+       }}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message =~
+             "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_2} ..."
+
+    # Check Alarm is clear after Node Down
+    assert [{_, %{warning_log: false}}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+  end
+
+  test "System memory - Don't Restart if the consumed memory is above the restart threshold and node memory is not available" do
+    name = "#{__MODULE__}-006" |> String.to_atom()
+    memory_free = 790_000
+    memory_total = 1_000_000
+    self_node = Node.self()
+
+    assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
+
+    send(
+      pid,
+      {:update_system_info,
+       %Memory{source_node: self_node, memory_free: memory_free, memory_total: memory_total}}
+    )
+
+    wait_message_processing(name)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(name)
+      end)
+
+    assert message == ""
   end
 
   # Note: Fetching the state guarantees that handle_info will be executed and the ETS table will be updated.
