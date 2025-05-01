@@ -64,13 +64,13 @@ defmodule Sentinel.Watchdog.Server do
   def handle_info(:watchdog_check, %{expected_nodes: expected_nodes} = state) do
     check_monitored_app_limits = fn node ->
       Enum.each(@monitored_app_limits, fn type ->
-        [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
+        config = get_app_config(node, type)
 
-        case :ets.lookup(@watchdog_data, {node, :data, type}) do
-          [{_, %{count: count, limit: limit}}] when is_nil(count) or is_nil(limit) ->
+        case get_app_data(node, type) do
+          %{count: count, limit: limit} when is_nil(count) or is_nil(limit) ->
             :ok
 
-          [{_, %{count: count, limit: limit}}] ->
+          %{count: count, limit: limit} ->
             current = trunc(count / limit * 100)
             threshold_check_monitored_apps_limits(node, type, current, config)
         end
@@ -81,14 +81,14 @@ defmodule Sentinel.Watchdog.Server do
       # Check the application with highest usage in memory
       top_consumer_node = app_with_highest_usage(expected_nodes)
 
-      [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+      config = get_memory_config()
 
-      case :ets.lookup(@watchdog_data, {:system_info, :data}) do
-        [{_, %{memory_free: memory_free, memory_total: memory_total}}]
+      case get_memory_data() do
+        %{memory_free: memory_free, memory_total: memory_total}
         when is_nil(memory_free) or is_nil(memory_total) ->
           :ok
 
-        [{_, %{memory_free: memory_free, memory_total: memory_total}}] ->
+        %{memory_free: memory_free, memory_total: memory_total} ->
           current = trunc((memory_total - memory_free) / memory_total * 100)
 
           threshold_check_system_memory(top_consumer_node, current, config)
@@ -170,6 +170,26 @@ defmodule Sentinel.Watchdog.Server do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
+
+  def get_app_data(node, type) do
+    [{_, data}] = :ets.lookup(@watchdog_data, {node, :data, type})
+    data
+  end
+
+  def get_app_config(node, type) do
+    [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
+    config
+  end
+
+  def get_memory_data do
+    [{_, data}] = :ets.lookup(@watchdog_data, {:system_info, :data})
+    data
+  end
+
+  def get_memory_config do
+    [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+    config
+  end
 
   ### ==========================================================================
   ### Private Functions
