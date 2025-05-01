@@ -6,6 +6,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   alias Foundation.Catalog
   alias Host.Memory
+  alias Sentinel.Fixture.Host, as: FixtureHost
   alias Sentinel.Fixture.Monitoring.BeamVm, as: FixtureBeamVm
   alias Sentinel.Fixture.Nodes, as: FixtureNodes
   alias Sentinel.Watchdog.Server, as: WatchdogServer
@@ -30,7 +31,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(Node.self(), memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(Node.self(), memory_free, memory_total))
 
     wait_message_processing(name)
 
@@ -45,7 +46,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(:other@node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(:other@node, memory_free, memory_total))
 
     wait_message_processing(name)
     assert [{_, %Memory{}}] = :ets.lookup(@watchdog_data, {:system_info, :data})
@@ -396,7 +397,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(self_node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
     node_statistic = %{
       total_memory: 300_000
@@ -429,7 +430,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(self_node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
     node_statistic = %{
       total_memory: 300_000
@@ -453,7 +454,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     memory_free = 900_000
 
-    send(pid, FixtureBeamVm.update_sys_info_message(self_node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
     wait_message_processing(name)
 
@@ -487,7 +488,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
       :ok
     end)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(self_node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
     send(
       pid,
@@ -527,7 +528,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(name: name, watchdog_check_interval: 10_000)
 
-    send(pid, FixtureBeamVm.update_sys_info_message(self_node, memory_free, memory_total))
+    send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
     wait_message_processing(name)
 
