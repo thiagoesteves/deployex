@@ -5,10 +5,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   import ExUnit.CaptureLog
 
   alias Foundation.Catalog
-  alias Host.Memory
   alias Sentinel.Fixture.Host, as: FixtureHost
   alias Sentinel.Fixture.Monitoring.BeamVm, as: FixtureBeamVm
   alias Sentinel.Fixture.Nodes, as: FixtureNodes
+  alias Sentinel.Watchdog.Data
   alias Sentinel.Watchdog.Server, as: WatchdogServer
 
   @watchdog_data :deployex_watchdog_data
@@ -25,6 +25,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   test "handle_info/2 - update system info - valid source" do
     memory_free = 5_000
     memory_total = 100_000
+    memory_used = memory_total - memory_free
 
     assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
 
@@ -32,8 +33,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     wait_message_processing(pid)
 
-    assert %Memory{memory_free: ^memory_free, memory_total: ^memory_total} =
-             WatchdogServer.get_memory_data()
+    assert %{current: ^memory_used, limit: ^memory_total} = WatchdogServer.get_memory_data()
   end
 
   test "handle_info/2 - update system info - invalid source" do
@@ -45,7 +45,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     send(pid, FixtureHost.update_sys_info_message(:other@node, memory_free, memory_total))
 
     wait_message_processing(pid)
-    assert %Memory{} = WatchdogServer.get_memory_data()
+    assert %Data{} = WatchdogServer.get_memory_data()
   end
 
   test "handle_info/2 - update application statistics - valid source" do
@@ -63,9 +63,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
 
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+    assert %Data{} = WatchdogServer.get_app_data(node, :port)
+    assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+    assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
     assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
 
@@ -81,9 +81,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     send(pid, FixtureBeamVm.update_app_message(Node.self(), node, %{}))
 
     wait_message_processing(pid)
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-    assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+    assert %Data{} = WatchdogServer.get_app_data(node, :port)
+    assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+    assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
     assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
   end
@@ -111,9 +111,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     # Check no changes in the expected nodes
     Enum.each(expected_nodes, fn node ->
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+      assert %Data{} = WatchdogServer.get_app_data(node, :port)
+      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+      assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -123,9 +123,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     wait_message_processing(pid)
     # Check no changes in the expected nodes
     Enum.each(expected_nodes, fn node ->
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+      assert %Data{} = WatchdogServer.get_app_data(node, :port)
+      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+      assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -307,9 +307,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     # Check reset after restart
     Enum.each(expected_nodes, fn node ->
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+      assert %Data{} = WatchdogServer.get_app_data(node, :port)
+      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+      assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -324,9 +324,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     # Check data is empty
     Enum.each(expected_nodes, fn node ->
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+      assert %Data{} = WatchdogServer.get_app_data(node, :port)
+      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+      assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -337,9 +337,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     # Check data is still empty
     Enum.each(expected_nodes, fn node ->
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :port)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :atom)
-      assert %{current: nil, limit: nil} = WatchdogServer.get_app_data(node, :process)
+      assert %Data{} = WatchdogServer.get_app_data(node, :port)
+      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
+      assert %Data{} = WatchdogServer.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)

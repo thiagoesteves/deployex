@@ -11,6 +11,8 @@ defmodule Sentinel.Watchdog.Server do
   alias Foundation.Catalog
   alias Host.Memory
   alias Sentinel.Monitoring.BeamVm
+  alias Sentinel.Watchdog.Config
+  alias Sentinel.Watchdog.Data
 
   @watchdog_check_interval :timer.seconds(1)
   @monitored_app_limits [:port, :atom, :process]
@@ -38,9 +40,9 @@ defmodule Sentinel.Watchdog.Server do
     expected_nodes = Catalog.expected_nodes() -- [self_node]
 
     # TODO: Capture configuration from YAML file
-    :ets.insert(@watchdog_data, {{:system_info, :config}, %Sentinel.Watchdog.Data{}})
-    :ets.insert(@watchdog_data, {{:system_info, :data}, %Memory{}})
 
+    # Initialize Ets data
+    reset_system_statistic()
     Enum.each(expected_nodes, &reset_application_statistic/1)
 
     # Subscribe to receive System info
@@ -66,11 +68,12 @@ defmodule Sentinel.Watchdog.Server do
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
 
+        # credo:disable-for-lines:1
         case get_app_data(node, type) do
-          %{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
+          %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
             :ok
 
-          %{current: count, limit: limit} ->
+          %Data{current: count, limit: limit} ->
             current_percentage = trunc(count / limit * 100)
             threshold_check_monitored_apps_limits(node, type, current_percentage, config)
         end
@@ -84,12 +87,11 @@ defmodule Sentinel.Watchdog.Server do
       config = get_memory_config()
 
       case get_memory_data() do
-        %{memory_free: memory_free, memory_total: memory_total}
-        when is_nil(memory_free) or is_nil(memory_total) ->
+        %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
           :ok
 
-        %{memory_free: memory_free, memory_total: memory_total} ->
-          current_percentage = trunc((memory_total - memory_free) / memory_total * 100)
+        %Data{current: count, limit: limit} ->
+          current_percentage = trunc(count / limit * 100)
 
           threshold_check_system_memory(top_consumer_node, current_percentage, config)
       end
@@ -105,11 +107,16 @@ defmodule Sentinel.Watchdog.Server do
   end
 
   def handle_info(
-        {:update_system_info, %Memory{source_node: source_node} = system_info},
+        {:update_system_info,
+         %Memory{source_node: source_node, memory_free: memory_free, memory_total: memory_total}},
         %{self_node: self_node} = state
       ) do
     if source_node == self_node do
-      :ets.insert(@watchdog_data, {{:system_info, :data}, system_info})
+      :ets.insert(
+        @watchdog_data,
+        {{:system, :data, :memory},
+         %Data{current: memory_total - memory_free, limit: memory_total}}
+      )
     end
 
     {:noreply, state}
@@ -119,6 +126,7 @@ defmodule Sentinel.Watchdog.Server do
         {:beam_vm_update_statistics, %BeamVm{source_node: source_node, statistics: statistics}},
         %{self_node: self_node, expected_nodes: expected_nodes} = state
       ) do
+    # credo:disable-for-lines:3
     if source_node == self_node do
       Enum.each(expected_nodes, fn node ->
         case Map.get(statistics, node) do
@@ -136,17 +144,17 @@ defmodule Sentinel.Watchdog.Server do
           } ->
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :port}, %{current: port_count, limit: port_limit}}
+              {{node, :data, :port}, %Data{current: port_count, limit: port_limit}}
             )
 
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :atom}, %{current: atom_count, limit: atom_limit}}
+              {{node, :data, :atom}, %Data{current: atom_count, limit: atom_limit}}
             )
 
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :process}, %{current: process_count, limit: process_limit}}
+              {{node, :data, :process}, %Data{current: process_count, limit: process_limit}}
             )
 
             :ets.insert(@watchdog_data, {{node, :data, :total_memory}, total_memory})
@@ -182,12 +190,12 @@ defmodule Sentinel.Watchdog.Server do
   end
 
   def get_memory_data do
-    [{_, data}] = :ets.lookup(@watchdog_data, {:system_info, :data})
+    [{_, data}] = :ets.lookup(@watchdog_data, {:system, :data, :memory})
     data
   end
 
   def get_memory_config do
-    [{_, config}] = :ets.lookup(@watchdog_data, {:system_info, :config})
+    [{_, config}] = :ets.lookup(@watchdog_data, {:system, :config, :memory})
     config
   end
 
@@ -210,10 +218,15 @@ defmodule Sentinel.Watchdog.Server do
     target_node
   end
 
+  defp reset_system_statistic do
+    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %Config{}})
+    :ets.insert(@watchdog_data, {{:system, :data, :memory}, %Data{}})
+  end
+
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
-      :ets.insert(@watchdog_data, {{node, :config, statistic}, %Sentinel.Watchdog.Data{}})
-      :ets.insert(@watchdog_data, {{node, :data, statistic}, %{current: nil, limit: nil}})
+      :ets.insert(@watchdog_data, {{node, :config, statistic}, %Config{}})
+      :ets.insert(@watchdog_data, {{node, :data, statistic}, %Data{}})
     end)
 
     :ets.insert(@watchdog_data, {{node, :data, :total_memory}, nil})
@@ -318,7 +331,7 @@ defmodule Sentinel.Watchdog.Server do
     )
 
     # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{:system_info, :config}, %{config | warning_log: true}})
+    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log: true}})
 
     :ok
   end
@@ -337,7 +350,7 @@ defmodule Sentinel.Watchdog.Server do
     )
 
     # Reset warning log flag, current value was normalized
-    :ets.insert(@watchdog_data, {{:system_info, :config}, %{config | warning_log: false}})
+    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log: false}})
 
     :ok
   end
