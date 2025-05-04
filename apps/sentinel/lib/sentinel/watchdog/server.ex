@@ -71,8 +71,8 @@ defmodule Sentinel.Watchdog.Server do
             :ok
 
           %{current: count, limit: limit} ->
-            current = trunc(count / limit * 100)
-            threshold_check_monitored_apps_limits(node, type, current, config)
+            current_percentage = trunc(count / limit * 100)
+            threshold_check_monitored_apps_limits(node, type, current_percentage, config)
         end
       end)
     end
@@ -89,9 +89,9 @@ defmodule Sentinel.Watchdog.Server do
           :ok
 
         %{memory_free: memory_free, memory_total: memory_total} ->
-          current = trunc((memory_total - memory_free) / memory_total * 100)
+          current_percentage = trunc((memory_total - memory_free) / memory_total * 100)
 
-          threshold_check_system_memory(top_consumer_node, current, config)
+          threshold_check_system_memory(top_consumer_node, current_percentage, config)
       end
     end
 
@@ -222,15 +222,15 @@ defmodule Sentinel.Watchdog.Server do
   defp threshold_check_monitored_apps_limits(
          node,
          type,
-         current,
+         current_percentage,
          %{
            restart_enabled: true,
            restart_threshold: restart_threshold
          }
        )
-       when current > restart_threshold do
+       when current_percentage > restart_threshold do
     Logger.error(
-      "[#{node}] #{type} threshold exceeded: current #{current}% > restart #{restart_threshold}%. Initiating restart..."
+      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart..."
     )
 
     node
@@ -243,15 +243,15 @@ defmodule Sentinel.Watchdog.Server do
   defp threshold_check_monitored_apps_limits(
          node,
          type,
-         current,
+         current_percentage,
          %{
            warning_log: false,
            warning_threshold: warning_threshold
          } = config
        )
-       when current > warning_threshold do
+       when current_percentage > warning_threshold do
     Logger.warning(
-      "[#{node}] #{type} threshold exceeded: current #{current}% > warning #{warning_threshold}%."
+      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold}%."
     )
 
     # Set flag indicating that warning log was emitted
@@ -263,15 +263,15 @@ defmodule Sentinel.Watchdog.Server do
   defp threshold_check_monitored_apps_limits(
          node,
          type,
-         current,
+         current_percentage,
          %{
            warning_log: true,
            warning_threshold: warning_threshold
          } = config
        )
-       when current <= warning_threshold do
+       when current_percentage <= warning_threshold do
     Logger.warning(
-      "[#{node}] #{type} threshold normalized: current #{current}% <= warning #{warning_threshold}%."
+      "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold}%."
     )
 
     # Reset warning log flag, current value was normalized
@@ -280,21 +280,21 @@ defmodule Sentinel.Watchdog.Server do
     :ok
   end
 
-  defp threshold_check_monitored_apps_limits(_node, _type, _current, _config), do: :ok
+  defp threshold_check_monitored_apps_limits(_node, _type, _current_percentage, _config), do: :ok
 
-  defp threshold_check_system_memory(nil, _current, _config), do: :ok
+  defp threshold_check_system_memory(nil, _current_percentage, _config), do: :ok
 
   defp threshold_check_system_memory(
          node,
-         current,
+         current_percentage,
          %{
            restart_enabled: true,
            restart_threshold: restart_threshold
          }
        )
-       when current > restart_threshold do
+       when current_percentage > restart_threshold do
     Logger.error(
-      "Total Memory threshold exceeded: current #{current}% > restart #{restart_threshold}%. Initiating restart for #{node} ..."
+      "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart for #{node} ..."
     )
 
     node
@@ -306,15 +306,15 @@ defmodule Sentinel.Watchdog.Server do
 
   defp threshold_check_system_memory(
          _node,
-         current,
+         current_percentage,
          %{
            warning_log: false,
            warning_threshold: warning_threshold
          } = config
        )
-       when current > warning_threshold do
+       when current_percentage > warning_threshold do
     Logger.warning(
-      "Total Memory threshold exceeded: current #{current}% > warning #{warning_threshold}%."
+      "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold}%."
     )
 
     # Set flag indicating that warning log was emitted
@@ -325,15 +325,15 @@ defmodule Sentinel.Watchdog.Server do
 
   defp threshold_check_system_memory(
          _node,
-         current,
+         current_percentage,
          %{
            warning_log: true,
            warning_threshold: warning_threshold
          } = config
        )
-       when current <= warning_threshold do
+       when current_percentage <= warning_threshold do
     Logger.warning(
-      "Total Memory threshold normalized: current #{current}% <= warning #{warning_threshold}%."
+      "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold}%."
     )
 
     # Reset warning log flag, current value was normalized
