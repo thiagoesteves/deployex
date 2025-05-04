@@ -14,6 +14,11 @@ deploy_timeout_rollback_ms: 600000
 deploy_schedule_interval_ms: 5000
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
+monitoring:
+  - name: "memory"
+    restart_enabled: true
+    warning_threshold: 80
+    restart_threshold: 95
 applications:
   - name: "myapp"
     language: "elixir"
@@ -26,3 +31,16 @@ applications:
         value: true
       - key: MYAPP_OTP_TLS_CERT_PATH
         value: "/usr/local/share/ca-certificates"
+    monitoring:
+      - name: "atom"
+        restart_enabled: true
+        warning_threshold: 80
+        restart_threshold: 95
+      - name: "process"
+        restart_enabled: true
+        warning_threshold: 80
+        restart_threshold: 95
+      - name: "port"
+        restart_enabled: true
+        warning_threshold: 80
+        restart_threshold: 95

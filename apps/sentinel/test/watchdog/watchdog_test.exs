@@ -8,8 +8,8 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   alias Sentinel.Fixture.Host, as: FixtureHost
   alias Sentinel.Fixture.Monitoring.BeamVm, as: FixtureBeamVm
   alias Sentinel.Fixture.Nodes, as: FixtureNodes
+  alias Sentinel.Watchdog
   alias Sentinel.Watchdog.Data
-  alias Sentinel.Watchdog.Server, as: WatchdogServer
 
   @watchdog_data :deployex_watchdog_data
 
@@ -19,7 +19,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   ]
 
   test "start_link/1" do
-    assert {:ok, _pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, _pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
   end
 
   test "handle_info/2 - update system info - valid source" do
@@ -27,25 +27,25 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 100_000
     memory_used = memory_total - memory_free
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureHost.update_sys_info_message(Node.self(), memory_free, memory_total))
 
     wait_message_processing(pid)
 
-    assert %{current: ^memory_used, limit: ^memory_total} = WatchdogServer.get_memory_data()
+    assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_memory_data()
   end
 
   test "handle_info/2 - update system info - invalid source" do
     memory_free = 5_000
     memory_total = 100_000
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureHost.update_sys_info_message(:other@node, memory_free, memory_total))
 
     wait_message_processing(pid)
-    assert %Data{} = WatchdogServer.get_memory_data()
+    assert %Data{} = Watchdog.get_memory_data()
   end
 
   test "handle_info/2 - update application statistics - valid source" do
@@ -61,29 +61,29 @@ defmodule Sentinel.Watchdog.WatchdogTest do
       process_count: 300
     }
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
-    assert %Data{} = WatchdogServer.get_app_data(node, :port)
-    assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-    assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    assert %Data{} = Watchdog.get_app_data(node, :port)
+    assert %Data{} = Watchdog.get_app_data(node, :atom)
+    assert %Data{} = Watchdog.get_app_data(node, :process)
 
     assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
 
     send(pid, FixtureBeamVm.update_app_message(Node.self(), node, node_statistic))
 
     wait_message_processing(pid)
-    assert %{current: 100, limit: 1000} = WatchdogServer.get_app_data(node, :port)
-    assert %{current: 200, limit: 2000} = WatchdogServer.get_app_data(node, :atom)
-    assert %{current: 300, limit: 3000} = WatchdogServer.get_app_data(node, :process)
+    assert %{current: 100, limit: 1000} = Watchdog.get_app_data(node, :port)
+    assert %{current: 200, limit: 2000} = Watchdog.get_app_data(node, :atom)
+    assert %{current: 300, limit: 3000} = Watchdog.get_app_data(node, :process)
 
     assert [{_, 1_000_000}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
 
     send(pid, FixtureBeamVm.update_app_message(Node.self(), node, %{}))
 
     wait_message_processing(pid)
-    assert %Data{} = WatchdogServer.get_app_data(node, :port)
-    assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-    assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    assert %Data{} = Watchdog.get_app_data(node, :port)
+    assert %Data{} = Watchdog.get_app_data(node, :atom)
+    assert %Data{} = Watchdog.get_app_data(node, :process)
 
     assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
   end
@@ -91,7 +91,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   test "handle_info/2 - update application statistics - invalid source" do
     fake_node = :fake@hostname
     self_node = Node.self()
-    expected_nodes = Catalog.expected_nodes() -- [self_node]
+    monitored_nodes = Catalog.monitored_nodes()
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -103,17 +103,17 @@ defmodule Sentinel.Watchdog.WatchdogTest do
       process_count: 300
     }
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureBeamVm.update_app_message(self_node, fake_node, node_statistic))
 
     wait_message_processing(pid)
 
     # Check no changes in the expected nodes
-    Enum.each(expected_nodes, fn node ->
-      assert %Data{} = WatchdogServer.get_app_data(node, :port)
-      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-      assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    Enum.each(monitored_nodes, fn node ->
+      assert %Data{} = Watchdog.get_app_data(node, :port)
+      assert %Data{} = Watchdog.get_app_data(node, :atom)
+      assert %Data{} = Watchdog.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -122,10 +122,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     wait_message_processing(pid)
     # Check no changes in the expected nodes
-    Enum.each(expected_nodes, fn node ->
-      assert %Data{} = WatchdogServer.get_app_data(node, :port)
-      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-      assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    Enum.each(monitored_nodes, fn node ->
+      assert %Data{} = Watchdog.get_app_data(node, :port)
+      assert %Data{} = Watchdog.get_app_data(node, :atom)
+      assert %Data{} = Watchdog.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -135,7 +135,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -161,16 +161,16 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message == ""
 
     # Check Alarm is clear
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :port)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :atom)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :process)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :port)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :atom)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :process)
   end
 
   test "Monitore application - statistic warning" do
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -198,9 +198,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "[#{node}] process threshold exceeded: current 11% > warning 10%."
 
     # Check Alarm raised
-    assert %{warning_log: true} = WatchdogServer.get_app_config(node, :port)
-    assert %{warning_log: true} = WatchdogServer.get_app_config(node, :atom)
-    assert %{warning_log: true} = WatchdogServer.get_app_config(node, :process)
+    assert %{warning_log: true} = Watchdog.get_app_config(node, :port)
+    assert %{warning_log: true} = Watchdog.get_app_config(node, :atom)
+    assert %{warning_log: true} = Watchdog.get_app_config(node, :process)
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -227,16 +227,16 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "[#{node}] atom threshold normalized: current 10% <= warning 10%."
     assert message =~ "[#{node}] process threshold normalized: current 10% <= warning 10%."
     # Check Alarm cleared
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :port)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :atom)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :process)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :port)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :atom)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :process)
   end
 
   test "Monitore application - ignore nil data" do
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     node_statistic = %{
       total_memory: nil,
@@ -257,17 +257,17 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     wait_message_processing(pid)
 
     # Check Alarm raised
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :port)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :atom)
-    assert %{warning_log: false} = WatchdogServer.get_app_config(node, :process)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :port)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :atom)
+    assert %{warning_log: false} = Watchdog.get_app_config(node, :process)
   end
 
   test "Monitore application - restart" do
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
-    expected_nodes = Catalog.expected_nodes() -- [self_node]
+    monitored_nodes = Catalog.monitored_nodes() -- [self_node]
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     Deployer.MonitorMock
     |> stub(:restart, fn _instance ->
@@ -306,10 +306,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "[#{node}] process threshold exceeded: current 21% > restart 20%. Initiating restart..."
 
     # Check reset after restart
-    Enum.each(expected_nodes, fn node ->
-      assert %Data{} = WatchdogServer.get_app_data(node, :port)
-      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-      assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    Enum.each(monitored_nodes, fn node ->
+      assert %Data{} = Watchdog.get_app_data(node, :port)
+      assert %Data{} = Watchdog.get_app_data(node, :atom)
+      assert %Data{} = Watchdog.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -318,15 +318,15 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   test "Node Up doesn't change any status" do
     self_node = Node.self()
     node = FixtureNodes.test_node(1) |> String.to_atom()
-    expected_nodes = Catalog.expected_nodes() -- [self_node]
+    monitored_nodes = Catalog.monitored_nodes() -- [self_node]
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     # Check data is empty
-    Enum.each(expected_nodes, fn node ->
-      assert %Data{} = WatchdogServer.get_app_data(node, :port)
-      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-      assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    Enum.each(monitored_nodes, fn node ->
+      assert %Data{} = Watchdog.get_app_data(node, :port)
+      assert %Data{} = Watchdog.get_app_data(node, :atom)
+      assert %Data{} = Watchdog.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -336,10 +336,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     wait_message_processing(pid)
 
     # Check data is still empty
-    Enum.each(expected_nodes, fn node ->
-      assert %Data{} = WatchdogServer.get_app_data(node, :port)
-      assert %Data{} = WatchdogServer.get_app_data(node, :atom)
-      assert %Data{} = WatchdogServer.get_app_data(node, :process)
+    Enum.each(monitored_nodes, fn node ->
+      assert %Data{} = Watchdog.get_app_data(node, :port)
+      assert %Data{} = Watchdog.get_app_data(node, :atom)
+      assert %Data{} = Watchdog.get_app_data(node, :process)
 
       assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
     end)
@@ -352,7 +352,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     node = FixtureNodes.test_node(1) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
@@ -374,7 +374,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message == ""
 
     # Check Alarm is clear
-    assert %{warning_log: false} = WatchdogServer.get_memory_config()
+    assert %{warning_log: false} = Watchdog.get_memory_config()
   end
 
   test "System memory - Warning if the consumed memory is above the warning threshold" do
@@ -384,7 +384,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     node = FixtureNodes.test_node(1) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
@@ -406,7 +406,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold exceeded: current 11% > warning 10%."
 
     # Check Alarm is set
-    assert %{warning_log: true} = WatchdogServer.get_memory_config()
+    assert %{warning_log: true} = Watchdog.get_memory_config()
 
     memory_free = 900_000
 
@@ -424,7 +424,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold normalized: current 10% <= warning 10%."
 
     # Check Alarm is clear
-    assert %{warning_log: false} = WatchdogServer.get_memory_config()
+    assert %{warning_log: false} = Watchdog.get_memory_config()
   end
 
   test "System memory - Restart if the consumed memory is above the restart threshold" do
@@ -435,7 +435,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     node_1 = FixtureNodes.test_node(1) |> String.to_atom()
     node_2 = FixtureNodes.test_node(2) |> String.to_atom()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     Deployer.MonitorMock
     |> stub(:restart, fn 2 ->
@@ -472,7 +472,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_2} ..."
 
     # Check Alarm is clear after Node Down
-    assert %{warning_log: false} = WatchdogServer.get_memory_config()
+    assert %{warning_log: false} = Watchdog.get_memory_config()
   end
 
   test "System memory - Don't Restart if the consumed memory is above the restart threshold and node memory is not available" do
@@ -480,7 +480,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    assert {:ok, pid} = WatchdogServer.start_link(watchdog_check_interval: 10_000)
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     send(pid, FixtureHost.update_sys_info_message(self_node, memory_free, memory_total))
 
@@ -498,6 +498,6 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   # Note: Fetching the state guarantees that handle_info will be executed and the ETS table will be updated.
   defp wait_message_processing(pid) do
-    %{expected_nodes: _expected_nodes} = :sys.get_state(pid)
+    %{monitored_nodes: _monitored_nodes} = :sys.get_state(pid)
   end
 end

@@ -26,7 +26,7 @@ defmodule Sentinel.Application do
 
     defp application_servers do
       [
-        Sentinel.Watchdog.Server,
+        Sentinel.Watchdog,
         {Sentinel.Logs.Server, logs_config()}
       ]
     end

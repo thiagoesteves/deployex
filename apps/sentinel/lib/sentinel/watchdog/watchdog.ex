@@ -1,4 +1,4 @@
-defmodule Sentinel.Watchdog.Server do
+defmodule Sentinel.Watchdog do
   @moduledoc """
   This server is responsible for receiving Host and Beam statistics and
   restart the system in case of a pre-defined threshold.
@@ -35,15 +35,13 @@ defmodule Sentinel.Watchdog.Server do
     :net_kernel.monitor_nodes(true)
 
     :ets.new(@watchdog_data, [:set, :protected, :named_table])
-    # List all expected nodes within the cluster, excluding deployex
-    self_node = Node.self()
-    expected_nodes = Catalog.expected_nodes() -- [self_node]
 
-    # TODO: Capture configuration from YAML file
+    # List all expected nodes within the cluster
+    monitored_nodes = Catalog.monitored_nodes()
 
     # Initialize Ets data
     reset_system_statistic()
-    Enum.each(expected_nodes, &reset_application_statistic/1)
+    Enum.each(monitored_nodes, &reset_application_statistic/1)
 
     # Subscribe to receive System info
     Memory.subscribe()
@@ -57,13 +55,13 @@ defmodule Sentinel.Watchdog.Server do
 
     {:ok,
      %{
-       expected_nodes: expected_nodes,
-       self_node: self_node
+       monitored_nodes: monitored_nodes,
+       self_node: Node.self()
      }}
   end
 
   @impl true
-  def handle_info(:watchdog_check, %{expected_nodes: expected_nodes} = state) do
+  def handle_info(:watchdog_check, %{monitored_nodes: monitored_nodes} = state) do
     check_monitored_app_limits = fn node ->
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
@@ -82,7 +80,7 @@ defmodule Sentinel.Watchdog.Server do
 
     check_system_memory_limits = fn ->
       # Check the application with highest usage in memory
-      top_consumer_node = app_with_highest_usage(expected_nodes)
+      top_consumer_node = app_with_highest_usage(monitored_nodes)
 
       config = get_memory_config()
 
@@ -101,7 +99,7 @@ defmodule Sentinel.Watchdog.Server do
     check_system_memory_limits.()
 
     # Check Applications limits
-    Enum.each(expected_nodes, &check_monitored_app_limits.(&1))
+    Enum.each(monitored_nodes, &check_monitored_app_limits.(&1))
 
     {:noreply, state}
   end
@@ -124,11 +122,11 @@ defmodule Sentinel.Watchdog.Server do
 
   def handle_info(
         {:beam_vm_update_statistics, %BeamVm{source_node: source_node, statistics: statistics}},
-        %{self_node: self_node, expected_nodes: expected_nodes} = state
+        %{self_node: self_node, monitored_nodes: monitored_nodes} = state
       ) do
     # credo:disable-for-lines:3
     if source_node == self_node do
-      Enum.each(expected_nodes, fn node ->
+      Enum.each(monitored_nodes, fn node ->
         case Map.get(statistics, node) do
           nil ->
             :ok
@@ -167,8 +165,8 @@ defmodule Sentinel.Watchdog.Server do
 
   def handle_info({:nodeup, _node}, state), do: {:noreply, state}
 
-  def handle_info({:nodedown, node}, %{expected_nodes: expected_nodes} = state) do
-    if node in expected_nodes do
+  def handle_info({:nodedown, node}, %{monitored_nodes: monitored_nodes} = state) do
+    if node in monitored_nodes do
       reset_application_statistic(node)
     end
 
@@ -203,9 +201,28 @@ defmodule Sentinel.Watchdog.Server do
   ### Private Functions
   ### ==========================================================================
 
-  defp app_with_highest_usage(expected_nodes) do
+  defp load_system_config(type) do
+    Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:system_config][type]
+  end
+
+  defp load_node_config(node, type) do
+    %{name_atom: name} = Catalog.parse_node_name(node)
+
+    applications_config =
+      Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:applications_config]
+
+    case applications_config[name] do
+      nil ->
+        applications_config[:default]
+
+      app ->
+        Map.get(app, type) || applications_config[:default]
+    end
+  end
+
+  defp app_with_highest_usage(monitored_nodes) do
     {target_node, _memory} =
-      Enum.reduce(expected_nodes, {nil, 0}, fn node, {_node, memory} = acc ->
+      Enum.reduce(monitored_nodes, {nil, 0}, fn node, {_node, memory} = acc ->
         [{_, value}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
 
         if value != nil and value > memory do
@@ -219,13 +236,17 @@ defmodule Sentinel.Watchdog.Server do
   end
 
   defp reset_system_statistic do
-    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %Config{}})
+    config = Map.merge(%Config{}, load_system_config(:memory))
+
+    :ets.insert(@watchdog_data, {{:system, :config, :memory}, config})
     :ets.insert(@watchdog_data, {{:system, :data, :memory}, %Data{}})
   end
 
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
-      :ets.insert(@watchdog_data, {{node, :config, statistic}, %Config{}})
+      config = Map.merge(%Config{}, load_node_config(node, statistic))
+
+      :ets.insert(@watchdog_data, {{node, :config, statistic}, config})
       :ets.insert(@watchdog_data, {{node, :data, statistic}, %Data{}})
     end)
 
@@ -246,9 +267,8 @@ defmodule Sentinel.Watchdog.Server do
       "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart..."
     )
 
-    node
-    |> Catalog.node_to_instance()
-    |> Monitor.restart()
+    %{instance: instance} = Catalog.parse_node_name(node)
+    Monitor.restart(instance)
 
     :ok
   end
@@ -310,9 +330,8 @@ defmodule Sentinel.Watchdog.Server do
       "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart for #{node} ..."
     )
 
-    node
-    |> Catalog.node_to_instance()
-    |> Monitor.restart()
+    %{instance: instance} = Catalog.parse_node_name(node)
+    Monitor.restart(instance)
 
     :ok
   end

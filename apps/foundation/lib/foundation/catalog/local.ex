@@ -113,17 +113,40 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  @spec node_to_instance(String.t() | atom()) :: non_neg_integer() | nil
-  def node_to_instance(node) when is_atom(node) do
-    node |> Atom.to_string() |> node_to_instance()
+  def monitored_nodes do
+    {:ok, hostname} = :inet.gethostname()
+
+    instance_to_node = fn instance ->
+      :"#{sname(instance)}@#{hostname}"
+    end
+
+    # List all expected nodes within the cluster
+    Enum.map(replicas_list(), &instance_to_node.(&1))
   end
 
-  def node_to_instance(node) do
-    [sname, _hostname] = String.split(node, ["@"])
+  @impl true
+  @spec parse_node_name(String.t() | atom()) :: map() | nil
+  def parse_node_name(node) when is_atom(node) do
+    node |> Atom.to_string() |> parse_node_name()
+  end
+
+  def parse_node_name(node) do
+    [sname, hostname] = String.split(node, ["@"])
 
     case String.split(sname, ["-"]) do
-      [_name, instance] -> String.to_integer(instance)
-      _ -> nil
+      [name, instance] ->
+        %{
+          name_string: name,
+          name_atom: String.to_atom(name),
+          hostname: hostname,
+          instance: String.to_integer(instance)
+        }
+
+      ["deployex"] ->
+        %{name_string: "deployex", name_atom: :deployex, hostname: hostname, instance: 0}
+
+      _ ->
+        nil
     end
   end
 

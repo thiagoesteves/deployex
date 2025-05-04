@@ -47,7 +47,8 @@ defmodule Mix.Shared do
         # Sentinel
         Sentinel.Application,
         Sentinel.Monitoring.BeamVm,
-        Sentinel.Watchdog.Data
+        Sentinel.Watchdog.Data,
+        Sentinel.Watchdog.Config
       ]
     ]
   end
