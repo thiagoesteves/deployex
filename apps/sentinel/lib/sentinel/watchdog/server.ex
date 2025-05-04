@@ -67,10 +67,10 @@ defmodule Sentinel.Watchdog.Server do
         config = get_app_config(node, type)
 
         case get_app_data(node, type) do
-          %{count: count, limit: limit} when is_nil(count) or is_nil(limit) ->
+          %{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
             :ok
 
-          %{count: count, limit: limit} ->
+          %{current: count, limit: limit} ->
             current = trunc(count / limit * 100)
             threshold_check_monitored_apps_limits(node, type, current, config)
         end
@@ -136,17 +136,17 @@ defmodule Sentinel.Watchdog.Server do
           } ->
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :port}, %{count: port_count, limit: port_limit}}
+              {{node, :data, :port}, %{current: port_count, limit: port_limit}}
             )
 
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :atom}, %{count: atom_count, limit: atom_limit}}
+              {{node, :data, :atom}, %{current: atom_count, limit: atom_limit}}
             )
 
             :ets.insert(
               @watchdog_data,
-              {{node, :data, :process}, %{count: process_count, limit: process_limit}}
+              {{node, :data, :process}, %{current: process_count, limit: process_limit}}
             )
 
             :ets.insert(@watchdog_data, {{node, :data, :total_memory}, total_memory})
@@ -213,7 +213,7 @@ defmodule Sentinel.Watchdog.Server do
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
       :ets.insert(@watchdog_data, {{node, :config, statistic}, %Sentinel.Watchdog.Data{}})
-      :ets.insert(@watchdog_data, {{node, :data, statistic}, %{count: nil, limit: nil}})
+      :ets.insert(@watchdog_data, {{node, :data, statistic}, %{current: nil, limit: nil}})
     end)
 
     :ets.insert(@watchdog_data, {{node, :data, :total_memory}, nil})
