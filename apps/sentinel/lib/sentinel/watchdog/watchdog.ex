@@ -11,12 +11,23 @@ defmodule Sentinel.Watchdog do
   alias Foundation.Catalog
   alias Host.Memory
   alias Sentinel.Monitoring.BeamVm
-  alias Sentinel.Watchdog.Config
   alias Sentinel.Watchdog.Data
 
   @watchdog_check_interval :timer.seconds(1)
   @monitored_app_limits [:port, :atom, :process]
   @watchdog_data :deployex_watchdog_data
+
+  @type t :: %__MODULE__{
+          restart_enabled: boolean,
+          warning_log_flag: boolean,
+          warning_threshold: nil | non_neg_integer(),
+          restart_threshold: nil | non_neg_integer()
+        }
+
+  defstruct restart_enabled: true,
+            warning_log_flag: false,
+            warning_threshold: 10,
+            restart_threshold: 20
 
   ### ==========================================================================
   ### GenServer Callbacks
@@ -236,7 +247,7 @@ defmodule Sentinel.Watchdog do
   end
 
   defp reset_system_statistic do
-    config = Map.merge(%Config{}, load_system_config(:memory))
+    config = Map.merge(%__MODULE__{}, load_system_config(:memory))
 
     :ets.insert(@watchdog_data, {{:system, :config, :memory}, config})
     :ets.insert(@watchdog_data, {{:system, :data, :memory}, %Data{}})
@@ -244,7 +255,7 @@ defmodule Sentinel.Watchdog do
 
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
-      config = Map.merge(%Config{}, load_node_config(node, statistic))
+      config = Map.merge(%__MODULE__{}, load_node_config(node, statistic))
 
       :ets.insert(@watchdog_data, {{node, :config, statistic}, config})
       :ets.insert(@watchdog_data, {{node, :data, statistic}, %Data{}})
@@ -278,7 +289,7 @@ defmodule Sentinel.Watchdog do
          type,
          current_percentage,
          %{
-           warning_log: false,
+           warning_log_flag: false,
            warning_threshold: warning_threshold
          } = config
        )
@@ -288,7 +299,7 @@ defmodule Sentinel.Watchdog do
     )
 
     # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log: true}})
+    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: true}})
 
     :ok
   end
@@ -298,7 +309,7 @@ defmodule Sentinel.Watchdog do
          type,
          current_percentage,
          %{
-           warning_log: true,
+           warning_log_flag: true,
            warning_threshold: warning_threshold
          } = config
        )
@@ -308,7 +319,7 @@ defmodule Sentinel.Watchdog do
     )
 
     # Reset warning log flag, current value was normalized
-    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log: false}})
+    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: false}})
 
     :ok
   end
@@ -340,7 +351,7 @@ defmodule Sentinel.Watchdog do
          _node,
          current_percentage,
          %{
-           warning_log: false,
+           warning_log_flag: false,
            warning_threshold: warning_threshold
          } = config
        )
@@ -350,7 +361,7 @@ defmodule Sentinel.Watchdog do
     )
 
     # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log: true}})
+    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log_flag: true}})
 
     :ok
   end
@@ -359,7 +370,7 @@ defmodule Sentinel.Watchdog do
          _node,
          current_percentage,
          %{
-           warning_log: true,
+           warning_log_flag: true,
            warning_threshold: warning_threshold
          } = config
        )
@@ -369,7 +380,10 @@ defmodule Sentinel.Watchdog do
     )
 
     # Reset warning log flag, current value was normalized
-    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log: false}})
+    :ets.insert(
+      @watchdog_data,
+      {{:system, :config, :memory}, %{config | warning_log_flag: false}}
+    )
 
     :ok
   end
