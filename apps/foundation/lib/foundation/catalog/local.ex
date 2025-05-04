@@ -120,7 +120,7 @@ defmodule Foundation.Catalog.Local do
       :"#{sname(instance)}@#{hostname}"
     end
 
-    # List all expected nodes within the cluster
+    # List all monitored nodes within the cluster
     Enum.map(replicas_list(), &instance_to_node.(&1))
   end
 
