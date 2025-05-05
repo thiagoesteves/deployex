@@ -135,18 +135,6 @@ config :sentinel, Sentinel.Watchdog,
       enable_restart: true,
       warning_threshold_percent: 80,
       restart_threshold_percent: 95
-    },
-    myphoenixapp: %{
-      port: %{
-        enable_restart: true,
-        warning_threshold_percent: 1,
-        restart_threshold_percent: 2
-      },
-      process: %{
-        enable_restart: false,
-        warning_threshold_percent: 10,
-        restart_threshold_percent: 30
-      }
     }
   ],
   system_config: [
