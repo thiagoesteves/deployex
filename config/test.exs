@@ -45,28 +45,28 @@ config :sentinel, Sentinel.Logs, adapter: Sentinel.LogsMock
 config :sentinel, Sentinel.Watchdog,
   applications_config: [
     default: %{
-      restart_enabled: true,
-      warning_threshold: 10,
-      restart_threshold: 20
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
     },
     testapp: %{
       port: %{
-        restart_enabled: true,
-        warning_threshold: 10,
-        restart_threshold: 20
+        enable_restart: true,
+        warning_threshold_percent: 10,
+        restart_threshold_percent: 20
       },
       process: %{
-        restart_enabled: true,
-        warning_threshold: 10,
-        restart_threshold: 20
+        enable_restart: true,
+        warning_threshold_percent: 10,
+        restart_threshold_percent: 20
       }
     }
   ],
   system_config: [
     memory: %{
-      restart_enabled: true,
-      warning_threshold: 10,
-      restart_threshold: 20
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
     }
   ]
 

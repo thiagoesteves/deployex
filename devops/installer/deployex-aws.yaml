@@ -16,9 +16,9 @@ metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
 monitoring:
   - name: "memory"
-    restart_enabled: true
-    warning_threshold: 80
-    restart_threshold: 95
+    enable_restart: true
+    warning_threshold_percent: 80
+    restart_threshold_percent: 95
 applications:
   - name: "myapp"
     language: "elixir"
@@ -33,14 +33,14 @@ applications:
         value: "/usr/local/share/ca-certificates"
     monitoring:
       - name: "atom"
-        restart_enabled: true
-        warning_threshold: 80
-        restart_threshold: 95
+        enable_restart: true
+        warning_threshold_percent: 80
+        restart_threshold_percent: 95
       - name: "process"
-        restart_enabled: true
-        warning_threshold: 80
-        restart_threshold: 95
+        enable_restart: true
+        warning_threshold_percent: 80
+        restart_threshold_percent: 95
       - name: "port"
-        restart_enabled: true
-        warning_threshold: 80
-        restart_threshold: 95
+        enable_restart: true
+        warning_threshold_percent: 80
+        restart_threshold_percent: 95

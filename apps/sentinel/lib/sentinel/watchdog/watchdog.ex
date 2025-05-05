@@ -18,16 +18,16 @@ defmodule Sentinel.Watchdog do
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
-          restart_enabled: boolean,
+          enable_restart: boolean,
           warning_log_flag: boolean,
-          warning_threshold: nil | non_neg_integer(),
-          restart_threshold: nil | non_neg_integer()
+          warning_threshold_percent: nil | non_neg_integer(),
+          restart_threshold_percent: nil | non_neg_integer()
         }
 
-  defstruct restart_enabled: true,
+  defstruct enable_restart: true,
             warning_log_flag: false,
-            warning_threshold: 10,
-            restart_threshold: 20
+            warning_threshold_percent: 10,
+            restart_threshold_percent: 20
 
   ### ==========================================================================
   ### GenServer Callbacks
@@ -60,19 +60,25 @@ defmodule Sentinel.Watchdog do
     # Subscribe to receive Beam VM statistics
     BeamVm.Server.subscribe()
 
-    args
-    |> Keyword.get(:watchdog_check_interval, @watchdog_check_interval)
-    |> :timer.send_interval(:watchdog_check)
+    watchdog_check_interval =
+      Keyword.get(args, :watchdog_check_interval, @watchdog_check_interval)
+
+    schedule_new_check(watchdog_check_interval)
 
     {:ok,
      %{
+       watchdog_check_interval: watchdog_check_interval,
        monitored_nodes: monitored_nodes,
        self_node: Node.self()
      }}
   end
 
   @impl true
-  def handle_info(:watchdog_check, %{monitored_nodes: monitored_nodes} = state) do
+  def handle_info(
+        :watchdog_check,
+        %{monitored_nodes: monitored_nodes, watchdog_check_interval: watchdog_check_interval} =
+          state
+      ) do
     check_monitored_app_limits = fn node ->
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
@@ -111,6 +117,9 @@ defmodule Sentinel.Watchdog do
 
     # Check Applications limits
     Enum.each(monitored_nodes, &check_monitored_app_limits.(&1))
+
+    # Schedule new check
+    schedule_new_check(watchdog_check_interval)
 
     {:noreply, state}
   end
@@ -212,6 +221,8 @@ defmodule Sentinel.Watchdog do
   ### Private Functions
   ### ==========================================================================
 
+  defp schedule_new_check(interval), do: Process.send_after(self(), :watchdog_check, interval)
+
   defp load_system_config(type) do
     Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:system_config][type]
   end
@@ -269,13 +280,13 @@ defmodule Sentinel.Watchdog do
          type,
          current_percentage,
          %{
-           restart_enabled: true,
-           restart_threshold: restart_threshold
+           enable_restart: true,
+           restart_threshold_percent: restart_threshold_percent
          }
        )
-       when current_percentage > restart_threshold do
+       when current_percentage > restart_threshold_percent do
     Logger.error(
-      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart..."
+      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
     )
 
     %{instance: instance} = Catalog.parse_node_name(node)
@@ -290,12 +301,12 @@ defmodule Sentinel.Watchdog do
          current_percentage,
          %{
            warning_log_flag: false,
-           warning_threshold: warning_threshold
+           warning_threshold_percent: warning_threshold_percent
          } = config
        )
-       when current_percentage > warning_threshold do
+       when current_percentage > warning_threshold_percent do
     Logger.warning(
-      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold}%."
+      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
 
     # Set flag indicating that warning log was emitted
@@ -310,12 +321,12 @@ defmodule Sentinel.Watchdog do
          current_percentage,
          %{
            warning_log_flag: true,
-           warning_threshold: warning_threshold
+           warning_threshold_percent: warning_threshold_percent
          } = config
        )
-       when current_percentage <= warning_threshold do
+       when current_percentage <= warning_threshold_percent do
     Logger.warning(
-      "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold}%."
+      "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
 
     # Reset warning log flag, current value was normalized
@@ -332,13 +343,13 @@ defmodule Sentinel.Watchdog do
          node,
          current_percentage,
          %{
-           restart_enabled: true,
-           restart_threshold: restart_threshold
+           enable_restart: true,
+           restart_threshold_percent: restart_threshold_percent
          }
        )
-       when current_percentage > restart_threshold do
+       when current_percentage > restart_threshold_percent do
     Logger.error(
-      "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold}%. Initiating restart for #{node} ..."
+      "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart for #{node} ..."
     )
 
     %{instance: instance} = Catalog.parse_node_name(node)
@@ -352,12 +363,12 @@ defmodule Sentinel.Watchdog do
          current_percentage,
          %{
            warning_log_flag: false,
-           warning_threshold: warning_threshold
+           warning_threshold_percent: warning_threshold_percent
          } = config
        )
-       when current_percentage > warning_threshold do
+       when current_percentage > warning_threshold_percent do
     Logger.warning(
-      "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold}%."
+      "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
 
     # Set flag indicating that warning log was emitted
@@ -371,12 +382,12 @@ defmodule Sentinel.Watchdog do
          current_percentage,
          %{
            warning_log_flag: true,
-           warning_threshold: warning_threshold
+           warning_threshold_percent: warning_threshold_percent
          } = config
        )
-       when current_percentage <= warning_threshold do
+       when current_percentage <= warning_threshold_percent do
     Logger.warning(
-      "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold}%."
+      "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
 
     # Reset warning log flag, current value was normalized
