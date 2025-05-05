@@ -3,16 +3,17 @@
 ## 0.4.2 ()
 
 ### Backwards incompatible changes for 0.4.1
- * None
+ * None.
 
 ### Installer Actions
- * None
+ * Update `deployex.yaml` variable name (if defined) from `deploy_timeout_rollback_ms` to `deploy_rollback_timeout_ms`.
 
 ### Bug fixes
  * None
 
 ### Enhancements
- * Implementing Warning and Shutdown mechanisms that respond to critical BEAM metrics and host memory thresholds to prevent system instability.
+ * [`ISSUE-108`](https://github.com/thiagoesteves/deployex/issues/108) Implementing Warning and Restart mechanisms that respond to critical BEAM metrics and host memory thresholds to prevent system instability.
+ * [`ISSUE-123`](https://github.com/thiagoesteves/deployex/issues/123) Renamed deploy_timeout_rollback_ms to deploy_rollback_timeout_ms.
 
 ## 0.4.1 🚀 (2025-04-25)
 

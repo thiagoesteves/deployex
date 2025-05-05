@@ -122,15 +122,15 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # Deployment Config
-        deploy_timeout_rollback_ms = data["deploy_timeout_rollback_ms"]
+        deploy_rollback_timeout_ms = data["deploy_rollback_timeout_ms"]
 
         updated_config =
-          if deploy_timeout_rollback_ms do
+          if deploy_rollback_timeout_ms do
             Config.Reader.merge(updated_config,
               deployer: [
                 {Deployer.Deployment,
                  [
-                   {:timeout_rollback, deploy_timeout_rollback_ms}
+                   {:timeout_rollback, deploy_rollback_timeout_ms}
                  ]}
               ]
             )

@@ -47,6 +47,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
  * Provides easy access to the application shell:
    - IEx shell for monitored Elixir apps and DeployEx.
    - Erlang shell for monitored Gleam/Erlang apps.
+ * Provides monitoring and restart mechanisms for host memory thresholds and beam statistics of monitored applications, including port, atom, and process metrics.
  * Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
  * Supports observability for all connected applications via [Observer Web][owb].
  * Supports safe tracing for all connected applications.
@@ -68,9 +69,8 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 ### What is coming next
 
-- [X] [ISSUE-107](https://github.com/thiagoesteves/deployex/issues/107) - Move DeployEx to an Elixir umbrella project
+- [ ] :construction: [ISSUE-108](https://github.com/thiagoesteves/deployex/issues/108) - Add Monitor for Beam/Memory limits and trigger restart 
 - [ ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
-- [ ] [ISSUE-108](https://github.com/thiagoesteves/deployex/issues/108) - Add Monitor for Beam/Memory limits and trigger shutdown 
 - [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
 - [ ] [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
 - [ ] [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
@@ -182,7 +182,7 @@ version: "0.4.0-rc1"                               # Deployex: Version
 otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                          # Deployex: Target OS server
-deploy_timeout_rollback_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_rollback_timeout_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
 deploy_schedule_interval_ms: 5000                  # Deployex (optional): Periodic checking for new deployments
 metrics_retention_time_ms: 3600000                 # Deployex (optional): Retention time for metrics
 logs_retention_time_ms: 3600000                    # Deployex (optional): Retention time for logs
