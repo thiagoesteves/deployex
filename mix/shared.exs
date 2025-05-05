@@ -44,8 +44,11 @@ defmodule Mix.Shared do
         Host.Commander.Local,
         Host.Terminal.Server.Message,
         Host.Application,
+        Host.Terminal.Supervisor,
         # Sentinel
-        Sentinel.Application
+        Sentinel.Application,
+        Sentinel.Monitoring.BeamVm,
+        Sentinel.Watchdog.Data
       ]
     ]
   end

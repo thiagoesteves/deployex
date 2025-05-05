@@ -113,6 +113,44 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
+  def monitored_nodes do
+    {:ok, hostname} = :inet.gethostname()
+
+    instance_to_node = fn instance ->
+      :"#{sname(instance)}@#{hostname}"
+    end
+
+    # List all monitored nodes within the cluster
+    Enum.map(replicas_list(), &instance_to_node.(&1))
+  end
+
+  @impl true
+  @spec parse_node_name(String.t() | atom()) :: map() | nil
+  def parse_node_name(node) when is_atom(node) do
+    node |> Atom.to_string() |> parse_node_name()
+  end
+
+  def parse_node_name(node) do
+    [sname, hostname] = String.split(node, ["@"])
+
+    case String.split(sname, ["-"]) do
+      [name, instance] ->
+        %{
+          name_string: name,
+          name_atom: String.to_atom(name),
+          hostname: hostname,
+          instance: String.to_integer(instance)
+        }
+
+      ["deployex"] ->
+        %{name_string: "deployex", name_atom: :deployex, hostname: hostname, instance: 0}
+
+      _ ->
+        nil
+    end
+  end
+
+  @impl true
   def stdout_path(@deployex_instance) do
     log_path = Application.fetch_env!(:foundation, :log_path)
     "#{log_path}/deployex-stdout.log"

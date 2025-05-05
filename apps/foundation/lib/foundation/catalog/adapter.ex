@@ -14,6 +14,8 @@ defmodule Foundation.Catalog.Adapter do
   @callback monitored_app_env() :: list()
   @callback monitored_app_start_port() :: integer()
   @callback expected_nodes() :: list()
+  @callback monitored_nodes() :: list()
+  @callback parse_node_name(String.t() | atom()) :: map() | nil
   @callback stdout_path(integer()) :: binary()
   @callback stderr_path(integer()) :: binary()
   @callback sname(integer()) :: String.t()

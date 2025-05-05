@@ -34,7 +34,8 @@ defmodule Sentinel.MixProject do
       {:mox, "~> 1.0", only: :test},
       # Application dependencies
       {:foundation, in_umbrella: true},
-      {:host, in_umbrella: true}
+      {:host, in_umbrella: true},
+      {:deployer, in_umbrella: true}
     ]
   end
 end

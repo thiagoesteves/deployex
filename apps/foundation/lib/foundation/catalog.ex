@@ -127,6 +127,38 @@ defmodule Foundation.Catalog do
   def expected_nodes, do: default().expected_nodes()
 
   @doc """
+  Return a list of expected nodes, including deployex (instance 0)
+
+  ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> nodes = Enum.map(Catalog.monitored_nodes(), &Atom.to_string/1)
+    ...> refute Enum.any?(nodes, fn node -> String.contains?(node, "deployex") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-1") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-2") end)
+    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-3") end)
+
+  """
+  @impl true
+  @spec monitored_nodes() :: list()
+  def monitored_nodes, do: default().monitored_nodes()
+
+  @doc """
+  Return the respective node details: name, hostname and instance
+
+  ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert %{name_string: "testapp", hostname: _,  instance: 1} = Catalog.parse_node_name(:"testapp-1@nohost")
+    ...> assert %{name_string: "testapp", hostname: _,  instance: 2} = Catalog.parse_node_name(:"testapp-2@nohost")
+    ...> assert %{name_string: "testapp", hostname: _,  instance: 3} = Catalog.parse_node_name(:"testapp-3@nohost")
+
+  """
+  @impl true
+  @spec parse_node_name(String.t() | atom()) :: map() | nil
+  def parse_node_name(node), do: default().parse_node_name(node)
+
+  @doc """
   Return the path for the stdout log file
 
   ## Examples

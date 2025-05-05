@@ -128,6 +128,23 @@ config :sentinel, Sentinel.Logs,
   adapter: Sentinel.Logs.Server,
   data_retention_period: :timer.minutes(60)
 
+# Configure Sentinel Watchdog configuration
+config :sentinel, Sentinel.Watchdog,
+  applications_config: [
+    default: %{
+      enable_restart: true,
+      warning_threshold_percent: 80,
+      restart_threshold_percent: 95
+    }
+  ],
+  system_config: [
+    memory: %{
+      enable_restart: true,
+      warning_threshold_percent: 80,
+      restart_threshold_percent: 95
+    }
+  ]
+
 # Configure Observer Web retention time
 config :observer_web, ObserverWeb.Telemetry,
   data_retention_period: :timer.minutes(60),

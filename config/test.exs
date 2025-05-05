@@ -42,6 +42,34 @@ config :foundation, Foundation.Rpc, adapter: Foundation.RpcMock
 # Config Mock for Sentinel
 config :sentinel, Sentinel.Logs, adapter: Sentinel.LogsMock
 
+config :sentinel, Sentinel.Watchdog,
+  applications_config: [
+    default: %{
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
+    },
+    testapp: %{
+      port: %{
+        enable_restart: true,
+        warning_threshold_percent: 10,
+        restart_threshold_percent: 20
+      },
+      process: %{
+        enable_restart: true,
+        warning_threshold_percent: 10,
+        restart_threshold_percent: 20
+      }
+    }
+  ],
+  system_config: [
+    memory: %{
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
+    }
+  ]
+
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
