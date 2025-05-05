@@ -182,7 +182,7 @@ version: "0.4.0-rc1"                               # Deployex: Version
 otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                          # Deployex: Target OS server
-deploy_timeout_rollback_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_rollback_timeout_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
 deploy_schedule_interval_ms: 5000                  # Deployex (optional): Periodic checking for new deployments
 metrics_retention_time_ms: 3600000                 # Deployex (optional): Retention time for metrics
 logs_retention_time_ms: 3600000                    # Deployex (optional): Retention time for logs
