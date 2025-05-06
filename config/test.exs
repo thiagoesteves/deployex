@@ -49,7 +49,7 @@ config :sentinel, Sentinel.Watchdog,
       warning_threshold_percent: 10,
       restart_threshold_percent: 20
     },
-    testapp: %{
+    testapp: [
       port: %{
         enable_restart: true,
         warning_threshold_percent: 10,
@@ -60,7 +60,7 @@ config :sentinel, Sentinel.Watchdog,
         warning_threshold_percent: 10,
         restart_threshold_percent: 20
       }
-    }
+    ]
   ],
   system_config: [
     memory: %{
