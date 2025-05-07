@@ -3,10 +3,11 @@
 ## 0.4.2 ()
 
 ### Backwards incompatible changes for 0.4.1
- * None.
+ * Monitoring support requires your application to use [Observer Web](https://github.com/thiagoesteves/observer_web) version `>= 0.1.9`
 
 ### Installer Actions
  * Update `deployex.yaml` variable name (if defined) from `deploy_timeout_rollback_ms` to `deploy_rollback_timeout_ms`.
+ * Update `deployex.yaml` with the monitoring fields (not mandatory, but recommended for better visibility).
 
 ### Bug fixes
  * None
