@@ -15,6 +15,7 @@ defmodule Sentinel.Watchdog do
 
   @watchdog_check_interval :timer.seconds(1)
   @monitored_app_limits [:port, :atom, :process]
+  @monitored_app_metrics ["vm.port.total", "vm.atom.total", "vm.process.total", "vm.memory.total"]
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
@@ -54,15 +55,12 @@ defmodule Sentinel.Watchdog do
     reset_system_statistic()
     Enum.each(monitored_nodes, &reset_application_statistic/1)
 
-    # # Subscribe to receive System info
+    # Subscribe to receive System info
     Memory.subscribe()
 
-    # Subscribe to receive Beam VM statistics
+    # Subscribe to receive Beam vm metrics from Observer Web
     Enum.each(monitored_nodes, fn node ->
-      Telemetry.subscribe_for_new_data(node, "vm.port.total")
-      Telemetry.subscribe_for_new_data(node, "vm.atom.total")
-      Telemetry.subscribe_for_new_data(node, "vm.process.total")
-      Telemetry.subscribe_for_new_data(node, "vm.memory.total")
+      Enum.each(@monitored_app_metrics, &Telemetry.subscribe_for_new_data(node, &1))
     end)
 
     watchdog_check_interval =
@@ -104,9 +102,9 @@ defmodule Sentinel.Watchdog do
       # Check the application with highest usage in memory
       top_consumer_node = app_with_highest_usage(monitored_nodes)
 
-      config = get_memory_config()
+      config = get_system_memory_config()
 
-      case get_memory_data() do
+      case get_system_memory_data() do
         %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
           :ok
 
@@ -231,12 +229,12 @@ defmodule Sentinel.Watchdog do
     config
   end
 
-  def get_memory_data do
+  def get_system_memory_data do
     [{_, data}] = :ets.lookup(@watchdog_data, {:system, :data, :memory})
     data
   end
 
-  def get_memory_config do
+  def get_system_memory_config do
     [{_, config}] = :ets.lookup(@watchdog_data, {:system, :config, :memory})
     config
   end

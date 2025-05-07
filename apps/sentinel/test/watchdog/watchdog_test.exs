@@ -33,7 +33,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     wait_message_processing(pid)
 
-    assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_memory_data()
+    assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_system_memory_data()
   end
 
   test "handle_info/2 - update system info - invalid source" do
@@ -45,7 +45,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     FixtureHost.send_update_sys_info_message(pid, :other@node, memory_free, memory_total)
 
     wait_message_processing(pid)
-    assert %Data{} = Watchdog.get_memory_data()
+    assert %Data{} = Watchdog.get_system_memory_data()
   end
 
   test "handle_info/2 - update application statistics - valid source" do
@@ -371,7 +371,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message == ""
 
     # Check Alarm is clear
-    assert %{warning_log_flag: false} = Watchdog.get_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
   end
 
   test "System memory - Warning if the consumed memory is above the warning threshold" do
@@ -403,7 +403,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold exceeded: current 11% > warning 10%."
 
     # Check Alarm is set
-    assert %{warning_log_flag: true} = Watchdog.get_memory_config()
+    assert %{warning_log_flag: true} = Watchdog.get_system_memory_config()
 
     memory_free = 900_000
 
@@ -421,7 +421,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold normalized: current 10% <= warning 10%."
 
     # Check Alarm is clear
-    assert %{warning_log_flag: false} = Watchdog.get_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
   end
 
   test "System memory - Restart if the consumed memory is above the restart threshold" do
@@ -459,7 +459,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_2} ..."
 
     # Check Alarm is clear after Node Down
-    assert %{warning_log_flag: false} = Watchdog.get_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
   end
 
   test "System memory - Don't Restart if the consumed memory is above the restart threshold and node memory is not available" do
