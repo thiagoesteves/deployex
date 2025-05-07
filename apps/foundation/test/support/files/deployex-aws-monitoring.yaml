@@ -7,9 +7,8 @@ secrets_adapter: "aws"
 secrets_path: "deployex-myapp-prod-secrets"
 aws_region: "sa-east-1"
 version: "0.4.0"
-otp_version: 27
-otp_tls_certificates: "/usr/local/share/ca-certificates"
-os_target: "ubuntu-24.04"
+otp_version: 26
+os_target: "ubuntu-20.04"
 deploy_rollback_timeout_ms: 600000
 deploy_schedule_interval_ms: 5000
 metrics_retention_time_ms: 3600000
@@ -20,17 +19,15 @@ monitoring:
     warning_threshold_percent: 80
     restart_threshold_percent: 95
 applications:
-  - name: "myapp"
+  - name: "myphoenixapp"
     language: "elixir"
     initial_port: 4000
     replicas: 3
     env:
-      - key: MYAPP_PHX_HOST
-        value: "example.com"
-      - key: MYAPP_PHX_SERVER
+      - key: MYPHOENIXAPP_PHX_SERVER
         value: true
-      - key: MYAPP_OTP_TLS_CERT_PATH
-        value: "/usr/local/share/ca-certificates"
+      - key: MYPHOENIXAPP_PHX_SERVER2
+        value: true
     monitoring:
       - type: "atom"
         enable_restart: true
@@ -44,3 +41,12 @@ applications:
         enable_restart: true
         warning_threshold_percent: 80
         restart_threshold_percent: 95
+  - name: "myumbrella"
+    language: "erlang"
+    initial_port: 4050
+    replicas: 2
+    env:
+      - key: MYUMBRELLA_PHX_SERVER
+        value: true
+      - key: MYUMBRELLA_PHX_SERVER2
+        value: true

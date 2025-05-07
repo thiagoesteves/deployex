@@ -237,8 +237,8 @@ defmodule Sentinel.Watchdog do
       nil ->
         applications_config[:default]
 
-      app ->
-        Map.get(app, type) || applications_config[:default]
+      app_monitoring_list ->
+        Keyword.get(app_monitoring_list, type) || applications_config[:default]
     end
   end
 

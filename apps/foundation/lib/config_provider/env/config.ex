@@ -76,6 +76,40 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
+        # System Config monitoring
+        system_config_monitoring = data["monitoring"]
+
+        updated_config =
+          if system_config_monitoring do
+            parsed_list = parse_monitoring(system_config_monitoring)
+
+            Config.Reader.merge(updated_config,
+              sentinel: [
+                {Sentinel.Watchdog, [{:system_config, parsed_list}]}
+              ]
+            )
+          else
+            updated_config
+          end
+
+        # Application Config monitoring
+        app_config_monitoring = application["monitoring"]
+
+        updated_config =
+          if app_config_monitoring do
+            parsed_list = parse_monitoring(app_config_monitoring)
+
+            applications_config = [{String.to_atom(application["name"]), parsed_list}]
+
+            Config.Reader.merge(updated_config,
+              sentinel: [
+                {Sentinel.Watchdog, [{:applications_config, applications_config}]}
+              ]
+            )
+          else
+            updated_config
+          end
+
         # Endpoint Config
         hostname = data["hostname"]
         port = data["port"]
@@ -228,5 +262,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
         config
     end
+  end
+
+  defp parse_monitoring(list_to_be_parsed) do
+    Enum.map(list_to_be_parsed, fn map ->
+      name = String.to_atom(map["type"])
+
+      atomized_map =
+        map
+        |> Map.delete("type")
+        |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
+
+      {name, atomized_map}
+    end)
   end
 end
