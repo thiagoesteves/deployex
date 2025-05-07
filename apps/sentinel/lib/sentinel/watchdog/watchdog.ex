@@ -10,7 +10,7 @@ defmodule Sentinel.Watchdog do
   alias Deployer.Monitor
   alias Foundation.Catalog
   alias Host.Memory
-  alias Sentinel.Monitoring.BeamVm
+  alias ObserverWeb.Telemetry
   alias Sentinel.Watchdog.Data
 
   @watchdog_check_interval :timer.seconds(1)
@@ -54,11 +54,16 @@ defmodule Sentinel.Watchdog do
     reset_system_statistic()
     Enum.each(monitored_nodes, &reset_application_statistic/1)
 
-    # Subscribe to receive System info
+    # # Subscribe to receive System info
     Memory.subscribe()
 
     # Subscribe to receive Beam VM statistics
-    BeamVm.Server.subscribe()
+    Enum.each(monitored_nodes, fn node ->
+      Telemetry.subscribe_for_new_data(node, "vm.port.total")
+      Telemetry.subscribe_for_new_data(node, "vm.atom.total")
+      Telemetry.subscribe_for_new_data(node, "vm.process.total")
+      Telemetry.subscribe_for_new_data(node, "vm.memory.total")
+    end)
 
     watchdog_check_interval =
       Keyword.get(args, :watchdog_check_interval, @watchdog_check_interval)
@@ -140,44 +145,63 @@ defmodule Sentinel.Watchdog do
     {:noreply, state}
   end
 
+  # NOTE: Ignore empty values, received during a restart
+  def handle_info({:metrics_new_data, _source_node, _key, %Telemetry.Data{value: nil}}, state) do
+    {:noreply, state}
+  end
+
   def handle_info(
-        {:beam_vm_update_statistics, %BeamVm{source_node: source_node, statistics: statistics}},
-        %{self_node: self_node, monitored_nodes: monitored_nodes} = state
+        {:metrics_new_data, source_node, "vm.port.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
       ) do
-    # credo:disable-for-lines:3
-    if source_node == self_node do
-      Enum.each(monitored_nodes, fn node ->
-        case Map.get(statistics, node) do
-          nil ->
-            :ok
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :port}, %Data{current: count, limit: limit}}
+      )
+    end
 
-          %{
-            total_memory: total_memory,
-            port_limit: port_limit,
-            port_count: port_count,
-            atom_count: atom_count,
-            atom_limit: atom_limit,
-            process_limit: process_limit,
-            process_count: process_count
-          } ->
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :port}, %Data{current: port_count, limit: port_limit}}
-            )
+    {:noreply, state}
+  end
 
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :atom}, %Data{current: atom_count, limit: atom_limit}}
-            )
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.atom.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :atom}, %Data{current: count, limit: limit}}
+      )
+    end
 
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :process}, %Data{current: process_count, limit: process_limit}}
-            )
+    {:noreply, state}
+  end
 
-            :ets.insert(@watchdog_data, {{node, :data, :total_memory}, total_memory})
-        end
-      end)
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.process.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :process}, %Data{current: count, limit: limit}}
+      )
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.memory.total",
+         %Telemetry.Data{measurements: %{total: total_memory}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(@watchdog_data, {{source_node, :data, :total_memory}, total_memory})
     end
 
     {:noreply, state}
