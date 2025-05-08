@@ -5,13 +5,13 @@ defmodule Sentinel.Fixture.Host do
 
   alias Host.Memory
 
-  def update_sys_info_message(source_node, memory_free, memory_total) do
+  def send_update_sys_info_message(pid, source_node, memory_free, memory_total) do
     message = %Memory{
       source_node: source_node,
       memory_free: memory_free,
       memory_total: memory_total
     }
 
-    {:update_system_info, message}
+    send(pid, {:update_system_info, message})
   end
 end

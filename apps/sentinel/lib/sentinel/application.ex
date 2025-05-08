@@ -11,8 +11,7 @@ defmodule Sentinel.Application do
   def start(_type, _args) do
     children =
       [
-        {Phoenix.PubSub, name: Sentinel.PubSub},
-        Sentinel.Monitoring.BeamVm.Server
+        {Phoenix.PubSub, name: Sentinel.PubSub}
       ] ++ application_servers()
 
     # See https://hexdocs.pm/elixir/Supervisor.html

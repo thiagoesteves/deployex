@@ -10,11 +10,12 @@ defmodule Sentinel.Watchdog do
   alias Deployer.Monitor
   alias Foundation.Catalog
   alias Host.Memory
-  alias Sentinel.Monitoring.BeamVm
+  alias ObserverWeb.Telemetry
   alias Sentinel.Watchdog.Data
 
   @watchdog_check_interval :timer.seconds(1)
   @monitored_app_limits [:port, :atom, :process]
+  @monitored_app_metrics ["vm.port.total", "vm.atom.total", "vm.process.total", "vm.memory.total"]
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
@@ -57,8 +58,10 @@ defmodule Sentinel.Watchdog do
     # Subscribe to receive System info
     Memory.subscribe()
 
-    # Subscribe to receive Beam VM statistics
-    BeamVm.Server.subscribe()
+    # Subscribe to receive Beam vm metrics from Observer Web
+    Enum.each(monitored_nodes, fn node ->
+      Enum.each(@monitored_app_metrics, &Telemetry.subscribe_for_new_data(node, &1))
+    end)
 
     watchdog_check_interval =
       Keyword.get(args, :watchdog_check_interval, @watchdog_check_interval)
@@ -99,9 +102,9 @@ defmodule Sentinel.Watchdog do
       # Check the application with highest usage in memory
       top_consumer_node = app_with_highest_usage(monitored_nodes)
 
-      config = get_memory_config()
+      config = get_system_memory_config()
 
-      case get_memory_data() do
+      case get_system_memory_data() do
         %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
           :ok
 
@@ -140,44 +143,63 @@ defmodule Sentinel.Watchdog do
     {:noreply, state}
   end
 
+  # NOTE: Ignore empty values, received during a restart
+  def handle_info({:metrics_new_data, _source_node, _key, %Telemetry.Data{value: nil}}, state) do
+    {:noreply, state}
+  end
+
   def handle_info(
-        {:beam_vm_update_statistics, %BeamVm{source_node: source_node, statistics: statistics}},
-        %{self_node: self_node, monitored_nodes: monitored_nodes} = state
+        {:metrics_new_data, source_node, "vm.port.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
       ) do
-    # credo:disable-for-lines:3
-    if source_node == self_node do
-      Enum.each(monitored_nodes, fn node ->
-        case Map.get(statistics, node) do
-          nil ->
-            :ok
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :port}, %Data{current: count, limit: limit}}
+      )
+    end
 
-          %{
-            total_memory: total_memory,
-            port_limit: port_limit,
-            port_count: port_count,
-            atom_count: atom_count,
-            atom_limit: atom_limit,
-            process_limit: process_limit,
-            process_count: process_count
-          } ->
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :port}, %Data{current: port_count, limit: port_limit}}
-            )
+    {:noreply, state}
+  end
 
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :atom}, %Data{current: atom_count, limit: atom_limit}}
-            )
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.atom.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :atom}, %Data{current: count, limit: limit}}
+      )
+    end
 
-            :ets.insert(
-              @watchdog_data,
-              {{node, :data, :process}, %Data{current: process_count, limit: process_limit}}
-            )
+    {:noreply, state}
+  end
 
-            :ets.insert(@watchdog_data, {{node, :data, :total_memory}, total_memory})
-        end
-      end)
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.process.total",
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(
+        @watchdog_data,
+        {{source_node, :data, :process}, %Data{current: count, limit: limit}}
+      )
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:metrics_new_data, source_node, "vm.memory.total",
+         %Telemetry.Data{measurements: %{total: total_memory}}},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    if source_node in monitored_nodes do
+      :ets.insert(@watchdog_data, {{source_node, :data, :total_memory}, total_memory})
     end
 
     {:noreply, state}
@@ -207,12 +229,12 @@ defmodule Sentinel.Watchdog do
     config
   end
 
-  def get_memory_data do
+  def get_system_memory_data do
     [{_, data}] = :ets.lookup(@watchdog_data, {:system, :data, :memory})
     data
   end
 
-  def get_memory_config do
+  def get_system_memory_config do
     [{_, config}] = :ets.lookup(@watchdog_data, {:system, :config, :memory})
     config
   end

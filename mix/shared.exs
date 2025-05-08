@@ -47,7 +47,6 @@ defmodule Mix.Shared do
         Host.Terminal.Supervisor,
         # Sentinel
         Sentinel.Application,
-        Sentinel.Monitoring.BeamVm,
         Sentinel.Watchdog.Data
       ]
     ]
