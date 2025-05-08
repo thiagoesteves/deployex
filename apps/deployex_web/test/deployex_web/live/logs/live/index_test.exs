@@ -177,16 +177,16 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   end
 
   %{
-    1 => %{type: "debug", color: "#E5E5E5"},
+    1 => %{type: "[debug]", color: "#E5E5E5"},
     2 => %{type: "DEBUG", color: "#E5E5E5"},
-    3 => %{type: "info", color: "#93C5FD"},
+    3 => %{type: "[info]", color: "#93C5FD"},
     4 => %{type: "INFO", color: "#93C5FD"},
-    5 => %{type: "warning", color: "#FBBF24"},
+    5 => %{type: "[warning]", color: "#FBBF24"},
     6 => %{type: "WARNING", color: "#FBBF24"},
-    7 => %{type: "error", color: "#F87171"},
+    7 => %{type: "[error]", color: "#F87171"},
     8 => %{type: "ERROR", color: "#F87171"},
     9 => %{type: "SIGTERM", color: "#F87171"},
-    10 => %{type: "notice", color: "#FDBA74"},
+    10 => %{type: "[notice]", color: "#FDBA74"},
     11 => %{type: "NOTICE", color: "#FDBA74"},
     12 => %{type: "none", color: "#E5E5E5"}
   }
@@ -234,7 +234,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   end)
 
   test "Reset Stream button", %{conn: conn, test_node: node} do
-    message = "my-debug-msg"
+    message = "[debug]"
 
     service_id = String.replace(node, "@", "-")
     log_type = "stdout"

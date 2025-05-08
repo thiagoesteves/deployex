@@ -20,16 +20,16 @@ defmodule DeployexWeb.Helper do
 
     iex> alias DeployexWeb.Helper
     ...> assert Helper.log_message_color("any", "stderr") == "#F87171"
-    ...> assert Helper.log_message_color("debug", "stdout") == "#E5E5E5"
+    ...> assert Helper.log_message_color("[debug]", "stdout") == "#E5E5E5"
     ...> assert Helper.log_message_color("DEBUG", "stdout") == "#E5E5E5"
-    ...> assert Helper.log_message_color("info", "stdout") == "#93C5FD"
+    ...> assert Helper.log_message_color("[info]", "stdout") == "#93C5FD"
     ...> assert Helper.log_message_color("INFO", "stdout") == "#93C5FD"
-    ...> assert Helper.log_message_color("warning", "stdout") == "#FBBF24"
+    ...> assert Helper.log_message_color("[warning]", "stdout") == "#FBBF24"
     ...> assert Helper.log_message_color("WARNING", "stdout") == "#FBBF24"
-    ...> assert Helper.log_message_color("error", "stdout") == "#F87171"
+    ...> assert Helper.log_message_color("[error]", "stdout") == "#F87171"
     ...> assert Helper.log_message_color("ERROR", "stdout") == "#F87171"
     ...> assert Helper.log_message_color("SIGTERM", "stdout") == "#F87171"
-    ...> assert Helper.log_message_color("notice", "stdout") == "#FDBA74"
+    ...> assert Helper.log_message_color("[notice]", "stdout") == "#FDBA74"
     ...> assert Helper.log_message_color("NOTICE", "stdout") == "#FDBA74"
     ...> assert Helper.log_message_color("any", "stdout") == "#E5E5E5"
   """
@@ -38,20 +38,20 @@ defmodule DeployexWeb.Helper do
 
   def log_message_color(message, _log_type) do
     cond do
-      String.contains?(message, ["debug", "DEBUG"]) ->
-        "#E5E5E5"
-
-      String.contains?(message, ["info", "INFO"]) ->
-        "#93C5FD"
-
-      String.contains?(message, ["warning", "WARNING"]) ->
-        "#FBBF24"
-
-      String.contains?(message, ["error", "ERROR", "SIGTERM"]) ->
+      String.contains?(message, ["[error]", "error", "ERROR", "SIGTERM"]) ->
         "#F87171"
 
-      String.contains?(message, ["notice", "NOTICE"]) ->
+      String.contains?(message, ["[info]", "INFO"]) ->
+        "#93C5FD"
+
+      String.contains?(message, ["[warning]", "WARNING"]) ->
+        "#FBBF24"
+
+      String.contains?(message, ["[notice]", "notice", "NOTICE"]) ->
         "#FDBA74"
+
+      String.contains?(message, ["[debug]", "DEBUG"]) ->
+        "#E5E5E5"
 
       true ->
         "#E5E5E5"
