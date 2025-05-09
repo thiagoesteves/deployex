@@ -133,15 +133,15 @@ config :sentinel, Sentinel.Watchdog,
   applications_config: [
     default: %{
       enable_restart: true,
-      warning_threshold_percent: 80,
-      restart_threshold_percent: 95
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
     }
   ],
   system_config: [
     memory: %{
       enable_restart: true,
-      warning_threshold_percent: 80,
-      restart_threshold_percent: 95
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 85
     }
   ]
 

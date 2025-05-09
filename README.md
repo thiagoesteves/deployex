@@ -88,6 +88,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> |
 |----------|-------------|-------------|
+| [:soon: __0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.4.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.1)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.4.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.0)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.3.4__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.4) | __26.2.5.10__ | -/- |
@@ -196,8 +197,8 @@ logs_retention_time_ms: 3600000                    # Deployex (optional, default
 monitoring:                                        # Deployex (optional, default: values described in memory): Monitoring features
   - type: "memory"
     enable_restart: true                           # Deployex (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-    warning_threshold_percent: 80                  # Deployex (optional, default: 80): Issue a warning if memory usage exceeds this percent
-    restart_threshold_percent: 95                  # Deployex (optional, default: 95): Restart app if memory usage exceeds this percent
+    warning_threshold_percent: 75                  # Deployex (optional, default: 75): Issue a warning if memory usage exceeds this percent
+    restart_threshold_percent: 85                  # Deployex (optional, default: 85): Restart app if memory usage exceeds this percent
 applications:
   - name: "myphoenixapp"                           # Application: Monitored app name (Elixir app name format)
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)
@@ -221,16 +222,16 @@ applications:
     monitoring:                                    # Application (optional, default: values described in atom, process and port): Monitoring features
       - type: "atom"
         enable_restart: true                       # Application (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-        warning_threshold_percent: 80              # Application (optional, default: 80): Issue a warning if memory usage exceeds this percent
-        restart_threshold_percent: 95              # Application (optional, default: 95): Restart app if memory usage exceeds this percent
+        warning_threshold_percent: 75              # Application (optional, default: 75): Issue a warning if memory usage exceeds this percent
+        restart_threshold_percent: 90              # Application (optional, default: 90): Restart app if memory usage exceeds this percent
       - type: "process"
         enable_restart: true
-        warning_threshold_percent: 80
-        restart_threshold_percent: 95
+        warning_threshold_percent: 75
+        restart_threshold_percent: 90
       - type: "port"
         enable_restart: true
-        warning_threshold_percent: 80
-        restart_threshold_percent: 95
+        warning_threshold_percent: 75
+        restart_threshold_percent: 90
 ```
 
 For local testing, these variables are not expected or set to default values.

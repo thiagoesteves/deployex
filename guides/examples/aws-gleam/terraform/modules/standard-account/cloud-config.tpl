@@ -50,8 +50,8 @@ write_files:
       monitoring:
         - type: "memory"
           enable_restart: true
-          warning_threshold_percent: 80
-          restart_threshold_percent: 95
+          warning_threshold_percent: 75
+          restart_threshold_percent: 85
       applications:
         - name: "myappname"
           language: "gleam"
@@ -71,16 +71,16 @@ write_files:
           monitoring:
             - type: "atom"
               enable_restart: true
-              warning_threshold_percent: 80
-              restart_threshold_percent: 95
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
             - type: "process"
               enable_restart: true
-              warning_threshold_percent: 80
-              restart_threshold_percent: 95
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
             - type: "port"
               enable_restart: true
-              warning_threshold_percent: 80
-              restart_threshold_percent: 95
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
   - path: /home/ubuntu/config.json
     owner: root:root
     permissions: "0644"
