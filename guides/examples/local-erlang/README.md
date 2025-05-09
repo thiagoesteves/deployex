@@ -1,4 +1,4 @@
-# 🏠 Running DeployEx and Monitored Erlang Application locally
+## 1. Running DeployEx and Monitored Erlang Application locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Let's create the required release folders:
 ```bash
@@ -15,7 +15,7 @@ export DEPLOYEX_MONITORED_APP_LANG=erlang
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-## Creating an Erlang app (default name is `myerlangapp`)
+## 2. Creating an Erlang app (default name is `myerlangapp`)
 
 In this example, we create a brand new erlang app:
 
@@ -158,7 +158,7 @@ init([]) ->
     {ok, {SupFlags, ChildSpecs}}.
 ```
 
-## Generate a release
+## 3. Generate a release
 Then you can compile and generate a release
 ```bash
 rebar3 as prod release
@@ -172,7 +172,7 @@ cp _build/prod/rel/${app_name}/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-## Running DeployEx and deploy the app
+## 4. Running DeployEx and deploy the app
 
 Move back to the DeployEx project and run the command line: 
 
@@ -211,7 +211,7 @@ You can also click in the stdout log button of `myerlangapp` to check the follow
 > [!NOTE]
 > The __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
-## Updating the application
+## 5. Updating the application
 
 ### Full deployment
 
@@ -296,7 +296,7 @@ you can check in the logs that the Hotupgrade was executed with success:
 
 you can also restart the application to check that the hotupgrade persisted.
 
-## 🔑 Enhancing OTP Distribution Security with mTLS
+## 6. 🔑 Enhancing OTP Distribution Security with mTLS
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 

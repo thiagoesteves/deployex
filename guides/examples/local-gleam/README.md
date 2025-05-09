@@ -1,4 +1,4 @@
-# 🏠 Running DeployEx and Monitored Gleam Application locally
+## 1. Running DeployEx and Monitored Gleam Application locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Let's create the required release folders:
 ```bash
@@ -15,7 +15,7 @@ export DEPLOYEX_MONITORED_APP_LANG=gleam
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-## Creating a Gleam app (default name is `mygleamapp`)
+## 2. Creating a Gleam app (default name is `mygleamapp`)
 
 In this example, we create a brand new gleam app:
 
@@ -43,7 +43,7 @@ pub fn main() {
 }
 ```
 
-## Generate a release
+## 3. Generate a release
 Then you can compile and generate a release
 ```bash
 gleam deps update
@@ -64,7 +64,7 @@ echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 > Gleam doesn't have a release command (yet). For DeployEx to operate properly, we need a tarbal that contains the erlang-shipment
 > with the respective version. There is an example in [cochito](https://github.com/chouzar/cochito/blob/main/.github/workflows/release.yml)
 
-## Running DeployEx and deploy the app
+## 4. Running DeployEx and deploy the app
 
 Move back to the DeployEx project and run the command line: 
 
@@ -97,7 +97,7 @@ You should then visit the application and check it is running [localhost:5001](h
 
 Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
-## Updating the application
+## 5. Updating the application
 
 ### Full deployment
 
@@ -134,7 +134,7 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 ...
 ```
 
-## 🔑 Enhancing OTP Distribution Security with mTLS
+## 6. 🔑 Enhancing OTP Distribution Security with mTLS
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 

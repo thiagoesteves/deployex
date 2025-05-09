@@ -39,8 +39,7 @@ defmodule Deployex.MixProject do
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
-      ],
-      aliases: aliases()
+      ]
     ]
   end
 
@@ -76,22 +75,31 @@ defmodule Deployex.MixProject do
       source_ref: Mix.Shared.version(),
       formatters: ["html"],
       api_reference: false,
+      extra_section: ["GUIDES"],
+      groups_for_extras: groups_for_extras(),
       extras: [
         "README.md",
-        "LICENSE.md",
-        "CHANGELOG.md"
+        "LICENSE.md": [filename: "license", title: "License"],
+        "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
+        "guides/examples/aws-elixir/README.md": [filename: "README.md", title: "AWS-Elixir"],
+        "guides/examples/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
+        "guides/examples/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
+        "guides/examples/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
+        "guides/examples/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
+        "guides/examples/local-elixir-umbrella/README.md": [
+          filename: "README.md",
+          title: "Local-Elixir-Umbrella"
+        ],
+        "guides/examples/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
+        "guides/examples/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"]
       ]
     ]
   end
 
-  defp copy_ex_doc(_) do
-    static_destination_path = "./doc/guides/static"
-    File.mkdir_p!(static_destination_path)
-    File.cp_r("./guides/static", static_destination_path)
-
-    examples_destination_path = "./doc/guides/examples"
-    File.mkdir_p!(examples_destination_path)
-    File.cp_r("./guides/examples", examples_destination_path)
+  defp groups_for_extras do
+    [
+      "Installation and Deploy": Path.wildcard("guides/examples/*/*.md")
+    ]
   end
 
   # Dependencies listed here are available only for this
@@ -106,12 +114,6 @@ defmodule Deployex.MixProject do
       {:mock, "~> 0.3.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
-    ]
-  end
-
-  defp aliases do
-    [
-      docs: ["docs", &copy_ex_doc/1]
     ]
   end
 end
