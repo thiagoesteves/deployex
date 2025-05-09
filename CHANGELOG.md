@@ -1,6 +1,6 @@
 # CHANGELOG (0.4.x)
 
-## 0.4.2 ()
+## 0.4.2 🚀 (2025-05-13)
 
 ### Backwards incompatible changes for 0.4.1
  * Monitoring support requires your application to use [Observer Web](https://github.com/thiagoesteves/observer_web) version `>= 0.1.9`
