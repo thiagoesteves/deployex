@@ -1,4 +1,4 @@
-# 🏠 Running DeployEx and Monitored Elixir Umbrella Application locally
+## 1. Running DeployEx and Monitored Elixir Umbrella Application locally
 
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
 
@@ -11,7 +11,7 @@ mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
-## Creating an Elixir phoenix umbrella app (default name is `myumbrella`)
+## 2. Creating an Elixir phoenix umbrella app (default name is `myumbrella`)
 
 In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
 
@@ -28,7 +28,7 @@ mix new app2 --sup
 mix phx.new app_web --no-ecto
 ```
 
-## Add env.sh.eex file in the release folder to configure the OTP distribution
+## 3. Add env.sh.eex file in the release folder to configure the OTP distribution
 
 ```bash
 vi rel/env.sh.eex
@@ -45,7 +45,7 @@ export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
 # save the file :wq
 ```
 
-## Configuring your app to allow Hot upgrades (optional)
+## 4. Configuring your app to allow Hot upgrades (optional)
 Add the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__
 if your application will need hot upgrades. The dependency should be added at the 
 root path (not in specific apps). For umbrella applications, check the [Umbrella Support](https://github.com/thiagoesteves/jellyfish?tab=readme-ov-file#elixir-umbrella-applications)
@@ -93,7 +93,7 @@ config :app_web, AppWebWeb.Endpoint,
   ]
 ```
 
-## Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
+## 5. Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
 Add [Observer Web](https://github.com/thiagoesteves/observer_web) to one of your applications, 
 preferably the Phoenix application. This allows your application to broadcast metrics that 
 can be collected and visualized by DeployEx.
@@ -112,7 +112,7 @@ config :observer_web, ObserverWeb.Telemetry,
   mode: :broadcast
 ```
 
-## Generate a release
+## 6. Generate a release
 Then you can compile and generate a release
 ```bash
 mix deps.get
@@ -142,7 +142,7 @@ cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
 ```
 
-## Running DeployEx and deploy the app
+## 7. Running DeployEx and deploy the app
 
 Move back to the DeployEx project and run the command line: 
 
@@ -174,7 +174,7 @@ You should then visit the application and check it is running [localhost:5001](h
 
 Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
-## Updating the application
+## 8. Updating the application
 
 ### Full deployment
 
@@ -283,7 +283,7 @@ you can check that the version and the deployment status has changed in the dash
 ![No mTLS Dashboard](../../static/deployex_monitoring_app_hot_upgrade.png)
 
 
-## 🔑 Enhancing OTP Distribution Security with mTLS
+## 9. 🔑 Enhancing OTP Distribution Security with mTLS
 
 In order to improve security, mutual TLS (`mTLS` for short) can be employed to encrypt communication during OTP distribution. To implement this, follow these steps:
 

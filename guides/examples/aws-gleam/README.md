@@ -2,18 +2,18 @@
 
 This guide demonstrates how to deploy DeployEx in Amazon Web Services (AWS) using Terraform to programmatically set up the environment.
 
-## Setup
+## 1. Requirements
 
 To begin, ensure the following applications are installed:
 
  * Terraform
  * [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 
-### 1. SSH Key Pair
+## 2. SSH Key Pair
 
 Create an SSH key pair named, e. g. `myappname-web-ec2` by visiting the [AWS Key Pair page](https://sa-east-1.console.aws.amazon.com/ec2/home?region=sa-east-1#KeyPairs:). Save the private key in your local SSH folder (`~/.ssh`). The name `myappname-web-ec2` will be used by this file `devops/terraform/modules/standard-account/variables.tf` within terraform templates.
 
-### 2. Environment Secrets
+## 3. Environment Secrets
 
 Ensure you have access to the following secrets for storage in Secrets Manager:
 
@@ -28,11 +28,11 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 > [!ATTENTION]
 > The ENV vars `DEPLOYEX_CONFIG_YAML_PATH` and `DEPLOYEX_OTP_TLS_CERT_PATH` will be set automatically by the script `deployex.sh`.
 
-### 3. Variables Configuration
+## 4. Variables Configuration
 
-Rename the file [main_example.tf_](./environments/prod/main_example.tf_) to [main.tf](./environments/prod/main.tf) and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file](./modules/standard-account/variables.tf). These variables will be utilized across all Terraform templates to ensure correct setup.
+Rename the file [main\_example.tf\_][main] to `main.tf` and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file][var]. These variables will be utilized across all Terraform templates to ensure correct setup.
 
-### 4. Provisioning the Environment
+## 5. Provisioning the Environment
 
 Check you have the correct credentials to create/update resources in aws:
 ```bash
@@ -51,7 +51,7 @@ terraform apply # Apply the configurations to create the environment
 
 Wait for the environment to be created. Once the provisioning is complete, you can check the instance at this [address](https://console.aws.amazon.com/ec2/home).
 
-#### Updating Secret Manager
+### Updating Secret Manager
 
 Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secrets:
 
@@ -77,7 +77,7 @@ DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
 
  *  *__myappname-stage-otp-tls-ca__*, *__myappname-stage-otp-tls-key__*, *__myappname-stage-otp-tls-crt__*:
 
-Create the TLS certificates for OTP distribution using the [Following script](../../../devops/scripts/tls-distribution-certs), changing the appropriate names and regions inside it.
+Create the TLS certificates for OTP distribution using the [Following script][tls] , changing the appropriate names and regions inside it.
 
 ```bash
 make tls-distribution-certs
@@ -88,7 +88,7 @@ The command will generate three files: `ca.crt`, `deployex.key` and `deployex.cr
 > [!WARNING]
 > __DEPLOYEX_ERLANG_COOKIE__ and __MYAPPNAME_ERLANG_COOKIE__ __MUST__ match, as they will be used by the OTP distribution.
 
-### 5. EC2 Provisioning (Manual Steps)
+## 6. EC2 Provisioning (Manual Steps)
 
 When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention.
 
@@ -129,6 +129,7 @@ version=0.3.0
 rm deployex.sh
 wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
 chmod a+x deployex.sh
+```
 
 Run the script to install (or update) deployex:
 
@@ -168,11 +169,11 @@ tail -f /var/log/deployex/deployex-stdout.log
 tail -f /var/log/deployex/deployex-stderr.log
 ```
 
-### 6. Monitored App deployment
+## 7. Monitored App deployment
 
 Once DeployEx is running, you __MUST__ deploy the monitored app. This deployment involves creating the release package and the current version JSON file in the designated storage path.
 
-#### Release Version
+### Release Version
 
 The release version file __MUST__ be formatted in JSON and include the following information:
 
@@ -186,19 +187,19 @@ The release version file __MUST__ be formatted in JSON and include the following
 
 The JSON file __MUST__ be stored at the following path: `/versions/{monitored_app}/{env}/current.json`
 
-#### Release package
+### Release package
 
 After DeployEx fetches the release file, it will download the release package for installation. The package should be located at: `/dist/{monitored_app}/{monitored_app}-{version}.tar.gz`
 
 
-#### [CI/CD] Upload files to AWS from Github
+### [CI/CD] Upload files to AWS from Github
 
 Here are some useful resources with suggestions on how to automate the upload of version and release files to your environment using GitHub Actions:
 
  * [Guthub Actions - S3 Downloader/Uploader](https://github.com/marketplace/actions/s3-cp)
  * [Calori Webserver Example with AWS](https://github.com/thiagoesteves/calori/tree/main/devops/aws/terraform)
 
- ### 7. Setting Up HTTPS Certificates with Let's Encrypt
+## 8. Setting Up HTTPS Certificates with Let's Encrypt
 
 > [!IMPORTANT]
 > Before proceeding, make sure that the DNS is correctly configured to point to the AWS instance.
@@ -267,3 +268,7 @@ systemctl reload nginx
 
 > [!NOTE]
 > After the changes, It may require a reboot.
+
+[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/tls-distribution-certs
+[main]: https://github.com/thiagoesteves/deployex/blob/main/guides/examples/aws-elixir/terraform/environments/prod/main_example.tf_
+[var]: https://github.com/thiagoesteves/deployex/blob/main/guides/examples/aws-elixir/terraform/modules/standard-account/variables.tf

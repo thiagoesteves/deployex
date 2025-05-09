@@ -19,7 +19,8 @@ DeployEx is currently used by:
 
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
-[![Watch the video](guides/static/deployex_monitoring_app_tls.png)](https://youtu.be/tzWcCmuqNV4)
+![Deployex Monitoring](guides/static/deployex_monitoring_app_tls.png)
+[▶️  See DeployEx in action](https://youtu.be/tzWcCmuqNV4)
 
 ## 🔉 Features
 
@@ -65,11 +66,17 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 > [!NOTE]
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.
 
+## 🚀 **New Monitoring Feature!**  
+Your application is now better protected from crashes caused by excessive memory usage, port/atom exhaustion, or too many processes.  
+
+🧠 Curious why monitoring memory is essential?  
+Check out this must-watch video:  
+▶️ [Battling Memory Leaks: Tales from the Trenches at WhatsApp](https://youtu.be/NCgsTBeQbc8)
+
 ## ⚠️ [Next steps](https://github.com/thiagoesteves/deployex/issues)
 
 ### What is coming next
 
-- [ ] :construction: [ISSUE-108](https://github.com/thiagoesteves/deployex/issues/108) - Add Monitor for Beam/Memory limits and trigger restart 
 - [ ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
 - [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
 - [ ] [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
@@ -81,6 +88,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> |
 |----------|-------------|-------------|
+| [:soon: __0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.4.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.1)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.4.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.0)  | __26.2.5.10__ | __27.3.3__ |
 | [__0.3.4__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.4) | __26.2.5.10__ | -/- |
@@ -182,15 +190,20 @@ version: "0.4.0-rc1"                               # Deployex: Version
 otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                          # Deployex: Target OS server
-deploy_rollback_timeout_ms: 600000                 # Deployex (optional): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
-deploy_schedule_interval_ms: 5000                  # Deployex (optional): Periodic checking for new deployments
-metrics_retention_time_ms: 3600000                 # Deployex (optional): Retention time for metrics
-logs_retention_time_ms: 3600000                    # Deployex (optional): Retention time for logs
+deploy_rollback_timeout_ms: 600000                 # Deployex (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_schedule_interval_ms: 5000                  # Deployex (optional, default: 5000): Periodic checking for new deployments
+metrics_retention_time_ms: 3600000                 # Deployex (optional, default: 3600000): Retention time for metrics
+logs_retention_time_ms: 3600000                    # Deployex (optional, default: 3600000): Retention time for logs
+monitoring:                                        # Deployex (optional, default: values described in memory): Monitoring features
+  - type: "memory"
+    enable_restart: true                           # Deployex (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+    warning_threshold_percent: 75                  # Deployex (optional, default: 75): Issue a warning if memory usage exceeds this percent
+    restart_threshold_percent: 85                  # Deployex (optional, default: 85): Restart app if memory usage exceeds this percent
 applications:
-  - name: "myphoenixapp"                           # Application: Monitored app name
+  - name: "myphoenixapp"                           # Application: Monitored app name (Elixir app name format)
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)
     initial_port: 4000                             # Application: The initial port for starting the monitored app
-    replicas: 2
+    replicas: 2                                    # Application (optional, default: 3): Number of replicas
     env:                                           # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
@@ -206,6 +219,19 @@ applications:
         value: "myphoenixapp-prod-secrets"
       - key: AWS_REGION
         value: "sa-east-1"
+    monitoring:                                    # Application (optional, default: values described in atom, process and port): Monitoring features
+      - type: "atom"
+        enable_restart: true                       # Application (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+        warning_threshold_percent: 75              # Application (optional, default: 75): Issue a warning if memory usage exceeds this percent
+        restart_threshold_percent: 90              # Application (optional, default: 90): Restart app if memory usage exceeds this percent
+      - type: "process"
+        enable_restart: true
+        warning_threshold_percent: 75
+        restart_threshold_percent: 90
+      - type: "port"
+        enable_restart: true
+        warning_threshold_percent: 75
+        restart_threshold_percent: 90
 ```
 
 For local testing, these variables are not expected or set to default values.

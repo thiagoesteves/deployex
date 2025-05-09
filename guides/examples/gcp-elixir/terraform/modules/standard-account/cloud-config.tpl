@@ -55,6 +55,11 @@ write_files:
       deploy_schedule_interval_ms: 5000
       metrics_retention_time_ms: 3600000
       logs_retention_time_ms: 3600000
+      monitoring:
+        - type: "memory"
+          enable_restart: true
+          warning_threshold_percent: 75
+          restart_threshold_percent: 85
       applications:
         - name: "myappname"
           language: "elixir"
@@ -69,6 +74,19 @@ write_files:
               value: "${account_name}"
             - key: MYAPPNAME_OTP_TLS_CERT_PATH
               value: "/usr/local/share/ca-certificates"
+          monitoring:
+            - type: "atom"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
+            - type: "process"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
+            - type: "port"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
   - path: /etc/nginx/sites-available/default
     owner: root:root
     permissions: "0644"

@@ -132,8 +132,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        [
                          memory: %{
                            enable_restart: true,
-                           warning_threshold_percent: 80,
-                           restart_threshold_percent: 95
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 85
                          }
                        ]},
                       {:applications_config,
@@ -146,18 +146,18 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                          myphoenixapp: [
                            atom: %{
                              enable_restart: true,
-                             warning_threshold_percent: 80,
-                             restart_threshold_percent: 95
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
                            },
                            process: %{
                              enable_restart: true,
-                             warning_threshold_percent: 80,
-                             restart_threshold_percent: 95
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
                            },
                            port: %{
                              enable_restart: true,
-                             warning_threshold_percent: 80,
-                             restart_threshold_percent: 95
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
                            }
                          ]
                        ]}

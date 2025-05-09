@@ -47,6 +47,11 @@ write_files:
       deploy_schedule_interval_ms: 5000
       metrics_retention_time_ms: 3600000
       logs_retention_time_ms: 3600000
+      monitoring:
+        - type: "memory"
+          enable_restart: true
+          warning_threshold_percent: 75
+          restart_threshold_percent: 85
       applications:
         - name: "myappname"
           language: "erlang"
@@ -63,6 +68,19 @@ write_files:
               value: "/usr/local/share/ca-certificates"
             - key: AWS_REGION
               value: "${aws_region}"
+          monitoring:
+            - type: "atom"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
+            - type: "process"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
+            - type: "port"
+              enable_restart: true
+              warning_threshold_percent: 75
+              restart_threshold_percent: 90
   - path: /home/ubuntu/config.json
     owner: root:root
     permissions: "0644"
