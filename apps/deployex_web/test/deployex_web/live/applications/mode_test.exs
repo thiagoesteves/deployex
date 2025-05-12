@@ -12,15 +12,12 @@ defmodule DeployexWeb.Applications.ModeTest do
     :log_in_default_user
   ]
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
   test "Check all versions are available", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..40, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -47,10 +44,8 @@ defmodule DeployexWeb.Applications.ModeTest do
 
   test "Set manual mode - cancel operation", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
@@ -74,10 +69,8 @@ defmodule DeployexWeb.Applications.ModeTest do
     expected_manual_version = "1.0.1"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> expect(:set_mode, fn :manual, ^expected_manual_version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -112,16 +105,14 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         Monitoring.deployex(%{
+         FixtureStatus.deployex(%{
            mode: :manual,
            manual_version: FixtureStatus.version(%{version: "1.0.2"})
          }),
-         Monitoring.application()
+         FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> expect(:set_mode, fn :automatic, _version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
@@ -153,16 +144,14 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         Monitoring.deployex(%{
+         FixtureStatus.deployex(%{
            mode: :manual,
            manual_version: FixtureStatus.version(%{version: "1.0.2"})
          }),
-         Monitoring.application()
+         FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -179,16 +168,14 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         Monitoring.deployex(%{
+         FixtureStatus.deployex(%{
            mode: :manual,
            manual_version: FixtureStatus.version(%{version: "1.0.2"})
          }),
-         Monitoring.application()
+         FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
@@ -204,10 +191,8 @@ defmodule DeployexWeb.Applications.ModeTest do
 
   test "Check setting the same mode is not possible", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn ->
       Enum.map(1..3, fn index ->
         FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})

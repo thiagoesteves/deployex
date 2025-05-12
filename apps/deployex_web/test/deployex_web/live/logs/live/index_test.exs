@@ -4,7 +4,6 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
   setup [
@@ -16,10 +15,8 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
   test "GET /applications check buttom", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -29,7 +26,10 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
            |> render_click()
   end
 
-  test "GET /logs/live", %{conn: conn} do
+  test "GET /logs/live", %{conn: conn, node: node} do
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
+
     Sentinel.LogsMock
     |> stub(:get_types_by_node, fn _node -> ["stderr"] end)
 
@@ -38,15 +38,18 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert html =~ "Live Logs"
   end
 
-  test "Add Service + Stdout", %{conn: conn, test_node: node} do
-    service_id = String.replace(node, "@", "-")
+  test "Add Service + Stdout", %{conn: conn, node_id: service_id, node: node} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
+    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -68,15 +71,18 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add Stdout + Service", %{conn: conn, test_node: node} do
-    service_id = String.replace(node, "@", "-")
+  test "Add Stdout + Service", %{conn: conn, node_id: service_id, node: node} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
+    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -98,16 +104,19 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add/Remove Service + Stdout", %{conn: conn, test_node: node} do
-    service_id = String.replace(node, "@", "-")
+  test "Add/Remove Service + Stdout", %{conn: conn, node_id: service_id, node: node} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:unsubscribe_for_new_logs, fn ^node, ^log_type ->
+    |> expect(:unsubscribe_for_new_logs, fn ^node_string, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -137,16 +146,19 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Add/Remove Stdout + Service", %{conn: conn, test_node: node} do
-    service_id = String.replace(node, "@", "-")
+  test "Add/Remove Stdout + Service", %{conn: conn, node_id: service_id, node: node} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:unsubscribe_for_new_logs, fn ^node, ^log_type ->
+    |> expect(:unsubscribe_for_new_logs, fn ^node_string, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -193,19 +205,23 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   |> Enum.each(fn {element, %{type: type, color: color}} ->
     test "#{element} - Send Stdout #{type} message from erlexec server", %{
       conn: conn,
-      test_node: node
+      node_id: service_id,
+      node: node
     } do
       message = unquote(type)
       expected_color = unquote(color)
 
-      service_id = String.replace(node, "@", "-")
       log_type = "stdout"
       test_pid_process = self()
       ref = make_ref()
+      node_string = "#{node}"
+
+      Deployer.MonitorMock
+      |> stub(:list, fn -> [node] end)
 
       Sentinel.LogsMock
       |> stub(:get_types_by_node, fn _node -> [log_type] end)
-      |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
+      |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
         send(test_pid_process, {:handle_ref_event, ref, self()})
         :ok
       end)
@@ -233,17 +249,19 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     end
   end)
 
-  test "Reset Stream button", %{conn: conn, test_node: node} do
+  test "Reset Stream button", %{conn: conn, node_id: service_id, node: node} do
     message = "[debug]"
-
-    service_id = String.replace(node, "@", "-")
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node, ^log_type ->
+    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref, self()})
       :ok
     end)

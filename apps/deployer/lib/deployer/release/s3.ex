@@ -35,7 +35,7 @@ defmodule Deployer.Release.S3 do
   Download and unpack the application
   """
   @impl true
-  def download_and_unpack(instance, version) do
+  def download_and_unpack(node, version) do
     {:ok, download_path} = Briefly.create()
 
     app_name = Catalog.monitored_app_name()
@@ -48,17 +48,17 @@ defmodule Deployer.Release.S3 do
       |> ExAws.S3.download_file(s3_path, download_path)
       |> ExAws.request()
 
-    Status.clear_new(instance)
-    new_path = Catalog.new_path(instance)
+    Status.clear_new(node)
+    new_path = Catalog.new_path(node)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
     Upgrade.check(
-      instance,
+      node,
       app_name,
       app_lang,
       download_path,
-      Status.current_version(instance),
+      Status.current_version(node),
       version
     )
   after

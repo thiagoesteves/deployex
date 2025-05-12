@@ -4,6 +4,6 @@ defmodule Deployer.Release.Adapter do
   """
 
   @callback get_current_version_map() :: Deployer.Release.Version.t()
-  @callback download_and_unpack(integer(), String.t()) ::
+  @callback download_and_unpack(node(), String.t()) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
 end

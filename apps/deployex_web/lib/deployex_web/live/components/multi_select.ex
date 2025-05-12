@@ -8,6 +8,7 @@ defmodule DeployexWeb.Components.MultiSelect do
   """
   use Phoenix.Component
 
+  alias DeployexWeb.Helper
   alias Phoenix.LiveView.JS
 
   attr :id, :string, required: true
@@ -41,7 +42,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                         {"#{item.name}:#{key}"}
                       </div>
                       <button
-                        id={String.replace("#{@id}-#{item.name}-#{key}-remove-item", "@", "-")}
+                        id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-remove-item")}
                         class="flex flex-auto flex-row-reverse"
                         phx-click="multi-select-remove-item"
                         phx-value-key={key}
@@ -78,7 +79,7 @@ defmodule DeployexWeb.Components.MultiSelect do
               </div>
               <div class="text-gray-300 w-8 py-1 pl-2 pr-1 border-l flex items-center border-gray-200 ">
                 <button
-                  id={"#{@id}-toggle-options"}
+                  id={Helper.normalize_id("#{@id}-toggle-options")}
                   class="cursor-pointer w-6 h-6 text-gray-600 outline-none focus:outline-none"
                   phx-click="toggle-options"
                 >
@@ -121,7 +122,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                     <div class="flex flex-wrap">
                       <%= for key <- item.keys do %>
                         <button
-                          id={String.replace("#{@id}-#{item.name}-#{key}-add-item", "@", "-")}
+                          id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
                           class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
                           phx-click="multi-select-add-item"
                           phx-value-key={key}

@@ -25,14 +25,14 @@ defmodule Sentinel.Logs do
   @doc """
   Fetch data by node and log_type
   """
-  @spec list_data_by_node_log_type(atom() | String.t(), String.t(), Keyword.t()) :: list()
+  @spec list_data_by_node_log_type(node() | String.t(), String.t(), Keyword.t()) :: list()
   def list_data_by_node_log_type(node, log_type, options),
     do: default().list_data_by_node_log_type(node, log_type, options)
 
   @doc """
   List all log types registered for the respective node
   """
-  @spec get_types_by_node(atom()) :: list()
+  @spec get_types_by_node(node()) :: list()
   def get_types_by_node(node), do: default().get_types_by_node(node)
 
   @doc """

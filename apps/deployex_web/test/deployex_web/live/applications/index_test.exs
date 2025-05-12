@@ -4,7 +4,6 @@ defmodule DeployexWeb.Applications.IndexTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
   setup [
@@ -15,10 +14,8 @@ defmodule DeployexWeb.Applications.IndexTest do
 
   test "GET /applications", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
@@ -38,10 +35,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "test-topic"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -50,8 +45,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "FULL"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{last_deployment: "hot_upgrade"})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{last_deployment: "hot_upgrade"})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -67,10 +62,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "test-topic"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -84,8 +77,8 @@ defmodule DeployexWeb.Applications.IndexTest do
              "Force Restart</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{crash_restart_count: 1, force_restart_count: 1})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{crash_restart_count: 1, force_restart_count: 1})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -105,10 +98,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "test-topic"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -118,8 +109,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "NOT CONNECTED"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{otp: :not_connected})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{otp: :not_connected})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -135,10 +126,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     topic = "test-topic"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -148,8 +137,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "NOT SUPPORTED"
 
     new_state = [
-      Monitoring.deployex(%{tls: :not_supported}),
-      Monitoring.application()
+      FixtureStatus.deployex(%{tls: :not_supported}),
+      FixtureStatus.application()
     ]
 
     Phoenix.PubSub.broadcast(
@@ -168,13 +157,11 @@ defmodule DeployexWeb.Applications.IndexTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         Monitoring.deployex(),
-         Monitoring.application(%{status: :idle, version: nil})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{status: :idle, version: nil})
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -184,8 +171,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{status: :starting, version: "1.0.0"})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{status: :starting, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -199,8 +186,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{status: :pre_commands, version: "1.0.0"})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{status: :pre_commands, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -214,8 +201,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{status: :running, version: "1.0.0"})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{status: :running, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(
@@ -237,13 +224,11 @@ defmodule DeployexWeb.Applications.IndexTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         Monitoring.deployex(),
-         Monitoring.application(%{status: :idle, version: nil})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{status: :idle, version: nil})
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
@@ -253,8 +238,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-gray-400"
 
     new_state = [
-      Monitoring.deployex(),
-      Monitoring.application(%{status: :starting, version: "1.0.0"})
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{status: :starting, version: "1.0.0"})
     ]
 
     Phoenix.PubSub.broadcast(

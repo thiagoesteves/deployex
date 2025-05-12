@@ -38,23 +38,23 @@ defmodule Deployer.Release.Local do
   Download and unpack the application
   """
   @impl true
-  def download_and_unpack(instance, version) do
+  def download_and_unpack(node, version) do
     app_name = Catalog.monitored_app_name()
     app_lang = Catalog.monitored_app_lang()
 
     download_path = "#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
 
-    Status.clear_new(instance)
-    new_path = Catalog.new_path(instance)
+    Status.clear_new(node)
+    new_path = Catalog.new_path(node)
 
     {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
 
     Upgrade.check(
-      instance,
+      node,
       app_name,
       app_lang,
       download_path,
-      Status.current_version(instance),
+      Status.current_version(node),
       version
     )
   end

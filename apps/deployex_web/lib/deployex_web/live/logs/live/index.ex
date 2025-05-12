@@ -1,9 +1,9 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
+  alias Deployer.Monitor
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
-  alias Foundation.Catalog
   alias Sentinel.Logs
 
   @impl true
@@ -199,20 +199,13 @@ defmodule DeployexWeb.LogsLive do
           selected_logs: selected_logs
       }
 
-    {:ok, hostname} = :inet.gethostname()
-
-    instance_to_node = fn instance ->
-      :"#{Catalog.sname(instance)}@#{hostname}"
-    end
-
-    Catalog.instance_list()
-    |> Enum.reduce(initial_map, fn instance,
+    (Monitor.list() ++ [Node.self()])
+    |> Enum.reduce(initial_map, fn service_node,
                                    %{
                                      services_keys: services_keys,
                                      logs_keys: logs_keys,
                                      node: node
                                    } = acc ->
-      service_node = instance_to_node.(instance)
       service = to_string(service_node)
       services_keys = services_keys ++ [service]
 
@@ -223,7 +216,6 @@ defmodule DeployexWeb.LogsLive do
         if service in selected_services do
           [
             %{
-              instance: instance,
               logs_keys: logs_keys,
               service: service
             }

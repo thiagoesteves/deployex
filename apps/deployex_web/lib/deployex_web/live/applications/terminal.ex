@@ -9,6 +9,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   """
   use DeployexWeb, :live_component
 
+  alias Foundation.Catalog
   alias Foundation.Common
   alias Host.Commander
   alias Host.Terminal
@@ -21,7 +22,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     ~H"""
     <div>
       <.header>
-        {"Terminal for #{@monitored_app_name} [#{@id}]"}
+        {"Terminal for #{@id}"}
         <:subtitle>Bin: {@bin_path}</:subtitle>
       </.header>
 
@@ -88,23 +89,18 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   defp maybe_connect(
          %{
            assigns: %{
-             id: instance,
-             cookie: cookie,
-             monitored_app_name: app_name,
-             monitored_app_lang: app_lang
+             id: sname,
+             cookie: cookie
            }
          } =
            socket
        )
        when cookie != :nocookie do
-    bin_path =
-      instance
-      |> String.to_integer()
-      |> Foundation.Catalog.bin_path(app_lang, :current)
+    %{node: node, suffix: suffix, hostname: hostname, name_string: app_name, language: app_lang} =
+      Catalog.node_info_from_sname(sname)
 
+    bin_path = Catalog.bin_path(node, app_lang, :current)
     path = Common.remove_deployex_from_path()
-    suffix = if instance == "0", do: "", else: "-#{instance}"
-    {:ok, hostname} = :inet.gethostname()
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -116,21 +112,21 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     if File.exists?(bin_path) do
       commands =
         cond do
-          app_lang == "gleam" and instance != "0" ->
+          app_lang == "gleam" and sname != "deployex" ->
             """
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
-            erl -remsh #{app_name}#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
+            erl -remsh #{app_name}-#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
             """
 
-          app_lang == "erlang" and instance != "0" ->
+          app_lang == "erlang" and sname != "deployex" ->
             """
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELX_REPLACE_OS_VARS=true
-            export RELEASE_NODE=#{app_name}#{suffix}
+            export RELEASE_NODE=#{app_name}-#{suffix}
             export RELEASE_COOKIE=#{cookie}
             export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
             #{bin_path} remote_console
@@ -142,7 +138,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
-            export RELEASE_NODE_SUFFIX=#{suffix}
+            export RELEASE_NODE_SUFFIX=-#{suffix}
             export RELEASE_COOKIE=#{cookie}
             #{bin_path} remote
             """
@@ -152,7 +148,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
       {:ok, _pid} =
         Terminal.new(%Terminal{
-          instance: String.to_integer(instance),
+          node: node,
           commands: commands,
           options: options,
           target: self(),

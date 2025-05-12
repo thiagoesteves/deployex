@@ -4,7 +4,6 @@ defmodule DeployexWeb.Logs.History.IndexTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias Sentinel.Logs.Message
 
@@ -18,10 +17,8 @@ defmodule DeployexWeb.Logs.History.IndexTest do
 
   test "GET /applications check buttom", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -31,7 +28,10 @@ defmodule DeployexWeb.Logs.History.IndexTest do
            |> render_click()
   end
 
-  test "GET /logs/history", %{conn: conn, test_node: node} do
+  test "GET /logs/history", %{conn: conn, node: node} do
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
+
     Sentinel.LogsMock
     |> expect(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> ["stderr"] end)
@@ -41,16 +41,19 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert html =~ "History Logs"
   end
 
-  test "Add Service + Stdout", %{conn: conn, test_node: node, logs: logs} do
-    service_id = String.replace(node, "@", "-")
+  test "Add Service + Stdout", %{conn: conn, node_id: service_id, node: node, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:list_data_by_node_log_type, fn ^node, ^log_type, [from: 5] ->
+    |> expect(:list_data_by_node_log_type, fn ^node_string, ^log_type, [from: 5] ->
       send(test_pid_process, {:handle_ref_event, ref})
       logs
     end)
@@ -74,16 +77,19 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
-  test "Add Stdout + Service", %{conn: conn, test_node: node, logs: logs} do
-    service_id = String.replace(node, "@", "-")
+  test "Add Stdout + Service", %{conn: conn, node_id: service_id, node: node, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:list_data_by_node_log_type, fn ^node, ^log_type, [from: 5] ->
+    |> expect(:list_data_by_node_log_type, fn ^node_string, ^log_type, [from: 5] ->
       send(test_pid_process, {:handle_ref_event, ref})
       logs
     end)
@@ -107,16 +113,19 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
-  test "Add/Remove Service + Stdout", %{conn: conn, test_node: node, logs: logs} do
-    service_id = String.replace(node, "@", "-")
+  test "Add/Remove Service + Stdout", %{conn: conn, node_id: service_id, node: node, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:list_data_by_node_log_type, fn ^node, ^log_type, [from: 5] ->
+    |> expect(:list_data_by_node_log_type, fn ^node_string, ^log_type, [from: 5] ->
       send(test_pid_process, {:handle_ref_event, ref})
       logs
     end)
@@ -150,16 +159,19 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
-  test "Add/Remove Stdout + Service", %{conn: conn, test_node: node, logs: logs} do
-    service_id = String.replace(node, "@", "-")
+  test "Add/Remove Stdout + Service", %{conn: conn, node_id: service_id, node: node, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:list_data_by_node_log_type, fn ^node, ^log_type, [from: 5] ->
+    |> expect(:list_data_by_node_log_type, fn ^node_string, ^log_type, [from: 5] ->
       send(test_pid_process, {:handle_ref_event, ref})
       logs
     end)
@@ -193,29 +205,32 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
-  test "Start Time select button", %{conn: conn, test_node: node, logs: logs} do
-    service_id = String.replace(node, "@", "-")
+  test "Start Time select button", %{conn: conn, node_id: service_id, node: node, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    node_string = "#{node}"
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [node] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
     |> stub(:get_types_by_node, fn _node -> [log_type] end)
     |> stub(:list_data_by_node_log_type, fn
-      ^node, ^log_type, [from: 1] ->
+      ^node_string, ^log_type, [from: 1] ->
         logs
 
-      ^node, ^log_type, [from: 5] ->
+      ^node_string, ^log_type, [from: 5] ->
         logs
 
-      ^node, ^log_type, [from: 15] ->
+      ^node_string, ^log_type, [from: 15] ->
         logs
 
-      ^node, ^log_type, [from: 30] ->
+      ^node_string, ^log_type, [from: 30] ->
         logs
 
-      ^node, ^log_type, [from: 60] ->
+      ^node_string, ^log_type, [from: 60] ->
         send(test_pid_process, {:handle_ref_event, ref})
         logs
     end)

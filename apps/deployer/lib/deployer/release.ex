@@ -33,9 +33,9 @@ defmodule Deployer.Release do
   Download and unpack the application
   """
   @impl true
-  @spec download_and_unpack(integer(), String.t()) ::
+  @spec download_and_unpack(node(), String.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def download_and_unpack(instance, version), do: default().download_and_unpack(instance, version)
+  def download_and_unpack(node, version), do: default().download_and_unpack(node, version)
 
   ### ==========================================================================
   ### Private functions

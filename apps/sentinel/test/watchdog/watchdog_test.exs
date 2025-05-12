@@ -4,7 +4,6 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   import Mox
   import ExUnit.CaptureLog
 
-  alias Foundation.Catalog
   alias Sentinel.Fixture.Host, as: FixtureHost
   alias Sentinel.Fixture.Nodes, as: FixtureNodes
   alias Sentinel.Fixture.Telemetry, as: FixtureTelemetry
@@ -19,6 +18,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   ]
 
   test "start_link/1" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
     assert {:ok, _pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
   end
 
@@ -27,7 +30,13 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 100_000
     memory_used = memory_total - memory_free
 
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    send(pid, {:new_deploy, Node.self(), Node.self()})
 
     FixtureHost.send_update_sys_info_message(pid, Node.self(), memory_free, memory_total)
 
@@ -40,7 +49,13 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_free = 5_000
     memory_total = 100_000
 
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    send(pid, {:new_deploy, Node.self(), Node.self()})
 
     FixtureHost.send_update_sys_info_message(pid, :other@node, memory_free, memory_total)
 
@@ -49,7 +64,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "handle_info/2 - update application statistics - valid source" do
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -62,6 +81,8 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     }
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    send(pid, {:new_deploy, Node.self(), node})
 
     assert %Data{} = Watchdog.get_app_data(node, :port)
     assert %Data{} = Watchdog.get_app_data(node, :atom)
@@ -91,7 +112,12 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "handle_info/2 - update application statistics - invalid source" do
     fake_node = :fake@hostname
-    monitored_nodes = Catalog.monitored_nodes()
+    node = FixtureNodes.test_node("test_app", "abc123")
+    monitored_nodes = [node]
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     node_statistic = %{
       total_memory: 1_000_000,
@@ -104,6 +130,8 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     }
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    send(pid, {:new_deploy, Node.self(), node})
 
     FixtureTelemetry.send_update_app_message(pid, fake_node, node_statistic)
 
@@ -132,7 +160,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - No warning if the statistic is inside the threshold" do
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -166,7 +198,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - statistic warning" do
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -231,7 +267,13 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - ignore nil data" do
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    monitored_nodes = [node]
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -260,14 +302,17 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - restart" do
-    self_node = Node.self()
-    node = FixtureNodes.test_node(1) |> String.to_atom()
-    monitored_nodes = Catalog.monitored_nodes() -- [self_node]
+    node = FixtureNodes.test_node("test_app", "abc123")
+    monitored_nodes = [node]
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     Deployer.MonitorMock
-    |> stub(:restart, fn _instance ->
+    |> stub(:restart, fn _node ->
       send(pid, {:nodedown, node})
       :ok
     end)
@@ -313,9 +358,12 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Node Up doesn't change any status" do
-    self_node = Node.self()
-    node = FixtureNodes.test_node(1) |> String.to_atom()
-    monitored_nodes = Catalog.monitored_nodes() -- [self_node]
+    node = FixtureNodes.test_node("test_app", "abc123")
+    monitored_nodes = [node]
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -347,7 +395,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -379,7 +431,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node = FixtureNodes.test_node(1) |> String.to_atom()
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
@@ -429,15 +485,24 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node_1 = FixtureNodes.test_node(1) |> String.to_atom()
-    node_2 = FixtureNodes.test_node(2) |> String.to_atom()
+    node_1 = FixtureNodes.test_node("test_app", "abc123")
+    node_2 = FixtureNodes.test_node("test_app", "abc124")
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node_1, node_2] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     Deployer.MonitorMock
-    |> stub(:restart, fn 2 ->
-      send(pid, {:nodedown, node_2})
-      :ok
+    |> stub(:restart, fn
+      ^node_1 ->
+        send(pid, {:nodedown, node_1})
+        :ok
+
+      ^node_2 ->
+        send(pid, {:nodedown, node_2})
+        :ok
     end)
 
     FixtureHost.send_update_sys_info_message(pid, self_node, memory_free, memory_total)
@@ -460,12 +525,54 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     # Check Alarm is clear after Node Down
     assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
+
+    # Check next app available for restarting is the other node
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message =~
+             "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_1} ..."
+
+    # Check Alarm is clear after Node Down
+    assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
+
+    # Add node_1 again
+    send(pid, {:new_deploy, Node.self(), node_1})
+
+    # Receive metrics again and ignore node_2, since it is down
+    FixtureTelemetry.send_update_app_message(pid, node_1, %{total_memory: 300_000})
+
+    FixtureHost.send_update_sys_info_message(pid, self_node, memory_free, memory_total)
+
+    FixtureTelemetry.send_update_app_message(pid, node_2, %{total_memory: 350_000})
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message =~
+             "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_1} ..."
   end
 
   test "System memory - Don't Restart if the consumed memory is above the restart threshold and node memory is not available" do
     memory_free = 790_000
     memory_total = 1_000_000
     self_node = Node.self()
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 

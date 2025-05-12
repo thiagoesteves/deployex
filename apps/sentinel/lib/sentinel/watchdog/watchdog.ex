@@ -46,10 +46,13 @@ defmodule Sentinel.Watchdog do
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
+    # Subscribe to receive a notification every time we have a new deploy
+    Monitor.subscribe_new_deploy()
+
     :ets.new(@watchdog_data, [:set, :protected, :named_table])
 
-    # List all expected nodes within the cluster
-    monitored_nodes = Catalog.monitored_nodes()
+    # List nodes that are being monitored by deployex
+    monitored_nodes = Monitor.list()
 
     # Initialize Ets data
     reset_system_statistic()
@@ -205,14 +208,32 @@ defmodule Sentinel.Watchdog do
     {:noreply, state}
   end
 
+  def handle_info(
+        {:new_deploy, source_node, node},
+        %{monitored_nodes: monitored_nodes} = state
+      ) do
+    with true <- source_node == Node.self(),
+         false <- node in monitored_nodes do
+      # Prepare node for monitoring
+      reset_application_statistic(node)
+      Enum.each(@monitored_app_metrics, &Telemetry.subscribe_for_new_data(node, &1))
+
+      {:noreply, %{state | monitored_nodes: monitored_nodes ++ [node]}}
+    else
+      _error ->
+        {:noreply, state}
+    end
+  end
+
   def handle_info({:nodeup, _node}, state), do: {:noreply, state}
 
   def handle_info({:nodedown, node}, %{monitored_nodes: monitored_nodes} = state) do
     if node in monitored_nodes do
       reset_application_statistic(node)
+      {:noreply, %{state | monitored_nodes: monitored_nodes -- [node]}}
+    else
+      {:noreply, state}
     end
-
-    {:noreply, state}
   end
 
   ### ==========================================================================
@@ -250,7 +271,7 @@ defmodule Sentinel.Watchdog do
   end
 
   defp load_node_config(node, type) do
-    %{name_atom: name} = Catalog.parse_node_name(node)
+    %{name_atom: name} = Catalog.node_info(node)
 
     applications_config =
       Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:applications_config]
@@ -295,6 +316,8 @@ defmodule Sentinel.Watchdog do
     end)
 
     :ets.insert(@watchdog_data, {{node, :data, :total_memory}, nil})
+
+    :ok
   end
 
   defp threshold_check_monitored_apps_limits(
@@ -311,8 +334,7 @@ defmodule Sentinel.Watchdog do
       "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
     )
 
-    %{instance: instance} = Catalog.parse_node_name(node)
-    Monitor.restart(instance)
+    Monitor.restart(node)
 
     :ok
   end
@@ -374,8 +396,7 @@ defmodule Sentinel.Watchdog do
       "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart for #{node} ..."
     )
 
-    %{instance: instance} = Catalog.parse_node_name(node)
-    Monitor.restart(instance)
+    Monitor.restart(node)
 
     :ok
   end

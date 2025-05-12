@@ -25,7 +25,7 @@ defmodule Sentinel.Logs.ServerTest do
       {:terminal_update,
        %{
          metadata: %{context: :terminal_logs, node: node, type: log_type},
-         myself: self(),
+         source_pid: self(),
          message: message
        }}
     )
@@ -47,7 +47,7 @@ defmodule Sentinel.Logs.ServerTest do
       {:terminal_update,
        %{
          metadata: %{context: :terminal_logs, node: node, type: log_type},
-         myself: self(),
+         source_pid: self(),
          message: message
        }}
     )
@@ -78,7 +78,7 @@ defmodule Sentinel.Logs.ServerTest do
         {:terminal_update,
          %{
            metadata: %{context: :terminal_logs, node: node, type: log_type},
-           myself: self(),
+           source_pid: self(),
            message: "[info] log #{index}"
          }}
       )
@@ -126,7 +126,7 @@ defmodule Sentinel.Logs.ServerTest do
           {:terminal_update,
            %{
              metadata: %{context: :terminal_logs, node: node, type: log_type},
-             myself: self(),
+             source_pid: self(),
              message: "[info] log #{index}"
            }}
         )
@@ -163,7 +163,7 @@ defmodule Sentinel.Logs.ServerTest do
       {:terminal_update,
        %{
          metadata: %{context: :terminal_logs, node: node, type: log_type},
-         myself: self(),
+         source_pid: self(),
          message: message
        }}
     )
@@ -195,24 +195,74 @@ defmodule Sentinel.Logs.ServerTest do
                    1_000
   end
 
+  test "Check no Terminal is created if there is no log file", %{
+    fake_node: fake_node,
+    node: node,
+    pid: pid
+  } do
+    log_type = "new-log-type"
+    message = "[info] simple log"
+    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(fake_node, log_type)
+
+    send(
+      pid,
+      {:terminal_update,
+       %{
+         metadata: %{context: :terminal_logs, node: fake_node, type: log_type},
+         source_pid: self(),
+         message: message
+       }}
+    )
+
+    # Send a valid date just to guarantee the previous message was processed
+    send(
+      pid,
+      {:terminal_update,
+       %{
+         metadata: %{context: :terminal_logs, node: node, type: log_type},
+         source_pid: self(),
+         message: message
+       }}
+    )
+
+    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: _message}},
+                   1_000
+
+    assert [] == Server.get_types_by_node(fake_node)
+  end
+
   defp create_consumer(context) do
+    node = FixtureNodes.test_node()
+    Foundation.Catalog.setup(node)
+
+    node_self = Node.self()
+    Foundation.Catalog.setup(node_self)
+
+    fake_node = :"fake-1@host"
+
     Host.CommanderMock
     |> stub(:run, fn _command, _options -> {:ok, self(), "123456"} end)
     |> stub(:stop, fn _pid -> :ok end)
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [node] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     test_pid = self()
 
     with_mock Terminal, new: fn %Terminal{} -> :ok end do
       {:ok, pid} = Server.start_link(data_retention_period: :timer.minutes(1))
       send(test_pid, {:server_pid, pid})
+      send(pid, {:new_deploy, node_self, node})
+      send(pid, {:new_deploy, node_self, fake_node})
     end
 
     assert_receive {:server_pid, pid}, 1_000
 
-    node = FixtureNodes.test_node(1)
-
     context
-    |> Map.put(:node, String.to_atom(node))
+    |> Map.put(:fake_node, fake_node)
+    |> Map.put(:node, node)
     |> Map.put(:pid, pid)
   end
 end

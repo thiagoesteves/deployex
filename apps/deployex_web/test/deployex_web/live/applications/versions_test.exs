@@ -4,7 +4,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Monitoring
+  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
   setup [
@@ -14,31 +14,35 @@ defmodule DeployexWeb.Applications.VersionsTest do
   ]
 
   test "GET /versions full list", %{conn: conn} do
+    node1 = FixtureNodes.test_node("test_app", "abc123")
+    node2 = FixtureNodes.test_node("test_app", "abc124")
+
+    node1_version =
+      FixtureStatus.version(%{
+        version: "10.11.12",
+        node: node1,
+        deployment: :full_deployment
+      })
+
+    node2_version =
+      FixtureStatus.version(%{
+        version: "10.11.13",
+        node: node2,
+        deployment: :hot_upgrade
+      })
+
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
-    |> stub(:history_version_list, fn ->
-      [
-        FixtureStatus.version(%{
-          version: "10.11.12",
-          instance: 1,
-          deploy_ref: "abc123",
-          deployment: :full_deployment
-        }),
-        FixtureStatus.version(%{
-          version: "10.11.13",
-          instance: 2,
-          deploy_ref: "def456",
-          deployment: :hot_upgrade
-        })
-      ]
+    |> stub(:history_version_list, fn -> [node1_version, node2_version] end)
+    |> stub(:history_version_list, fn
+      ^node1 -> [node1_version]
+      ^node2 -> [node2_version]
     end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-0") |> render_click()
+    html = index_live |> element("#app-versions-deployex") |> render_click()
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.12"
@@ -48,48 +52,47 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.13"
     assert html =~ :hot_upgrade |> to_string
-    assert html =~ "def456"
+    assert html =~ "abc124"
 
     refute html =~ "0.3456702894.2351693834"
   end
 
   test "GET /versions list by instance", %{conn: conn} do
-    full_list = [
+    node = FixtureNodes.test_node("test_app", "abc123")
+
+    node_v1 =
       FixtureStatus.version(%{
         version: "10.11.16",
-        instance: 1,
-        deploy_ref: "555555",
+        node: node,
         deployment: :full_deployment
-      }),
+      })
+
+    node_v2 =
       FixtureStatus.version(%{
         version: "10.11.17",
-        instance: 1,
-        deploy_ref: "888888",
+        node: node,
         deployment: :hot_upgrade
       })
-    ]
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
-    |> stub(:history_version_list, fn -> full_list end)
-    |> stub(:history_version_list, fn "1" -> full_list end)
+    |> stub(:history_version_list, fn -> [node_v1, node_v2] end)
+    |> stub(:history_version_list, fn ^node -> [node_v1, node_v2] end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-1") |> render_click()
+    html = index_live |> element("#app-versions-test-app-abc123") |> render_click()
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.16"
     assert html =~ :full_deployment |> to_string
-    assert html =~ "55555"
+    assert html =~ "abc123"
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.17"
     assert html =~ :hot_upgrade |> to_string
-    assert html =~ "88888"
+    assert html =~ "abc123"
 
     refute html =~ "0.3456702894.2351693834"
   end
