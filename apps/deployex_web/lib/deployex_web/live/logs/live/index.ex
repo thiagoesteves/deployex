@@ -18,6 +18,7 @@ defmodule DeployexWeb.LogsLive do
       assigns
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
+      |> assign(services_unselected_highlight: Enum.map(Monitor.list(), &Atom.to_string/1))
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -30,8 +31,12 @@ defmodule DeployexWeb.LogsLive do
             %{name: "logs", keys: @node_info.selected_logs}
           ]}
           unselected={[
-            %{name: "services", keys: @unselected_services},
-            %{name: "logs", keys: @unselected_logs}
+            %{
+              name: "services",
+              keys: @unselected_services,
+              unselected_highlight: @services_unselected_highlight
+            },
+            %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
           ]}
           show_options={@show_log_options}
         />

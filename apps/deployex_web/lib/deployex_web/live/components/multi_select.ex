@@ -123,7 +123,10 @@ defmodule DeployexWeb.Components.MultiSelect do
                       <%= for key <- item.keys do %>
                         <button
                           id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
-                          class="flex justify-center items-center m-1 font-medium px-2 rounded-full text-gray-700 bg-gray-100 border border-gray-300"
+                          class={[
+                            "flex justify-center items-center m-1 font-medium px-2 rounded-full",
+                            unselected_highlight_color(key, item.unselected_highlight)
+                          ]}
                           phx-click="multi-select-add-item"
                           phx-value-key={key}
                           phx-value-item={item.name}
@@ -170,4 +173,12 @@ defmodule DeployexWeb.Components.MultiSelect do
   def text_item_color("services"), do: "text-teal-700"
   def text_item_color("logs"), do: "text-yellow-700"
   def text_item_color(_), do: "text-teal-700"
+
+  defp unselected_highlight_color(key, unselected_highlight) do
+    if key in unselected_highlight do
+      "text-gray-700 bg-green-100 borde border-green-300"
+    else
+      "text-gray-700 bg-gray-100 borde border-gray-300"
+    end
+  end
 end
