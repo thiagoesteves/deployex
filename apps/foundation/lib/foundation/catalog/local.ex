@@ -94,6 +94,7 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def cleanup(nil), do: :ok
+
   def cleanup(node) do
     case node_info(node) do
       %Foundation.Catalog.Node{sname: sname, name_string: name} ->
