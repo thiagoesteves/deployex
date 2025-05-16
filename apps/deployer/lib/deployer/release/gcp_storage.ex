@@ -5,72 +5,51 @@ defmodule Deployer.Release.GcpStorage do
 
   @behaviour Deployer.Release.Adapter
 
-  alias Deployer.Status
-  alias Deployer.Upgrade
-  alias Foundation.Catalog
-
   require Logger
 
   ### ==========================================================================
   ### Release Callbacks
   ### ==========================================================================
 
-  @doc """
-  Retrieve current version
-  """
   @impl true
-  def get_current_version_map do
+  def download_version_map(app_name) do
     path =
-      "https://storage.googleapis.com/#{bucket()}/versions/#{Catalog.monitored_app_name()}/#{env()}/current.json"
+      "https://storage.googleapis.com/#{bucket()}/versions/#{app_name}/#{env()}/current.json"
 
     :get
     |> Finch.build(path, headers(), [])
     |> Finch.request(Deployer.Finch)
     |> case do
-      {:ok, %Finch.Response{body: body}} -> Jason.decode!(body)
-      _ -> nil
+      {:ok, %Finch.Response{body: body}} ->
+        Jason.decode!(body)
+
+      reason ->
+        Logger.error(
+          "Error downloading release version for #{app_name}, reason: #{inspect(reason)}"
+        )
+
+        nil
     end
   end
 
-  @doc """
-  Download and unpack the application
-  """
   @impl true
-  def download_and_unpack(node, version) do
-    {:ok, download_path} = Briefly.create()
-
-    app_name = Catalog.monitored_app_name()
-    app_lang = Catalog.monitored_app_lang()
-
+  def download_release(app_name, release_version, download_path) do
     gcp_path =
-      "https://storage.googleapis.com/#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
+      "https://storage.googleapis.com/#{bucket()}/dist/#{app_name}/#{app_name}-#{release_version}.tar.gz"
 
     :get
     |> Finch.build(gcp_path, headers(), [])
     |> Finch.request(Deployer.Finch)
     |> case do
       {:ok, %Finch.Response{body: body}} ->
-        File.write!(download_path, body)
+        File.write!("#{download_path}/#{app_name}-#{release_version}.tar.gz", body)
+        :ok
 
       reason ->
-        raise "Error while downloading release, reason: #{inspect(reason)}"
+        raise "Error downloading release for #{app_name}, reason: #{inspect(reason)}"
     end
 
-    Status.clear_new(node)
-    new_path = Catalog.new_path(node)
-
-    {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
-
-    Upgrade.check(
-      node,
-      app_name,
-      app_lang,
-      download_path,
-      Status.current_version(node),
-      version
-    )
-  after
-    Briefly.cleanup()
+    :ok
   end
 
   ### ==========================================================================

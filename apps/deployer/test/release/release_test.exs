@@ -16,12 +16,12 @@ defmodule Deployer.ReleaseTest do
 
   test "get_current_version_map/1 automatic mode" do
     Deployer.ReleaseMock
-    |> expect(:get_current_version_map, fn ->
+    |> expect(:download_version_map, fn _app_name ->
       %{"version" => "1.0.0", "hash" => "local"}
     end)
 
     assert %Deployer.Release.Version{hash: "local", pre_commands: [], version: "1.0.0"} ==
-             Release.get_current_version_map()
+             Release.get_current_version_map("testapp")
   end
 
   test "get_current_version_map/1 manual mode non-optional field" do
@@ -34,7 +34,7 @@ defmodule Deployer.ReleaseTest do
     })
 
     assert %Deployer.Release.Version{hash: "local", pre_commands: [], version: "1.0.0"} ==
-             Release.get_current_version_map()
+             Release.get_current_version_map("testapp")
   end
 
   test "get_current_version_map/1 manual mode" do
@@ -47,6 +47,6 @@ defmodule Deployer.ReleaseTest do
     config = Catalog.config()
     Catalog.config_update(%{config | mode: :manual, manual_version: expected_version})
 
-    assert expected_version == Release.get_current_version_map()
+    assert expected_version == Release.get_current_version_map("testapp")
   end
 end

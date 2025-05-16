@@ -1,7 +1,6 @@
 defmodule Deployer.Release.LocalTest do
   use ExUnit.Case, async: false
 
-  import Mock
   import Mox
   import ExUnit.CaptureLog
 
@@ -10,33 +9,25 @@ defmodule Deployer.Release.LocalTest do
 
   alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Deployer.Release.Local
-  alias Foundation.Fixture.Catalog
+  alias Foundation.Catalog
+  alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
-    Catalog.cleanup()
+    FixtureCatalog.cleanup()
   end
 
-  @tag :skip
   test "get_current_version_map/1 optional fields" do
-    version_map = %{"hash" => "test", "pre_commands" => [], "version" => "2.0.0"}
+    version_map = %{"hash" => "local", "version" => "1.0.0"}
 
-    with_mock File, read: fn _path -> {:ok, Jason.encode!(version_map)} end do
-      assert version_map == Local.get_current_version_map()
-    end
+    FixtureCatalog.create_current_json()
+
+    assert version_map == Local.download_version_map("testapp")
   end
 
   test "get_current_version_map/1 for local [success]" do
     assert capture_log(fn ->
-             assert nil == Local.get_current_version_map()
-           end) =~ "Invalid version map at: /tmp/testapp/versions/testapp/local/current.json"
-  end
-
-  test "get_current_version_map/1 for local [error]" do
-    expected_map = %{"version" => "2.0.0", "hash" => "123456789"}
-
-    Catalog.create_current_json(expected_map)
-
-    assert %{"hash" => "123456789", "version" => "2.0.0"} == Local.get_current_version_map()
+             Local.download_version_map("myphoenixapp")
+           end) =~ "Error downloading release version for myphoenixapp, reason: {:error, :enoent}"
   end
 
   test "download_and_unpack/2 success" do
@@ -45,22 +36,12 @@ defmodule Deployer.Release.LocalTest do
     sufix = "a1b2c3"
     node = FixtureNodes.test_node(name, sufix)
 
-    Foundation.Catalog.setup(node)
+    Catalog.setup(node)
 
-    Deployer.StatusMock
-    |> expect(:clear_new, fn ^node -> :ok end)
-    |> expect(:current_version, fn ^node -> version end)
+    FixtureCatalog.create_tar(name, version)
 
-    Deployer.UpgradeMock
-    |> expect(:check, fn ^node, _app_name, _app_lang, _path, _from, _to ->
-      {:ok, :full_deployment}
-    end)
+    new_path = Catalog.new_path(node)
 
-    download_path = "/tmp/testapp/dist/testapp/testapp-5.0.0.tar.gz"
-    new_path = "/tmp/deployex/test/varlib/service/#{name}/#{name}-#{sufix}/new"
-
-    with_mock System, cmd: fn "tar", ["-x", "-f", ^download_path, "-C", ^new_path] -> {"", 0} end do
-      assert {:ok, :full_deployment} = Local.download_and_unpack(node, version)
-    end
+    assert :ok = Local.download_release(name, version, new_path)
   end
 end

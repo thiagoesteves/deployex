@@ -65,6 +65,11 @@ defmodule Foundation.Catalog.Local do
     File.mkdir_p!(history_version_path())
     File.mkdir_p!(ghosted_version_path())
 
+    # Cleanup deployments
+    service_path = service_path("")
+    Logger.info("Cleaning up deployments at: #{service_path}")
+    File.rm_rf("#{service_path}")
+
     :ok
   end
 
@@ -83,6 +88,20 @@ defmodule Foundation.Catalog.Local do
 
       nil ->
         Logger.error("Setup failed due to invalid node format: #{node}")
+        {:error, :invalid_node}
+    end
+  end
+
+  @impl true
+  def cleanup(nil), do: :ok
+  def cleanup(node) do
+    case node_info(node) do
+      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
+        File.rm_rf("#{service_path(name)}/#{sname}")
+        :ok
+
+      nil ->
+        Logger.error("Cleanup failed due to invalid node format: #{node}")
         {:error, :invalid_node}
     end
   end

@@ -52,7 +52,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn -> %Deployer.Release.Version{} end)
+      |> stub(:download_version_map, fn _app_name -> nil end)
 
       assert {:ok, _pid} =
                Deployment.start_link(
@@ -82,7 +82,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 0, fn -> %Deployer.Release.Version{} end)
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
 
       assert {:ok, _pid} =
                Deployment.start_link(
@@ -126,10 +126,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 1, fn ->
+      |> expect(:download_version_map, 1, fn _app_name ->
         %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, "2.0.0" ->
+      |> expect(:download_release, 1, fn _app_name, "2.0.0", _download_path ->
         {:ok, :full_deployment}
       end)
 
@@ -164,13 +164,13 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 0, fn _node, "2.0.0" ->
+      |> expect(:download_release, 0, fn _app_name, "2.0.0", _download_path ->
         {:ok, :full_deployment}
       end)
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         # Leave check deployment running for a few cycles
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
         if called > 2 do
           send(pid, {:handle_ref_event, ref})
@@ -224,10 +224,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 1, fn _node, _release, :new -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 1, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
+      |> expect(:download_version_map, 1, fn _app_name ->
+        %{"version" => "2.0.0", "hash" => "local", "pre_commands" => []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, "2.0.0" ->
+      |> expect(:download_release, 1, fn _app_name, "2.0.0", _download_path ->
         {:ok, :hot_upgrade}
       end)
 
@@ -276,10 +276,10 @@ defmodule Deployer.DeploymentTest do
       |> stub(:run_pre_commands, fn _node, _release, :new -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
-      |> stub(:download_and_unpack, fn _node, "2.0.0" ->
+      |> stub(:download_release, fn _app_name, "2.0.0", _download_path ->
         {:ok, :hot_upgrade}
       end)
 
@@ -343,10 +343,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, "2.0.0" ->
+      |> expect(:download_release, 1, fn _app_name, "2.0.0", _download_path ->
         {:ok, :full_deployment}
       end)
 
@@ -408,10 +408,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         %{version: "2.0.0", hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, "2.0.0" ->
+      |> expect(:download_release, 1, fn _app_name, "2.0.0", _download_path ->
         {:ok, :full_deployment}
       end)
 
@@ -488,7 +488,9 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 1, fn _node, ^manual_version -> {:ok, :full_deployment} end)
+      |> expect(:download_release, 1, fn _app_name, ^manual_version, _version_to_rollback ->
+        {:ok, :full_deployment}
+      end)
 
       assert {:ok, _pid} =
                Deployment.start_link(
@@ -558,10 +560,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 1, fn _node, ^automatic_version ->
+      |> expect(:download_release, 1, fn _app_name, ^automatic_version, _download_path ->
         {:ok, :full_deployment}
       end)
-      |> stub(:get_current_version_map, fn -> automatic_version_map end)
+      |> stub(:download_version_map, fn _app_name -> automatic_version_map end)
 
       assert {:ok, _pid} =
                Deployment.start_link(
@@ -618,10 +620,10 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, ^version_to_rollback ->
+      |> expect(:download_release, 1, fn _app_name, ^version_to_rollback, _download_path ->
         {:ok, :full_deployment}
       end)
 
@@ -667,11 +669,11 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         # First time: initialization
         # Second time: check_deployment after rolling back signal without history
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
         if called > 0 do
           send(pid, {:handle_ref_event, ref})
@@ -679,7 +681,7 @@ defmodule Deployer.DeploymentTest do
 
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 0, fn _node, _version_to_rollback ->
+      |> expect(:download_release, 0, fn _app_name, _release_version, _version_to_rollback ->
         {:ok, :full_deployment}
       end)
 
@@ -716,14 +718,14 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         # For this test, check_deployments() is expected to run
         # a couple of times after sendint the timeout_rollback
         # First time: initialization
         # Second time: first check_deployment
         # Third time: second check_deployment
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
         if called > 2 do
           send(pid, {:handle_ref_event, running_ref})
@@ -778,14 +780,14 @@ defmodule Deployer.DeploymentTest do
       |> expect(:run_pre_commands, 0, fn _node, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         # For this test, check_deployments() is expected to run
         # a couple of times after sendint the timeout_rollback
         # First time: initialization
         # Second time: first check_deployment
         # Third time: second check_deployment
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
         if called > 0 do
           send(pid, {:handle_ref_event, ref})
@@ -793,7 +795,7 @@ defmodule Deployer.DeploymentTest do
 
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn _node, ^version_to_rollback ->
+      |> expect(:download_release, 1, fn _app_name, ^version_to_rollback, _download_path ->
         {:error, :invalid_unpack}
       end)
 

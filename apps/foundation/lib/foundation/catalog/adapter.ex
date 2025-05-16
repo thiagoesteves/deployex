@@ -7,6 +7,7 @@ defmodule Foundation.Catalog.Adapter do
 
   @callback setup() :: :ok
   @callback setup(node()) :: :ok | {:error, :invalid_node}
+  @callback cleanup(node() | nil) :: :ok | {:error, :invalid_node}
   @callback replicas() :: integer()
   @callback replicas_list() :: list()
   @callback monitored_app_name() :: String.t()

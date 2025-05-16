@@ -23,4 +23,9 @@ defmodule Foundation.Fixture.Catalog do
     File.mkdir_p(current_json_dir)
     File.write("#{current_json_dir}/current.json", file)
   end
+
+  def create_tar(name, version) do
+    File.mkdir_p("/tmp/testapp/dist/#{name}/")
+    File.touch("/tmp/testapp/dist/#{name}/#{name}-#{version}.tar.gz")
+  end
 end

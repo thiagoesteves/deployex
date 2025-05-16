@@ -31,11 +31,26 @@ defmodule Foundation.Catalog do
     iex> alias Foundation.Catalog
     ...> import ExUnit.CaptureLog
     ...> assert Catalog.setup(:"node-1@host") == :ok
+    ...> assert Catalog.setup(nil) == :ok
     ...> assert capture_log(fn -> Catalog.setup(:"node-") == {:error, :invalid_node} end) =~ "Setup failed due to invalid node format: node-"
   """
   @impl true
   @spec setup(node()) :: {:error, :invalid_node}
   def setup(node), do: default().setup(node)
+
+  @doc """
+  Ensure all folders for the respective node are cleaned
+
+    ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> import ExUnit.CaptureLog
+    ...> assert Catalog.cleanup(:"node-1@host") == :ok
+    ...> assert capture_log(fn -> Catalog.cleanup(:"node-") == {:error, :invalid_node} end) =~ "Cleanup failed due to invalid node format: node-"
+  """
+  @impl true
+  @spec cleanup(node() | nil) :: {:error, :invalid_node}
+  def cleanup(node), do: default().cleanup(node)
 
   @doc """
   This function return the number of replicas configured
