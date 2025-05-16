@@ -1,6 +1,7 @@
 defmodule Foundation.CatalogTest do
   use ExUnit.Case, async: true
 
+  alias Foundation.Accounts.UserToken
   alias Foundation.Catalog
 
   setup do
@@ -39,7 +40,7 @@ defmodule Foundation.CatalogTest do
   end
 
   test "add_user_session_token/1" do
-    user_session = %{token: "123456789"}
+    user_session = %UserToken{token: "123456789"}
     assert :ok = Catalog.add_user_session_token(user_session)
     assert user_session == Catalog.get_user_session_token_by_token(user_session.token)
   end

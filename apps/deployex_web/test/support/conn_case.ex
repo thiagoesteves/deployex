@@ -19,6 +19,7 @@ defmodule DeployexWeb.ConnCase do
   import DeployexWeb.AccountsFixtures
 
   alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
+  alias DeployexWeb.Helper
 
   using do
     quote do
@@ -71,6 +72,17 @@ defmodule DeployexWeb.ConnCase do
   It returns an updated `context`.
   """
   def add_test_node(context) do
-    Map.put(context, :test_node, FixtureNodes.test_node(1))
+    name = "test_app"
+    suffix = "abc123"
+    sname = "#{name}-#{suffix}"
+    node = FixtureNodes.test_node(name, suffix)
+    node_id = Helper.normalize_id(node)
+
+    context
+    |> Map.put(:node, node)
+    |> Map.put(:suffix, suffix)
+    |> Map.put(:sname, sname)
+    |> Map.put(:name, name)
+    |> Map.put(:node_id, node_id)
   end
 end

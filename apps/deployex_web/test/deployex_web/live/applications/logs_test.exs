@@ -10,20 +10,20 @@ defmodule DeployexWeb.Applications.LogsTest do
     :log_in_default_user
   ]
 
-  alias DeployexWeb.Fixture.Monitoring
+  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
+  alias Foundation.Catalog
 
   test "Access to stdout logs by instance", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    node = FixtureNodes.test_node("test_app", "abc123")
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -37,8 +37,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(node)
+
+    assert index_live |> element("#app-log-stdout-test-app-abc123") |> render_click() =~
+             "Application Logs [test_app-abc123]"
 
     FixtureTerminal.terminate_all()
 
@@ -49,12 +51,11 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    node = FixtureNodes.test_node("test_app", "abc123")
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -68,8 +69,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stderr-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(node)
+
+    assert index_live |> element("#app-log-stderr-test-app-abc123") |> render_click() =~
+             "Application Logs [test_app-abc123]"
 
     FixtureTerminal.terminate_all()
 
@@ -80,12 +83,11 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    node = FixtureNodes.test_node("test_app", "abc123")
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -99,8 +101,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(node)
+
+    assert index_live |> element("#app-log-stdout-test-app-abc123") |> render_click() =~
+             "Application Logs [test_app-abc123]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)
@@ -119,10 +123,8 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -136,8 +138,8 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stderr-1") |> render_click() =~
-             "Application Logs [1]"
+    assert index_live |> element("#app-log-stderr-test-app-abc123") |> render_click() =~
+             "Application Logs [test_app-abc123]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)
@@ -152,16 +154,14 @@ defmodule DeployexWeb.Applications.LogsTest do
 
   test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert html = index_live |> element("#app-log-stdout-0") |> render_click()
-    assert html =~ "Application Logs [0]"
+    assert html = index_live |> element("#app-log-stdout-deployex") |> render_click()
+    assert html =~ "Application Logs [deployex]"
     assert html =~ "File not found"
   end
 

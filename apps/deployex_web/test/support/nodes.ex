@@ -3,9 +3,9 @@ defmodule DeployexWeb.Fixture.Nodes do
   This module will handle the nodes
   """
 
-  def test_node(instance, app_name \\ "testapp") do
+  def test_node(app_name, suffix) do
     {:ok, hostname} = :inet.gethostname()
 
-    "#{app_name}-#{instance}@#{hostname}"
+    :"#{app_name}-#{suffix}@#{hostname}"
   end
 end

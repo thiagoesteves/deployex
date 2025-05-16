@@ -55,7 +55,7 @@ defmodule DeployexWeb.TerminalLive do
 
     {:ok, _pid} =
       Terminal.new(%Terminal{
-        instance: id,
+        node: Node.self(),
         commands: cmd,
         options: [:stdin, :stdout, :pty, :pty_echo],
         target: self(),

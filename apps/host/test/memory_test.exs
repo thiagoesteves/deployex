@@ -6,16 +6,17 @@ defmodule Host.MemoryTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Foundation.Common
   alias Host.Memory.Server, as: MemoryServer
 
   test "start_link/1 for Windows (Not Implemented yet)" do
-    name = "#{__MODULE__}-001" |> String.to_atom()
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
   end
 
   test "System Info Notification for Linux" do
-    name = "#{__MODULE__}-002" |> String.to_atom()
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
     os_description = "20.04.6 LTS (Focal Fossa)"
 
     Host.CommanderMock
@@ -76,8 +77,65 @@ defmodule Host.MemoryTest do
                    1_000
   end
 
+  test "System Info Notification for Linux with invalid value in the cpu_sum text" do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+    os_description = "20.04.6 LTS (Focal Fossa)"
+
+    Host.CommanderMock
+    |> stub(:os_type, fn -> {:unix, :linux} end)
+    |> stub(:run, fn
+      "free -b", [:stdout, :sync] ->
+        {:ok,
+         [
+           {:stdout,
+            [
+              """
+                            total        used        free      shared  buff/cache   available
+              Mem:     2055806976   503697408   189964288    79347712  1362145280  1263837184
+              Swap:             0           0           0
+              """
+            ]}
+         ]}
+
+      "nproc", [:stdout, :sync] ->
+        {:ok, [{:stdout, ["2"]}]}
+
+      "ps -eo pcpu", [:stdout, :sync] ->
+        {:ok,
+         [
+           {:stdout,
+            [
+              """
+              %CPU
+               aa
+               20.0
+               10.0
+              """
+            ]}
+         ]}
+
+      "cat /etc/os-release | grep VERSION= | sed 's/VERSION=//; s/\"//g'", [:stdout, :sync] ->
+        {:ok, [{:stdout, [os_description]}]}
+    end)
+
+    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+
+    MemoryServer.subscribe()
+
+    assert_receive {:update_system_info,
+                    %Host.Memory{
+                      host: "Linux",
+                      description: ^os_description,
+                      memory_free: 1_263_837_184,
+                      memory_total: 2_055_806_976,
+                      cpu: 30.0,
+                      cpus: 2
+                    }},
+                   1_000
+  end
+
   test "System Info Notification for MacOs" do
-    name = "#{__MODULE__}-002" |> String.to_atom()
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
     os_description = "15.1.1"
 
     Host.CommanderMock
@@ -145,5 +203,18 @@ defmodule Host.MemoryTest do
                       cpus: 5
                     }},
                    1_000
+  end
+
+  test "System Info Notification for Windows" do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
+    Host.CommanderMock
+    |> stub(:os_type, fn -> {:win32, :any} end)
+
+    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+
+    MemoryServer.subscribe()
+
+    assert_receive {:update_system_info, %Host.Memory{host: "Windows"}}, 1_000
   end
 end

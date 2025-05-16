@@ -13,9 +13,8 @@ defmodule Deployer.Status do
             version: String.t() | nil,
             hash: String.t() | nil,
             pre_commands: list(),
-            instance: integer(),
+            node: node() | nil,
             deployment: :full_deployment | :hot_upgrade,
-            deploy_ref: String.t() | nil,
             inserted_at: NaiveDateTime.t()
           }
 
@@ -24,15 +23,15 @@ defmodule Deployer.Status do
     defstruct version: nil,
               hash: nil,
               pre_commands: [],
-              instance: 1,
+              node: nil,
               deployment: :full_deployment,
-              deploy_ref: nil,
               inserted_at: nil
   end
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
-          instance: integer(),
+          sname: String.t() | nil,
+          node: node() | nil,
           version: nil,
           otp: :connected | :not_connected,
           tls: :supported | :not_supported,
@@ -49,7 +48,8 @@ defmodule Deployer.Status do
         }
 
   defstruct name: nil,
-            instance: 0,
+            sname: nil,
+            node: nil,
             version: nil,
             otp: :not_connected,
             tls: :not_supported,
@@ -95,15 +95,15 @@ defmodule Deployer.Status do
   Retrieve the current version set for the monitored application
   """
   @impl true
-  @spec current_version(integer()) :: String.t() | nil
-  def current_version(instance), do: default().current_version(instance)
+  @spec current_version(node()) :: String.t() | nil
+  def current_version(node), do: default().current_version(node)
 
   @doc """
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(integer()) :: Deployer.Status.Version.t()
-  def current_version_map(instance), do: default().current_version_map(instance)
+  @spec current_version_map(node()) :: Deployer.Status.Version.t()
+  def current_version_map(node), do: default().current_version_map(node)
 
   @doc """
   Subscribe to receive status update
@@ -116,9 +116,9 @@ defmodule Deployer.Status do
   Set the current version map
   """
   @impl true
-  @spec set_current_version_map(integer(), Release.Version.t(), Keyword.t()) :: :ok
-  def set_current_version_map(instance, release, attrs),
-    do: default().set_current_version_map(instance, release, attrs)
+  @spec set_current_version_map(node(), Release.Version.t(), Keyword.t()) :: :ok
+  def set_current_version_map(node, release, attrs),
+    do: default().set_current_version_map(node, release, attrs)
 
   @doc """
   Add a ghosted version in the list
@@ -142,27 +142,27 @@ defmodule Deployer.Status do
   def history_version_list, do: default().history_version_list()
 
   @doc """
-  Retrieve the history version list by instance
+  Retrieve the history version list by node
   """
   @impl true
-  @spec history_version_list(integer() | binary()) :: list()
-  def history_version_list(instance), do: default().history_version_list(instance)
+  @spec history_version_list(node() | binary()) :: list()
+  def history_version_list(node), do: default().history_version_list(node)
 
   @doc """
   This function clears the service new path, so it can download and unpack
   a new release
   """
   @impl true
-  @spec clear_new(integer()) :: :ok
-  def clear_new(instance), do: default().clear_new(instance)
+  @spec clear_new(node()) :: :ok
+  def clear_new(node), do: default().clear_new(node)
 
   @doc """
   This function removes the previous service path and move the current
   to previous and new to current.
   """
   @impl true
-  @spec update(integer()) :: :ok
-  def update(instance), do: default().update(instance)
+  @spec update(node()) :: :ok
+  def update(node), do: default().update(node)
 
   @doc """
   Set the configuration mode

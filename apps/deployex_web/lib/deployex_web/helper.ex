@@ -72,6 +72,23 @@ defmodule DeployexWeb.Helper do
   end
 
   @doc """
+  This function exchange "_" and "@" to -
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.normalize_id(:"my_app-1@host") == "my-app-1-host"
+    ...> assert Helper.normalize_id("my_app-2@host") == "my-app-2-host"
+  """
+  def normalize_id(node) when is_atom(node) do
+    node |> Atom.to_string() |> normalize_id()
+  end
+
+  def normalize_id(text) do
+    String.replace(text, ["@", "_"], "-")
+  end
+
+  @doc """
   Normalizes a single Message struct into one or more standardized log entries.
 
   This function takes a Message struct and breaks it down into individual log entries,

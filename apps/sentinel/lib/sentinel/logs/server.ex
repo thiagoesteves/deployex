@@ -8,6 +8,7 @@ defmodule Sentinel.Logs.Server do
 
   @behaviour Sentinel.Logs.Adapter
 
+  alias Deployer.Monitor
   alias Foundation.Catalog
   alias Host.Terminal
   alias Sentinel.Logs.Message
@@ -22,7 +23,7 @@ defmodule Sentinel.Logs.Server do
   @retention_data_delete_interval :timer.minutes(1)
 
   @type t :: %__MODULE__{
-          nodes: [atom()],
+          nodes: [node()],
           node_logs_tables: map(),
           persist_data?: boolean(),
           data_retention_period: nil | non_neg_integer()
@@ -62,8 +63,11 @@ defmodule Sentinel.Logs.Server do
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
+    # Subscribe to receive a notification every time we have a new deploy
+    Monitor.subscribe_new_deploy()
+
     # List all expected nodes within the cluster
-    expected_nodes = Catalog.expected_nodes()
+    expected_nodes = Monitor.list() ++ [Node.self()]
 
     node_logs_tables =
       Enum.reduce(expected_nodes, %{}, fn node, acc ->
@@ -87,7 +91,7 @@ defmodule Sentinel.Logs.Server do
         {:terminal_update,
          %{
            metadata: %{context: :terminal_logs, node: reporter, type: log_key},
-           myself: _pid,
+           source_pid: _pid,
            message: message
          }},
         %{
@@ -122,6 +126,25 @@ defmodule Sentinel.Logs.Server do
     {:noreply, state}
   end
 
+  def handle_info(
+        {:new_deploy, source_node, node},
+        %{node_logs_tables: node_logs_tables, expected_nodes: expected_nodes} = state
+      ) do
+    with true <- source_node == Node.self(),
+         false <- node in expected_nodes,
+         table when not is_nil(table) <- maybe_init_log_table(node) do
+      {:noreply,
+       %{
+         state
+         | node_logs_tables: Map.put(node_logs_tables, node, table),
+           expected_nodes: expected_nodes ++ [node]
+       }}
+    else
+      _error ->
+        {:noreply, state}
+    end
+  end
+
   def handle_info({:nodeup, _node}, state) do
     # Do Nothing, nodes are static assigned
     {:noreply, state}
@@ -141,10 +164,10 @@ defmodule Sentinel.Logs.Server do
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      # Report Node Down at stderr
-      log_type = "stderr"
-
       if persist_data? do
+        # Report Node Down at stderr
+        log_type = "stderr"
+
         timed_log_type_key = log_type_key(log_type, minute)
 
         data = %Message{
@@ -297,15 +320,13 @@ defmodule Sentinel.Logs.Server do
   end
 
   defp maybe_init_log_table(node) do
-    instance = get_instance(node)
-
     create_terminal = fn log_type ->
-      path = log_path(instance, log_type)
+      path = log_path(node, log_type)
       commands = "tail -F -n 0 #{path}"
       options = [:"#{log_type}"]
 
       Terminal.new(%Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: options,
         target: self(),
@@ -314,16 +335,16 @@ defmodule Sentinel.Logs.Server do
       })
     end
 
-    log_files_exist? = fn instance ->
+    log_files_exist? = fn node ->
       @available_log_types
       |> Enum.all?(fn log_type ->
-        instance
+        node
         |> log_path(log_type)
         |> File.exists?()
       end)
     end
 
-    if log_files_exist?.(instance) do
+    if log_files_exist?.(node) do
       table = node_log_table(node)
 
       # Create Logs table
@@ -341,17 +362,6 @@ defmodule Sentinel.Logs.Server do
     end
   end
 
-  defp get_instance(node) do
-    [sname, _hostname] = String.split("#{node}", ["@"])
-
-    if sname == "deployex" do
-      0
-    else
-      [_name, instance] = String.split(sname, ["-"])
-      String.to_integer(instance)
-    end
-  end
-
-  defp log_path(instance, "stdout"), do: Catalog.stdout_path(instance)
-  defp log_path(instance, "stderr"), do: Catalog.stderr_path(instance)
+  defp log_path(node, "stdout"), do: Catalog.stdout_path(node)
+  defp log_path(node, "stderr"), do: Catalog.stderr_path(node)
 end

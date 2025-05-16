@@ -17,6 +17,7 @@ defmodule Mix.Shared do
       ignore_modules: [
         # Deployer
         Deployer.Application,
+        Deployer.Monitor.Adapter,
         Deployer.Monitor.Supervisor,
         Deployer.Release.Version,
         Deployer.Fixture.Binary,
@@ -30,7 +31,6 @@ defmodule Mix.Shared do
         DeployexWeb.CoreComponents,
         DeployexWeb.Fixture.Status,
         DeployexWeb.Fixture.Binary,
-        DeployexWeb.Fixture.Monitoring,
         DeployexWeb.Fixture.Nodes,
         DeployexWeb.Fixture.Terminal,
         # Foundation

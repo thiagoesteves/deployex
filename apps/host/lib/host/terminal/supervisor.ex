@@ -21,7 +21,7 @@ defmodule Host.Terminal.Supervisor do
   ### ==========================================================================
 
   @doc """
-  Starts a new supervised Terminal server instance
+  Starts a new supervised Terminal Server
   """
   @spec new(Host.Terminal.t()) :: {:ok, pid} | {:error, pid(), :already_started}
   def new(args) do

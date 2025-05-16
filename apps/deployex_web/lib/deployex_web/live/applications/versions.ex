@@ -4,6 +4,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
   require Logger
 
   alias Deployer.Status
+  alias Foundation.Catalog
 
   @impl true
   def render(assigns) do
@@ -21,13 +22,10 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                 Version
               </th>
               <th scope="col" class="px-6 py-1">
-                Instance
+                Node
               </th>
               <th scope="col" class="px-6 py-1">
                 Deploy Type
-              </th>
-              <th scope="col" class="px-6 py-1">
-                Deploy Ref
               </th>
               <th scope="col" class="px-6 py-1">
                 Date
@@ -44,13 +42,10 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                   {version.version}
                 </th>
                 <td class="px-6 py-2">
-                  {version.instance}
+                  {version.node}
                 </td>
                 <td class="px-3 py-2">
                   {version.deployment}
-                </td>
-                <td class="px-6 py-2">
-                  {version.deploy_ref}
                 </td>
                 <td class="px-6 py-2">
                   {"#{NaiveDateTime.to_string(version.inserted_at)}"}
@@ -66,11 +61,15 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
 
   @impl true
   def update(assigns, socket) do
+    sname = assigns.id
+
     version_list =
-      if assigns.id == "0" do
-        Status.history_version_list()
-      else
-        Status.history_version_list(assigns.id)
+      case Catalog.node_info_from_sname(sname) do
+        %Catalog.Node{sname: "deployex"} ->
+          Status.history_version_list()
+
+        %Catalog.Node{node: node} ->
+          Status.history_version_list(node)
       end
 
     socket =

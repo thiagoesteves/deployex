@@ -5,28 +5,32 @@ defmodule DeployexWeb.Fixture.Binary do
 
   alias Foundation.Catalog
 
-  def create_bin_files(language \\ "elixir", instance)
+  def create_bin_files(language \\ "elixir", node)
 
-  def create_bin_files(language, instance) when language in ["elixir", "erlang"] do
-    current = "#{Catalog.current_path(instance)}/bin/"
+  def create_bin_files(language, node) when language in ["elixir", "erlang"] do
+    %Catalog.Node{name_string: name} = Catalog.node_info(node)
+
+    current = "#{Catalog.current_path(node)}/bin/"
     File.mkdir_p(current)
-    File.touch!("#{current}/#{Catalog.monitored_app_name()}")
+    File.touch!("#{current}/#{name}")
 
-    new = "#{Catalog.new_path(instance)}/bin/"
+    new = "#{Catalog.new_path(node)}/bin/"
     File.mkdir_p(new)
-    File.touch!("#{new}/#{Catalog.monitored_app_name()}")
+    File.touch!("#{new}/#{name}")
   end
 
-  def create_bin_files("gleam", instance) do
-    current = "#{Catalog.current_path(instance)}/erlang-shipment"
+  def create_bin_files("gleam", node) do
+    current = "#{Catalog.current_path(node)}/erlang-shipment"
     File.mkdir_p(current)
 
-    new = "#{Catalog.new_path(instance)}/erlang-shipment"
+    new = "#{Catalog.new_path(node)}/erlang-shipment"
     File.mkdir_p(new)
   end
 
-  def remove_bin_files(instance) do
-    File.rm_rf("#{Catalog.current_path(instance)}/bin/#{Catalog.monitored_app_name()}")
-    File.rm_rf("#{Catalog.new_path(instance)}/bin/#{Catalog.monitored_app_name()}")
+  def remove_bin_files(node) do
+    %Catalog.Node{name_string: name} = Catalog.node_info(node)
+
+    File.rm_rf("#{Catalog.current_path(node)}/bin/#{name}")
+    File.rm_rf("#{Catalog.new_path(node)}/bin/#{name}")
   end
 end

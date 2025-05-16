@@ -4,7 +4,6 @@ defmodule DeployexWeb.Applications.SystemTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
   setup [
@@ -20,13 +19,11 @@ defmodule DeployexWeb.Applications.SystemTest do
     total_memory = "64.00"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn ->
       send(test_pid_process, {:liveview_pid, self()})
       :ok
     end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, liveview, _html} = live(conn, ~p"/applications")

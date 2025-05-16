@@ -1,9 +1,9 @@
-defmodule Sentinel.Fixture.Nodes do
+defmodule Deployer.Fixture.Nodes do
   @moduledoc """
   This module will handle the nodes
   """
 
-  def test_node(app_name \\ "testapp", suffix \\ "abc123") do
+  def test_node(app_name, suffix) do
     {:ok, hostname} = :inet.gethostname()
 
     :"#{app_name}-#{suffix}@#{hostname}"

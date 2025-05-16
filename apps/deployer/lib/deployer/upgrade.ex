@@ -16,18 +16,18 @@ defmodule Deployer.Upgrade do
   ### ==========================================================================
 
   @doc """
-  This function tries to connetc the respective instance to the OTP distribution
+  This function tries to connetc the respective node to the OTP distribution
   """
   @impl true
-  @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
-  def connect(instance), do: default().connect(instance)
+  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  def connect(node), do: default().connect(node)
 
   @doc """
   This function check the release package type
   """
   @impl true
   @spec check(
-          integer(),
+          node(),
           String.t(),
           String.t(),
           binary(),
@@ -35,8 +35,8 @@ defmodule Deployer.Upgrade do
           binary() | charlist()
         ) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, app_name, app_lang, download_path, from_version, to_version) do
-    default().check(instance, app_name, app_lang, download_path, from_version, to_version)
+  def check(node, app_name, app_lang, download_path, from_version, to_version) do
+    default().check(node, app_name, app_lang, download_path, from_version, to_version)
   end
 
   @doc """
@@ -44,15 +44,15 @@ defmodule Deployer.Upgrade do
   """
   @impl true
   @spec execute(
-          integer(),
+          node(),
           String.t(),
           String.t(),
           binary() | charlist() | nil,
           binary() | charlist() | nil
         ) ::
           :ok | {:error, any()}
-  def execute(instance, app_name, app_lang, from_version, to_version) do
-    default().execute(instance, app_name, app_lang, from_version, to_version)
+  def execute(node, app_name, app_lang, from_version, to_version) do
+    default().execute(node, app_name, app_lang, from_version, to_version)
   end
 
   ### ==========================================================================

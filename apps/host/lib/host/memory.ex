@@ -7,7 +7,7 @@ defmodule Host.Memory do
 
   @type t :: %__MODULE__{
           host: String.t(),
-          source_node: nil | atom(),
+          source_node: nil | node(),
           description: String.t(),
           memory_free: nil | non_neg_integer(),
           memory_total: nil | non_neg_integer(),

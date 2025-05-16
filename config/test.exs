@@ -8,7 +8,8 @@ config :foundation,
   monitored_app_name: monitored_app_name,
   monitored_app_lang: "elixir",
   monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_start_port: 4444
+  monitored_app_start_port: 4444,
+  monitored_app_env: ["SECRET=value", "PHX_SERVER=true"]
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
