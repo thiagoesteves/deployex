@@ -7,9 +7,9 @@ defmodule Deployer.ReleaseTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Deployer.Release
   alias Foundation.Catalog
-  alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do

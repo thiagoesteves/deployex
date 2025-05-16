@@ -31,7 +31,6 @@ defmodule Foundation.Catalog do
     iex> alias Foundation.Catalog
     ...> import ExUnit.CaptureLog
     ...> assert Catalog.setup(:"node-1@host") == :ok
-    ...> assert Catalog.setup(nil) == :ok
     ...> assert capture_log(fn -> Catalog.setup(:"node-") == {:error, :invalid_node} end) =~ "Setup failed due to invalid node format: node-"
   """
   @impl true
@@ -46,6 +45,7 @@ defmodule Foundation.Catalog do
     iex> alias Foundation.Catalog
     ...> import ExUnit.CaptureLog
     ...> assert Catalog.cleanup(:"node-1@host") == :ok
+    ...> assert Catalog.cleanup(nil) == :ok
     ...> assert capture_log(fn -> Catalog.cleanup(:"node-") == {:error, :invalid_node} end) =~ "Cleanup failed due to invalid node format: node-"
   """
   @impl true
