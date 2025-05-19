@@ -4,21 +4,7 @@ defmodule Deployer.Upgrade.Adapter do
   """
 
   @callback connect(node()) :: {:error, :not_connecting} | {:ok, node()}
-  @callback check(
-              node(),
-              String.t(),
-              String.t(),
-              binary(),
-              binary() | charlist() | nil,
-              binary() | charlist()
-            ) ::
+  @callback check(Deployer.Upgrade.Check.t()) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  @callback execute(
-              node(),
-              String.t(),
-              String.t(),
-              binary() | charlist() | nil,
-              binary() | charlist() | nil
-            ) ::
-              :ok | {:error, any()}
+  @callback execute(Deployer.Upgrade.Data.t()) :: :ok | {:error, any()}
 end

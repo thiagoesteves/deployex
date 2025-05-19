@@ -22,7 +22,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                 Version
               </th>
               <th scope="col" class="px-6 py-1">
-                Node
+                Sname
               </th>
               <th scope="col" class="px-6 py-1">
                 Deploy Type
@@ -42,7 +42,7 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
                   {version.version}
                 </th>
                 <td class="px-6 py-2">
-                  {version.node}
+                  {version.sname}
                 </td>
                 <td class="px-3 py-2">
                   {version.deployment}
@@ -68,8 +68,8 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
         %Catalog.Node{sname: "deployex"} ->
           Status.history_version_list()
 
-        %Catalog.Node{node: node} ->
-          Status.history_version_list(node)
+        %Catalog.Node{sname: sname} ->
+          Status.history_version_list(sname)
       end
 
     socket =

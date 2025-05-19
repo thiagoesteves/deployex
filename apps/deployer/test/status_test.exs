@@ -76,18 +76,11 @@ defmodule Deployer.StatusTest do
     assert [] = Status.history_version_list(0)
   end
 
-  test "clear_new/1" do
-    Deployer.StatusMock
-    |> expect(:clear_new, fn _node -> :ok end)
-
-    assert :ok = Status.clear_new(0)
-  end
-
   test "update/1" do
     Deployer.StatusMock
     |> expect(:update, fn _node -> :ok end)
 
-    assert :ok = Status.update(0)
+    assert :ok = Status.update("node")
   end
 
   test "set_mode/2" do

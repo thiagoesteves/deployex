@@ -5,14 +5,15 @@ defmodule DeployexWeb.Logs.History.IndexTest do
   import Mox
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias DeployexWeb.Helper
+  alias Foundation.Catalog
   alias Sentinel.Logs.Message
 
   setup [
     :set_mox_global,
     :verify_on_exit!,
     :log_in_default_user,
-    :create_history_logs,
-    :add_test_node
+    :create_history_logs
   ]
 
   test "GET /applications check buttom", %{conn: conn} do
@@ -28,9 +29,11 @@ defmodule DeployexWeb.Logs.History.IndexTest do
            |> render_click()
   end
 
-  test "GET /logs/history", %{conn: conn, node: node} do
+  test "GET /logs/history", %{conn: conn} do
+    %{node: node, sname: sname} = "test_app" |> Catalog.create_sname() |> Catalog.sname_info()
+
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> expect(:list_active_nodes, fn -> [node] end)
@@ -41,14 +44,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert html =~ "History Logs"
   end
 
-  test "Add Service + Stdout", %{conn: conn, node_id: service_id, node: node, logs: logs} do
+  test "Add Service + Stdout", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    name = "test_app"
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
@@ -77,14 +83,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
-  test "Add Stdout + Service", %{conn: conn, node_id: service_id, node: node, logs: logs} do
+  test "Add Stdout + Service", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    name = "test_app"
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
@@ -113,14 +122,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
-  test "Add/Remove Service + Stdout", %{conn: conn, node_id: service_id, node: node, logs: logs} do
+  test "Add/Remove Service + Stdout", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    name = "test_app"
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
@@ -159,14 +171,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
-  test "Add/Remove Stdout + Service", %{conn: conn, node_id: service_id, node: node, logs: logs} do
+  test "Add/Remove Stdout + Service", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    name = "test_app"
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)
@@ -205,14 +220,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
-  test "Start Time select button", %{conn: conn, node_id: service_id, node: node, logs: logs} do
+  test "Start Time select button", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
     ref = make_ref()
+    name = "test_app"
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
     Deployer.MonitorMock
-    |> stub(:list, fn -> [node] end)
+    |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_nodes, fn -> [node] end)

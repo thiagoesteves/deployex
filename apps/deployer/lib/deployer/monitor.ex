@@ -7,9 +7,9 @@ defmodule Deployer.Monitor do
 
   @type t :: %__MODULE__{
           current_pid: pid() | nil,
-          node: node() | nil,
+          sname: String.t() | nil,
           port: non_neg_integer(),
-          language: String.t(),
+          language: String.t() | nil,
           status: :idle | :running | :starting,
           crash_restart_count: integer(),
           force_restart_count: integer(),
@@ -19,7 +19,7 @@ defmodule Deployer.Monitor do
         }
 
   defstruct current_pid: nil,
-            node: nil,
+            sname: nil,
             port: 0,
             language: nil,
             status: :idle,
@@ -34,44 +34,44 @@ defmodule Deployer.Monitor do
   ### ==========================================================================
 
   @doc """
-  Starts monitor service for an specific node
+  Starts monitor service for an specific sname
   """
   @impl true
-  @spec start_service(node(), String.t(), non_neg_integer(), list()) ::
+  @spec start_service(String.t(), String.t(), non_neg_integer(), list()) ::
           {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(node, language, port, options \\ []) do
-    default().start_service(node, language, port, options)
+  def start_service(sname, language, port, options \\ []) do
+    default().start_service(sname, language, port, options)
   end
 
   @doc """
-  Stops a monitor service fo an specific node
+  Stops a monitor service fo an specific sname
   """
   @impl true
-  @spec stop_service(node()) :: :ok
-  def stop_service(node), do: default().stop_service(node)
+  @spec stop_service(String.t() | nil) :: :ok
+  def stop_service(sname), do: default().stop_service(sname)
 
   @doc """
   This function forces a restart of the application
   """
   @impl true
-  @spec restart(node()) :: :ok | {:error, :application_is_not_running}
-  def restart(node), do: default().restart(node)
+  @spec restart(String.t()) :: :ok | {:error, :application_is_not_running}
+  def restart(sname), do: default().restart(sname)
 
   @doc """
   Retrieve the expected current version for the application
   """
   @impl true
-  @spec state(node()) :: Deployer.Monitor.t()
-  def state(node), do: default().state(node)
+  @spec state(String.t()) :: Deployer.Monitor.t()
+  def state(sname), do: default().state(sname)
 
   @doc """
   Download and unpack the application
   """
   @impl true
-  @spec run_pre_commands(node(), list(), :new | :current) ::
+  @spec run_pre_commands(String.t(), list(), :new | :current) ::
           {:ok, list()} | {:error, :rescued}
-  def run_pre_commands(node, pre_commands, app_bin_path),
-    do: default().run_pre_commands(node, pre_commands, app_bin_path)
+  def run_pre_commands(sname, pre_commands, app_bin_path),
+    do: default().run_pre_commands(sname, pre_commands, app_bin_path)
 
   @doc """
   Return the global name used by this module to register the process
@@ -91,8 +91,8 @@ defmodule Deployer.Monitor do
   Return the global name used by this module to register the process
   """
   @impl true
-  @spec global_name(node()) :: map()
-  def global_name(node), do: default().global_name(node)
+  @spec global_name(String.t()) :: map()
+  def global_name(sname), do: default().global_name(sname)
 
   ### ==========================================================================
   ### Private functions

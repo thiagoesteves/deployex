@@ -9,7 +9,6 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.SystemBar
-  alias Foundation.Catalog
   alias Foundation.Common
   alias Host.Terminal.Server
 
@@ -305,10 +304,7 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_event("restart", %{"id" => sname}, socket) do
-    # Restart the application
-    %{node: node} = Catalog.node_info_from_sname(sname)
-    Monitor.restart(node)
-
+    Monitor.restart(sname)
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 

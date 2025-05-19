@@ -26,8 +26,8 @@ defmodule Deployer.Monitor.Application do
 
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(args) do
-    node = Keyword.fetch!(args, :node)
-    name = global_name(node)
+    sname = Keyword.fetch!(args, :sname)
+    name = global_name(sname)
     GenServer.start_link(__MODULE__, args, name: {:global, name})
   end
 
@@ -36,7 +36,7 @@ defmodule Deployer.Monitor.Application do
     Process.flag(:trap_exit, true)
 
     port = Keyword.fetch!(args, :port)
-    node = Keyword.fetch!(args, :node)
+    sname = Keyword.fetch!(args, :sname)
     language = Keyword.fetch!(args, :language)
     options = Keyword.fetch!(args, :options)
 
@@ -47,17 +47,17 @@ defmodule Deployer.Monitor.Application do
       Keyword.get(options, :retry_delay_pre_commands, @default_retry_delay_pre_commands)
 
     # NOTE: This ETS table provides non-blocking access to the state.
-    :ets.new(table_name(node), [:set, :protected, :named_table])
+    :ets.new(table_name(sname), [:set, :protected, :named_table])
 
-    Logger.info("Initializing monitor server for node: #{node} language: #{language}")
+    Logger.info("Initializing monitor server for sname: #{sname} language: #{language}")
 
-    trigger_run_service(node)
+    trigger_run_service(sname)
 
     {:ok,
      update_non_blocking_state(%Deployer.Monitor{
        timeout_app_ready: timeout_app_ready,
        retry_delay_pre_commands: retry_delay_pre_commands,
-       node: node,
+       sname: sname,
        port: port,
        language: language
      })}
@@ -67,10 +67,10 @@ defmodule Deployer.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %Deployer.Monitor{current_pid: current_pid, node: node} = state
+        %Deployer.Monitor{current_pid: current_pid, sname: sname} = state
       )
       when is_nil(current_pid) do
-    Logger.warning("Requested node: #{node} to stop but application is not running.")
+    Logger.warning("Requested sname: #{sname} to stop but application is not running.")
 
     {:reply, :ok, state}
   end
@@ -78,16 +78,16 @@ defmodule Deployer.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %Deployer.Monitor{node: node, current_pid: pid} = state
+        %Deployer.Monitor{sname: sname, current_pid: pid} = state
       ) do
-    Logger.info("Requested node: #{node} to stop application pid: #{inspect(pid)}")
+    Logger.info("Requested sname: #{sname} to stop application pid: #{inspect(pid)}")
 
     # Stop current application
     Commander.stop(state.current_pid)
 
     # NOTE: The next command is needed for Systems that have a different PID for the "/bin/app start" script
     #       and the bin/beam.smp process
-    cleanup_beam_process(state.node)
+    cleanup_beam_process(state.sname)
 
     {:reply, :ok, state}
   end
@@ -105,26 +105,26 @@ defmodule Deployer.Monitor.Application do
   end
 
   def handle_call(:restart, _from, state) do
-    Logger.warning("Restart requested for node: #{state.node}")
+    Logger.warning("Restart requested for sname: #{state.sname}")
 
     # Stop current application
     Commander.stop(state.current_pid)
 
-    cleanup_beam_process(state.node)
+    cleanup_beam_process(state.sname)
 
     # Update the number of force restarts
     force_restart_count = state.force_restart_count + 1
 
     # Trigger restart with backoff time of 1 second
-    trigger_run_service(state.node, 1_000)
+    trigger_run_service(state.sname, 1_000)
 
     {:reply, :ok, update_non_blocking_state(%{state | force_restart_count: force_restart_count})}
   end
 
   @impl true
-  def handle_info({:run_service, node}, %Deployer.Monitor{} = state)
-      when node == state.node do
-    version_map = Status.current_version_map(state.node)
+  def handle_info({:run_service, sname}, %Deployer.Monitor{} = state)
+      when sname == state.sname do
+    version_map = Status.current_version_map(state.sname)
     version = version_map.version
 
     state =
@@ -132,7 +132,7 @@ defmodule Deployer.Monitor.Application do
         Logger.info("No version set, not able to run_service")
         state
       else
-        Logger.info("Ensure running requested for node: #{node} version: #{version}")
+        Logger.info("Ensure running requested for sname: #{sname} version: #{version}")
 
         run_service(state, version_map)
       end
@@ -140,16 +140,16 @@ defmodule Deployer.Monitor.Application do
     {:noreply, update_non_blocking_state(state)}
   end
 
-  def handle_info({:check_running, pid, node}, state)
-      when pid == state.current_pid and node == state.node do
-    Logger.info(" # Application node: #{state.node} is running")
+  def handle_info({:check_running, pid, sname}, state)
+      when pid == state.current_pid and sname == state.sname do
+    Logger.info(" # Application sname: #{state.sname} is running")
 
-    Deployment.notify_application_running(node)
+    Deployment.notify_application_running(sname)
 
     {:noreply, update_non_blocking_state(%{state | status: :running})}
   end
 
-  def handle_info({:check_running, _pid, _node}, state) do
+  def handle_info({:check_running, _pid, _sname}, state) do
     {:noreply, state}
   end
 
@@ -163,23 +163,23 @@ defmodule Deployer.Monitor.Application do
   def handle_info({:EXIT, pid, _reason}, %{current_pid: current_pid} = state)
       when current_pid == pid do
     Logger.error(
-      "Unexpected exit message received for node: #{state.node} from pid: #{inspect(pid)}, application being restarted"
+      "Unexpected exit message received for sname: #{state.sname} from pid: #{inspect(pid)}, application being restarted"
     )
 
-    cleanup_beam_process(state.node)
+    cleanup_beam_process(state.sname)
 
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
     # Retry with backoff pattern
-    trigger_run_service(state.node, 2 * crash_restart_count * 1000)
+    trigger_run_service(state.sname, 2 * crash_restart_count * 1000)
 
     {:noreply, update_non_blocking_state(%{state | crash_restart_count: crash_restart_count})}
   end
 
   def handle_info({:EXIT, pid, reason}, state) do
     Logger.warning(
-      "Application node: #{state.node} with pid: #{inspect(pid)} being stopped by reason: #{inspect(reason)}"
+      "Application sname: #{state.sname} with pid: #{inspect(pid)} being stopped by reason: #{inspect(reason)}"
     )
 
     {:noreply, state}
@@ -189,9 +189,9 @@ defmodule Deployer.Monitor.Application do
   ### Public functions
   ### ==========================================================================
   @impl true
-  def state(node) do
+  def state(sname) do
     [{_, value}] =
-      table_name(node)
+      table_name(sname)
       |> :ets.lookup(:state)
 
     value
@@ -201,17 +201,17 @@ defmodule Deployer.Monitor.Application do
   end
 
   @impl true
-  def run_pre_commands(node, pre_commands, app_bin_service) do
-    global_name(node)
+  def run_pre_commands(sname, pre_commands, app_bin_service) do
+    global_name(sname)
     |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_service})
   end
 
   @impl true
-  defdelegate start_service(node, language, port, options \\ []),
+  defdelegate start_service(sname, language, port, options \\ []),
     to: Deployer.Monitor.Supervisor
 
   @impl true
-  defdelegate stop_service(node), to: Deployer.Monitor.Supervisor
+  defdelegate stop_service(sname), to: Deployer.Monitor.Supervisor
 
   @impl true
   defdelegate list, to: Deployer.Monitor.Supervisor
@@ -222,32 +222,32 @@ defmodule Deployer.Monitor.Application do
   end
 
   @impl true
-  def restart(node) do
-    node
+  def restart(sname) do
+    sname
     |> global_name()
     |> Common.call_gen_server(:restart)
   end
 
   @impl true
-  def global_name(node),
-    do: %{module: __MODULE__, node: node}
+  def global_name(sname),
+    do: %{module: __MODULE__, sname: sname}
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  def trigger_run_service(node, timeout \\ 1),
-    do: Process.send_after(self(), {:run_service, node}, timeout)
+  def trigger_run_service(sname, timeout \\ 1),
+    do: Process.send_after(self(), {:run_service, sname}, timeout)
 
   defp run_service(
          %Deployer.Monitor{
-           node: node,
+           sname: sname,
            timeout_app_ready: timeout_app_ready,
            retry_delay_pre_commands: retry_delay_pre_commands,
            language: language
          } = state,
          version_map
        ) do
-    app_exec = Catalog.bin_path(node, language, :current)
+    app_exec = Catalog.bin_path(sname, language, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -258,33 +258,33 @@ defmodule Deployer.Monitor.Application do
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,
         @new_deploy_topic,
-        {:new_deploy, Node.self(), node}
+        {:new_deploy, Node.self(), sname}
       )
 
       {:ok, pid, os_pid} =
         Commander.run_link(
           run_app_bin(state, app_exec, "start"),
           [
-            {:stdout, Catalog.stdout_path(node) |> to_charlist, [:append, {:mode, 0o600}]},
-            {:stderr, Catalog.stderr_path(node) |> to_charlist, [:append, {:mode, 0o600}]}
+            {:stdout, Catalog.stdout_path(sname) |> to_charlist, [:append, {:mode, 0o600}]},
+            {:stderr, Catalog.stderr_path(sname) |> to_charlist, [:append, {:mode, 0o600}]}
           ]
         )
 
       Logger.info(
-        " # Running node: #{node}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} node: #{node}"
+        " # Running sname: #{sname}, monitoring pid = #{inspect(pid)}, OS process = #{os_pid} sname: #{sname}"
       )
 
-      Process.send_after(self(), {:check_running, pid, node}, timeout_app_ready)
+      Process.send_after(self(), {:check_running, pid, sname}, timeout_app_ready)
 
       %{state | current_pid: pid, status: :starting, start_time: now()}
     else
       false ->
-        trigger_run_service(node, retry_delay_pre_commands)
+        trigger_run_service(sname, retry_delay_pre_commands)
         Logger.error("Version: #{version} set but no #{app_exec}")
         state
 
       {:error, :pre_commands} ->
-        trigger_run_service(node, retry_delay_pre_commands)
+        trigger_run_service(sname, retry_delay_pre_commands)
         %{state | status: :pre_commands}
     end
   end
@@ -295,8 +295,8 @@ defmodule Deployer.Monitor.Application do
   #       - Export listening port that needs to be one per app
   defp run_app_bin(state, executable_path, command)
 
-  defp run_app_bin(%{node: node, language: "elixir", port: port}, executable_path, command) do
-    %Foundation.Catalog.Node{suffix: suffix} = Catalog.node_info(node)
+  defp run_app_bin(%{sname: sname, language: "elixir", port: port}, executable_path, command) do
+    %{suffix: suffix} = Catalog.sname_info(sname)
     path = Common.remove_deployex_from_path()
     app_env = compose_app_env(Catalog.monitored_app_env())
 
@@ -311,8 +311,7 @@ defmodule Deployer.Monitor.Application do
     """
   end
 
-  defp run_app_bin(%{node: node, language: "erlang", port: port}, executable_path, "start") do
-    %{sname: sname} = Catalog.node_info(node)
+  defp run_app_bin(%{sname: sname, language: "erlang", port: port}, executable_path, "start") do
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
     app_env = compose_app_env(Catalog.monitored_app_env())
@@ -338,8 +337,8 @@ defmodule Deployer.Monitor.Application do
     """
   end
 
-  defp run_app_bin(%{node: node, language: "gleam", port: port}, executable_path, "start") do
-    %Foundation.Catalog.Node{sname: sname, name_string: app_name} = Catalog.node_info(node)
+  defp run_app_bin(%{sname: sname, language: "gleam", port: port}, executable_path, "start") do
+    %{name: name} = Catalog.sname_info(sname)
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
     app_env = compose_app_env(Catalog.monitored_app_env())
@@ -357,7 +356,7 @@ defmodule Deployer.Monitor.Application do
     #{app_env}
     export PATH=#{path}
     export PORT=#{port}
-    PACKAGE=#{app_name}
+    PACKAGE=#{name}
     BASE=#{executable_path}
     erl \
       -pa "$BASE"/*/ebin \
@@ -369,9 +368,9 @@ defmodule Deployer.Monitor.Application do
     """
   end
 
-  defp run_app_bin(%{node: node, language: language}, _executable_path, command) do
+  defp run_app_bin(%{sname: sname, language: language}, _executable_path, command) do
     msg =
-      "Running not supported for language: #{language}, node: #{node}, command: #{command}"
+      "Running not supported for language: #{language}, sname: #{sname}, command: #{command}"
 
     Logger.warning(msg)
     "echo \"#{msg}\""
@@ -389,11 +388,11 @@ defmodule Deployer.Monitor.Application do
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(
-         %{node: node, status: status, language: language} = state,
+         %{sname: sname, status: status, language: language} = state,
          pre_commands,
          bin_service
        ) do
-    migration_exec = Catalog.bin_path(node, language, bin_service)
+    migration_exec = Catalog.bin_path(sname, language, bin_service)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 
@@ -404,8 +403,8 @@ defmodule Deployer.Monitor.Application do
 
       Commander.run(run_app_bin(state, migration_exec, pre_command), [
         :sync,
-        {:stdout, Catalog.stdout_path(node) |> to_charlist, [:append, {:mode, 0o600}]},
-        {:stderr, Catalog.stderr_path(node) |> to_charlist, [:append, {:mode, 0o600}]}
+        {:stdout, Catalog.stdout_path(sname) |> to_charlist, [:append, {:mode, 0o600}]},
+        {:stderr, Catalog.stderr_path(sname) |> to_charlist, [:append, {:mode, 0o600}]}
       ])
       |> case do
         {:ok, _} ->
@@ -413,7 +412,7 @@ defmodule Deployer.Monitor.Application do
 
         {:error, reason} ->
           Logger.error(
-            "Error running pre-command: #{pre_command} for node: #{node} reason: #{inspect(reason)}"
+            "Error running pre-command: #{pre_command} for sname: #{sname} reason: #{inspect(reason)}"
           )
 
           {:halt, {:error, :pre_commands}}
@@ -422,28 +421,28 @@ defmodule Deployer.Monitor.Application do
     |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
   end
 
-  defp cleanup_beam_process(node) do
-    %{sname: sname} = Catalog.node_info(node)
+  defp cleanup_beam_process(sname) do
+    %{sname: sname, name: name} = Catalog.sname_info(sname)
 
     case Commander.run(
-           "kill -9 $(ps -ax | grep \"#{Catalog.monitored_app_name()}/#{sname}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
+           "kill -9 $(ps -ax | grep \"#{name}/#{sname}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",
            [:sync, :stdout, :stderr]
          ) do
       {:ok, _} ->
-        Logger.warning("Remaining beam app removed for node: #{node}")
+        Logger.warning("Remaining beam app removed for sname: #{sname}")
 
       {:error, _reason} ->
-        # Logger.warning("Nothing to remove for node: #{node} - #{inspect(reason)}")
+        # Logger.warning("Nothing to remove for sname: #{sname} - #{inspect(reason)}")
         :ok
     end
   end
 
   defp now, do: System.monotonic_time()
 
-  defp table_name(node), do: (@monitor_table <> "-#{node}") |> String.to_atom()
+  defp table_name(sname), do: (@monitor_table <> "-#{sname}") |> String.to_atom()
 
-  defp update_non_blocking_state(%{node: node} = state) do
-    table_name(node)
+  defp update_non_blocking_state(%{sname: sname} = state) do
+    table_name(sname)
     |> :ets.insert({:state, state})
 
     state

@@ -10,19 +10,24 @@ defmodule DeployexWeb.Applications.LogsTest do
     :log_in_default_user
   ]
 
-  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
+  alias Deployer.Fixture.Files, as: FixtureFiles
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
+  alias DeployexWeb.Helper
   alias Foundation.Catalog
 
   test "Access to stdout logs by instance", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    node = FixtureNodes.test_node("test_app", "abc123")
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
@@ -37,10 +42,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(node)
+    Catalog.setup(sname)
 
-    assert index_live |> element("#app-log-stdout-test-app-abc123") |> render_click() =~
-             "Application Logs [test_app-abc123]"
+    assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     FixtureTerminal.terminate_all()
 
@@ -51,10 +56,14 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    node = FixtureNodes.test_node("test_app", "abc123")
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
@@ -69,10 +78,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(node)
+    Catalog.setup(sname)
 
-    assert index_live |> element("#app-log-stderr-test-app-abc123") |> render_click() =~
-             "Application Logs [test_app-abc123]"
+    assert index_live |> element("#app-log-stderr-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     FixtureTerminal.terminate_all()
 
@@ -83,10 +92,14 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    node = FixtureNodes.test_node("test_app", "abc123")
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
@@ -101,10 +114,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(node)
+    Catalog.setup(sname)
 
-    assert index_live |> element("#app-log-stdout-test-app-abc123") |> render_click() =~
-             "Application Logs [test_app-abc123]"
+    assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)
@@ -121,9 +134,14 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
@@ -136,10 +154,12 @@ defmodule DeployexWeb.Applications.LogsTest do
       :ok
     end)
 
+    FixtureFiles.create_log_files(sname)
+
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stderr-test-app-abc123") |> render_click() =~
-             "Application Logs [test_app-abc123]"
+    assert index_live |> element("#app-log-stderr-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)

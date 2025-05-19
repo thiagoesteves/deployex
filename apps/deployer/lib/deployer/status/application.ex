@@ -52,6 +52,7 @@ defmodule Deployer.Status.Application do
 
     monitoring_apps =
       Monitor.list()
+      |> Enum.map(&Catalog.sname_to_node/1)
       |> Enum.map(fn node ->
         update_monitored_app_name(node)
       end)
@@ -86,13 +87,13 @@ defmodule Deployer.Status.Application do
   def subscribe, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @apps_data_updated_topic)
 
   @impl true
-  def current_version(node) do
-    current_version_map(node).version
+  def current_version(sname) do
+    current_version_map(sname).version
   end
 
   @impl true
-  def current_version_map(node) do
-    node
+  def current_version_map(sname) do
+    sname
     |> Catalog.versions()
     |> Enum.at(0)
     |> case do
@@ -105,12 +106,13 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def set_current_version_map(node, release, attrs) do
+  def set_current_version_map(sname, release, attrs) do
+    # : TODO: Add name
     params = %Deployer.Status.Version{
       version: release.version,
       hash: release.hash,
       pre_commands: release.pre_commands,
-      node: node,
+      sname: sname,
       deployment: Keyword.get(attrs, :deployment),
       inserted_at: NaiveDateTime.utc_now()
     }
@@ -132,35 +134,33 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def history_version_list(node) do
-    Catalog.versions(node)
+  def history_version_list(sname) do
+    Catalog.versions(sname)
   end
 
   @impl true
-  def clear_new(node) do
-    node
-    |> Catalog.new_path()
-    |> File.rm_rf()
+  def list_installed_apps(name) do
+    case File.ls("#{Catalog.service_path(name)}") do
+      {:ok, list} ->
+        list
 
-    node
-    |> Catalog.new_path()
-    |> File.mkdir_p()
-
-    :ok
+      _ ->
+        []
+    end
   end
 
   @impl true
   def update(nil), do: :ok
 
-  def update(node) do
+  def update(sname) do
     # Remove previous path
-    node
+    sname
     |> Catalog.previous_path()
     |> File.rm_rf()
 
     # Move current to previous and new to current
-    File.rename(Catalog.current_path(node), Catalog.previous_path(node))
-    File.rename(Catalog.new_path(node), Catalog.current_path(node))
+    File.rename(Catalog.current_path(sname), Catalog.previous_path(sname))
+    File.rename(Catalog.new_path(sname), Catalog.current_path(sname))
     :ok
   end
 
@@ -218,12 +218,14 @@ defmodule Deployer.Status.Application do
   end
 
   defp update_monitored_app_name(node) do
+    %{name_string: name, sname: sname} = Catalog.node_info(node)
+
     %{
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       start_time: start_time
-    } = Monitor.state(node)
+    } = Monitor.state(sname)
 
     check_otp_monitored_app = fn
       node, :running ->
@@ -236,16 +238,14 @@ defmodule Deployer.Status.Application do
         :not_connected
     end
 
-    %{name_string: name, sname: sname} = Catalog.node_info(node)
-
     %Deployer.Status{
       name: name,
       sname: sname,
       node: node,
-      version: current_version(node),
+      version: current_version(sname),
       otp: check_otp_monitored_app.(node, status),
       tls: Common.check_mtls(),
-      last_deployment: current_version_map(node).deployment,
+      last_deployment: current_version_map(sname).deployment,
       supervisor: false,
       status: status,
       crash_restart_count: crash_restart_count,

@@ -7,85 +7,83 @@ defmodule Deployer.MonitorTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployer.Fixture.Binary
-  alias Deployer.Fixture.Nodes, as: FixtureNodes
+  alias Deployer.Fixture.Files, as: FixtureFiles
   alias Deployer.Monitor.Application, as: MonitorApp
-  alias Foundation.Fixture.Catalog
+  alias Foundation.Catalog
+  alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
-    Catalog.cleanup()
+    FixtureCatalog.cleanup()
     name = "monitor_testapp"
-    suffix = "abc123"
+    sname = Catalog.create_sname(name)
 
     %{
       name: name,
-      suffix: suffix,
-      node: FixtureNodes.test_node(name, suffix),
+      sname: sname,
       port: 1000
     }
   end
 
   describe "Initialization tests" do
     @tag :capture_log
-    test "init/1", %{node: node, port: port} do
+    test "init/1", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
 
       Deployer.StatusMock
-      |> expect(:current_version_map, fn ^node ->
+      |> expect(:current_version_map, fn ^sname ->
         send(test_pid_process, {:handle_ref_event, test_event_ref})
         %Deployer.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(node, "elixir", port, [])
+      assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, [])
 
       assert Process.alive?(pid)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
 
       refute Process.alive?(pid)
     end
 
-    test "Invalid node" do
+    test "Invalid sname" do
       assert %Deployer.Monitor{} = MonitorApp.state(:any)
     end
 
     @tag :capture_log
-    test "Stop a monitor that is not running", %{node: node, port: port} do
+    test "Stop a monitor that is not running", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
 
       Deployer.StatusMock
-      |> expect(:current_version_map, fn ^node ->
+      |> expect(:current_version_map, fn ^sname ->
         send(test_pid_process, {:handle_ref_event, test_event_ref})
         %Deployer.Status.Version{}
       end)
 
-      assert {:ok, pid} = MonitorApp.start_service(node, "elixir", port, [])
+      assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, [])
 
       assert Process.alive?(pid)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(node)
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(sname)
     end
   end
 
   describe "Running applications" do
     test "Running application - no executable path - elixir", %{
-      node: node,
+      sname: sname,
       port: port,
-      name: name,
-      suffix: suffix
+      name: name
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         # Wait for at least 2 tries
         called = Process.get("current_version_map", 0)
         Process.put("current_version_map", called + 1)
@@ -99,7 +97,7 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, pid} =
-                        MonitorApp.start_service(node, "elixir", port,
+                        MonitorApp.start_service(sname, "elixir", port,
                           retry_delay_pre_commands: 10
                         )
 
@@ -107,22 +105,21 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(node)
+               assert :ok = MonitorApp.stop_service(sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{name}-#{suffix}/current/bin/#{name}"
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
     end
 
     test "Running application - no executable path - gleam", %{
-      node: node,
+      sname: sname,
       port: port,
-      name: name,
-      suffix: suffix
+      name: name
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         # Wait for at least 2 tries
         called = Process.get("current_version_map", 0)
         Process.put("current_version_map", called + 1)
@@ -136,7 +133,7 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, pid} =
-                        MonitorApp.start_service(node, "gleam", port,
+                        MonitorApp.start_service(sname, "gleam", port,
                           retry_delay_pre_commands: 10
                         )
 
@@ -144,22 +141,21 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(node)
+               assert :ok = MonitorApp.stop_service(sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{name}-#{suffix}/current/erlang-shipment"
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/erlang-shipment"
     end
 
     test "Running application - no executable path - erlang", %{
-      node: node,
+      sname: sname,
       port: port,
-      name: name,
-      suffix: suffix
+      name: name
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         # Wait for at least 2 tries
         called = Process.get("current_version_map", 0)
         Process.put("current_version_map", called + 1)
@@ -173,7 +169,7 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, pid} =
-                        MonitorApp.start_service(node, "erlang", port,
+                        MonitorApp.start_service(sname, "erlang", port,
                           retry_delay_pre_commands: 10
                         )
 
@@ -181,21 +177,20 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(node)
+               assert :ok = MonitorApp.stop_service(sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{name}-#{suffix}/current/bin/#{name}"
+               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
     end
 
     @tag :capture_log
-    test "Running application - no pre_commands - elixir", %{node: node, port: port} do
+    test "Running application - no pre_commands - elixir", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -210,30 +205,29 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       MonitorApp.subscribe_new_deploy()
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(node)
+      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
 
-      assert_receive {:new_deploy, _source_node, _deploy_node}, 1_000
+      assert_receive {:new_deploy, _source_sname, _deploy_sname}, 1_000
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Running application - no pre_commands - gleam", %{node: node, port: port} do
+    test "Running application - no pre_commands - gleam", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
       language = "gleam"
-
-      Binary.create_bin_files(language, node)
+      FixtureFiles.create_bin_files(language, sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -248,26 +242,25 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, language, port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(node)
+      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Running application - no pre_commands - erlang", %{node: node, port: port} do
+    test "Running application - no pre_commands - erlang", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
       language = "erlang"
-
-      Binary.create_bin_files(language, node)
+      FixtureFiles.create_bin_files(language, sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -282,26 +275,25 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, language, port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(node)
+      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Running application with pre_commands - elixir", %{node: node, port: port} do
+    test "Running application with pre_commands - elixir", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
@@ -317,26 +309,27 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
-    test "Running application with pre_commands not supported - gleam", %{node: node, port: port} do
+    test "Running application with pre_commands not supported - gleam", %{
+      sname: sname,
+      port: port
+    } do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
       language = "gleam"
 
-      Binary.create_bin_files(language, node)
+      FixtureFiles.create_bin_files(language, sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
@@ -353,28 +346,28 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, _pid} =
-                        MonitorApp.start_service(node, language, port, timeout_app_ready: 10)
+                        MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(node)
+               assert :ok = MonitorApp.stop_service(sname)
              end) =~
-               "Running not supported for language: #{language}, node: #{node}, command: eval command1"
+               "Running not supported for language: #{language}, sname: #{sname}, command: eval command1"
     end
 
-    test "Running application with pre_commands not supported - erlang", %{node: node, port: port} do
+    test "Running application with pre_commands not supported - erlang", %{
+      sname: sname,
+      port: port
+    } do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
       language = "erlang"
-
-      Binary.create_bin_files(language, node)
+      FixtureFiles.create_bin_files(language, sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
@@ -391,31 +384,28 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, _pid} =
-                        MonitorApp.start_service(node, language, port, timeout_app_ready: 10)
+                        MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(node)
+               assert :ok = MonitorApp.stop_service(sname)
              end) =~
-               "Running not supported for language: #{language}, node: #{node}, command: eval command1"
+               "Running not supported for language: #{language}, sname: #{sname}, command: eval command1"
     end
 
     @tag :capture_log
     test "Error trying to run the application with pre-commands failing - elixir", %{
-      node: node,
+      sname: sname,
       port: port
     } do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
@@ -433,28 +423,25 @@ defmodule Deployer.MonitorTest do
       end)
       |> expect(:stop, 0, fn _pid -> :ok end)
 
-      assert {:ok, _pid} = MonitorApp.start_service(node, "elixir", port)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, "elixir", port)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
     test "Check the application doesn't change to running with invalid ref", %{
-      node: node,
+      sname: sname,
       port: port
     } do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -466,30 +453,27 @@ defmodule Deployer.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} = MonitorApp.start_service(node, "elixir", port)
+      assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      send(pid, {:check_running, test_pid_process, node})
+      send(pid, {:check_running, test_pid_process, sname})
 
-      assert %{status: :starting} = Deployer.Monitor.Application.state(node)
+      assert %{status: :starting} = Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Running pre_commands while application is running - elixir", %{node: node, port: port} do
+    test "Running pre_commands while application is running - elixir", %{sname: sname, port: port} do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
       pre_commands = ["eval running_cmd1", "eval running_cmd1"]
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -509,30 +493,27 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(node)
+      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
 
       {:ok, _pre_commands} =
-        Deployer.Monitor.Application.run_pre_commands(node, pre_commands, :new)
+        Deployer.Monitor.Application.run_pre_commands(sname, pre_commands, :new)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Restart Application if EXIT message is received", %{node: node, port: port} do
+    test "Restart Application if EXIT message is received", %{sname: sname, port: port} do
       test_event_ref = make_ref()
-
       test_pid_process = self()
-
       os_pid = 123_456
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -550,12 +531,12 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(node)
+               Deployer.Monitor.Application.state(sname)
 
       send(pid, {:EXIT, test_pid_process, :forcing_restart})
 
@@ -563,21 +544,20 @@ defmodule Deployer.MonitorTest do
 
       # Check restart was increased
       assert %{status: :running, crash_restart_count: 1} =
-               Deployer.Monitor.Application.state(node)
+               Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
     @tag :capture_log
-    test "Don't restart Application if EXIT message is not valid", %{node: node, port: port} do
+    test "Don't restart Application if EXIT message is not valid", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -592,33 +572,32 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(node)
+               Deployer.Monitor.Application.state(sname)
 
       send(pid, {:EXIT, nil, :forcing_restart})
       send(pid, {:EXIT, nil, :normal})
 
       # Check restart was NOT incremented
       assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(node)
+               Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
 
-    test "Force Restart the Application with pre-commands", %{node: node, port: port} do
+    test "Force Restart the Application with pre-commands", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
       pre_commands = ["eval command1", "eval command2"]
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
@@ -635,27 +614,26 @@ defmodule Deployer.MonitorTest do
 
       assert capture_log(fn ->
                assert {:ok, _pid} =
-                        MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+                        MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
-               assert {:error, :application_is_not_running} = MonitorApp.restart(node)
+               assert {:error, :application_is_not_running} = MonitorApp.restart(sname)
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.restart(node)
+               assert :ok = MonitorApp.restart(sname)
 
-               assert :ok = MonitorApp.stop_service(node)
-             end) =~ "Restart requested for node: #{node}"
+               assert :ok = MonitorApp.stop_service(sname)
+             end) =~ "Restart requested for sname: #{sname}"
     end
 
-    test "Ignore cleanup beam command", %{node: node, port: port} do
+    test "Ignore cleanup beam command", %{sname: sname, port: port} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
-
-      Binary.create_bin_files(node)
+      FixtureFiles.create_bin_files(sname)
 
       Deployer.StatusMock
-      |> stub(:current_version_map, fn ^node ->
+      |> stub(:current_version_map, fn ^sname ->
         %Deployer.Status.Version{version: "1.0.0"}
       end)
 
@@ -674,49 +652,49 @@ defmodule Deployer.MonitorTest do
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
       assert {:ok, _pid} =
-               MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(node)
+      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
 
-      assert :ok = MonitorApp.stop_service(node)
+      assert :ok = MonitorApp.stop_service(sname)
     end
   end
 
   test "Adapter function test", %{
-    node: node,
+    sname: sname,
     port: port
   } do
     Deployer.MonitorMock
-    |> expect(:start_service, fn _language, _node, _deploy_ref, _list -> {:ok, self()} end)
-    |> expect(:stop_service, fn _node -> :ok end)
-    |> expect(:state, fn _node -> {:ok, %{}} end)
-    |> expect(:restart, fn _node -> :ok end)
-    |> expect(:run_pre_commands, fn _node, cmds, _new_or_current -> {:ok, cmds} end)
-    |> expect(:global_name, fn ^node -> %{} end)
+    |> expect(:start_service, fn _language, _sname, _deploy_ref, _list -> {:ok, self()} end)
+    |> expect(:stop_service, fn _sname -> :ok end)
+    |> expect(:state, fn _sname -> {:ok, %{}} end)
+    |> expect(:restart, fn _sname -> :ok end)
+    |> expect(:run_pre_commands, fn _sname, cmds, _new_or_current -> {:ok, cmds} end)
+    |> expect(:global_name, fn ^sname -> %{} end)
 
-    assert {:ok, _pid} = Deployer.Monitor.start_service(node, "elixir", port, [])
-    assert :ok = Deployer.Monitor.stop_service(node)
-    assert {:ok, %{}} = Deployer.Monitor.state(node)
-    assert :ok = Deployer.Monitor.restart(node)
-    assert {:ok, []} = Deployer.Monitor.run_pre_commands(node, [], :new)
-    assert %{} = Deployer.Monitor.global_name(node)
+    assert {:ok, _pid} = Deployer.Monitor.start_service(sname, "elixir", port, [])
+    assert :ok = Deployer.Monitor.stop_service(sname)
+    assert {:ok, %{}} = Deployer.Monitor.state(sname)
+    assert :ok = Deployer.Monitor.restart(sname)
+    assert {:ok, []} = Deployer.Monitor.run_pre_commands(sname, [], :new)
+    assert %{} = Deployer.Monitor.global_name(sname)
   end
 
   @tag :capture_log
   test "Do not change state when an invalid :check_running msg is received", %{
-    node: node,
+    sname: sname,
     port: port
   } do
     test_event_ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
 
-    Binary.create_bin_files(node)
+    FixtureFiles.create_bin_files(sname)
 
     Deployer.StatusMock
-    |> stub(:current_version_map, fn ^node ->
+    |> stub(:current_version_map, fn ^sname ->
       %Deployer.Status.Version{version: "1.0.0"}
     end)
 
@@ -733,18 +711,18 @@ defmodule Deployer.MonitorTest do
     |> stub(:stop, fn ^test_pid_process -> :ok end)
 
     assert {:ok, pid} =
-             MonitorApp.start_service(node, "elixir", port, timeout_app_ready: 10)
+             MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
     assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-    state = Deployer.Monitor.Application.state(node)
+    state = Deployer.Monitor.Application.state(sname)
 
     send(pid, {:check_running, :any, :any})
 
     :timer.sleep(100)
 
-    assert state == Deployer.Monitor.Application.state(node)
+    assert state == Deployer.Monitor.Application.state(sname)
 
-    assert :ok = MonitorApp.stop_service(node)
+    assert :ok = MonitorApp.stop_service(sname)
   end
 end

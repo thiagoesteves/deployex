@@ -8,14 +8,20 @@ defmodule Deployer.Release do
   alias Foundation.Common
 
   @type t :: %__MODULE__{
-          current_node: node() | nil,
-          new_node: node() | nil,
+          current_sname: String.t() | nil,
+          current_sname_current_path: String.t() | nil,
+          current_sname_new_path: String.t() | nil,
+          new_sname: String.t() | nil,
+          new_sname_new_path: String.t() | nil,
           current_version: String.t(),
           release_version: String.t()
         }
 
-  defstruct current_node: nil,
-            new_node: nil,
+  defstruct current_sname: nil,
+            current_sname_current_path: nil,
+            current_sname_new_path: nil,
+            new_sname: nil,
+            new_sname_new_path: nil,
             current_version: "",
             release_version: ""
 
@@ -45,43 +51,47 @@ defmodule Deployer.Release do
   @spec download_and_unpack(Deployer.Release.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   def download_and_unpack(%Deployer.Release{
-        current_node: current_node,
-        new_node: new_node,
+        current_sname: current_sname,
+        current_sname_current_path: current_sname_current_path,
+        current_sname_new_path: current_sname_new_path,
+        new_sname: new_sname,
+        new_sname_new_path: new_sname_new_path,
         current_version: current_version,
         release_version: release_version
       }) do
     {:ok, download_path} = Briefly.create()
 
-    %{name_string: app_name, language: language} = Catalog.node_info(current_node || new_node)
+    %{name: name, language: language} = Catalog.sname_info(current_sname || new_sname)
 
     # Download the release file
-    default().download_release(app_name, release_version, download_path)
+    default().download_release(name, release_version, download_path)
 
-    if current_node do
+    if current_sname do
       # Prepare new folder to receive the release binaries
-      current_node |> Catalog.new_path() |> File.rm_rf()
-      current_node |> Catalog.new_path() |> File.mkdir_p()
+      current_sname_new_path |> File.rm_rf()
+      current_sname_new_path |> File.mkdir_p()
 
-      new_path = Catalog.new_path(current_node)
-      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
+      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", current_sname_new_path])
     end
 
-    if new_node do
-      new_path = Catalog.new_path(new_node)
-      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
+    if new_sname do
+      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_sname_new_path])
     end
 
-    if is_nil(current_node) or is_nil(new_node) do
+    if is_nil(current_sname) or is_nil(new_sname) do
       {:ok, :full_deployment}
     else
-      Upgrade.check(
-        current_node,
-        app_name,
-        language,
-        download_path,
-        current_version,
-        release_version
-      )
+      %Upgrade.Check{
+        sname: current_sname,
+        name: name,
+        language: language,
+        download_path: download_path,
+        current_path: current_sname_current_path,
+        new_path: current_sname_new_path,
+        from_version: current_version,
+        to_version: release_version
+      }
+      |> Upgrade.check()
     end
   after
     Briefly.cleanup()

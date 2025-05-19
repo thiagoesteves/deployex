@@ -67,7 +67,7 @@ defmodule Sentinel.Logs.Server do
     Monitor.subscribe_new_deploy()
 
     # List all expected nodes within the cluster
-    expected_nodes = Monitor.list() ++ [Node.self()]
+    expected_nodes = Enum.map(Monitor.list(), &Catalog.sname_to_node/1) ++ [Node.self()]
 
     node_logs_tables =
       Enum.reduce(expected_nodes, %{}, fn node, acc ->
@@ -127,9 +127,11 @@ defmodule Sentinel.Logs.Server do
   end
 
   def handle_info(
-        {:new_deploy, source_node, node},
+        {:new_deploy, source_node, sname},
         %{node_logs_tables: node_logs_tables, expected_nodes: expected_nodes} = state
       ) do
+    node = Catalog.sname_to_node(sname)
+
     with true <- source_node == Node.self(),
          false <- node in expected_nodes,
          table when not is_nil(table) <- maybe_init_log_table(node) do
@@ -362,6 +364,13 @@ defmodule Sentinel.Logs.Server do
     end
   end
 
-  defp log_path(node, "stdout"), do: Catalog.stdout_path(node)
-  defp log_path(node, "stderr"), do: Catalog.stderr_path(node)
+  defp log_path(node, "stdout") do
+    %{sname: sname} = Catalog.node_info(node)
+    Catalog.stdout_path(sname)
+  end
+
+  defp log_path(node, "stderr") do
+    %{sname: sname} = Catalog.node_info(node)
+    Catalog.stderr_path(sname)
+  end
 end

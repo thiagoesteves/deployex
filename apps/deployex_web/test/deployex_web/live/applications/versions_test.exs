@@ -4,8 +4,9 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias DeployexWeb.Helper
+  alias Foundation.Catalog
 
   setup [
     :set_mox_global,
@@ -14,30 +15,38 @@ defmodule DeployexWeb.Applications.VersionsTest do
   ]
 
   test "GET /versions full list", %{conn: conn} do
-    node1 = FixtureNodes.test_node("test_app", "abc123")
-    node2 = FixtureNodes.test_node("test_app", "abc124")
+    name = "test_app"
+    %{sname: sname_1, suffix: suffix_1} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname_2, suffix: suffix_2} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
-    node1_version =
+    sname_1_version =
       FixtureStatus.version(%{
         version: "10.11.12",
-        node: node1,
+        sname: sname_1,
         deployment: :full_deployment
       })
 
-    node2_version =
+    sname_2_version =
       FixtureStatus.version(%{
         version: "10.11.13",
-        node: node2,
+        sname: sname_2,
         deployment: :hot_upgrade
       })
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname_1, name: name}),
+         FixtureStatus.application(%{sname: sname_2, name: name})
+       ]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [node1_version, node2_version] end)
+    |> stub(:history_version_list, fn -> [sname_1_version, sname_2_version] end)
     |> stub(:history_version_list, fn
-      ^node1 -> [node1_version]
-      ^node2 -> [node2_version]
+      ^sname_1 -> [sname_1_version]
+      ^sname_2 -> [sname_2_version]
     end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -47,52 +56,58 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.12"
     assert html =~ :full_deployment |> to_string
-    assert html =~ "abc123"
+    assert html =~ suffix_1
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.13"
     assert html =~ :hot_upgrade |> to_string
-    assert html =~ "abc124"
+    assert html =~ suffix_2
 
     refute html =~ "0.3456702894.2351693834"
   end
 
   test "GET /versions list by instance", %{conn: conn} do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
 
-    node_v1 =
+    sname_v1 =
       FixtureStatus.version(%{
         version: "10.11.16",
-        node: node,
+        name: name,
+        sname: sname,
         deployment: :full_deployment
       })
 
-    node_v2 =
+    sname_v2 =
       FixtureStatus.version(%{
         version: "10.11.17",
-        node: node,
+        name: name,
+        sname: sname,
         deployment: :hot_upgrade
       })
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [node_v1, node_v2] end)
-    |> stub(:history_version_list, fn ^node -> [node_v1, node_v2] end)
+    |> stub(:history_version_list, fn -> [sname_v1, sname_v2] end)
+    |> stub(:history_version_list, fn ^sname -> [sname_v1, sname_v2] end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-test-app-abc123") |> render_click()
+    html = index_live |> element("#app-versions-#{name_id}-#{suffix}") |> render_click()
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.16"
     assert html =~ :full_deployment |> to_string
-    assert html =~ "abc123"
+    assert html =~ suffix
 
     assert html =~ "Monitored App version history"
     assert html =~ "10.11.17"
     assert html =~ :hot_upgrade |> to_string
-    assert html =~ "abc123"
+    assert html =~ suffix
 
     refute html =~ "0.3456702894.2351693834"
   end

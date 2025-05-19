@@ -4,8 +4,8 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   import Mox
   import ExUnit.CaptureLog
 
+  alias Foundation.Catalog
   alias Sentinel.Fixture.Host, as: FixtureHost
-  alias Sentinel.Fixture.Nodes, as: FixtureNodes
   alias Sentinel.Fixture.Telemetry, as: FixtureTelemetry
   alias Sentinel.Watchdog
   alias Sentinel.Watchdog.Data
@@ -36,7 +36,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
-    send(pid, {:new_deploy, Node.self(), Node.self()})
+    send(pid, {:new_deploy, Node.self(), "nonode"})
 
     FixtureHost.send_update_sys_info_message(pid, Node.self(), memory_free, memory_total)
 
@@ -55,7 +55,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
-    send(pid, {:new_deploy, Node.self(), Node.self()})
+    send(pid, {:new_deploy, Node.self(), "nonode"})
 
     FixtureHost.send_update_sys_info_message(pid, :other@node, memory_free, memory_total)
 
@@ -64,10 +64,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "handle_info/2 - update application statistics - valid source" do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     node_statistic = %{
@@ -82,7 +83,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
-    send(pid, {:new_deploy, Node.self(), node})
+    send(pid, {:new_deploy, Node.self(), sname})
 
     assert %Data{} = Watchdog.get_app_data(node, :port)
     assert %Data{} = Watchdog.get_app_data(node, :atom)
@@ -111,12 +112,16 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "handle_info/2 - update application statistics - invalid source" do
-    fake_node = :fake@hostname
-    node = FixtureNodes.test_node("test_app", "abc123")
+    fake_sname = Catalog.create_sname("fake_app")
+    fake_node = Catalog.sname_to_node(fake_sname)
+
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
+
     monitored_nodes = [node]
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     node_statistic = %{
@@ -131,7 +136,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
-    send(pid, {:new_deploy, Node.self(), node})
+    send(pid, {:new_deploy, Node.self(), sname})
 
     FixtureTelemetry.send_update_app_message(pid, fake_node, node_statistic)
 
@@ -160,10 +165,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - No warning if the statistic is inside the threshold" do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -198,10 +204,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - statistic warning" do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -267,12 +274,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - ignore nil data" do
-    node = FixtureNodes.test_node("test_app", "abc123")
-
-    monitored_nodes = [node]
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -302,11 +308,12 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - restart" do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
     monitored_nodes = [node]
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -358,11 +365,12 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Node Up doesn't change any status" do
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
     monitored_nodes = [node]
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> monitored_nodes end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -395,10 +403,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -431,10 +440,11 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node = FixtureNodes.test_node("test_app", "abc123")
+    sname = Catalog.create_sname("test_app")
+    node = Catalog.sname_to_node(sname)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
@@ -485,22 +495,24 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    node_1 = FixtureNodes.test_node("test_app", "abc123")
-    node_2 = FixtureNodes.test_node("test_app", "abc124")
+    sname_1 = Catalog.create_sname("test_app")
+    node_1 = Catalog.sname_to_node(sname_1)
+    sname_2 = Catalog.create_sname("test_app")
+    node_2 = Catalog.sname_to_node(sname_2)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node_1, node_2] end)
+    |> expect(:list, fn -> [sname_1, sname_2] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
 
     Deployer.MonitorMock
     |> stub(:restart, fn
-      ^node_1 ->
+      ^sname_1 ->
         send(pid, {:nodedown, node_1})
         :ok
 
-      ^node_2 ->
+      ^sname_2 ->
         send(pid, {:nodedown, node_2})
         :ok
     end)
@@ -543,7 +555,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_system_memory_config()
 
     # Add node_1 again
-    send(pid, {:new_deploy, Node.self(), node_1})
+    send(pid, {:new_deploy, Node.self(), sname_1})
 
     # Receive metrics again and ignore node_2, since it is down
     FixtureTelemetry.send_update_app_message(pid, node_1, %{total_memory: 300_000})

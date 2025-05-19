@@ -4,6 +4,7 @@ defmodule DeployexWeb.LogsLive do
   alias Deployer.Monitor
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
+  alias Foundation.Catalog
   alias Sentinel.Logs
 
   @impl true
@@ -18,7 +19,10 @@ defmodule DeployexWeb.LogsLive do
       assigns
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
-      |> assign(services_unselected_highlight: Enum.map(Monitor.list(), &Atom.to_string/1))
+      |> assign(
+        services_unselected_highlight:
+          Monitor.list() |> Enum.map(&Catalog.sname_to_node/1) |> Enum.map(&Atom.to_string/1)
+      )
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -204,7 +208,7 @@ defmodule DeployexWeb.LogsLive do
           selected_logs: selected_logs
       }
 
-    (Monitor.list() ++ [Node.self()])
+    (Enum.map(Monitor.list(), &Catalog.sname_to_node/1) ++ [Node.self()])
     |> Enum.reduce(initial_map, fn service_node,
                                    %{
                                      services_keys: services_keys,

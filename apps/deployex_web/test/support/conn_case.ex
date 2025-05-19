@@ -18,9 +18,6 @@ defmodule DeployexWeb.ConnCase do
   use ExUnit.CaseTemplate
   import DeployexWeb.AccountsFixtures
 
-  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
-  alias DeployexWeb.Helper
-
   using do
     quote do
       # The default endpoint for testing
@@ -64,25 +61,5 @@ defmodule DeployexWeb.ConnCase do
     conn
     |> Phoenix.ConnTest.init_test_session(%{})
     |> Plug.Conn.put_session(:user_token, token)
-  end
-
-  @doc """
-  Adds the test node name in the context
-
-  It returns an updated `context`.
-  """
-  def add_test_node(context) do
-    name = "test_app"
-    suffix = "abc123"
-    sname = "#{name}-#{suffix}"
-    node = FixtureNodes.test_node(name, suffix)
-    node_id = Helper.normalize_id(node)
-
-    context
-    |> Map.put(:node, node)
-    |> Map.put(:suffix, suffix)
-    |> Map.put(:sname, sname)
-    |> Map.put(:name, name)
-    |> Map.put(:node_id, node_id)
   end
 end

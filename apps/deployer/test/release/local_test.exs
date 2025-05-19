@@ -7,7 +7,6 @@ defmodule Deployer.Release.LocalTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Deployer.Release.Local
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
@@ -30,17 +29,14 @@ defmodule Deployer.Release.LocalTest do
            end) =~ "Error downloading release version for myphoenixapp, reason: {:error, :enoent}"
   end
 
-  test "download_and_unpack/2 success" do
+  test "download_release/2 success" do
     version = "5.0.0"
     name = "local_testapp"
-    sufix = "a1b2c3"
-    node = FixtureNodes.test_node(name, sufix)
+    sname = Catalog.create_sname(name)
+    new_path = Catalog.new_path(sname)
 
-    Catalog.setup(node)
-
+    Catalog.setup(sname)
     FixtureCatalog.create_tar(name, version)
-
-    new_path = Catalog.new_path(node)
 
     assert :ok = Local.download_release(name, version, new_path)
   end

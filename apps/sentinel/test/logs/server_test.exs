@@ -4,8 +4,8 @@ defmodule Sentinel.Logs.ServerTest do
   import Mock
   import Mox
 
+  alias Foundation.Catalog
   alias Host.Terminal
-  alias Sentinel.Fixture.Nodes, as: FixtureNodes
   alias Sentinel.Logs.Message
   alias Sentinel.Logs.Server
 
@@ -233,20 +233,20 @@ defmodule Sentinel.Logs.ServerTest do
   end
 
   defp create_consumer(context) do
-    node = FixtureNodes.test_node()
-    Foundation.Catalog.setup(node)
+    sname = Catalog.create_sname("test_app")
+    Catalog.setup(sname)
 
     node_self = Node.self()
-    Foundation.Catalog.setup(node_self)
+    Catalog.setup("nonode")
 
-    fake_node = :"fake-1@host"
+    fake_sname = Catalog.create_sname("fake")
 
     Host.CommanderMock
     |> stub(:run, fn _command, _options -> {:ok, self(), "123456"} end)
     |> stub(:stop, fn _pid -> :ok end)
 
     Deployer.MonitorMock
-    |> expect(:list, fn -> [node] end)
+    |> expect(:list, fn -> [sname] end)
     |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     test_pid = self()
@@ -254,15 +254,15 @@ defmodule Sentinel.Logs.ServerTest do
     with_mock Terminal, new: fn %Terminal{} -> :ok end do
       {:ok, pid} = Server.start_link(data_retention_period: :timer.minutes(1))
       send(test_pid, {:server_pid, pid})
-      send(pid, {:new_deploy, node_self, node})
-      send(pid, {:new_deploy, node_self, fake_node})
+      send(pid, {:new_deploy, node_self, sname})
+      send(pid, {:new_deploy, node_self, fake_sname})
     end
 
     assert_receive {:server_pid, pid}, 1_000
 
     context
-    |> Map.put(:fake_node, fake_node)
-    |> Map.put(:node, node)
+    |> Map.put(:fake_node, Catalog.sname_to_node(fake_sname))
+    |> Map.put(:node, Catalog.sname_to_node(sname))
     |> Map.put(:pid, pid)
   end
 end

@@ -99,7 +99,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     %{node: node, suffix: suffix, hostname: hostname, name_string: app_name, language: app_lang} =
       Catalog.node_info_from_sname(sname)
 
-    bin_path = Catalog.bin_path(node, app_lang, :current)
+    bin_path = Catalog.bin_path(sname, app_lang, :current)
     path = Common.remove_deployex_from_path()
 
     ssl_options =

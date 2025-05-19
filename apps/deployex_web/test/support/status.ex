@@ -4,14 +4,17 @@ defmodule DeployexWeb.Fixture.Status do
   """
 
   alias Deployer.Status
-  alias DeployexWeb.Fixture.Nodes, as: FixtureNodes
 
   def version(attrs \\ %{}) do
+    name = "testapp"
+    sname = "#{name}-abc123"
+
     %Status.Version{
       version: "1.0.0",
       hash: "local",
       pre_commands: [],
-      node: FixtureNodes.test_node("testapp", "abc123"),
+      name: name,
+      sname: sname,
       deployment: :full_deployment,
       inserted_at: NaiveDateTime.utc_now()
     }
@@ -27,7 +30,6 @@ defmodule DeployexWeb.Fixture.Status do
     deployex = %Status{
       name: "deployex",
       sname: "deployex",
-      node: "deployex@nohost",
       version: "1.2.3",
       otp: :connected,
       tls: :supported,
@@ -47,7 +49,6 @@ defmodule DeployexWeb.Fixture.Status do
     application = %Status{
       name: "default_name",
       sname: "#{default_name}-#{default_suffix}",
-      node: FixtureNodes.test_node(default_name, default_suffix),
       version: "4.5.6",
       otp: :connected,
       tls: :supported,

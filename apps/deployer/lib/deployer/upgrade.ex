@@ -26,34 +26,16 @@ defmodule Deployer.Upgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(
-          node(),
-          String.t(),
-          String.t(),
-          binary(),
-          binary() | charlist() | nil,
-          binary() | charlist()
-        ) ::
+  @spec check(Deployer.Upgrade.Check.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(node, app_name, app_lang, download_path, from_version, to_version) do
-    default().check(node, app_name, app_lang, download_path, from_version, to_version)
-  end
+  def check(%Deployer.Upgrade.Check{} = data), do: default().check(data)
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(
-          node(),
-          String.t(),
-          String.t(),
-          binary() | charlist() | nil,
-          binary() | charlist() | nil
-        ) ::
-          :ok | {:error, any()}
-  def execute(node, app_name, app_lang, from_version, to_version) do
-    default().execute(node, app_name, app_lang, from_version, to_version)
-  end
+  @spec execute(Deployer.Upgrade.Data.t()) :: :ok | {:error, any()}
+  def execute(%Deployer.Upgrade.Data{} = data), do: default().execute(data)
 
   ### ==========================================================================
   ### Private functions

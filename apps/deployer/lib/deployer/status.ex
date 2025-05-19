@@ -5,29 +5,6 @@ defmodule Deployer.Status do
 
   alias Deployer.Release
 
-  defmodule Version do
-    @moduledoc """
-    Structure to handle the application version
-    """
-    @type t :: %__MODULE__{
-            version: String.t() | nil,
-            hash: String.t() | nil,
-            pre_commands: list(),
-            node: node() | nil,
-            deployment: :full_deployment | :hot_upgrade,
-            inserted_at: NaiveDateTime.t()
-          }
-
-    @derive Jason.Encoder
-
-    defstruct version: nil,
-              hash: nil,
-              pre_commands: [],
-              node: nil,
-              deployment: :full_deployment,
-              inserted_at: nil
-  end
-
   @type t :: %__MODULE__{
           name: String.t() | nil,
           sname: String.t() | nil,
@@ -95,15 +72,15 @@ defmodule Deployer.Status do
   Retrieve the current version set for the monitored application
   """
   @impl true
-  @spec current_version(node()) :: String.t() | nil
-  def current_version(node), do: default().current_version(node)
+  @spec current_version(String.t()) :: String.t() | nil
+  def current_version(sname), do: default().current_version(sname)
 
   @doc """
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(node()) :: Deployer.Status.Version.t()
-  def current_version_map(node), do: default().current_version_map(node)
+  @spec current_version_map(String.t()) :: Deployer.Status.Version.t()
+  def current_version_map(sname), do: default().current_version_map(sname)
 
   @doc """
   Subscribe to receive status update
@@ -116,9 +93,9 @@ defmodule Deployer.Status do
   Set the current version map
   """
   @impl true
-  @spec set_current_version_map(node(), Release.Version.t(), Keyword.t()) :: :ok
-  def set_current_version_map(node, release, attrs),
-    do: default().set_current_version_map(node, release, attrs)
+  @spec set_current_version_map(String.t(), Release.Version.t(), Keyword.t()) :: :ok
+  def set_current_version_map(sname, release, attrs),
+    do: default().set_current_version_map(sname, release, attrs)
 
   @doc """
   Add a ghosted version in the list
@@ -142,27 +119,26 @@ defmodule Deployer.Status do
   def history_version_list, do: default().history_version_list()
 
   @doc """
-  Retrieve the history version list by node
+  Retrieve the history version list by sname
   """
   @impl true
-  @spec history_version_list(node() | binary()) :: list()
-  def history_version_list(node), do: default().history_version_list(node)
+  @spec history_version_list(String.t()) :: list()
+  def history_version_list(sname), do: default().history_version_list(sname)
 
   @doc """
-  This function clears the service new path, so it can download and unpack
-  a new release
+  Retrieve the list of installed apps by name
   """
   @impl true
-  @spec clear_new(node()) :: :ok
-  def clear_new(node), do: default().clear_new(node)
+  @spec list_installed_apps(String.t()) :: list()
+  def list_installed_apps(name), do: default().list_installed_apps(name)
 
   @doc """
   This function removes the previous service path and move the current
   to previous and new to current.
   """
   @impl true
-  @spec update(node()) :: :ok
-  def update(node), do: default().update(node)
+  @spec update(String.t()) :: :ok
+  def update(sname), do: default().update(sname)
 
   @doc """
   Set the configuration mode

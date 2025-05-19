@@ -52,7 +52,7 @@ defmodule Sentinel.Watchdog do
     :ets.new(@watchdog_data, [:set, :protected, :named_table])
 
     # List nodes that are being monitored by deployex
-    monitored_nodes = Monitor.list()
+    monitored_nodes = Enum.map(Monitor.list(), &Catalog.sname_to_node/1)
 
     # Initialize Ets data
     reset_system_statistic()
@@ -209,14 +209,20 @@ defmodule Sentinel.Watchdog do
   end
 
   def handle_info(
-        {:new_deploy, source_node, node},
+        {:new_deploy, source_node, sname},
         %{monitored_nodes: monitored_nodes} = state
       ) do
+    node = Catalog.sname_to_node(sname)
+
     with true <- source_node == Node.self(),
          false <- node in monitored_nodes do
       # Prepare node for monitoring
       reset_application_statistic(node)
-      Enum.each(@monitored_app_metrics, &Telemetry.subscribe_for_new_data(node, &1))
+
+      Enum.each(
+        @monitored_app_metrics,
+        &Telemetry.subscribe_for_new_data(Atom.to_string(node), &1)
+      )
 
       {:noreply, %{state | monitored_nodes: monitored_nodes ++ [node]}}
     else
@@ -334,7 +340,8 @@ defmodule Sentinel.Watchdog do
       "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
     )
 
-    Monitor.restart(node)
+    %{sname: sname} = Catalog.node_info(node)
+    Monitor.restart(sname)
 
     :ok
   end
@@ -396,7 +403,8 @@ defmodule Sentinel.Watchdog do
       "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart for #{node} ..."
     )
 
-    Monitor.restart(node)
+    %{sname: sname} = Catalog.node_info(node)
+    Monitor.restart(sname)
 
     :ok
   end

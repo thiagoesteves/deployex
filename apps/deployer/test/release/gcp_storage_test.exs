@@ -8,7 +8,6 @@ defmodule Deployer.Release.GcpStorageTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Deployer.Release.GcpStorage
   alias Foundation.Catalog
 
@@ -45,15 +44,13 @@ defmodule Deployer.Release.GcpStorageTest do
     end
   end
 
-  test "download_and_unpack/2 success" do
+  test "download_release/2 success" do
     version = "5.0.0"
-    name = "testapp"
-    sufix = "a1b2c3"
-    node = FixtureNodes.test_node(name, sufix)
+    name = "gcp_testapp"
+    sname = Catalog.create_sname(name)
+    new_path = Catalog.new_path(sname)
 
-    Catalog.setup(node)
-
-    new_path = Catalog.new_path(node)
+    Catalog.setup(sname)
 
     with_mocks([
       {System, [], [cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end]},
@@ -68,15 +65,13 @@ defmodule Deployer.Release.GcpStorageTest do
     end
   end
 
-  test "download_and_unpack/2 error" do
+  test "download_release/2 error" do
     version = "5.0.0"
-    name = "testapp"
-    sufix = "a1b2c3"
-    node = FixtureNodes.test_node(name, sufix)
+    name = "gcp_testapp"
+    sname = Catalog.create_sname(name)
+    new_path = Catalog.new_path(sname)
 
-    Catalog.setup(node)
-
-    new_path = Catalog.new_path(node)
+    Catalog.setup(sname)
 
     with_mocks([
       {Goth, [], [fetch!: fn _name -> %{token: "gcp-token"} end]},

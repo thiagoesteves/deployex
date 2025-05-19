@@ -20,7 +20,7 @@ defmodule Foundation.CatalogTest do
   end
 
   test "versions/1" do
-    assert Catalog.versions(0) == []
+    assert Catalog.versions("sname") == []
   end
 
   test "add_version/1" do

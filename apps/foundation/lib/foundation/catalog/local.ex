@@ -6,6 +6,7 @@ defmodule Foundation.Catalog.Local do
 
   use GenServer
 
+  alias Foundation.Catalog
   alias Foundation.Common
 
   @behaviour Foundation.Catalog.Adapter
@@ -65,45 +66,38 @@ defmodule Foundation.Catalog.Local do
     File.mkdir_p!(history_version_path())
     File.mkdir_p!(ghosted_version_path())
 
-    # Cleanup deployments
-    service_path = service_path("")
-    Logger.info("Cleaning up deployments at: #{service_path}")
-    File.rm_rf("#{service_path}")
-
     :ok
   end
 
   @impl true
-  def setup(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{name_string: app_name} ->
-        [new_path(node), current_path(node), previous_path(node)]
+  def setup(sname) do
+    case sname_info(sname) do
+      %{name: name} ->
+        [new_path(sname), current_path(sname), previous_path(sname)]
         |> Enum.each(&File.mkdir_p!/1)
 
-        File.mkdir_p!("#{log_path()}/#{app_name}")
-        File.touch(stdout_path(node))
-        File.touch(stderr_path(node))
+        File.mkdir_p!("#{log_path()}/#{name}")
+        File.touch(stdout_path(sname))
+        File.touch(stderr_path(sname))
 
         :ok
 
       nil ->
-        Logger.error("Setup failed due to invalid node format: #{node}")
-        {:error, :invalid_node}
+        :ok
     end
   end
 
   @impl true
   def cleanup(nil), do: :ok
 
-  def cleanup(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
+  def cleanup(sname) do
+    case sname_info(sname) do
+      %{name: name} ->
         File.rm_rf("#{service_path(name)}/#{sname}")
         :ok
 
       nil ->
-        Logger.error("Cleanup failed due to invalid node format: #{node}")
-        {:error, :invalid_node}
+        :ok
     end
   end
 
@@ -126,6 +120,46 @@ defmodule Foundation.Catalog.Local do
   def monitored_app_start_port, do: Application.get_env(:foundation, :monitored_app_start_port)
 
   @impl true
+  def create_sname(name) do
+    suffix = Common.random_small_alphanum()
+    "#{name}-#{suffix}"
+  end
+
+  @impl true
+  def sname_to_node(sname) do
+    {:ok, hostname} = :inet.gethostname()
+    "#{sname}@#{hostname}" |> String.to_atom()
+  end
+
+  @impl true
+  def sname_info(nil), do: nil
+
+  def sname_info(sname) do
+    case String.split(sname, ["-"]) do
+      [name, suffix] ->
+        %Catalog.Sname{
+          sname: sname,
+          name: name,
+          suffix: suffix,
+          language: __MODULE__.monitored_app_lang(),
+          node: sname_to_node(sname)
+        }
+
+      [name] when name in [@deployex_sname, @nohost_sname] ->
+        %Catalog.Sname{
+          sname: @deployex_sname,
+          name: @deployex_sname,
+          suffix: "",
+          language: "elixir",
+          node: Node.self()
+        }
+
+      _ ->
+        nil
+    end
+  end
+
+  @impl true
   def node_info(node) when is_atom(node) do
     node |> Atom.to_string() |> node_info()
   end
@@ -135,7 +169,7 @@ defmodule Foundation.Catalog.Local do
       [sname, hostname] ->
         case String.split(sname, ["-"]) do
           [name, suffix] ->
-            %Foundation.Catalog.Node{
+            %Catalog.Node{
               node: String.to_existing_atom(node),
               sname: sname,
               name_string: name,
@@ -148,7 +182,7 @@ defmodule Foundation.Catalog.Local do
             }
 
           [name] when name in [@deployex_sname, @nohost_sname] ->
-            %Foundation.Catalog.Node{
+            %Catalog.Node{
               node: String.to_existing_atom(node),
               sname: @deployex_sname,
               name_string: @deployex_sname,
@@ -174,103 +208,81 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def stdout_path(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: @deployex_sname} ->
-        log_path = Application.fetch_env!(:foundation, :log_path)
-        "#{log_path}/deployex-stdout.log"
+  def stdout_path(@deployex_sname) do
+    log_path = Application.fetch_env!(:foundation, :log_path)
+    "#{log_path}/deployex-stdout.log"
+  end
 
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
-        log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-        "#{log_path}/#{name}/#{sname}-stdout.log"
-
-      _ ->
-        Logger.error("Stdout path failed due to invalid node format: #{node}")
-        nil
-    end
+  def stdout_path(sname) do
+    %{name: name} = sname_info(sname)
+    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+    "#{log_path}/#{name}/#{sname}-stdout.log"
   end
 
   @impl true
-  def stderr_path(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: @deployex_sname} ->
-        log_path = Application.fetch_env!(:foundation, :log_path)
-        "#{log_path}/deployex-stderr.log"
+  def stderr_path(@deployex_sname) do
+    log_path = Application.fetch_env!(:foundation, :log_path)
+    "#{log_path}/deployex-stderr.log"
+  end
 
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
-        log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-        "#{log_path}/#{name}/#{sname}-stderr.log"
-
-      _ ->
-        Logger.error("Stderr path failed due to invalid node format: #{node}")
-        nil
-    end
+  def stderr_path(sname) do
+    %{name: name} = sname_info(sname)
+    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+    "#{log_path}/#{name}/#{sname}-stderr.log"
   end
 
   @impl true
+  def bin_path(@deployex_sname, _language, _bin_service) do
+    Application.fetch_env!(:foundation, :bin_path)
+  end
+
   # credo:disable-for-lines:1
-  def bin_path(node, app_lang, bin_service) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: @deployex_sname} ->
-        Application.fetch_env!(:foundation, :bin_path)
+  def bin_path(sname, language, bin_service) do
+    %{name: name} = sname_info(sname)
 
-      %Foundation.Catalog.Node{name_string: name} ->
-        cond do
-          bin_service == :new and app_lang in ["elixir", "erlang"] ->
-            "#{new_path(node)}/bin/#{name}"
+    cond do
+      bin_service == :new and language in ["elixir", "erlang"] ->
+        "#{new_path(sname)}/bin/#{name}"
 
-          bin_service == :new and app_lang in ["gleam"] ->
-            "#{new_path(node)}/erlang-shipment"
+      bin_service == :new and language in ["gleam"] ->
+        "#{new_path(sname)}/erlang-shipment"
 
-          bin_service == :current and app_lang in ["elixir", "erlang"] ->
-            "#{current_path(node)}/bin/#{name}"
+      bin_service == :current and language in ["elixir", "erlang"] ->
+        "#{current_path(sname)}/bin/#{name}"
 
-          bin_service == :current and app_lang in ["gleam"] ->
-            "#{current_path(node)}/erlang-shipment"
+      bin_service == :current and language in ["gleam"] ->
+        "#{current_path(sname)}/erlang-shipment"
 
-          true ->
-            nil
-        end
-
-      _ ->
+      true ->
         nil
     end
   end
 
   @impl true
-  def base_path, do: Application.fetch_env!(:foundation, :base_path)
+  def service_path(name), do: "#{base_path()}/service/#{name}"
 
   @impl true
-  def new_path(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
-        "#{service_path(name)}/#{sname}/new"
+  def new_path(nil), do: nil
 
-      _ ->
-        nil
-    end
+  def new_path(sname) do
+    %{name: name} = sname_info(sname)
+    "#{service_path(name)}/#{sname}/new"
   end
 
   @impl true
-  def current_path(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
-        "#{service_path(name)}/#{sname}/current"
+  def current_path(nil), do: nil
 
-      _ ->
-        nil
-    end
+  def current_path(sname) do
+    %{name: name} = sname_info(sname)
+    "#{service_path(name)}/#{sname}/current"
   end
 
   @impl true
-  def previous_path(node) do
-    case node_info(node) do
-      %Foundation.Catalog.Node{sname: sname, name_string: name} ->
-        "#{service_path(name)}/#{sname}/previous"
+  def previous_path(nil), do: nil
 
-      _ ->
-        nil
-    end
+  def previous_path(sname) do
+    %{name: name} = sname_info(sname)
+    "#{service_path(name)}/#{sname}/previous"
   end
 
   @impl true
@@ -281,8 +293,8 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def versions(node) do
-    Enum.filter(versions(), &(&1.node == node))
+  def versions(sname) do
+    Enum.filter(versions(), &(&1.sname == sname))
   end
 
   @impl true
@@ -327,7 +339,7 @@ defmodule Foundation.Catalog.Local do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp service_path(name), do: "#{base_path()}/service/#{name}"
+  defp base_path, do: Application.fetch_env!(:foundation, :base_path)
   defp log_path, do: Application.fetch_env!(:foundation, :monitored_app_log_path)
 
   defp config_path,

@@ -96,20 +96,18 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   end
 
   defp log_path(sname, :logs_stdout) do
-    %{node: node} = Catalog.node_info_from_sname(sname)
-    Foundation.Catalog.stdout_path(node)
+    Catalog.stdout_path(sname)
   end
 
   defp log_path(sname, :logs_stderr) do
-    %{node: node} = Catalog.node_info_from_sname(sname)
-    Foundation.Catalog.stderr_path(node)
+    Catalog.stderr_path(sname)
   end
 
   defp tail_if_exists(%{assigns: %{id: sname, action: action}} = socket, path) do
     if File.exists?(path) do
       commands = "tail -F -n 10 #{path}"
       options = [:stdout]
-      %{node: node} = Catalog.node_info_from_sname(sname)
+      node = Catalog.sname_to_node(sname)
 
       {:ok, _pid} =
         Terminal.new(%Terminal{

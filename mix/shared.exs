@@ -20,8 +20,7 @@ defmodule Mix.Shared do
         Deployer.Monitor.Adapter,
         Deployer.Monitor.Supervisor,
         Deployer.Release.Version,
-        Deployer.Fixture.Binary,
-        Foundation.Fixture.Catalog,
+        Deployer.Fixture.Files,
         # DeployEx Web
         DeployexWeb.Application,
         DeployexWeb.Layouts,
@@ -30,8 +29,6 @@ defmodule Mix.Shared do
         DeployexWeb.ErrorHTML,
         DeployexWeb.CoreComponents,
         DeployexWeb.Fixture.Status,
-        DeployexWeb.Fixture.Binary,
-        DeployexWeb.Fixture.Nodes,
         DeployexWeb.Fixture.Terminal,
         # Foundation
         Foundation.Rpc,
@@ -39,6 +36,7 @@ defmodule Mix.Shared do
         Foundation.Macros,
         Foundation.Application,
         Foundation.Catalog.Version,
+        Foundation.Catalog.Sname,
         # Host
         Host.Memory,
         Host.Commander.Local,

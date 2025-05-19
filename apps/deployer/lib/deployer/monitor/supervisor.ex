@@ -19,9 +19,9 @@ defmodule Deployer.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-  @spec start_service(node(), String.t(), non_neg_integer(), [Keyword.t()]) ::
+  @spec start_service(String.t(), String.t(), non_neg_integer(), [Keyword.t()]) ::
           {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(node, language, port, options) do
+  def start_service(sname, language, port, options) do
     spec = %{
       id: Deployer.Monitor.Application,
       start:
@@ -30,7 +30,7 @@ defmodule Deployer.Monitor.Supervisor do
            [
              language: language,
              port: port,
-             node: node,
+             sname: sname,
              options: options
            ]
          ]},
@@ -43,16 +43,19 @@ defmodule Deployer.Monitor.Supervisor do
   @spec list() :: list()
   def list do
     Enum.reduce(:global.registered_names(), [], fn
-      %{module: Deployer.Monitor.Application, node: node}, acc -> acc ++ [node]
-      _, acc -> acc
+      %{module: Deployer.Monitor.Application, sname: sname}, acc ->
+        acc ++ [sname]
+
+      _, acc ->
+        acc
     end)
   end
 
-  @spec stop_service(node() | nil) :: :ok
+  @spec stop_service(String.t() | nil) :: :ok
   def stop_service(nil), do: :ok
 
-  def stop_service(node) do
-    node
+  def stop_service(sname) do
+    sname
     |> Deployer.Monitor.Application.global_name()
     |> :global.whereis_name()
     |> case do

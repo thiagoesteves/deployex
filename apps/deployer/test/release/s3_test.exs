@@ -8,7 +8,6 @@ defmodule Deployer.Release.S3Test do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployer.Fixture.Nodes, as: FixtureNodes
   alias Deployer.Release.S3
   alias Foundation.Catalog
 
@@ -29,18 +28,15 @@ defmodule Deployer.Release.S3Test do
     end
   end
 
-  test "download_and_unpack/2 success" do
+  test "download_release/2 success" do
     version = "5.0.0"
     name = "s3_testapp"
-    sufix = "a1b2c3"
-    node = FixtureNodes.test_node(name, sufix)
-
-    Catalog.setup(node)
-
-    new_path = Catalog.new_path(node)
+    sname = Catalog.create_sname(name)
+    new_path = Catalog.new_path(sname)
+    source_path = "dist/#{name}/#{name}-#{version}.tar.gz"
 
     with_mocks([
-      {System, [], [cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end]},
+      {System, [], [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
       {ExAws, [], [request: fn _command -> {:ok, :done} end]}
     ]) do
       assert :ok = S3.download_release(name, version, new_path)
