@@ -135,17 +135,33 @@ defmodule Foundation.Catalog do
   def create_sname(name), do: default().create_sname(name)
 
   @doc """
-  Create a new sname for a monitored application
+  Convert sname to node
 
   ## Examples
 
     iex> alias Foundation.Catalog
+    ...> {:ok, hostname} = :inet.gethostname()
+    ...> name = "testapp-1"
+    ...> node = (name <> "@" <> to_string(hostname)) |> String.to_atom()
+    ...> assert node == Catalog.sname_to_node("testapp-1")
 
   """
   @impl true
   @spec sname_to_node(String.t()) :: node()
   def sname_to_node(sname), do: default().sname_to_node(sname)
 
+  @doc """
+  Return the sname info
+
+  ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert %Catalog.Sname{name: "testapp", suffix: "1"} = Catalog.sname_info("testapp-1")
+    ...> assert %Catalog.Sname{name: "testapp", suffix: "2"} = Catalog.sname_info("testapp-2")
+    ...> assert %Catalog.Sname{name: "testapp", suffix: "3"} = Catalog.sname_info("testapp-3")
+    ...> refute Catalog.sname_info(nil)
+    ...> refute Catalog.sname_info("testapp-1-1")
+  """
   @impl true
   @spec sname_info(String.t()) :: Foundation.Catalog.Sname.t() | nil
   def sname_info(sname), do: default().sname_info(sname)
@@ -161,7 +177,6 @@ defmodule Foundation.Catalog do
     ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-3@nohost")
     ...> refute Catalog.node_info(:"testapp-")
     ...> refute Catalog.node_info(:"testapp-1-1@host")
-
   """
   @impl true
   @spec node_info(String.t() | node()) :: Foundation.Catalog.Node.t() | nil
