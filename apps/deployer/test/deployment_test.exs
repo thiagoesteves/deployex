@@ -332,7 +332,7 @@ defmodule Deployer.DeploymentTest do
                               } ->
         {:ok, :hot_upgrade}
       end)
-      |> expect(:execute, 1, fn %Deployer.Upgrade.Data{
+      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
                                   from_version: ^from_version,
                                   to_version: ^to_version
                                 } ->
@@ -401,7 +401,7 @@ defmodule Deployer.DeploymentTest do
                               } ->
         {:ok, :hot_upgrade}
       end)
-      |> expect(:execute, 1, fn %Deployer.Upgrade.Data{
+      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
                                   from_version: ^from_version,
                                   to_version: ^to_version
                                 } ->

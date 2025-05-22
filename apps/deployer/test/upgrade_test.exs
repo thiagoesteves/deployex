@@ -7,7 +7,7 @@ defmodule Deployer.UpgradeAppTest do
 
   alias Deployer.Upgrade.Application, as: UpgradeApp
   alias Deployer.Upgrade.Check
-  alias Deployer.Upgrade.Data
+  alias Deployer.Upgrade.Execute
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
@@ -444,7 +444,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.make_relup(%Data{
+             UpgradeApp.make_relup(%Execute{
                node: node,
                sname: sname,
                name: app_name,
@@ -477,7 +477,7 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :make_relup} =
-                      UpgradeApp.make_relup(%Data{
+                      UpgradeApp.make_relup(%Execute{
                         node: node,
                         sname: sname,
                         name: app_name,
@@ -521,7 +521,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.make_relup(%Data{
+             UpgradeApp.make_relup(%Execute{
                node: node,
                sname: sname,
                name: app_name,
@@ -550,7 +550,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.unpack_release(%Data{
+             UpgradeApp.unpack_release(%Execute{
                node: node,
                name: app_name,
                to_version: to_version
@@ -575,7 +575,7 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :badrpc} =
-                      UpgradeApp.unpack_release(%Data{
+                      UpgradeApp.unpack_release(%Execute{
                         node: node,
                         name: app_name,
                         to_version: to_version
@@ -594,7 +594,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.check_install_release(%Data{
+             UpgradeApp.check_install_release(%Execute{
                node: node,
                to_version: to_version
              })
@@ -612,7 +612,7 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :badrpc} =
-                      UpgradeApp.check_install_release(%Data{
+                      UpgradeApp.check_install_release(%Execute{
                         node: node,
                         to_version: to_version
                       })
@@ -630,7 +630,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.install_release(%Data{
+             UpgradeApp.install_release(%Execute{
                node: node,
                to_version: to_version
              })
@@ -648,7 +648,7 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :badrpc} =
-                      UpgradeApp.install_release(%Data{
+                      UpgradeApp.install_release(%Execute{
                         node: node,
                         to_version: to_version
                       })
@@ -671,7 +671,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.permfy(%Data{
+             UpgradeApp.permfy(%Execute{
                node: node,
                name: app_name,
                language: "elixir",
@@ -697,7 +697,7 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :badrpc} =
-                      UpgradeApp.permfy(%Data{
+                      UpgradeApp.permfy(%Execute{
                         node: node,
                         name: app_name,
                         language: "elixir",
@@ -731,7 +731,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.permfy(%Data{
+             UpgradeApp.permfy(%Execute{
                node: node,
                name: app_name,
                language: "erlang",
@@ -754,7 +754,7 @@ defmodule Deployer.UpgradeAppTest do
     File.rm("#{current_releases_version_path}/sys.config")
 
     assert :ok =
-             UpgradeApp.return_original_sys_config(%Data{
+             UpgradeApp.return_original_sys_config(%Execute{
                language: "elixir",
                current_path: current_path,
                to_version: to_version
@@ -768,7 +768,7 @@ defmodule Deployer.UpgradeAppTest do
     to_version: to_version
   } do
     assert :ok =
-             UpgradeApp.return_original_sys_config(%Data{
+             UpgradeApp.return_original_sys_config(%Execute{
                language: "erlang",
                current_path: current_path,
                to_version: to_version
@@ -791,7 +791,7 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(%Data{
+             UpgradeApp.update_sys_config_from_installed_version(%Execute{
                node: node,
                language: "elixir",
                current_path: current_path,
@@ -818,7 +818,7 @@ defmodule Deployer.UpgradeAppTest do
     with_mock File, [:passthrough], rename: fn _source, _destination -> {:error, :any} end do
       assert capture_log(fn ->
                assert {:error, :any} =
-                        UpgradeApp.update_sys_config_from_installed_version(%Data{
+                        UpgradeApp.update_sys_config_from_installed_version(%Execute{
                           node: node,
                           language: "elixir",
                           current_path: current_path,
@@ -834,7 +834,7 @@ defmodule Deployer.UpgradeAppTest do
     to_version: to_version
   } do
     assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(%Data{
+             UpgradeApp.update_sys_config_from_installed_version(%Execute{
                node: node,
                language: "erlang",
                new_path: new_path,
@@ -882,7 +882,7 @@ defmodule Deployer.UpgradeAppTest do
 
     with_mock Node, connect: fn ^node -> true end do
       assert :ok =
-               UpgradeApp.execute(%Data{
+               UpgradeApp.execute(%Execute{
                  node: node,
                  sname: sname,
                  name: app_name,
@@ -902,7 +902,7 @@ defmodule Deployer.UpgradeAppTest do
     new_path: new_path
   } do
     assert {:error, :invalid_version} =
-             UpgradeApp.execute(%Data{
+             UpgradeApp.execute(%Execute{
                sname: sname,
                name: app_name,
                language: "elixir",

@@ -55,7 +55,7 @@ defmodule Deployer.Upgrade.Application do
   @behaviour Deployer.Upgrade.Adapter
 
   alias Deployer.Upgrade.Check
-  alias Deployer.Upgrade.Data
+  alias Deployer.Upgrade.Execute
 
   require Logger
 
@@ -64,12 +64,12 @@ defmodule Deployer.Upgrade.Application do
   ### ==========================================================================
 
   @impl true
-  @spec execute(Data.t()) :: :ok | {:error, any()}
-  def execute(%Data{from_version: from_version, to_version: to_version})
+  @spec execute(Execute.t()) :: :ok | {:error, any()}
+  def execute(%Execute{from_version: from_version, to_version: to_version})
       when is_nil(from_version) or is_nil(to_version),
       do: {:error, :invalid_version}
 
-  def execute(%Data{from_version: from_version, to_version: to_version} = data)
+  def execute(%Execute{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
     execute(%{
       data
@@ -78,7 +78,7 @@ defmodule Deployer.Upgrade.Application do
     })
   end
 
-  def execute(%Data{from_version: from_version, to_version: to_version} = data) do
+  def execute(%Execute{from_version: from_version, to_version: to_version} = data) do
     with {:ok, node} <- connect(data.node),
          :ok <- unpack_release(data),
          :ok <- make_relup(data),
@@ -103,8 +103,8 @@ defmodule Deployer.Upgrade.Application do
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
 
-  @spec update_sys_config_from_installed_version(Data.t()) :: :ok | {:error, any()}
-  def update_sys_config_from_installed_version(%Data{
+  @spec update_sys_config_from_installed_version(Execute.t()) :: :ok | {:error, any()}
+  def update_sys_config_from_installed_version(%Execute{
         node: node,
         language: "elixir",
         current_path: current_path,
@@ -141,8 +141,8 @@ defmodule Deployer.Upgrade.Application do
 
   def update_sys_config_from_installed_version(_data), do: :ok
 
-  @spec return_original_sys_config(Data.t()) :: :ok | {:error, any()}
-  def return_original_sys_config(%Data{
+  @spec return_original_sys_config(Execute.t()) :: :ok | {:error, any()}
+  def return_original_sys_config(%Execute{
         language: "elixir",
         current_path: current_path,
         to_version: to_version
@@ -320,8 +320,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec unpack_release(Data.t()) :: :ok | {:error, any()}
-  def unpack_release(%Data{node: node, name: name, to_version: to_version}) do
+  @spec unpack_release(Execute.t()) :: :ok | {:error, any()}
+  def unpack_release(%Execute{node: node, name: name, to_version: to_version}) do
     release_link = "#{to_version}/#{name}" |> to_charlist
 
     case Rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
@@ -338,8 +338,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec make_relup(Data.t()) :: :ok | {:error, any()}
-  def make_relup(%Data{
+  @spec make_relup(Execute.t()) :: :ok | {:error, any()}
+  def make_relup(%Execute{
         node: node,
         name: name,
         language: language,
@@ -398,8 +398,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec check_install_release(Data.t()) :: :ok | {:error, any()}
-  def check_install_release(%Data{node: node, to_version: to_version}) do
+  @spec check_install_release(Execute.t()) :: :ok | {:error, any()}
+  def check_install_release(%Execute{node: node, to_version: to_version}) do
     case Rpc.call(node, :release_handler, :check_install_release, [to_version], @timeout) do
       {:ok, _other, _desc} ->
         :ok
@@ -410,8 +410,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec install_release(Data.t()) :: :ok | {:error, any()}
-  def install_release(%Data{node: node, to_version: to_version}) do
+  @spec install_release(Execute.t()) :: :ok | {:error, any()}
+  def install_release(%Execute{node: node, to_version: to_version}) do
     case Rpc.call(
            node,
            :release_handler,
@@ -429,8 +429,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec permfy(Data.t()) :: :ok | {:error, any()}
-  def permfy(%Data{
+  @spec permfy(Execute.t()) :: :ok | {:error, any()}
+  def permfy(%Execute{
         node: node,
         name: name,
         language: language,

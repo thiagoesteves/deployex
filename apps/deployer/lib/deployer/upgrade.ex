@@ -34,8 +34,8 @@ defmodule Deployer.Upgrade do
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(Deployer.Upgrade.Data.t()) :: :ok | {:error, any()}
-  def execute(%Deployer.Upgrade.Data{} = data), do: default().execute(data)
+  @spec execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
+  def execute(%Deployer.Upgrade.Execute{} = data), do: default().execute(data)
 
   ### ==========================================================================
   ### Private functions

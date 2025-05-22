@@ -385,7 +385,7 @@ defmodule Deployer.Deployment do
 
       %{node: node} = Catalog.node_info(sname)
 
-      upgrade_data = %Deployer.Upgrade.Data{
+      upgrade_data = %Deployer.Upgrade.Execute{
         node: node,
         sname: sname,
         name: name,

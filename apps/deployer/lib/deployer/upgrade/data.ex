@@ -1,4 +1,4 @@
-defmodule Deployer.Upgrade.Data do
+defmodule Deployer.Upgrade.Execute do
   @moduledoc """
   Structure to handle the upgrade execute data
   """
