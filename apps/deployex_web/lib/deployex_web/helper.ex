@@ -89,9 +89,21 @@ defmodule DeployexWeb.Helper do
     String.replace(text, ["@", "_"], "-")
   end
 
+  @doc """
+  This function return the node from a node_info request
+  """
+
   def sname_to_node(sname) do
     %{node: node} = Catalog.node_info(sname)
     node
+  end
+
+  @doc """
+  This function return the short name for the self node
+  """
+  def self_sname do
+    [sname, _hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
+    sname
   end
 
   @doc """

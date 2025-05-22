@@ -18,10 +18,7 @@ defmodule DeployexWeb.LogsLive do
       assigns
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
-      |> assign(
-        services_unselected_highlight:
-          Monitor.list() |> Enum.map(&Helper.sname_to_node/1) |> Enum.map(&Atom.to_string/1)
-      )
+      |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -193,7 +190,7 @@ defmodule DeployexWeb.LogsLive do
       logs_keys: [],
       selected_services: [],
       selected_logs: [],
-      node: []
+      sname: []
     }
   end
 
@@ -207,33 +204,33 @@ defmodule DeployexWeb.LogsLive do
           selected_logs: selected_logs
       }
 
-    (Enum.map(Monitor.list(), &Helper.sname_to_node/1) ++ [Node.self()])
-    |> Enum.reduce(initial_map, fn service_node,
+    (Monitor.list() ++ [Helper.self_sname()])
+    |> Enum.reduce(initial_map, fn service_sname,
                                    %{
                                      services_keys: services_keys,
                                      logs_keys: logs_keys,
-                                     node: node
+                                     sname: sname
                                    } = acc ->
-      service = to_string(service_node)
+      service = to_string(service_sname)
       services_keys = services_keys ++ [service]
 
-      node_logs_keys = Logs.get_types_by_node(service_node)
-      logs_keys = (logs_keys ++ node_logs_keys) |> Enum.uniq()
+      sname_logs_keys = Logs.get_types_by_sname(service_sname)
+      logs_keys = (logs_keys ++ sname_logs_keys) |> Enum.uniq()
 
-      node =
+      sname =
         if service in selected_services do
           [
             %{
               logs_keys: logs_keys,
               service: service
             }
-            | node
+            | sname
           ]
         else
-          node
+          sname
         end
 
-      %{acc | services_keys: services_keys, logs_keys: logs_keys, node: node}
+      %{acc | services_keys: services_keys, logs_keys: logs_keys, sname: sname}
     end)
   end
 end

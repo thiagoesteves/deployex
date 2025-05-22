@@ -15,76 +15,76 @@ defmodule Sentinel.Logs.ServerTest do
     :create_consumer
   ]
 
-  test "[un]subscribe_for_new_logs/0", %{node: node, pid: pid} do
+  test "[un]subscribe_for_new_logs/0", %{sname: sname, pid: pid} do
     log_type = "new-log-type"
     message = "[info] simple log"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     send(
       pid,
       {:terminal_update,
        %{
-         metadata: %{context: :terminal_logs, node: node, type: log_type},
+         metadata: %{context: :terminal_logs, sname: sname, type: log_type},
          source_pid: self(),
          message: message
        }}
     )
 
-    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: ^message}},
+    assert_receive {:logs_new_data, ^sname, ^log_type, %Message{timestamp: _, log: ^message}},
                    1_000
 
     # Validate by inspection
-    Server.unsubscribe_for_new_logs(node, log_type)
+    Server.unsubscribe_for_new_logs(sname, log_type)
   end
 
-  test "get_types_by_node/1 valid node", %{node: node, pid: pid} do
+  test "get_types_by_sname/1 valid sname", %{sname: sname, pid: pid} do
     log_type = "new-log-type"
     message = "[info] simple log"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     send(
       pid,
       {:terminal_update,
        %{
-         metadata: %{context: :terminal_logs, node: node, type: log_type},
+         metadata: %{context: :terminal_logs, sname: sname, type: log_type},
          source_pid: self(),
          message: message
        }}
     )
 
-    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: _message}},
+    assert_receive {:logs_new_data, ^sname, ^log_type, %Message{timestamp: _, log: _message}},
                    1_000
 
-    log_types = Server.get_types_by_node(node)
+    log_types = Server.get_types_by_sname(sname)
     assert log_type in log_types
   end
 
-  test "node/1 invalid node" do
-    assert [] == Server.get_types_by_node(nil)
+  test "get_types_by_sname/1 invalid sname" do
+    assert [] == Server.get_types_by_sname(nil)
   end
 
-  test "list_active_nodes/0", %{node: node} do
-    nodes = Server.list_active_nodes()
-    assert node in nodes
+  test "list_active_snames/0", %{sname: sname} do
+    snames = Server.list_active_snames()
+    assert sname in snames
   end
 
-  test "list_data_by_node_key/3", %{node: node, pid: pid} do
+  test "list_data_by_sname_key/3", %{sname: sname, pid: pid} do
     log_type = "new-log-type"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     Enum.each(1..5, fn index ->
       send(
         pid,
         {:terminal_update,
          %{
-           metadata: %{context: :terminal_logs, node: node, type: log_type},
+           metadata: %{context: :terminal_logs, sname: sname, type: log_type},
            source_pid: self(),
            message: "[info] log #{index}"
          }}
       )
     end)
 
-    assert_receive {:logs_new_data, ^node, ^log_type,
+    assert_receive {:logs_new_data, ^sname, ^log_type,
                     %Message{timestamp: _, log: "[info] log 5"}},
                    1_000
 
@@ -94,7 +94,7 @@ defmodule Sentinel.Logs.ServerTest do
              %Message{timestamp: _, log: "[info] log 3"},
              %Message{timestamp: _, log: "[info] log 4"},
              %Message{timestamp: _, log: "[info] log 5"}
-           ] = Server.list_data_by_node_log_type(node |> to_string(), log_type, order: :asc)
+           ] = Server.list_data_by_sname_log_type(sname, log_type, order: :asc)
 
     assert [
              %Message{timestamp: _, log: "[info] log 5"},
@@ -102,7 +102,7 @@ defmodule Sentinel.Logs.ServerTest do
              %Message{timestamp: _, log: "[info] log 3"},
              %Message{timestamp: _, log: "[info] log 2"},
              %Message{timestamp: _, log: "[info] log 1"}
-           ] = Server.list_data_by_node_log_type(node |> to_string(), log_type, order: :desc)
+           ] = Server.list_data_by_sname_log_type(sname, log_type, order: :desc)
 
     assert [
              %Message{timestamp: _, log: "[info] log 1"},
@@ -110,12 +110,12 @@ defmodule Sentinel.Logs.ServerTest do
              %Message{timestamp: _, log: "[info] log 3"},
              %Message{timestamp: _, log: "[info] log 4"},
              %Message{timestamp: _, log: "[info] log 5"}
-           ] = Server.list_data_by_node_log_type(node |> to_string(), log_type)
+           ] = Server.list_data_by_sname_log_type(sname, log_type)
   end
 
-  test "Pruning expiring entries", %{node: node, pid: pid} do
+  test "Pruning expiring entries", %{sname: sname, pid: pid} do
     log_type = "new-log-type"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     now = System.os_time(:millisecond)
 
@@ -125,14 +125,14 @@ defmodule Sentinel.Logs.ServerTest do
           pid,
           {:terminal_update,
            %{
-             metadata: %{context: :terminal_logs, node: node, type: log_type},
+             metadata: %{context: :terminal_logs, sname: sname, type: log_type},
              source_pid: self(),
              message: "[info] log #{index}"
            }}
         )
       end)
 
-      assert_receive {:logs_new_data, ^node, ^log_type,
+      assert_receive {:logs_new_data, ^sname, ^log_type,
                       %Message{timestamp: _, log: "[info] log 5"}},
                      1_000
     end
@@ -143,18 +143,18 @@ defmodule Sentinel.Logs.ServerTest do
              %Message{timestamp: _, log: "[info] log 3"},
              %Message{timestamp: _, log: "[info] log 4"},
              %Message{timestamp: _, log: "[info] log 5"}
-           ] = Server.list_data_by_node_log_type(node |> to_string(), log_type)
+           ] = Server.list_data_by_sname_log_type(sname, log_type)
 
     send(pid, :prune_expired_entries)
     :timer.sleep(100)
 
-    assert [] = Server.list_data_by_node_log_type(node |> to_string(), log_type, order: :asc)
+    assert [] = Server.list_data_by_sname_log_type(sname, log_type, order: :asc)
   end
 
-  test "Check Node up with expected node", %{node: node, pid: pid} do
+  test "Check Node up with expected node", %{sname: sname, node: node, pid: pid} do
     log_type = "new-log-type"
     message = "message"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     send(pid, {:nodeup, node})
 
@@ -162,54 +162,54 @@ defmodule Sentinel.Logs.ServerTest do
       pid,
       {:terminal_update,
        %{
-         metadata: %{context: :terminal_logs, node: node, type: log_type},
+         metadata: %{context: :terminal_logs, sname: sname, type: log_type},
          source_pid: self(),
          message: message
        }}
     )
 
-    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: ^message}},
+    assert_receive {:logs_new_data, ^sname, ^log_type, %Message{timestamp: _, log: ^message}},
                    1_000
   end
 
-  test "Check Node down with expected node", %{node: node, pid: pid} do
+  test "Check Node down with expected node", %{sname: sname, node: node, pid: pid} do
     log_type = "stderr"
     message = "DeployEx detected node down for node: #{node}"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
     send(pid, {:nodedown, node})
 
-    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: ^message}},
+    assert_receive {:logs_new_data, ^sname, ^log_type, %Message{timestamp: _, log: ^message}},
                    1_000
   end
 
-  test "Check Node down with unexpected node", %{pid: pid} do
+  test "Check Node down with unexpected node", %{sname: sname, pid: pid} do
     log_type = "stderr"
     node = :"non-valid-node@nohost"
     message = "DeployEx detected node down for node: #{node}"
-    Server.subscribe_for_new_logs(node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
 
-    send(pid, {:nodedown, :"non-valid-node@nohost"})
+    send(pid, {:nodedown, :"nonvalid-node@nohost"})
 
-    refute_receive {:logs_new_data, ^node, _log_type, %Message{timestamp: _, log: ^message}},
+    refute_receive {:logs_new_data, ^sname, _log_type, %Message{timestamp: _, log: ^message}},
                    1_000
   end
 
   test "Check no Terminal is created if there is no log file", %{
-    fake_node: fake_node,
-    node: node,
+    fake_sname: fake_sname,
+    sname: sname,
     pid: pid
   } do
     log_type = "new-log-type"
     message = "[info] simple log"
-    Server.subscribe_for_new_logs(node, log_type)
-    Server.subscribe_for_new_logs(fake_node, log_type)
+    Server.subscribe_for_new_logs(sname, log_type)
+    Server.subscribe_for_new_logs(fake_sname, log_type)
 
     send(
       pid,
       {:terminal_update,
        %{
-         metadata: %{context: :terminal_logs, node: fake_node, type: log_type},
+         metadata: %{context: :terminal_logs, sname: fake_sname, type: log_type},
          source_pid: self(),
          message: message
        }}
@@ -220,16 +220,16 @@ defmodule Sentinel.Logs.ServerTest do
       pid,
       {:terminal_update,
        %{
-         metadata: %{context: :terminal_logs, node: node, type: log_type},
+         metadata: %{context: :terminal_logs, sname: sname, type: log_type},
          source_pid: self(),
          message: message
        }}
     )
 
-    assert_receive {:logs_new_data, ^node, ^log_type, %Message{timestamp: _, log: _message}},
+    assert_receive {:logs_new_data, ^sname, ^log_type, %Message{timestamp: _, log: _message}},
                    1_000
 
-    assert [] == Server.get_types_by_node(fake_node)
+    assert [] == Server.get_types_by_sname(fake_sname)
   end
 
   defp create_consumer(context) do
@@ -241,7 +241,6 @@ defmodule Sentinel.Logs.ServerTest do
     Catalog.setup("nonode")
 
     fake_sname = Catalog.create_sname("fake")
-    %{node: fake_node} = Catalog.node_info(fake_sname)
 
     Host.CommanderMock
     |> stub(:run, fn _command, _options -> {:ok, self(), "123456"} end)
@@ -263,7 +262,8 @@ defmodule Sentinel.Logs.ServerTest do
     assert_receive {:server_pid, pid}, 1_000
 
     context
-    |> Map.put(:fake_node, fake_node)
+    |> Map.put(:fake_sname, fake_sname)
+    |> Map.put(:sname, sname)
     |> Map.put(:node, node)
     |> Map.put(:pid, pid)
   end

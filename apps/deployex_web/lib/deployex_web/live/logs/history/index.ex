@@ -22,10 +22,7 @@ defmodule DeployexWeb.HistoryLive do
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
       |> assign(attention_msg: attention_msg)
-      |> assign(
-        services_unselected_highlight:
-          Monitor.list() |> Enum.map(&Helper.sname_to_node/1) |> Enum.map(&Atom.to_string/1)
-      )
+      |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -239,7 +236,7 @@ defmodule DeployexWeb.HistoryLive do
     Enum.reduce(node_info.selected_services, [], fn service, service_acc ->
       service_acc ++
         Enum.reduce(node_info.selected_logs, [], fn log, log_acc ->
-          log_history = Logs.list_data_by_node_log_type(service, log, from: start_time_integer)
+          log_history = Logs.list_data_by_sname_log_type(service, log, from: start_time_integer)
 
           log_acc ++ Helper.normalize_logs(log_history, service, log)
         end)
@@ -253,7 +250,7 @@ defmodule DeployexWeb.HistoryLive do
       logs_keys: [],
       selected_services: [],
       selected_logs: [],
-      node: []
+      sname: []
     }
   end
 
@@ -267,33 +264,33 @@ defmodule DeployexWeb.HistoryLive do
           selected_logs: selected_logs
       }
 
-    Logs.list_active_nodes()
+    Logs.list_active_snames()
     |> Enum.reduce(initial_map, fn service,
                                    %{
                                      services_keys: services_keys,
                                      logs_keys: logs_keys,
-                                     node: node
+                                     sname: sname
                                    } = acc ->
-      node_logs_keys = Logs.get_types_by_node(service)
-      logs_keys = (logs_keys ++ node_logs_keys) |> Enum.uniq()
+      sname_logs_keys = Logs.get_types_by_sname(service)
+      logs_keys = (logs_keys ++ sname_logs_keys) |> Enum.uniq()
 
       service = to_string(service)
       services_keys = (services_keys ++ [service]) |> Enum.uniq()
 
-      node =
+      sname =
         if service in selected_services do
           [
             %{
               logs_keys: logs_keys,
               service: service
             }
-            | node
+            | sname
           ]
         else
-          node
+          sname
         end
 
-      %{acc | services_keys: services_keys, logs_keys: logs_keys, node: node}
+      %{acc | services_keys: services_keys, logs_keys: logs_keys, sname: sname}
     end)
   end
 

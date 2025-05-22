@@ -19,7 +19,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn -> [] end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
@@ -29,13 +29,13 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   end
 
   test "GET /logs/live", %{conn: conn} do
-    %{sname: sname} = "test_app" |> Catalog.create_sname() |> Catalog.node_info()
+    sname = Catalog.create_sname("test_app")
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> stub(:get_types_by_node, fn _node -> ["stderr"] end)
+    |> stub(:get_types_by_sname, fn _sname -> ["stderr"] end)
 
     {:ok, _index_live, html} = live(conn, ~p"/logs/live")
 
@@ -47,16 +47,15 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-    service_id = Helper.normalize_id(node)
-    node_string = "#{node}"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:subscribe_for_new_logs, fn ^sname, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -83,16 +82,15 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-    service_id = Helper.normalize_id(node)
-    node_string = "#{node}"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:subscribe_for_new_logs, fn ^sname, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -119,17 +117,16 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-    service_id = Helper.normalize_id(node)
-    node_string = "#{node}"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
-    |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:unsubscribe_for_new_logs, fn ^node_string, ^log_type ->
+    |> expect(:subscribe_for_new_logs, fn _sname, _log_type -> :ok end)
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:unsubscribe_for_new_logs, fn ^sname, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -164,17 +161,16 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-    service_id = Helper.normalize_id(node)
-    node_string = "#{node}"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> expect(:subscribe_for_new_logs, fn _node, _log_type -> :ok end)
-    |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:unsubscribe_for_new_logs, fn ^node_string, ^log_type ->
+    |> expect(:subscribe_for_new_logs, fn _sname, _log_type -> :ok end)
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:unsubscribe_for_new_logs, fn ^sname, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref})
       :ok
     end)
@@ -229,16 +225,15 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
       test_pid_process = self()
       ref = make_ref()
       name = "test_app"
-      %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-      service_id = Helper.normalize_id(node)
-      node_string = "#{node}"
+      sname = Catalog.create_sname(name)
+      service_id = Helper.normalize_id(sname)
 
       Deployer.MonitorMock
       |> stub(:list, fn -> [sname] end)
 
       Sentinel.LogsMock
-      |> stub(:get_types_by_node, fn _node -> [log_type] end)
-      |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
+      |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+      |> expect(:subscribe_for_new_logs, fn ^sname, ^log_type ->
         send(test_pid_process, {:handle_ref_event, ref, self()})
         :ok
       end)
@@ -260,7 +255,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
       assert_receive {:handle_ref_event, ^ref, liveview_pid}, 1_000
 
       data = %Message{log: message}
-      send(liveview_pid, {:logs_new_data, node, log_type, data})
+      send(liveview_pid, {:logs_new_data, sname, log_type, data})
 
       assert render(index_live) =~ expected_color
     end
@@ -272,16 +267,15 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
-    service_id = Helper.normalize_id(node)
-    node_string = "#{node}"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
 
     Sentinel.LogsMock
-    |> stub(:get_types_by_node, fn _node -> [log_type] end)
-    |> expect(:subscribe_for_new_logs, fn ^node_string, ^log_type ->
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:subscribe_for_new_logs, fn ^sname, ^log_type ->
       send(test_pid_process, {:handle_ref_event, ref, self()})
       :ok
     end)
@@ -303,7 +297,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref, liveview_pid}, 1_000
 
     data = %Message{log: message}
-    send(liveview_pid, {:logs_new_data, node, log_type, data})
+    send(liveview_pid, {:logs_new_data, sname, log_type, data})
 
     assert render(index_live) =~ message
 

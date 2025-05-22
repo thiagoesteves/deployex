@@ -10,36 +10,37 @@ defmodule Sentinel.Logs do
   ### ==========================================================================
 
   @doc """
-  Subscribe for new log notifications for the respective node/log_type
+  Subscribe for new log notifications for the respective sname/log_type
   """
   @spec subscribe_for_new_logs(String.t(), String.t()) :: :ok | {:error, term}
-  def subscribe_for_new_logs(node, log_type), do: default().subscribe_for_new_logs(node, log_type)
+  def subscribe_for_new_logs(sname, log_type),
+    do: default().subscribe_for_new_logs(sname, log_type)
 
   @doc """
-  Unsubscribe for new data notifications for the respective node/log_type
+  Unsubscribe for new data notifications for the respective sname/log_type
   """
   @spec unsubscribe_for_new_logs(String.t(), String.t()) :: :ok
-  def unsubscribe_for_new_logs(node, log_type),
-    do: default().unsubscribe_for_new_logs(node, log_type)
+  def unsubscribe_for_new_logs(sname, log_type),
+    do: default().unsubscribe_for_new_logs(sname, log_type)
 
   @doc """
-  Fetch data by node and log_type
+  Fetch data by sname and log_type
   """
-  @spec list_data_by_node_log_type(node() | String.t(), String.t(), Keyword.t()) :: list()
-  def list_data_by_node_log_type(node, log_type, options),
-    do: default().list_data_by_node_log_type(node, log_type, options)
+  @spec list_data_by_sname_log_type(String.t(), String.t(), Keyword.t()) :: list()
+  def list_data_by_sname_log_type(sname, log_type, options),
+    do: default().list_data_by_sname_log_type(sname, log_type, options)
 
   @doc """
-  List all log types registered for the respective node
+  List all log types registered for the respective sname
   """
-  @spec get_types_by_node(node()) :: list()
-  def get_types_by_node(node), do: default().get_types_by_node(node)
+  @spec get_types_by_sname(String.t()) :: list()
+  def get_types_by_sname(sname), do: default().get_types_by_sname(sname)
 
   @doc """
-  List all available nodes considering the current metric configured mode
+  List all available snames considering the current metric configured mode
   """
-  @spec list_active_nodes() :: list()
-  def list_active_nodes, do: default().list_active_nodes()
+  @spec list_active_snames() :: list()
+  def list_active_snames, do: default().list_active_snames()
 
   ### ==========================================================================
   ### Private functions
