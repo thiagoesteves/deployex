@@ -151,7 +151,7 @@ defmodule Foundation.Catalog do
   """
   @impl true
   @spec node_info(String.t() | node() | nil) :: Foundation.Catalog.Node.t() | nil
-  def node_info(node), do: default().node_info(node)
+  def node_info(node_or_sname), do: default().node_info(node_or_sname)
 
   @doc """
   Return the path for the stdout log file

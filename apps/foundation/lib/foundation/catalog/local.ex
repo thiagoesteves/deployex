@@ -128,16 +128,16 @@ defmodule Foundation.Catalog.Local do
   @impl true
   def node_info(nil), do: nil
 
-  def node_info(node) when is_atom(node) do
-    node |> Atom.to_string() |> node_info()
+  def node_info(node_or_sname) when is_atom(node_or_sname) do
+    node_or_sname |> Atom.to_string() |> node_info()
   end
 
-  def node_info(node) do
-    parse_sname = fn sname, hostname ->
+  def node_info(node_or_sname) do
+    parse_sname = fn sname, node, hostname ->
       case String.split(sname, ["-"]) do
         [name, suffix] ->
           %Catalog.Node{
-            node: String.to_atom(node),
+            node: node,
             sname: sname,
             name: name,
             hostname: hostname,
@@ -162,13 +162,15 @@ defmodule Foundation.Catalog.Local do
       end
     end
 
-    case String.split(node, ["@"]) do
+    case String.split(node_or_sname, ["@"]) do
       [sname, hostname] ->
-        parse_sname.(sname, hostname)
+        node = String.to_atom("#{sname}@#{hostname}")
+        parse_sname.(sname, node, hostname)
 
       [sname] ->
         {:ok, hostname} = :inet.gethostname()
-        parse_sname.(sname, hostname)
+        node = String.to_atom("#{sname}@#{hostname}")
+        parse_sname.(sname, node, hostname)
     end
   end
 
