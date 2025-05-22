@@ -33,6 +33,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_sname, fn _sname -> ["stderr"] end)
@@ -52,6 +53,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
@@ -87,6 +89,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
@@ -122,6 +125,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> expect(:subscribe_for_new_logs, fn _sname, _log_type -> :ok end)
@@ -166,6 +170,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> expect(:subscribe_for_new_logs, fn _sname, _log_type -> :ok end)
@@ -230,6 +235,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
       Deployer.MonitorMock
       |> stub(:list, fn -> [sname] end)
+      |> expect(:subscribe_new_deploy, fn -> :ok end)
 
       Sentinel.LogsMock
       |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
@@ -272,6 +278,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_sname, fn _sname -> [log_type] end)

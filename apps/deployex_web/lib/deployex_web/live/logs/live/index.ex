@@ -76,6 +76,9 @@ defmodule DeployexWeb.LogsLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
+    # Subscribe to receive a notification every time we have a new deploy
+    Monitor.subscribe_new_deploy()
+
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
@@ -178,6 +181,19 @@ defmodule DeployexWeb.LogsLive do
   end
 
   @impl true
+  def handle_info(
+        {:new_deploy, source_node, _sname},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    if source_node == Node.self() do
+      node_info = update_node_info(node_info.selected_services, node_info.selected_logs)
+
+      {:noreply, assign(socket, :node_info, node_info)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info({:logs_new_data, service, log_type, data}, socket) do
     messages = Helper.normalize_log(data, service, log_type)
 
