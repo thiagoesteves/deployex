@@ -111,7 +111,7 @@ defmodule DeployexWeb.ApplicationsLive do
           Are you sure you want to restart deployex?
         </p>
         <p :if={@selected_sname != "deployex"}>
-          Are you sure you want to restart node {"#{@selected_sname}"}?
+          Are you sure you want to restart sname {"#{@selected_sname}"}?
         </p>
         <:footer>
           <Confirm.cancel_button id={@selected_sname}>Cancel</Confirm.cancel_button>

@@ -12,9 +12,9 @@ defmodule DeployexWeb.Applications.LogsTest do
 
   alias Deployer.Fixture.Files, as: FixtureFiles
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
   alias DeployexWeb.Helper
   alias Foundation.Catalog
+  alias Host.Fixture.Terminal, as: FixtureTerminal
 
   test "Access to stdout logs by instance", %{conn: conn} do
     ref = make_ref()
@@ -22,7 +22,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -58,7 +58,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -94,7 +94,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -136,7 +136,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->

@@ -51,8 +51,13 @@ defmodule Sentinel.Watchdog do
 
     :ets.new(@watchdog_data, [:set, :protected, :named_table])
 
+    sname_to_node = fn sname ->
+      %{node: node} = Catalog.node_info(sname)
+      node
+    end
+
     # List nodes that are being monitored by deployex
-    monitored_nodes = Enum.map(Monitor.list(), &Catalog.sname_to_node/1)
+    monitored_nodes = Enum.map(Monitor.list(), &sname_to_node.(&1))
 
     # Initialize Ets data
     reset_system_statistic()
@@ -212,7 +217,7 @@ defmodule Sentinel.Watchdog do
         {:new_deploy, source_node, sname},
         %{monitored_nodes: monitored_nodes} = state
       ) do
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     with true <- source_node == Node.self(),
          false <- node in monitored_nodes do
@@ -277,12 +282,12 @@ defmodule Sentinel.Watchdog do
   end
 
   defp load_node_config(node, type) do
-    %{name_atom: name} = Catalog.node_info(node)
+    %{name: name} = Catalog.node_info(node)
 
     applications_config =
       Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:applications_config]
 
-    case applications_config[name] do
+    case applications_config[String.to_atom(name)] do
       nil ->
         applications_config[:default]
 

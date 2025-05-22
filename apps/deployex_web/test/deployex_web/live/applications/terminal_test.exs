@@ -15,9 +15,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
   alias Deployer.Fixture.Files, as: FixtureFiles
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
   alias DeployexWeb.Helper
   alias Foundation.Catalog
+  alias Host.Fixture.Terminal, as: FixtureTerminal
 
   test "Access to terminal by instance", %{conn: conn} do
     ref = make_ref()
@@ -25,7 +25,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -62,7 +62,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
     app_lang = "gleam"
 
     Deployer.StatusMock
@@ -106,7 +106,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
     app_lang = "erlang"
 
     Deployer.StatusMock
@@ -150,7 +150,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     name_id = Helper.normalize_id(name)
 
     %{sname: sname, suffix: suffix, node: node} =
-      name |> Catalog.create_sname() |> Catalog.sname_info()
+      name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -185,7 +185,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     message = "Opening Terminal"
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -221,7 +221,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   test "Try to execute without binary file", %{conn: conn} do
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -247,7 +247,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     os_pid = 123_456
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -290,7 +290,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   test "Error when :nocookie is set", %{conn: conn} do
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->

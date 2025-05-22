@@ -18,10 +18,7 @@ defmodule Foundation.Catalog.Adapter do
   @callback monitored_app_env() :: list()
   @callback monitored_app_start_port() :: integer()
   @callback create_sname(String.t()) :: String.t()
-  @callback sname_to_node(String.t()) :: node()
-  @callback sname_info(String.t()) :: Catalog.Sname.t() | nil
-  @callback node_info(String.t() | node()) :: Catalog.Node.t() | nil
-  @callback node_info_from_sname(String.t()) :: Catalog.Node.t() | nil
+  @callback node_info(String.t() | node() | nil) :: Catalog.Node.t() | nil
   @callback stdout_path(String.t()) :: String.t() | nil
   @callback stderr_path(String.t()) :: String.t() | nil
   @callback bin_path(String.t(), String.t(), bin_service()) :: String.t()

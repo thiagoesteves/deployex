@@ -6,8 +6,9 @@ defmodule Foundation.Catalog.Version do
           version: String.t() | nil,
           hash: String.t() | nil,
           pre_commands: list(),
+          name: String.t(),
+          sname: String.t(),
           deployment: :full_deployment | :hot_upgrade,
-          deploy_ref: String.t() | nil,
           inserted_at: NaiveDateTime.t()
         }
 
@@ -16,7 +17,8 @@ defmodule Foundation.Catalog.Version do
   defstruct version: nil,
             hash: nil,
             pre_commands: [],
+            name: "",
+            sname: "",
             deployment: :full_deployment,
-            deploy_ref: nil,
             inserted_at: nil
 end

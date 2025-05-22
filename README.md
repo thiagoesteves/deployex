@@ -198,7 +198,7 @@ monitoring:                                        # Deployex (optional, default
   - type: "memory"
     enable_restart: true                           # Deployex (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
     warning_threshold_percent: 75                  # Deployex (optional, default: 75): Issue a warning if memory usage exceeds this percent
-    restart_threshold_percent: 85                  # Deployex (optional, default: 85): Restart app if memory usage exceeds this percent
+    restart_threshold_percent: 95                  # Deployex (optional, default: 95): Restart app if memory usage exceeds this percent
 applications:
   - name: "myphoenixapp"                           # Application: Monitored app name (Elixir app name format)
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)

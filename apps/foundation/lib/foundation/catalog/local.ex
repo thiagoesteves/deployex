@@ -71,7 +71,7 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def setup(sname) do
-    case sname_info(sname) do
+    case node_info(sname) do
       %{name: name} ->
         [new_path(sname), current_path(sname), previous_path(sname)]
         |> Enum.each(&File.mkdir_p!/1)
@@ -91,7 +91,7 @@ defmodule Foundation.Catalog.Local do
   def cleanup(nil), do: :ok
 
   def cleanup(sname) do
-    case sname_info(sname) do
+    case node_info(sname) do
       %{name: name} ->
         File.rm_rf("#{service_path(name)}/#{sname}")
         :ok
@@ -126,85 +126,50 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def sname_to_node(sname) do
-    {:ok, hostname} = :inet.gethostname()
-    "#{sname}@#{hostname}" |> String.to_atom()
-  end
+  def node_info(nil), do: nil
 
-  @impl true
-  def sname_info(nil), do: nil
-
-  def sname_info(sname) do
-    case String.split(sname, ["-"]) do
-      [name, suffix] ->
-        %Catalog.Sname{
-          sname: sname,
-          name: name,
-          suffix: suffix,
-          language: __MODULE__.monitored_app_lang(),
-          node: sname_to_node(sname)
-        }
-
-      [name] when name in [@deployex_sname, @nohost_sname] ->
-        %Catalog.Sname{
-          sname: @deployex_sname,
-          name: @deployex_sname,
-          suffix: "",
-          language: "elixir",
-          node: Node.self()
-        }
-
-      _ ->
-        nil
-    end
-  end
-
-  @impl true
   def node_info(node) when is_atom(node) do
     node |> Atom.to_string() |> node_info()
   end
 
   def node_info(node) do
+    parse_sname = fn sname, hostname ->
+      case String.split(sname, ["-"]) do
+        [name, suffix] ->
+          %Catalog.Node{
+            node: String.to_atom(node),
+            sname: sname,
+            name: name,
+            hostname: hostname,
+            suffix: suffix,
+            # NOTE: Leave the next call with __MODULE__ until multiple apps are implemented
+            #       It is used for testing purpose
+            language: __MODULE__.monitored_app_lang()
+          }
+
+        [name] when name in [@deployex_sname, @nohost_sname] ->
+          %Catalog.Node{
+            node: Node.self(),
+            sname: @deployex_sname,
+            name: @deployex_sname,
+            hostname: hostname,
+            suffix: "",
+            language: "elixir"
+          }
+
+        _ ->
+          nil
+      end
+    end
+
     case String.split(node, ["@"]) do
       [sname, hostname] ->
-        case String.split(sname, ["-"]) do
-          [name, suffix] ->
-            %Catalog.Node{
-              node: String.to_existing_atom(node),
-              sname: sname,
-              name_string: name,
-              name_atom: String.to_atom(name),
-              hostname: hostname,
-              suffix: suffix,
-              # NOTE: Leave the next call with __MODULE__ until multiple apps are implemented
-              #       It is used for testing purpose
-              language: __MODULE__.monitored_app_lang()
-            }
+        parse_sname.(sname, hostname)
 
-          [name] when name in [@deployex_sname, @nohost_sname] ->
-            %Catalog.Node{
-              node: String.to_existing_atom(node),
-              sname: @deployex_sname,
-              name_string: @deployex_sname,
-              name_atom: :deployex,
-              hostname: hostname,
-              suffix: ""
-            }
-
-          _ ->
-            nil
-        end
-
-      _ ->
-        nil
+      [sname] ->
+        {:ok, hostname} = :inet.gethostname()
+        parse_sname.(sname, hostname)
     end
-  end
-
-  @impl true
-  def node_info_from_sname(sname) do
-    {:ok, hostname} = :inet.gethostname()
-
-    "#{sname}@#{hostname}" |> String.to_atom() |> node_info()
   end
 
   @impl true
@@ -214,7 +179,7 @@ defmodule Foundation.Catalog.Local do
   end
 
   def stdout_path(sname) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
     log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
     "#{log_path}/#{name}/#{sname}-stdout.log"
   end
@@ -226,7 +191,7 @@ defmodule Foundation.Catalog.Local do
   end
 
   def stderr_path(sname) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
     log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
     "#{log_path}/#{name}/#{sname}-stderr.log"
   end
@@ -238,7 +203,7 @@ defmodule Foundation.Catalog.Local do
 
   # credo:disable-for-lines:1
   def bin_path(sname, language, bin_service) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
 
     cond do
       bin_service == :new and language in ["elixir", "erlang"] ->
@@ -265,7 +230,7 @@ defmodule Foundation.Catalog.Local do
   def new_path(nil), do: nil
 
   def new_path(sname) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
     "#{service_path(name)}/#{sname}/new"
   end
 
@@ -273,7 +238,7 @@ defmodule Foundation.Catalog.Local do
   def current_path(nil), do: nil
 
   def current_path(sname) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
     "#{service_path(name)}/#{sname}/current"
   end
 
@@ -281,7 +246,7 @@ defmodule Foundation.Catalog.Local do
   def previous_path(nil), do: nil
 
   def previous_path(sname) do
-    %{name: name} = sname_info(sname)
+    %{name: name} = node_info(sname)
     "#{service_path(name)}/#{sname}/previous"
   end
 

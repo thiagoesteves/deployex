@@ -74,7 +74,7 @@ defmodule Deployer.Monitor do
     do: default().run_pre_commands(sname, pre_commands, app_bin_path)
 
   @doc """
-  Return the global name used by this module to register the process
+  Return a list of all snames that are being handled
   """
   @impl true
   @spec list() :: list()
@@ -86,13 +86,6 @@ defmodule Deployer.Monitor do
   @impl true
   @spec subscribe_new_deploy() :: :ok
   def subscribe_new_deploy, do: default().subscribe_new_deploy()
-
-  @doc """
-  Return the global name used by this module to register the process
-  """
-  @impl true
-  @spec global_name(String.t()) :: map()
-  def global_name(sname), do: default().global_name(sname)
 
   ### ==========================================================================
   ### Private functions

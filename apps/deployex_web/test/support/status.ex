@@ -4,12 +4,13 @@ defmodule DeployexWeb.Fixture.Status do
   """
 
   alias Deployer.Status
+  alias Foundation.Catalog.Version
 
   def version(attrs \\ %{}) do
     name = "testapp"
     sname = "#{name}-abc123"
 
-    %Status.Version{
+    %Version{
       version: "1.0.0",
       hash: "local",
       pre_commands: [],

@@ -1,6 +1,6 @@
 defmodule Deployer.Upgrade.Data do
   @moduledoc """
-  Structure to handle the upgrade data
+  Structure to handle the upgrade execute data
   """
   @type t :: %__MODULE__{
           node: atom(),

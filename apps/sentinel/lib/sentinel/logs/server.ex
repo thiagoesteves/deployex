@@ -66,8 +66,13 @@ defmodule Sentinel.Logs.Server do
     # Subscribe to receive a notification every time we have a new deploy
     Monitor.subscribe_new_deploy()
 
+    sname_to_node = fn sname ->
+      %{node: node} = Catalog.node_info(sname)
+      node
+    end
+
     # List all expected nodes within the cluster
-    expected_nodes = Enum.map(Monitor.list(), &Catalog.sname_to_node/1) ++ [Node.self()]
+    expected_nodes = Enum.map(Monitor.list(), &sname_to_node.(&1)) ++ [Node.self()]
 
     node_logs_tables =
       Enum.reduce(expected_nodes, %{}, fn node, acc ->
@@ -130,7 +135,7 @@ defmodule Sentinel.Logs.Server do
         {:new_deploy, source_node, sname},
         %{node_logs_tables: node_logs_tables, expected_nodes: expected_nodes} = state
       ) do
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     with true <- source_node == Node.self(),
          false <- node in expected_nodes,

@@ -30,7 +30,7 @@ defmodule DeployexWeb.Components.AppCard do
     <div :if={@supervisor}></div>
 
     <div
-      id={Helper.normalize_id("button-#{@sname}")}
+      id={Helper.normalize_id("button-app-card-#{@sname}")}
       class={[app_background(@supervisor, @status), "rounded-lg border border-black mt-2"]}
     >
       <div phx-mounted={

@@ -43,6 +43,7 @@ defmodule Foundation.Catalog do
 
     iex> alias Foundation.Catalog
     ...> assert Catalog.cleanup("node-1234") == :ok
+    ...> assert Catalog.cleanup("node-1234-1") == :ok
     ...> assert Catalog.cleanup(nil) == :ok
   """
   @impl true
@@ -128,6 +129,7 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
+    ...> assert "testapp-" <> _suffix = Catalog.create_sname("testapp")
 
   """
   @impl true
@@ -135,67 +137,21 @@ defmodule Foundation.Catalog do
   def create_sname(name), do: default().create_sname(name)
 
   @doc """
-  Convert sname to node
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> {:ok, hostname} = :inet.gethostname()
-    ...> name = "testapp-1"
-    ...> node = (name <> "@" <> to_string(hostname)) |> String.to_atom()
-    ...> assert node == Catalog.sname_to_node("testapp-1")
-
-  """
-  @impl true
-  @spec sname_to_node(String.t()) :: node()
-  def sname_to_node(sname), do: default().sname_to_node(sname)
-
-  @doc """
-  Return the sname info
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert %Catalog.Sname{name: "testapp", suffix: "1"} = Catalog.sname_info("testapp-1")
-    ...> assert %Catalog.Sname{name: "testapp", suffix: "2"} = Catalog.sname_info("testapp-2")
-    ...> assert %Catalog.Sname{name: "testapp", suffix: "3"} = Catalog.sname_info("testapp-3")
-    ...> refute Catalog.sname_info(nil)
-    ...> refute Catalog.sname_info("testapp-1-1")
-  """
-  @impl true
-  @spec sname_info(String.t()) :: Foundation.Catalog.Sname.t() | nil
-  def sname_info(sname), do: default().sname_info(sname)
-
-  @doc """
   Return the respective node details: name, hostname and instance
 
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-1@nohost")
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-2@nohost")
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-3@nohost")
-    ...> refute Catalog.node_info(:"testapp-")
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-1@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-2@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-3@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"deployex@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"nonode@nohost")
     ...> refute Catalog.node_info(:"testapp-1-1@host")
   """
   @impl true
-  @spec node_info(String.t() | node()) :: Foundation.Catalog.Node.t() | nil
+  @spec node_info(String.t() | node() | nil) :: Foundation.Catalog.Node.t() | nil
   def node_info(node), do: default().node_info(node)
-
-  @doc """
-  Return the respective node details based on a sname
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info_from_sname("testapp-1")
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info_from_sname("testapp-2")
-    ...> assert %Foundation.Catalog.Node{name_string: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info_from_sname("testapp-3")
-
-  """
-  @impl true
-  @spec node_info_from_sname(String.t()) :: Foundation.Catalog.Node.t() | nil
-  def node_info_from_sname(node), do: default().node_info_from_sname(node)
 
   @doc """
   Return the path for the stdout log file
@@ -289,6 +245,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.new_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new"
     ...> assert Catalog.new_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new"
     ...> assert Catalog.new_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new"
+    ...> refute Catalog.new_path(nil)
   """
   @impl true
   @spec new_path(String.t()) :: String.t()
@@ -304,6 +261,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.current_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current"
     ...> assert Catalog.current_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current"
     ...> assert Catalog.current_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current"
+    ...> refute Catalog.current_path(nil)
   """
   @impl true
   @spec current_path(String.t()) :: String.t()
@@ -319,6 +277,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.previous_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/previous"
     ...> assert Catalog.previous_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/previous"
     ...> assert Catalog.previous_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/previous"
+    ...> refute Catalog.previous_path(nil)
   """
   @impl true
   @spec previous_path(String.t()) :: String.t()

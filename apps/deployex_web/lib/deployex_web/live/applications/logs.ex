@@ -107,7 +107,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     if File.exists?(path) do
       commands = "tail -F -n 10 #{path}"
       options = [:stdout]
-      node = Catalog.sname_to_node(sname)
+      node = Helper.sname_to_node(sname)
 
       {:ok, _pid} =
         Terminal.new(%Terminal{

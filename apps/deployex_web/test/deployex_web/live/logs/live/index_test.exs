@@ -29,7 +29,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
   end
 
   test "GET /logs/live", %{conn: conn} do
-    %{sname: sname} = "test_app" |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname} = "test_app" |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.MonitorMock
     |> stub(:list, fn -> [sname] end)
@@ -47,7 +47,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
     service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
@@ -83,7 +83,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
     service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
@@ -119,7 +119,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
     service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
@@ -164,7 +164,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
     service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 
@@ -229,7 +229,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
       test_pid_process = self()
       ref = make_ref()
       name = "test_app"
-      %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+      %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
       service_id = Helper.normalize_id(node)
       node_string = "#{node}"
 
@@ -272,7 +272,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     test_pid_process = self()
     ref = make_ref()
     name = "test_app"
-    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, node: node} = name |> Catalog.create_sname() |> Catalog.node_info()
     service_id = Helper.normalize_id(node)
     node_string = "#{node}"
 

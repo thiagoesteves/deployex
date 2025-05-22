@@ -33,7 +33,7 @@ defmodule Deployer.MonitorTest do
       Deployer.StatusMock
       |> expect(:current_version_map, fn ^sname ->
         send(test_pid_process, {:handle_ref_event, test_event_ref})
-        %Deployer.Status.Version{}
+        %Catalog.Version{}
       end)
 
       assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, [])
@@ -59,7 +59,7 @@ defmodule Deployer.MonitorTest do
       Deployer.StatusMock
       |> expect(:current_version_map, fn ^sname ->
         send(test_pid_process, {:handle_ref_event, test_event_ref})
-        %Deployer.Status.Version{}
+        %Catalog.Version{}
       end)
 
       assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, [])
@@ -92,7 +92,7 @@ defmodule Deployer.MonitorTest do
           send(test_pid_process, {:handle_ref_event, test_event_ref})
         end
 
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       assert capture_log(fn ->
@@ -128,7 +128,7 @@ defmodule Deployer.MonitorTest do
           send(test_pid_process, {:handle_ref_event, test_event_ref})
         end
 
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       assert capture_log(fn ->
@@ -164,7 +164,7 @@ defmodule Deployer.MonitorTest do
           send(test_pid_process, {:handle_ref_event, test_event_ref})
         end
 
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       assert capture_log(fn ->
@@ -191,7 +191,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -204,14 +204,13 @@ defmodule Deployer.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       MonitorApp.subscribe_new_deploy()
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :running} = MonitorApp.state(sname)
 
       assert_receive {:new_deploy, _source_sname, _deploy_sname}, 1_000
 
@@ -228,7 +227,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -241,12 +240,11 @@ defmodule Deployer.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :running} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -261,7 +259,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -274,12 +272,11 @@ defmodule Deployer.MonitorTest do
       |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, language, port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :running} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -294,7 +291,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+        %Catalog.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Host.CommanderMock
@@ -308,8 +305,7 @@ defmodule Deployer.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -330,7 +326,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+        %Catalog.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Host.CommanderMock
@@ -368,7 +364,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+        %Catalog.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Host.CommanderMock
@@ -406,7 +402,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+        %Catalog.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Host.CommanderMock
@@ -442,7 +438,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -459,7 +455,7 @@ defmodule Deployer.MonitorTest do
 
       send(pid, {:check_running, test_pid_process, sname})
 
-      assert %{status: :starting} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :starting} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -474,7 +470,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -492,15 +488,13 @@ defmodule Deployer.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :running} = MonitorApp.state(sname)
 
-      {:ok, _pre_commands} =
-        Deployer.Monitor.Application.run_pre_commands(sname, pre_commands, :new)
+      {:ok, _pre_commands} = MonitorApp.run_pre_commands(sname, pre_commands, :new)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -514,7 +508,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -530,21 +524,18 @@ defmodule Deployer.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(sname)
+      assert %{status: :running, crash_restart_count: 0} = MonitorApp.state(sname)
 
       send(pid, {:EXIT, test_pid_process, :forcing_restart})
 
       assert_receive {:handle_restart_event, ^test_event_ref}, 1_000
 
       # Check restart was increased
-      assert %{status: :running, crash_restart_count: 1} =
-               Deployer.Monitor.Application.state(sname)
+      assert %{status: :running, crash_restart_count: 1} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -558,7 +549,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -571,20 +562,17 @@ defmodule Deployer.MonitorTest do
       |> stub(:run, fn _commands, _options -> {:ok, test_pid_process} end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(sname)
+      assert %{status: :running, crash_restart_count: 0} = MonitorApp.state(sname)
 
       send(pid, {:EXIT, nil, :forcing_restart})
       send(pid, {:EXIT, nil, :normal})
 
       # Check restart was NOT incremented
-      assert %{status: :running, crash_restart_count: 0} =
-               Deployer.Monitor.Application.state(sname)
+      assert %{status: :running, crash_restart_count: 0} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -598,7 +586,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0", pre_commands: pre_commands}
+        %Catalog.Version{version: "1.0.0", pre_commands: pre_commands}
       end)
 
       Host.CommanderMock
@@ -634,7 +622,7 @@ defmodule Deployer.MonitorTest do
 
       Deployer.StatusMock
       |> stub(:current_version_map, fn ^sname ->
-        %Deployer.Status.Version{version: "1.0.0"}
+        %Catalog.Version{version: "1.0.0"}
       end)
 
       Host.CommanderMock
@@ -651,12 +639,11 @@ defmodule Deployer.MonitorTest do
       end)
       |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+      assert {:ok, _pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert %{status: :running} = Deployer.Monitor.Application.state(sname)
+      assert %{status: :running} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(sname)
     end
@@ -672,14 +659,12 @@ defmodule Deployer.MonitorTest do
     |> expect(:state, fn _sname -> {:ok, %{}} end)
     |> expect(:restart, fn _sname -> :ok end)
     |> expect(:run_pre_commands, fn _sname, cmds, _new_or_current -> {:ok, cmds} end)
-    |> expect(:global_name, fn ^sname -> %{} end)
 
     assert {:ok, _pid} = Deployer.Monitor.start_service(sname, "elixir", port, [])
     assert :ok = Deployer.Monitor.stop_service(sname)
     assert {:ok, %{}} = Deployer.Monitor.state(sname)
     assert :ok = Deployer.Monitor.restart(sname)
     assert {:ok, []} = Deployer.Monitor.run_pre_commands(sname, [], :new)
-    assert %{} = Deployer.Monitor.global_name(sname)
   end
 
   @tag :capture_log
@@ -695,7 +680,7 @@ defmodule Deployer.MonitorTest do
 
     Deployer.StatusMock
     |> stub(:current_version_map, fn ^sname ->
-      %Deployer.Status.Version{version: "1.0.0"}
+      %Catalog.Version{version: "1.0.0"}
     end)
 
     Host.CommanderMock
@@ -710,18 +695,17 @@ defmodule Deployer.MonitorTest do
     end)
     |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-    assert {:ok, pid} =
-             MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
+    assert {:ok, pid} = MonitorApp.start_service(sname, "elixir", port, timeout_app_ready: 10)
 
     assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-    state = Deployer.Monitor.Application.state(sname)
+    state = MonitorApp.state(sname)
 
     send(pid, {:check_running, :any, :any})
 
     :timer.sleep(100)
 
-    assert state == Deployer.Monitor.Application.state(sname)
+    assert state == MonitorApp.state(sname)
 
     assert :ok = MonitorApp.stop_service(sname)
   end

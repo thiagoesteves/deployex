@@ -6,7 +6,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
   import Mock
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
+  alias Host.Fixture.Terminal, as: FixtureTerminal
 
   setup [
     :set_mox_global,

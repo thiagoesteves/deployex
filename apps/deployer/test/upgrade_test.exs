@@ -126,7 +126,7 @@ defmodule Deployer.UpgradeAppTest do
     app_name = "upgrade_testapp"
 
     sname = Catalog.create_sname(app_name)
-    %{node: node} = Catalog.sname_info(sname)
+    %{node: node} = Catalog.node_info(sname)
     Catalog.setup(sname)
 
     %{
@@ -220,7 +220,7 @@ defmodule Deployer.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(sname)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
@@ -249,7 +249,7 @@ defmodule Deployer.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(sname)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @invalid_jellyfish_version)
@@ -278,7 +278,7 @@ defmodule Deployer.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(sname)}/lib/testapp-0.2.0/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/testapp.appup", @invalid_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
@@ -307,7 +307,7 @@ defmodule Deployer.UpgradeAppTest do
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(sname)}/lib/testapp-0.2.0/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
@@ -374,14 +374,6 @@ defmodule Deployer.UpgradeAppTest do
     File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
-             # UpgradeApp.check(
-             #   sname,
-             #   app_name,
-             #   "erlang",
-             #   "#{base_path}/#{app_name}-#{to_version}.tar.gz",
-             #   from_version,
-             #   to_version
-             # )
              assert {:ok, :hot_upgrade} =
                       UpgradeApp.check(%Check{
                         sname: sname,
@@ -528,7 +520,6 @@ defmodule Deployer.UpgradeAppTest do
       :ok
     end)
 
-    #  UpgradeApp.make_relup(sname, app_name, "erlang", from_version, to_version)
     assert :ok =
              UpgradeApp.make_relup(%Data{
                node: node,
@@ -739,7 +730,6 @@ defmodule Deployer.UpgradeAppTest do
       :ok
     end)
 
-    # assert :ok = UpgradeApp.permfy(sname, app_name, "erlang", to_version)
     assert :ok =
              UpgradeApp.permfy(%Data{
                node: node,
@@ -763,7 +753,6 @@ defmodule Deployer.UpgradeAppTest do
     File.write("#{current_releases_version_path}/original.sys.config", "empty")
     File.rm("#{current_releases_version_path}/sys.config")
 
-    # assert :ok = UpgradeApp.return_original_sys_config(sname, "elixir", to_version)
     assert :ok =
              UpgradeApp.return_original_sys_config(%Data{
                language: "elixir",
@@ -801,11 +790,6 @@ defmodule Deployer.UpgradeAppTest do
       :ok
     end)
 
-    #  UpgradeApp.update_sys_config_from_installed_version(
-    #    sname,
-    #    "elixir",
-    #    to_version
-    #  )
     assert :ok =
              UpgradeApp.update_sys_config_from_installed_version(%Data{
                node: node,
@@ -897,7 +881,6 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     with_mock Node, connect: fn ^node -> true end do
-      #  UpgradeApp.execute(sname, app_name, "elixir", from_version, to_version)
       assert :ok =
                UpgradeApp.execute(%Data{
                  node: node,

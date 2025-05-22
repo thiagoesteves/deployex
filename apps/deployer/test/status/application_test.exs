@@ -6,8 +6,8 @@ defmodule Deployer.Status.ApplicationTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Deployer.Release
   alias Deployer.Status.Application, as: StatusApp
-  alias Deployer.Status.Version
   alias Foundation.Catalog
   alias Foundation.Common
   alias Foundation.Fixture.Catalog, as: CatalogFixture
@@ -15,7 +15,7 @@ defmodule Deployer.Status.ApplicationTest do
   setup do
     CatalogFixture.cleanup()
 
-    release = %Deployer.Release.Version{
+    release = %Release.Version{
       version: "1.0.0",
       hash: "ABC",
       pre_commands: []
@@ -122,8 +122,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert [_] = StatusApp.history_version_list(sname_2)
     assert [_] = StatusApp.history_version_list(sname_3)
 
-    assert %Version{version: "1.0.3"} = Enum.at(version_list, 0)
-    assert %Version{version: "1.0.2"} = Enum.at(version_list, 2)
+    assert %Catalog.Version{version: "1.0.3"} = Enum.at(version_list, 0)
+    assert %Catalog.Version{version: "1.0.2"} = Enum.at(version_list, 2)
   end
 
   test "update monitoring apps with Idle State", %{
@@ -375,7 +375,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert %{
              mode: :manual,
-             manual_version: %Deployer.Status.Version{
+             manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
                version: "1.0.1"
@@ -423,7 +423,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert %{
              mode: :manual,
-             manual_version: %Deployer.Status.Version{
+             manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
                version: "1.0.1"

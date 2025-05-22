@@ -10,7 +10,6 @@ defmodule Deployer.DeploymentTest do
 
   alias Deployer.Deployment
   alias Deployer.Fixture.Files, as: FixtureFiles
-  alias Deployer.Status
   alias Foundation.Catalog
   alias Foundation.Common
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
@@ -104,7 +103,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> expect(:current_version, 2, fn _sname -> version end)
-      |> expect(:history_version_list, fn -> [%Status.Version{version: version}] end)
+      |> expect(:history_version_list, fn -> [%Catalog.Version{version: version}] end)
 
       Deployer.MonitorMock
       |> expect(:start_service, 1, fn ^sname, _language, _port, _options ->

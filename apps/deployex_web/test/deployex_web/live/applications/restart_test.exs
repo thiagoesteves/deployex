@@ -22,7 +22,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-test-app-abc123") |> render_click() =~
-             "Are you sure you want to restart node test_app-abc123?"
+             "Are you sure you want to restart sname test_app-abc123?"
 
     assert index_live |> element("#cancel-button-test-app-abc123", "Cancel") |> render_click()
 
@@ -36,12 +36,12 @@ defmodule DeployexWeb.Applications.RestartTest do
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Deployer.MonitorMock
-    |> expect(:restart, 1, fn _node -> :ok end)
+    |> expect(:restart, 1, fn _sname -> :ok end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-test-app-abc123") |> render_click() =~
-             "Are you sure you want to restart node test_app-abc123?"
+             "Are you sure you want to restart sname test_app-abc123?"
 
     assert index_live |> element("#confirm-button-test-app-abc123", "Confirm") |> render_click()
 

@@ -5,8 +5,7 @@ defmodule Foundation.Catalog.Node do
   @type t :: %__MODULE__{
           node: node() | nil,
           sname: String.t(),
-          name_string: String.t(),
-          name_atom: atom() | nil,
+          name: String.t(),
           hostname: String.t(),
           suffix: String.t(),
           language: String.t()
@@ -16,8 +15,7 @@ defmodule Foundation.Catalog.Node do
 
   defstruct node: nil,
             sname: "",
-            name_string: "",
-            name_atom: nil,
+            name: "",
             hostname: "",
             suffix: "",
             language: "elixir"

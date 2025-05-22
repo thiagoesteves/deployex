@@ -65,7 +65,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "handle_info/2 - update application statistics - valid source" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -113,10 +113,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "handle_info/2 - update application statistics - invalid source" do
     fake_sname = Catalog.create_sname("fake_app")
-    fake_node = Catalog.sname_to_node(fake_sname)
+    %{node: fake_node} = Catalog.node_info(fake_sname)
 
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     monitored_nodes = [node]
 
@@ -166,7 +166,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "Monitore application - No warning if the statistic is inside the threshold" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -205,7 +205,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "Monitore application - statistic warning" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -275,7 +275,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "Monitore application - ignore nil data" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -309,7 +309,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "Monitore application - restart" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
     monitored_nodes = [node]
 
     Deployer.MonitorMock
@@ -366,7 +366,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
   test "Node Up doesn't change any status" do
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
     monitored_nodes = [node]
 
     Deployer.MonitorMock
@@ -404,7 +404,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     self_node = Node.self()
 
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -441,7 +441,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     self_node = Node.self()
 
     sname = Catalog.create_sname("test_app")
-    node = Catalog.sname_to_node(sname)
+    %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname] end)
@@ -496,9 +496,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     self_node = Node.self()
 
     sname_1 = Catalog.create_sname("test_app")
-    node_1 = Catalog.sname_to_node(sname_1)
+    %{node: node_1} = Catalog.node_info(sname_1)
     sname_2 = Catalog.create_sname("test_app")
-    node_2 = Catalog.sname_to_node(sname_2)
+    %{node: node_2} = Catalog.node_info(sname_2)
 
     Deployer.MonitorMock
     |> expect(:list, fn -> [sname_1, sname_2] end)

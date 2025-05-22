@@ -71,7 +71,7 @@ defmodule Deployer.Deployment do
       installed_snames ->
         current_version =
           case Enum.at(Status.history_version_list(), 0) do
-            %Status.Version{version: version} -> version
+            %Catalog.Version{version: version} -> version
             _ -> nil
           end
 
@@ -383,8 +383,10 @@ defmodule Deployer.Deployment do
 
       from_version = Status.current_version(sname)
 
+      %{node: node} = Catalog.node_info(sname)
+
       upgrade_data = %Deployer.Upgrade.Data{
-        node: Catalog.sname_to_node(sname),
+        node: node,
         sname: sname,
         name: name,
         language: language,

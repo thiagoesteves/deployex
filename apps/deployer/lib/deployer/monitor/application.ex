@@ -228,7 +228,6 @@ defmodule Deployer.Monitor.Application do
     |> Common.call_gen_server(:restart)
   end
 
-  @impl true
   def global_name(sname),
     do: %{module: __MODULE__, sname: sname}
 
@@ -296,7 +295,7 @@ defmodule Deployer.Monitor.Application do
   defp run_app_bin(state, executable_path, command)
 
   defp run_app_bin(%{sname: sname, language: "elixir", port: port}, executable_path, command) do
-    %{suffix: suffix} = Catalog.sname_info(sname)
+    %{suffix: suffix} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
     app_env = compose_app_env(Catalog.monitored_app_env())
 
@@ -338,7 +337,7 @@ defmodule Deployer.Monitor.Application do
   end
 
   defp run_app_bin(%{sname: sname, language: "gleam", port: port}, executable_path, "start") do
-    %{name: name} = Catalog.sname_info(sname)
+    %{name: name} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
     app_env = compose_app_env(Catalog.monitored_app_env())
@@ -422,7 +421,7 @@ defmodule Deployer.Monitor.Application do
   end
 
   defp cleanup_beam_process(sname) do
-    %{sname: sname, name: name} = Catalog.sname_info(sname)
+    %{sname: sname, name: name} = Catalog.node_info(sname)
 
     case Commander.run(
            "kill -9 $(ps -ax | grep \"#{name}/#{sname}/current/erts-*.*/bin/beam.smp\" | grep -v grep | awk '{print $1}') ",

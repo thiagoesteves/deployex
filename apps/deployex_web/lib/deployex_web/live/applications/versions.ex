@@ -4,7 +4,6 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
   require Logger
 
   alias Deployer.Status
-  alias Foundation.Catalog
 
   @impl true
   def render(assigns) do
@@ -14,9 +13,9 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
         {"#{@title}"}
       </.header>
 
-      <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+      <div class="relative overflow-x-auto overflow-y-auto shadow-md sm:rounded-lg max-h-96">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-400 dark:text-gray-200">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-400 dark:text-gray-200 sticky top-0 z-10">
             <tr>
               <th scope="col" class="px-6 py-1">
                 Version
@@ -64,12 +63,10 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
     sname = assigns.id
 
     version_list =
-      case Catalog.node_info_from_sname(sname) do
-        %Catalog.Node{sname: "deployex"} ->
-          Status.history_version_list()
-
-        %Catalog.Node{sname: sname} ->
-          Status.history_version_list(sname)
+      if sname == "deployex" do
+        Status.history_version_list()
+      else
+        Status.history_version_list(sname)
       end
 
     socket =

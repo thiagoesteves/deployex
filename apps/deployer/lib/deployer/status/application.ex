@@ -4,14 +4,14 @@ defmodule Deployer.Status.Application do
   """
 
   use GenServer
-
-  alias Deployer.Monitor
-  alias Foundation.Catalog
-  alias Foundation.Common
+  require Logger
 
   @behaviour Deployer.Status.Adapter
 
-  require Logger
+  alias Deployer.Monitor
+  alias Deployer.Status
+  alias Foundation.Catalog
+  alias Foundation.Common
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
@@ -50,9 +50,14 @@ defmodule Deployer.Status.Application do
   def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
+    sname_to_node = fn sname ->
+      %{node: node} = Catalog.node_info(sname)
+      node
+    end
+
     monitoring_apps =
       Monitor.list()
-      |> Enum.map(&Catalog.sname_to_node/1)
+      |> Enum.map(&sname_to_node.(&1))
       |> Enum.map(fn node ->
         update_monitored_app_name(node)
       end)
@@ -98,7 +103,7 @@ defmodule Deployer.Status.Application do
     |> Enum.at(0)
     |> case do
       nil ->
-        %Deployer.Status.Version{}
+        %Catalog.Version{}
 
       version ->
         version
@@ -107,12 +112,14 @@ defmodule Deployer.Status.Application do
 
   @impl true
   def set_current_version_map(sname, release, attrs) do
-    # : TODO: Add name
-    params = %Deployer.Status.Version{
+    %{name: name} = Catalog.node_info(sname)
+
+    params = %Catalog.Version{
       version: release.version,
       hash: release.hash,
       pre_commands: release.pre_commands,
       sname: sname,
+      name: name,
       deployment: Keyword.get(attrs, :deployment),
       inserted_at: NaiveDateTime.utc_now()
     }
@@ -202,7 +209,7 @@ defmodule Deployer.Status.Application do
 
     config = Catalog.config()
 
-    %Deployer.Status{
+    %Status{
       name: "deployex",
       sname: "deployex",
       version: Application.spec(:deployer, :vsn) |> to_string,
@@ -218,7 +225,7 @@ defmodule Deployer.Status.Application do
   end
 
   defp update_monitored_app_name(node) do
-    %{name_string: name, sname: sname} = Catalog.node_info(node)
+    %{name: name, sname: sname} = Catalog.node_info(node)
 
     %{
       status: status,
@@ -238,7 +245,7 @@ defmodule Deployer.Status.Application do
         :not_connected
     end
 
-    %Deployer.Status{
+    %Status{
       name: name,
       sname: sname,
       node: node,

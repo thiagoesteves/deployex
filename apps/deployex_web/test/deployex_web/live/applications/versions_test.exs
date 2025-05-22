@@ -16,8 +16,8 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
   test "GET /versions full list", %{conn: conn} do
     name = "test_app"
-    %{sname: sname_1, suffix: suffix_1} = name |> Catalog.create_sname() |> Catalog.sname_info()
-    %{sname: sname_2, suffix: suffix_2} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname_1, suffix: suffix_1} = name |> Catalog.create_sname() |> Catalog.node_info()
+    %{sname: sname_2, suffix: suffix_2} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     sname_1_version =
       FixtureStatus.version(%{
@@ -69,7 +69,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   test "GET /versions list by instance", %{conn: conn} do
     name = "test_app"
     name_id = Helper.normalize_id(name)
-    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.sname_info()
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     sname_v1 =
       FixtureStatus.version(%{

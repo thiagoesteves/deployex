@@ -1,6 +1,6 @@
 defmodule Deployer.Upgrade.Check do
   @moduledoc """
-  Structure to handle the upgrade data
+  Structure to handle the upgrade check data
   """
   @type t :: %__MODULE__{
           sname: String.t() | nil,

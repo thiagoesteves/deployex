@@ -12,5 +12,4 @@ defmodule Deployer.Monitor.Adapter do
   @callback list() :: list()
   @callback run_pre_commands(String.t(), list(), :new | :current) ::
               {:ok, list()} | {:error, :rescued}
-  @callback global_name(String.t()) :: map()
 end

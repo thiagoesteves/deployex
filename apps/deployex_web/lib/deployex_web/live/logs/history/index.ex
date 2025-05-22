@@ -5,7 +5,6 @@ defmodule DeployexWeb.HistoryLive do
   alias DeployexWeb.Components.Attention
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
-  alias Foundation.Catalog
   alias Sentinel.Logs
 
   @impl true
@@ -25,7 +24,7 @@ defmodule DeployexWeb.HistoryLive do
       |> assign(attention_msg: attention_msg)
       |> assign(
         services_unselected_highlight:
-          Monitor.list() |> Enum.map(&Catalog.sname_to_node/1) |> Enum.map(&Atom.to_string/1)
+          Monitor.list() |> Enum.map(&Helper.sname_to_node/1) |> Enum.map(&Atom.to_string/1)
       )
 
     ~H"""

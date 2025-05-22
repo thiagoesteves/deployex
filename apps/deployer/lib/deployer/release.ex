@@ -61,7 +61,7 @@ defmodule Deployer.Release do
       }) do
     {:ok, download_path} = Briefly.create()
 
-    %{name: name, language: language} = Catalog.sname_info(current_sname || new_sname)
+    %{name: name, language: language} = Catalog.node_info(current_sname || new_sname)
 
     # Download the release file
     default().download_release(name, release_version, download_path)
@@ -74,11 +74,11 @@ defmodule Deployer.Release do
       {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", current_sname_new_path])
     end
 
-    if new_sname do
-      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_sname_new_path])
-    end
-
     if is_nil(current_sname) or is_nil(new_sname) do
+      if new_sname do
+        {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_sname_new_path])
+      end
+
       {:ok, :full_deployment}
     else
       %Upgrade.Check{

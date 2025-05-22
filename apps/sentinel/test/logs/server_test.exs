@@ -234,12 +234,14 @@ defmodule Sentinel.Logs.ServerTest do
 
   defp create_consumer(context) do
     sname = Catalog.create_sname("test_app")
+    %{node: node} = Catalog.node_info(sname)
     Catalog.setup(sname)
 
     node_self = Node.self()
     Catalog.setup("nonode")
 
     fake_sname = Catalog.create_sname("fake")
+    %{node: fake_node} = Catalog.node_info(fake_sname)
 
     Host.CommanderMock
     |> stub(:run, fn _command, _options -> {:ok, self(), "123456"} end)
@@ -261,8 +263,8 @@ defmodule Sentinel.Logs.ServerTest do
     assert_receive {:server_pid, pid}, 1_000
 
     context
-    |> Map.put(:fake_node, Catalog.sname_to_node(fake_sname))
-    |> Map.put(:node, Catalog.sname_to_node(sname))
+    |> Map.put(:fake_node, fake_node)
+    |> Map.put(:node, node)
     |> Map.put(:pid, pid)
   end
 end

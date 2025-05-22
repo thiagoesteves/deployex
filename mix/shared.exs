@@ -29,20 +29,20 @@ defmodule Mix.Shared do
         DeployexWeb.ErrorHTML,
         DeployexWeb.CoreComponents,
         DeployexWeb.Fixture.Status,
-        DeployexWeb.Fixture.Terminal,
         # Foundation
         Foundation.Rpc,
         Foundation.RpcMock,
         Foundation.Macros,
         Foundation.Application,
         Foundation.Catalog.Version,
-        Foundation.Catalog.Sname,
+        Foundation.Catalog.Node,
         # Host
         Host.Memory,
         Host.Commander.Local,
         Host.Terminal.Server.Message,
         Host.Application,
         Host.Terminal.Supervisor,
+        Host.Fixture.Terminal,
         # Sentinel
         Sentinel.Application,
         Sentinel.Watchdog.Data

@@ -7,6 +7,7 @@ defmodule Deployer.Release.LocalTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Deployer.Fixture.Files, as: FixtureFiles
   alias Deployer.Release.Local
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
@@ -36,7 +37,7 @@ defmodule Deployer.Release.LocalTest do
     new_path = Catalog.new_path(sname)
 
     Catalog.setup(sname)
-    FixtureCatalog.create_tar(name, version)
+    FixtureFiles.create_tar(name, version)
 
     assert :ok = Local.download_release(name, version, new_path)
   end

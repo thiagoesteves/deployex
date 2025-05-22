@@ -3,6 +3,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
 
   import Mock
 
+  alias Foundation.ConfigProvider.Secrets.Gcp
   alias Foundation.ConfigProvider.Secrets.Manager
 
   test "secrets/3 with success" do
@@ -29,8 +30,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
                {:goth, [file_credentials: "{}"]},
                {:foundation,
                 [
-                  {Foundation.ConfigProvider.Secrets.Manager,
-                   [adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"]},
+                  {Manager, [adapter: Gcp, path: "any-env-path"]},
                   {:env, "prod"},
                   {Foundation.Accounts,
                    [
@@ -50,8 +50,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
                Manager.load(
                  [
                    foundation: [
-                     {Foundation.ConfigProvider.Secrets.Manager,
-                      adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
+                     {Manager, adapter: Gcp, path: "any-env-path"},
                      {:env, "prod"}
                    ],
                    goth: [{:file_credentials, "{}"}]
@@ -79,8 +78,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
           {:goth, [file_credentials: "{}"]},
           {:foundation,
            [
-             {Foundation.ConfigProvider.Secrets.Manager,
-              [adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"]},
+             {Manager, [adapter: Gcp, path: "any-env-path"]},
              {:env, "prod"},
              {Foundation.Accounts,
               [
@@ -100,8 +98,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
           Manager.load(
             [
               foundation: [
-                {Foundation.ConfigProvider.Secrets.Manager,
-                 adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
+                {Manager, adapter: Gcp, path: "any-env-path"},
                 {:env, "prod"}
               ],
               goth: [{:file_credentials, "{}"}]

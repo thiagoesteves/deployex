@@ -3,6 +3,7 @@ defmodule DeployexWeb.Helper do
   This module contains functions to be shared among other modules
   """
 
+  alias Foundation.Catalog
   alias Foundation.Common
   alias Sentinel.Logs.Message
 
@@ -86,6 +87,11 @@ defmodule DeployexWeb.Helper do
 
   def normalize_id(text) do
     String.replace(text, ["@", "_"], "-")
+  end
+
+  def sname_to_node(sname) do
+    %{node: node} = Catalog.node_info(sname)
+    node
   end
 
   @doc """
