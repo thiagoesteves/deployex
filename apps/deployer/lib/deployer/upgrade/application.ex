@@ -157,6 +157,29 @@ defmodule Deployer.Upgrade.Application do
   def return_original_sys_config(_data), do: :ok
 
   @impl true
+  def prepare_new_path(name, "erlang", to_version, new_path) do
+    priv_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
+
+    ebin_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
+
+    if File.exists?(priv_app_up_file) do
+      File.cp(priv_app_up_file, ebin_app_up_file)
+    end
+
+    releases = "#{new_path}/releases"
+
+    if File.exists?("#{releases}/#{name}.rel") do
+      File.rename("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
+    end
+
+    :ok
+  end
+
+  def prepare_new_path(_name, _language, _to_version, _new_path), do: :ok
+
+  @impl true
   def check(%Check{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
     check(%{
@@ -211,22 +234,6 @@ defmodule Deployer.Upgrade.Application do
         from_version: from_version,
         to_version: to_version
       }) do
-    priv_app_up_file =
-      "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
-
-    ebin_app_up_file =
-      "#{new_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
-
-    if File.exists?(priv_app_up_file) do
-      File.cp!(priv_app_up_file, ebin_app_up_file)
-    end
-
-    releases = "#{new_path}/releases"
-
-    if File.exists?("#{releases}/#{name}.rel") do
-      File.rename!("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
-    end
-
     with [file_path] <-
            Path.wildcard("#{new_path}/lib/#{name}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do

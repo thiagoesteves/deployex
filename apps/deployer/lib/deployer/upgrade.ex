@@ -23,6 +23,14 @@ defmodule Deployer.Upgrade do
   def connect(node), do: default().connect(node)
 
   @doc """
+  This function acts like a hook for any modification before starting the app
+  """
+  @impl true
+  @spec prepare_new_path(String.t(), String.t(), String.t(), String.t()) :: :ok
+  def prepare_new_path(name, language, to_version, new_path),
+    do: default().prepare_new_path(name, language, to_version, new_path)
+
+  @doc """
   This function check the release package type
   """
   @impl true

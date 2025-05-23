@@ -4,6 +4,7 @@ defmodule Deployer.Upgrade.Adapter do
   """
 
   @callback connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  @callback prepare_new_path(String.t(), String.t(), String.t(), String.t()) :: :ok
   @callback check(Deployer.Upgrade.Check.t()) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   @callback execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}

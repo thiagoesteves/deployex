@@ -7,6 +7,8 @@ defmodule Deployer.Release.Local do
 
   require Logger
 
+  import Foundation.Macros
+
   ### ==========================================================================
   ### Release Callbacks
   ### ==========================================================================
@@ -32,7 +34,12 @@ defmodule Deployer.Release.Local do
   def download_release(app_name, release_version, download_path) do
     release_name = "#{app_name}-#{release_version}.tar.gz"
     file_path = "#{bucket()}/dist/#{app_name}/#{release_name}"
-    dest_path = "#{download_path}/#{release_name}"
+
+    if_not_test do
+      dest_path = "#{download_path}"
+    else
+      dest_path = "#{download_path}/#{release_name}"
+    end
 
     File.cp(file_path, dest_path)
   end

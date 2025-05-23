@@ -70,6 +70,9 @@ defmodule Deployer.ReleaseTest do
     Deployer.ReleaseMock
     |> expect(:download_release, fn _app_name, ^release_version, _download_path -> :ok end)
 
+    Deployer.UpgradeMock
+    |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+
     with_mock System, [:passthrough],
       cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end do
       assert {:ok, :full_deployment} == Release.download_and_unpack(release_info)
@@ -94,6 +97,9 @@ defmodule Deployer.ReleaseTest do
 
     Deployer.ReleaseMock
     |> expect(:download_release, fn _app_name, _release_version, _download_path -> :ok end)
+
+    Deployer.UpgradeMock
+    |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
     with_mock System, [:passthrough],
       cmd: fn "tar", ["-x", "-f", _download_path, "-C", _new_path] -> {"", 0} end do
@@ -126,6 +132,7 @@ defmodule Deployer.ReleaseTest do
     |> expect(:download_release, fn _app_name, _release_version, _download_path -> :ok end)
 
     Deployer.UpgradeMock
+    |> expect(:prepare_new_path, 2, fn _name, _language, _to_version, _new_path -> :ok end)
     |> expect(:check, fn %Upgrade.Check{
                            name: ^name,
                            language: "elixir",
@@ -169,6 +176,7 @@ defmodule Deployer.ReleaseTest do
     |> expect(:download_release, fn ^name, ^release_version, _download_path -> :ok end)
 
     Deployer.UpgradeMock
+    |> expect(:prepare_new_path, 2, fn _name, _language, _to_version, _new_path -> :ok end)
     |> expect(:check, fn %Upgrade.Check{
                            name: ^name,
                            language: "elixir",

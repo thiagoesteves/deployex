@@ -277,7 +277,7 @@ Let's then generate the `0.1.2` release with the appup file:
 ```bash
 export app_name=myerlangapp
 rebar3 as prod release
-rebar3 as prod appup generate --previous "${PWD}/_build/default/rel/myerlangapp"  --target_dir "${PWD}/apps/${app_name}/priv/appup"
+rebar3 as prod appup generate --previous "${PWD}/_build/default/rel/${app_name}"  --target_dir "${PWD}/apps/${app_name}/priv/appup"
 # ===> current base dir: "/home/ubuntu/myerlangapp/_build/default"
 # ===> app myerlangapp ebin dir: "/home/ubuntu/myerlangapp/_build/default/lib/myerlangapp/ebin"
 # ===> Generated appup ("0.1.1" <-> "0.1.2") for myerlangapp in "/home/ubuntu/myerlangapp/apps/myerlangapp/priv/appup/myerlangapp.appup"

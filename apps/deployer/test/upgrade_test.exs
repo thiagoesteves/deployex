@@ -374,6 +374,8 @@ defmodule Deployer.UpgradeAppTest do
     File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
+             assert :ok = UpgradeApp.prepare_new_path(app_name, "erlang", to_version, new_path)
+
              assert {:ok, :hot_upgrade} =
                       UpgradeApp.check(%Check{
                         sname: sname,

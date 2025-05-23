@@ -64,8 +64,16 @@ defmodule Deployer.Release do
 
     with %{name: name, language: language} <- Catalog.node_info(current_sname || new_sname),
          :ok <- default().download_release(name, release_version, download_path),
-         :ok <- untar_to_new_path(current_sname, download_path, current_sname_new_path),
-         :ok <- untar_to_new_path(new_sname, download_path, new_sname_new_path) do
+         :ok <-
+           provision_new_path(
+             name,
+             language,
+             release_version,
+             download_path,
+             current_sname_new_path
+           ),
+         :ok <-
+           provision_new_path(name, language, release_version, download_path, new_sname_new_path) do
       if is_nil(current_sname) or is_nil(new_sname) do
         {:ok, :full_deployment}
       else
@@ -98,18 +106,20 @@ defmodule Deployer.Release do
   ### ==========================================================================
   defp default, do: Application.fetch_env!(:deployer, __MODULE__)[:adapter]
 
-  defp untar_to_new_path(sname, _download_path, new_path)
-       when is_nil(sname) or is_nil(new_path) do
+  defp provision_new_path(name, _language, _release_version, _download_path, new_path)
+       when is_nil(name) or is_nil(new_path) do
     :ok
   end
 
-  defp untar_to_new_path(_sname, download_path, new_path) do
+  defp provision_new_path(name, language, release_version, download_path, new_path) do
     # Prepare new folder to receive the release binaries
     File.rm_rf(new_path)
     File.mkdir_p(new_path)
 
-    case System.cmd("tar", ["-x", "-f", download_path, "-C", new_path]) do
-      {"", 0} -> :ok
+    with {"", 0} <- System.cmd("tar", ["-x", "-f", download_path, "-C", new_path]),
+         :ok <- Upgrade.prepare_new_path(name, language, release_version, new_path) do
+      :ok
+    else
       _ -> {:error, :untar}
     end
   end

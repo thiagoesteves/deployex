@@ -188,6 +188,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -247,6 +248,9 @@ defmodule Deployer.DeploymentTest do
           %{version: "1.0.0", hash: "local", pre_commands: []}
         end
       end)
+
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
@@ -326,6 +330,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -395,6 +400,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -486,6 +492,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -574,6 +581,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -662,6 +670,9 @@ defmodule Deployer.DeploymentTest do
         end
       end)
 
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+
       assert capture_log(fn ->
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
@@ -745,6 +756,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^automatic_version,
                                 to_version: ^manual_version
@@ -831,6 +843,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^manual_version,
                                 to_version: ^automatic_version
@@ -905,6 +918,9 @@ defmodule Deployer.DeploymentTest do
         :ok
       end)
 
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
@@ -966,6 +982,9 @@ defmodule Deployer.DeploymentTest do
       |> expect(:download_release, 1, fn _app_name, ^version_to_ghost, _download_path ->
         :ok
       end)
+
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
@@ -1045,6 +1064,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
       |> expect(:check, 1, fn %Deployer.Upgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
@@ -1121,6 +1141,9 @@ defmodule Deployer.DeploymentTest do
           :ok
         end
       end)
+
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       assert capture_log(fn ->
                with_mock System, [:passthrough],

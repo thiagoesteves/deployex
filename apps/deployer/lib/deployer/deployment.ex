@@ -206,7 +206,7 @@ defmodule Deployer.Deployment do
 
   defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
 
-  defp rollback_to_previous_version(%{current: current} = state) do
+  defp rollback_to_previous_version(%{current: current, name: name} = state) do
     current_sname = state.deployments[current].sname
 
     # Add current version to the ghosted version list
@@ -220,17 +220,18 @@ defmodule Deployer.Deployment do
     # Retrieve previous version
     previous_version_map = Status.history_version_list(current) |> Enum.at(1)
 
+    new_sname = new_sname(name)
+
     deploy_application = fn ->
       release_info = %Deployer.Release{
-        current_sname: current_sname,
-        current_sname_current_path: Catalog.current_path(current_sname),
-        current_sname_new_path: Catalog.new_path(current_sname),
+        new_sname: new_sname,
+        new_sname_new_path: Catalog.new_path(new_sname),
         release_version: previous_version_map.version
       }
 
       case Release.download_and_unpack(release_info) do
         {:ok, _} ->
-          full_deployment(state, current_sname, previous_version_map)
+          full_deployment(state, new_sname, previous_version_map)
 
         {:error, _reason} ->
           state
