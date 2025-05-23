@@ -6,11 +6,10 @@ defmodule Host.Terminal do
   @type t :: %__MODULE__{
           commands: String.t(),
           metadata: any(),
-          myself: pid() | nil,
+          node: node() | nil,
           process: pid() | nil,
           msg_sequence: integer(),
           target: pid() | nil,
-          instance: non_neg_integer(),
           status: :open | :closed,
           message: String.t() | nil,
           options: list(),
@@ -19,10 +18,9 @@ defmodule Host.Terminal do
 
   defstruct commands: nil,
             metadata: nil,
-            myself: nil,
+            node: nil,
             process: nil,
             msg_sequence: 0,
-            instance: 0,
             target: nil,
             status: :open,
             message: nil,
@@ -34,7 +32,7 @@ defmodule Host.Terminal do
   ### ==========================================================================
 
   @doc """
-  Starts a new Terminal server instance
+  Starts a new Terminal Server
   """
   @spec new(t()) :: {:ok, pid} | {:error, pid(), :already_started}
   def new(%__MODULE__{} = attrs), do: __MODULE__.Supervisor.new(attrs)

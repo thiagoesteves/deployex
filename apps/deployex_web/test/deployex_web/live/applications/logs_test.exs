@@ -10,20 +10,25 @@ defmodule DeployexWeb.Applications.LogsTest do
     :log_in_default_user
   ]
 
-  alias DeployexWeb.Fixture.Monitoring
+  alias Deployer.Fixture.Files, as: FixtureFiles
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
+  alias DeployexWeb.Helper
+  alias Foundation.Catalog
+  alias Host.Fixture.Terminal, as: FixtureTerminal
 
   test "Access to stdout logs by instance", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -37,8 +42,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(sname)
+
+    assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     FixtureTerminal.terminate_all()
 
@@ -49,12 +56,15 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -68,8 +78,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stderr-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(sname)
+
+    assert index_live |> element("#app-log-stderr-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     FixtureTerminal.terminate_all()
 
@@ -80,12 +92,15 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -99,8 +114,10 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stdout-1") |> render_click() =~
-             "Application Logs [1]"
+    Catalog.setup(sname)
+
+    assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)
@@ -117,12 +134,15 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
+    name = "test_app"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     Host.CommanderMock
@@ -134,10 +154,12 @@ defmodule DeployexWeb.Applications.LogsTest do
       :ok
     end)
 
+    FixtureFiles.create_log_files(sname)
+
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert index_live |> element("#app-log-stderr-1") |> render_click() =~
-             "Application Logs [1]"
+    assert index_live |> element("#app-log-stderr-#{name_id}-#{suffix}") |> render_click() =~
+             "Application Logs [#{name}-#{suffix}]"
 
     message = "[info] my-info-message"
     update_log_message(os_pid, message)
@@ -152,16 +174,14 @@ defmodule DeployexWeb.Applications.LogsTest do
 
   test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert html = index_live |> element("#app-log-stdout-0") |> render_click()
-    assert html =~ "Application Logs [0]"
+    assert html = index_live |> element("#app-log-stdout-deployex") |> render_click()
+    assert html =~ "Application Logs [deployex]"
     assert html =~ "File not found"
   end
 

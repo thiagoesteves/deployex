@@ -3,6 +3,7 @@ defmodule DeployexWeb.Helper do
   This module contains functions to be shared among other modules
   """
 
+  alias Foundation.Catalog
   alias Foundation.Common
   alias Sentinel.Logs.Message
 
@@ -69,6 +70,40 @@ defmodule DeployexWeb.Helper do
     Enum.reduce(messages, [], fn message, acc ->
       acc ++ normalize_log(message, service, log_type)
     end)
+  end
+
+  @doc """
+  This function exchange "_" and "@" to -
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.normalize_id(:"my_app-1@host") == "my-app-1-host"
+    ...> assert Helper.normalize_id("my_app-2@host") == "my-app-2-host"
+  """
+  def normalize_id(node) when is_atom(node) do
+    node |> Atom.to_string() |> normalize_id()
+  end
+
+  def normalize_id(text) do
+    String.replace(text, ["@", "_"], "-")
+  end
+
+  @doc """
+  This function return the node from a node_info request
+  """
+
+  def sname_to_node(sname) do
+    %{node: node} = Catalog.node_info(sname)
+    node
+  end
+
+  @doc """
+  This function return the short name for the self node
+  """
+  def self_sname do
+    [sname, _hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
+    sname
   end
 
   @doc """

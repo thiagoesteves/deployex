@@ -5,9 +5,8 @@ defmodule DeployexWeb.Terminal.IndexTest do
   import Mox
   import Mock
 
-  alias DeployexWeb.Fixture.Monitoring
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Terminal, as: FixtureTerminal
+  alias Host.Fixture.Terminal, as: FixtureTerminal
 
   setup [
     :set_mox_global,
@@ -17,10 +16,8 @@ defmodule DeployexWeb.Terminal.IndexTest do
 
   test "GET /applications check buttom", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, Monitoring.list()} end)
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:monitored_app_name, fn -> "testapp" end)
-    |> stub(:monitored_app_lang, fn -> "elixir" end)
     |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")

@@ -1,9 +1,9 @@
 defmodule DeployexWeb.LogsLive do
   use DeployexWeb, :live_view
 
+  alias Deployer.Monitor
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
-  alias Foundation.Catalog
   alias Sentinel.Logs
 
   @impl true
@@ -18,6 +18,7 @@ defmodule DeployexWeb.LogsLive do
       assigns
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
+      |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
     <div class="min-h-screen bg-white">
@@ -30,8 +31,12 @@ defmodule DeployexWeb.LogsLive do
             %{name: "logs", keys: @node_info.selected_logs}
           ]}
           unselected={[
-            %{name: "services", keys: @unselected_services},
-            %{name: "logs", keys: @unselected_logs}
+            %{
+              name: "services",
+              keys: @unselected_services,
+              unselected_highlight: @services_unselected_highlight
+            },
+            %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
           ]}
           show_options={@show_log_options}
         />
@@ -71,6 +76,9 @@ defmodule DeployexWeb.LogsLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
+    # Subscribe to receive a notification every time we have a new deploy
+    Monitor.subscribe_new_deploy()
+
     {:ok,
      socket
      |> assign(:node_info, update_node_info())
@@ -173,6 +181,19 @@ defmodule DeployexWeb.LogsLive do
   end
 
   @impl true
+  def handle_info(
+        {:new_deploy, source_node, _sname},
+        %{assigns: %{node_info: node_info}} = socket
+      ) do
+    if source_node == Node.self() do
+      node_info = update_node_info(node_info.selected_services, node_info.selected_logs)
+
+      {:noreply, assign(socket, :node_info, node_info)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_info({:logs_new_data, service, log_type, data}, socket) do
     messages = Helper.normalize_log(data, service, log_type)
 
@@ -185,7 +206,7 @@ defmodule DeployexWeb.LogsLive do
       logs_keys: [],
       selected_services: [],
       selected_logs: [],
-      node: []
+      sname: []
     }
   end
 
@@ -199,41 +220,33 @@ defmodule DeployexWeb.LogsLive do
           selected_logs: selected_logs
       }
 
-    {:ok, hostname} = :inet.gethostname()
-
-    instance_to_node = fn instance ->
-      :"#{Catalog.sname(instance)}@#{hostname}"
-    end
-
-    Catalog.instance_list()
-    |> Enum.reduce(initial_map, fn instance,
+    (Monitor.list() ++ [Helper.self_sname()])
+    |> Enum.reduce(initial_map, fn service_sname,
                                    %{
                                      services_keys: services_keys,
                                      logs_keys: logs_keys,
-                                     node: node
+                                     sname: sname
                                    } = acc ->
-      service_node = instance_to_node.(instance)
-      service = to_string(service_node)
+      service = to_string(service_sname)
       services_keys = services_keys ++ [service]
 
-      node_logs_keys = Logs.get_types_by_node(service_node)
-      logs_keys = (logs_keys ++ node_logs_keys) |> Enum.uniq()
+      sname_logs_keys = Logs.get_types_by_sname(service_sname)
+      logs_keys = (logs_keys ++ sname_logs_keys) |> Enum.uniq()
 
-      node =
+      sname =
         if service in selected_services do
           [
             %{
-              instance: instance,
               logs_keys: logs_keys,
               service: service
             }
-            | node
+            | sname
           ]
         else
-          node
+          sname
         end
 
-      %{acc | services_keys: services_keys, logs_keys: logs_keys, node: node}
+      %{acc | services_keys: services_keys, logs_keys: logs_keys, sname: sname}
     end)
   end
 end

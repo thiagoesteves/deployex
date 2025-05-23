@@ -21,10 +21,22 @@ defmodule Deployer.Deployment do
   alias Deployer.Status
   alias Deployer.Upgrade
   alias Foundation.Catalog
-  alias Foundation.Common
 
-  defstruct instances: 1,
+  @type t :: %__MODULE__{
+          replicas: non_neg_integer(),
+          current: non_neg_integer(),
+          name: String.t(),
+          language: String.t(),
+          ghosted_version_list: list(),
+          deployments: map(),
+          timeout_rollback: non_neg_integer(),
+          schedule_interval: non_neg_integer()
+        }
+
+  defstruct replicas: 1,
             current: 1,
+            name: "",
+            language: "",
             ghosted_version_list: [],
             deployments: %{},
             timeout_rollback: 0,
@@ -48,19 +60,60 @@ defmodule Deployer.Deployment do
 
     schedule_new_deployment(schedule_interval)
 
+    initial_port = Catalog.monitored_app_start_port()
+    language = Catalog.monitored_app_lang()
+    name = Catalog.monitored_app_name()
+
+    check_installled_apps = fn
+      [] ->
+        []
+
+      installed_snames ->
+        current_version =
+          case Enum.at(Status.history_version_list(), 0) do
+            %Catalog.Version{version: version} -> version
+            _ -> nil
+          end
+
+        # NOTE: Check all installed versions that are using the current version
+        #       and cleanup the snames that are not in the current version
+        Enum.reduce(installed_snames, [], fn sname, acc ->
+          with true <- current_version == Status.current_version(sname),
+               bin_path when bin_path != nil <- Catalog.bin_path(sname, language, :current) do
+            acc ++ [sname]
+          else
+            _ ->
+              Catalog.cleanup(sname)
+              acc
+          end
+        end)
+    end
+
+    snames = check_installled_apps.(Status.list_installed_apps(name))
+
     deployments =
       Catalog.replicas_list()
-      |> Enum.reduce(%{}, fn instance, acc ->
-        Map.put(acc, instance, %{state: :init, timer_ref: nil, deploy_ref: nil})
+      |> Enum.with_index(fn instance, index ->
+        {instance, initial_port + index, Enum.at(snames, index)}
+      end)
+      |> Enum.reduce(%{}, fn {instance, port, sname}, acc ->
+        Map.put(acc, instance, %{
+          state: :init,
+          timer_ref: nil,
+          sname: sname,
+          port: port
+        })
       end)
 
     {:ok,
      %__MODULE__{
-       instances: Catalog.replicas(),
+       replicas: Catalog.replicas(),
        deployments: deployments,
        timeout_rollback: timeout_rollback,
        schedule_interval: schedule_interval,
-       ghosted_version_list: Status.ghosted_version_list()
+       ghosted_version_list: Status.ghosted_version_list(),
+       name: name,
+       language: language
      }}
   end
 
@@ -87,14 +140,14 @@ defmodule Deployer.Deployment do
     {:noreply, new_state}
   end
 
-  def handle_info({:timeout_rollback, instance, deploy_ref}, state) do
+  def handle_info({:timeout_rollback, instance, sname}, state) do
     current_deployment = state.deployments[state.current]
 
     state =
-      if instance == state.current and deploy_ref == current_deployment.deploy_ref do
+      if instance == state.current and sname == current_deployment.sname do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        Monitor.stop_service(state.current)
+        Monitor.stop_service(state.deployments[state.current].sname)
 
         rollback_to_previous_version(state)
       else
@@ -106,23 +159,22 @@ defmodule Deployer.Deployment do
   end
 
   @impl true
-  def handle_cast({:application_running, instance, deploy_ref}, %__MODULE__{} = state) do
+  def handle_cast({:application_running, sname}, %__MODULE__{} = state) do
     current_deployment = state.deployments[state.current]
 
     state =
-      if instance == state.current and
-           deploy_ref == current_deployment.deploy_ref do
+      if sname == current_deployment.sname do
         Process.cancel_timer(current_deployment.timer_ref)
 
-        new_current =
-          if state.current == state.instances, do: 1, else: state.current + 1
+        new_instance =
+          if state.current == state.replicas, do: 1, else: state.current + 1
 
-        Logger.info(" # Moving to the next instance: #{new_current}")
+        Logger.info(" # Moving to the next instance: #{new_instance}")
 
-        %{state | current: new_current}
+        %{state | current: new_instance}
       else
         Logger.warning(
-          "Received instance: #{instance} deploy_ref: #{deploy_ref} that doesn't match the expected one: #{state.current} deploy_ref: #{current_deployment.deploy_ref}"
+          "Received sname: #{sname} that doesn't match the expected one: #{state.current} sname: #{current_deployment.sname}"
         )
 
         state
@@ -136,16 +188,16 @@ defmodule Deployer.Deployment do
   ### ==========================================================================
 
   @doc """
-  Notifies the server that a specific application instance is now running.
+  Notifies the server that a specific application sname is now running.
 
   ## Examples
 
-      iex> Deployer.Deployment.notify_application_running(instance, deploy_ref)
+      iex> Deployer.Deployment.notify_application_running(sname)
       :ok
   """
-  @spec notify_application_running(integer(), String.t()) :: :ok
-  def notify_application_running(name \\ __MODULE__, instance, deploy_ref) do
-    GenServer.cast(name, {:application_running, instance, deploy_ref})
+  @spec notify_application_running(atom(), String.t()) :: :ok
+  def notify_application_running(name \\ __MODULE__, sname) do
+    GenServer.cast(name, {:application_running, sname})
   end
 
   ### ==========================================================================
@@ -154,28 +206,34 @@ defmodule Deployer.Deployment do
 
   defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
 
-  defp rollback_to_previous_version(%{current: instance} = state) do
+  defp rollback_to_previous_version(%{current: current, name: name} = state) do
+    current_sname = state.deployments[current].sname
+
     # Add current version to the ghosted version list
     {:ok, new_list} =
-      state.current
+      current
       |> Status.current_version_map()
       |> Status.add_ghosted_version()
 
     state = %{state | ghosted_version_list: new_list}
 
     # Retrieve previous version
-    previous_version_map = Status.history_version_list(instance) |> Enum.at(1)
+    previous_version_map = Status.history_version_list(current) |> Enum.at(1)
+
+    new_sname = new_sname(name)
 
     deploy_application = fn ->
-      case Release.download_and_unpack(instance, previous_version_map.version) do
+      release_info = %Deployer.Release{
+        new_sname: new_sname,
+        new_sname_new_path: Catalog.new_path(new_sname),
+        release_version: previous_version_map.version
+      }
+
+      case Release.download_and_unpack(release_info) do
         {:ok, _} ->
-          full_deployment(state, previous_version_map)
+          full_deployment(state, new_sname, previous_version_map)
 
-        reason ->
-          Logger.error(
-            "Error while rolling back instance: #{instance} to previous version, reason: #{inspect(reason)}"
-          )
-
+        {:error, _reason} ->
           state
       end
     end
@@ -184,65 +242,94 @@ defmodule Deployer.Deployment do
       deploy_application.()
     else
       Logger.warning(
-        "Rollback requested for instance: #{instance} is not possible, no previous version available"
+        "Rollback requested for sname: #{current_sname} is not possible, no previous version available"
       )
 
       state
     end
   end
 
-  defp initialize_version(state) do
-    current_app_version = Status.current_version(state.current)
-    new_deploy_ref = Common.random_small_alphanum()
+  defp initialize_version(%{language: language, current: current} = state) do
+    sname = state.deployments[current].sname
+    port = state.deployments[current].port
+    current_version = Status.current_version(sname)
 
-    if current_app_version != nil do
-      {:ok, _} =
-        Monitor.start_service(Catalog.monitored_app_lang(), state.current, new_deploy_ref)
+    if sname != nil and current_version != nil do
+      {:ok, _} = Monitor.start_service(sname, language, port)
 
-      set_timeout_to_rollback(state, new_deploy_ref)
+      set_timeout_to_rollback(state, sname)
     else
       state
     end
   end
 
-  defp check_deployment(%{current: instance, ghosted_version_list: ghosted_version_list} = state) do
-    release = Release.get_current_version_map()
-    current_app_version = Status.current_version(instance) || "<no current set>"
+  # credo:disable-for-lines:1
+  defp check_deployment(
+         %{current: current, ghosted_version_list: ghosted_version_list, name: name} = state
+       ) do
+    current_sname = state.deployments[current].sname
+    current_version = current_sname && Status.current_version(current_sname)
 
-    ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release.version))
+    %{version: release_version, pre_commands: pre_commands} =
+      release = Release.get_current_version_map(name)
+
+    ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release_version))
 
     deploy_application = fn ->
-      case Release.download_and_unpack(instance, release.version) do
+      new_sname = new_sname(name)
+
+      release_info = %Deployer.Release{
+        current_sname: current_sname,
+        current_sname_current_path: Catalog.current_path(current_sname),
+        current_sname_new_path: Catalog.new_path(current_sname),
+        new_sname: new_sname,
+        new_sname_new_path: Catalog.new_path(new_sname),
+        current_version: current_version,
+        release_version: release_version
+      }
+
+      case Release.download_and_unpack(release_info) do
         {:ok, :full_deployment} ->
-          full_deployment(state, release)
+          full_deployment(state, new_sname, release)
 
         {:ok, :hot_upgrade} ->
           # To run the migrations for the hot upgrade deployment, deployex relies on the
           # unpacked version in the new-folder
-          Monitor.run_pre_commands(instance, release.pre_commands, :new)
-          hot_upgrade(state, release)
+          Monitor.run_pre_commands(current_sname, pre_commands, :new)
+
+          hot_upgrade(state, new_sname, release)
+
+        {:error, _reason} ->
+          state
       end
     end
 
-    if release.version != nil and release.version != current_app_version and not ghosted_version? do
-      log_message =
-        "Update is needed at instance: #{instance} from: #{current_app_version} to: #{release.version}"
+    cond do
+      is_nil(current_version) and is_nil(release_version) ->
+        Logger.warning("No versions set yet for #{name}")
+        state
 
-      Logger.info(log_message)
+      release_version != nil and release_version != current_version and not ghosted_version? ->
+        version = current_version || "<no current set>"
 
-      deploy_application.()
-    else
-      state
+        Logger.info(
+          "Update is needed at sname: #{current_sname} from: #{version} to: #{release_version}"
+        )
+
+        deploy_application.()
+
+      true ->
+        state
     end
   end
 
-  defp set_timeout_to_rollback(%{deployments: deployments} = state, deploy_ref) do
+  defp set_timeout_to_rollback(%{deployments: deployments} = state, sname) do
     current_deployment = state.deployments[state.current]
 
     timer_ref =
       Process.send_after(
         self(),
-        {:timeout_rollback, state.current, deploy_ref},
+        {:timeout_rollback, state.current, sname},
         state.timeout_rollback,
         []
       )
@@ -251,66 +338,72 @@ defmodule Deployer.Deployment do
       Map.put(deployments, state.current, %{
         current_deployment
         | timer_ref: timer_ref,
-          deploy_ref: deploy_ref
+          sname: sname
       })
 
     %{state | deployments: deployments}
   end
 
-  defp full_deployment(%{current: instance} = state, release) do
-    new_deploy_ref = Common.random_small_alphanum()
-
+  defp full_deployment(%{current: instance, language: language} = state, new_sname, release) do
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      log_message =
-        "Full deploy instance: #{instance} deploy_ref: #{new_deploy_ref}"
+      Logger.info("Full deploy instance: #{instance} sname: #{new_sname}")
 
-      Logger.info(log_message)
+      sname = state.deployments[instance].sname
 
-      Monitor.stop_service(instance)
+      Monitor.stop_service(sname)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
       :timer.sleep(Application.fetch_env!(:deployer, __MODULE__)[:delay_between_deploys_ms])
 
-      Status.update(instance)
+      Status.update(new_sname)
 
-      Status.set_current_version_map(instance, release,
-        deployment: :full_deployment,
-        deploy_ref: new_deploy_ref
-      )
+      Status.set_current_version_map(new_sname, release, deployment: :full_deployment)
 
-      {:ok, _} = Monitor.start_service(Catalog.monitored_app_lang(), instance, new_deploy_ref)
+      port = state.deployments[state.current].port
+
+      {:ok, _} = Monitor.start_service(new_sname, language, port)
+
+      Catalog.cleanup(sname)
     end)
 
-    set_timeout_to_rollback(state, new_deploy_ref)
+    set_timeout_to_rollback(state, new_sname)
   end
 
-  defp hot_upgrade(%{current: instance} = state, release) do
+  defp hot_upgrade(
+         %{current: instance, name: name, language: language} = state,
+         new_sname,
+         release
+       ) do
     # For hot code reloading, the previous deployment code is not changed
-    deploy_ref = state.deployments[instance].deploy_ref
+    sname = state.deployments[instance].sname
 
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      log_message =
-        "Hot upgrade instance: #{instance} deploy_ref: #{deploy_ref}"
+      Logger.info("Hot upgrade instance: #{instance} sname: #{sname}")
 
-      Logger.info(log_message)
+      from_version = Status.current_version(sname)
 
-      from_version = Status.current_version(instance)
+      %{node: node} = Catalog.node_info(sname)
 
-      case Upgrade.execute(
-             instance,
-             Catalog.monitored_app_name(),
-             Catalog.monitored_app_lang(),
-             from_version,
-             release.version
-           ) do
+      upgrade_data = %Deployer.Upgrade.Execute{
+        node: node,
+        sname: sname,
+        name: name,
+        language: language,
+        current_path: Catalog.current_path(sname),
+        new_path: Catalog.new_path(sname),
+        from_version: from_version,
+        to_version: release.version
+      }
+
+      case Upgrade.execute(upgrade_data) do
         :ok ->
-          Status.set_current_version_map(instance, release,
-            deployment: :hot_upgrade,
-            deploy_ref: deploy_ref
-          )
+          Status.set_current_version_map(sname, release, deployment: :hot_upgrade)
 
-          notify_application_running(instance, deploy_ref)
+          # Cleanup Any folder left for the new sname
+          Catalog.cleanup(new_sname)
+
+          notify_application_running(sname)
           :ok
 
         _reason ->
@@ -318,12 +411,21 @@ defmodule Deployer.Deployment do
       end
     end)
 
-    if Status.current_version(instance) != release.version do
+    if Status.current_version(sname) != release.version do
       Logger.error("Hot Upgrade failed, running for full deployment")
 
-      full_deployment(state, release)
+      full_deployment(state, new_sname, release)
     else
       state
     end
+  end
+
+  def new_sname(name) do
+    sname = Catalog.create_sname(name)
+
+    # Setup Logs and folders
+    Catalog.setup(sname)
+
+    sname
   end
 end

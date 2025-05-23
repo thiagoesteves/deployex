@@ -17,10 +17,10 @@ defmodule Mix.Shared do
       ignore_modules: [
         # Deployer
         Deployer.Application,
+        Deployer.Monitor.Adapter,
         Deployer.Monitor.Supervisor,
         Deployer.Release.Version,
-        Deployer.Fixture.Binary,
-        Foundation.Fixture.Catalog,
+        Deployer.Fixture.Files,
         # DeployEx Web
         DeployexWeb.Application,
         DeployexWeb.Layouts,
@@ -29,22 +29,20 @@ defmodule Mix.Shared do
         DeployexWeb.ErrorHTML,
         DeployexWeb.CoreComponents,
         DeployexWeb.Fixture.Status,
-        DeployexWeb.Fixture.Binary,
-        DeployexWeb.Fixture.Monitoring,
-        DeployexWeb.Fixture.Nodes,
-        DeployexWeb.Fixture.Terminal,
         # Foundation
         Foundation.Rpc,
         Foundation.RpcMock,
         Foundation.Macros,
         Foundation.Application,
         Foundation.Catalog.Version,
+        Foundation.Catalog.Node,
         # Host
         Host.Memory,
         Host.Commander.Local,
         Host.Terminal.Server.Message,
         Host.Application,
         Host.Terminal.Supervisor,
+        Host.Fixture.Terminal,
         # Sentinel
         Sentinel.Application,
         Sentinel.Watchdog.Data

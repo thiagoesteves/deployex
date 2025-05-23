@@ -2,13 +2,16 @@ defmodule Deployer.DeploymentTest do
   use ExUnit.Case, async: false
 
   import Mox
+  import Mock
   import ExUnit.CaptureLog
 
   setup :set_mox_global
   setup :verify_on_exit!
 
   alias Deployer.Deployment
+  alias Deployer.Fixture.Files, as: FixtureFiles
   alias Foundation.Catalog
+  alias Foundation.Common
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
@@ -17,99 +20,141 @@ defmodule Deployer.DeploymentTest do
 
   describe "Initialization tests" do
     test "init/1" do
-      name = "#{__MODULE__}-init-000" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 5_000,
-                 name: name
-               )
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 5_000,
+                   name: module_name
+                 )
 
-      assert {:error, {:already_started, _pid}} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 5_000,
-                 name: name
-               )
+        assert {:error, {:already_started, _pid}} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 5_000,
+                   name: module_name
+                 )
+      end
     end
 
     test "Initialization with version not configured" do
-      name = "#{__MODULE__}-init-001" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn _instance ->
-        Process.send_after(pid, {:handle_ref_event, ref}, 100)
-        nil
-      end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:current_version, 1, fn _sname -> "1.0.0" end)
+      |> expect(:update, 0, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 0, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:stop_service, 0, fn _sname -> :ok end)
+      |> expect(:start_service, 0, fn _sname, _language, _port, _options -> {:ok, self()} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn -> %Deployer.Release.Version{} end)
+      |> stub(:download_version_map, fn _app_name ->
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 10,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
+        end
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+        nil
+      end)
+      |> expect(:download_release, 0, fn _app_name, _version, _download_path -> :ok end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Deployment.start_link(
+                            timeout_rollback: 1_000,
+                            schedule_interval: 10,
+                            name: module_name,
+                            mStatus: Deployer.StatusMock
+                          )
+
+                 assert_receive {:handle_ref_event, ^ref}, 1_000
+               end
+             end) =~ "No versions set yet for testapp"
     end
 
     test "Initialization with version configured" do
-      name = "#{__MODULE__}-init-002" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
+      sname = Catalog.create_sname("test_app")
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> expect(:current_version, fn _instance -> "1.2.3" end)
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> expect(:current_version, 2, fn _sname -> version end)
+      |> expect(:history_version_list, fn -> [%Catalog.Version{version: version}] end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 1, fn ^sname, _language, _port, _options ->
         send(pid, {:handle_ref_event, ref})
         {:ok, self()}
       end)
 
       Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 0, fn -> %Deployer.Release.Version{} end)
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 10,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
     end
   end
 
   describe "Checking deployment" do
     test "Check for new version - full deployment - no pre-commands" do
-      name = "#{__MODULE__}-check-000" |> String.to_atom()
-
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> expect(:current_version, 2, fn _instance -> "1.0.0" end)
-      |> expect(:update, 1, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 1 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -121,145 +166,217 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn _instance -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 1, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
-      end)
-      |> expect(:download_and_unpack, 1, fn _instance, "2.0.0" ->
-        {:ok, :full_deployment}
-      end)
+      |> expect(:download_version_map, 2, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 10,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
-
-      assert_receive {:handle_ref_event, ^ref}, 1_000
-    end
-
-    test "Check for new version - ignore ghosted version" do
-      name = "#{__MODULE__}-check-001" |> String.to_atom()
-
-      ref = make_ref()
-      pid = self()
-
-      Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [%{version: "2.0.0"}] end)
-      |> expect(:update, 0, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
-      |> stub(:current_version, fn _instance -> "1.0.0" end)
-
-      Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, _instance, _deploy_ref, _options ->
-        {:ok, self()}
-      end)
-      |> expect(:stop_service, 0, fn _instance -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
-
-      Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 0, fn _instance, "2.0.0" ->
-        {:ok, :full_deployment}
-      end)
-      |> stub(:get_current_version_map, fn ->
-        # Leave check deployment running for a few cycles
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
-
-        if called > 2 do
-          send(pid, {:handle_ref_event, ref})
-        end
-
-        %{version: "2.0.0", hash: "local", pre_commands: []}
-      end)
-
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 10,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
-
-      assert_receive {:handle_ref_event, ^ref}, 1_000
-    end
-
-    test "Check for new version - hotupgrade - pre-commands" do
-      name = "#{__MODULE__}-check-002" |> String.to_atom()
-
-      ref = make_ref()
-      pid = self()
-
-      Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
-      |> expect(:current_version, 4, fn _instance ->
-        # 0 -> init
-        # 1 -> check_deployment
-        # 2 -> hotupgrade before upgrade
-        # 3 -> after hotupgrade
-        called = Process.get("current_version", 0)
-        Process.put("current_version", called + 1)
-
-        if called == 3 do
-          send(pid, {:handle_ref_event, ref})
-          "2.0.0"
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
         else
-          "1.0.0"
+          %{version: from_version, hash: "local", pre_commands: []}
         end
       end)
-      |> expect(:update, 0, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
-
-      Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, _instance, _deploy_ref, _options ->
-        {:ok, self()}
-      end)
-      |> expect(:stop_service, 0, fn _instance -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _instance, _release, :new -> {:ok, []} end)
-
-      Deployer.ReleaseMock
-      |> expect(:get_current_version_map, 1, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
-      end)
-      |> expect(:download_and_unpack, 1, fn _instance, "2.0.0" ->
-        {:ok, :hot_upgrade}
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
       end)
 
       Deployer.UpgradeMock
-      |> expect(:execute, 1, fn _instance, _app_name, _app_lang, "1.0.0", "2.0.0" -> :ok end)
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 10,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
     end
 
-    test "Failure on executing the hotupgrade - pre-commands" do
-      name = "#{__MODULE__}-check-003" |> String.to_atom()
+    test "Check for new version - ignore ghosted version" do
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
+      ref = make_ref()
+      pid = self()
+
+      ghosted_version = "2.0.0"
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn -> [%{version: ghosted_version}] end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
+        {:ok, self()}
+      end)
+      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_release, 1, fn _app_name, "1.0.0", _download_path ->
+        :ok
+      end)
+      |> stub(:download_version_map, fn _app_name ->
+        # Leave check deployment running for a few cycles
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          Process.send_after(pid, {:handle_ref_event, ref}, 100)
+          %{version: ghosted_version, hash: "local", pre_commands: []}
+        else
+          %{version: "1.0.0", hash: "local", pre_commands: []}
+        end
+      end)
+
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
+    end
+
+    test "Check for new version - hotupgrade - pre-commands" do
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
+      from_version = "1.0.0"
+      to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn _instance ->
-        # keep the version unchanged, triggering full deployment
-        "1.0.0"
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # 0 -> check_deployment
+        # 1 -> hotupgrade before upgrade
+        # 2 -> after hotupgrade
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
       end)
-      |> expect(:update, 1, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs ->
+        # 0 -> 1.0.0
+        # 1 -> 2.0.0
+        called = Process.get("set_current_version_map", 0)
+        Process.put("set_current_version_map", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
+        end
+
+        :ok
+      end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
+        {:ok, self()}
+      end)
+      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 1, fn _sname, _release, :new -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_version_map, 2, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :hot_upgrade}
+      end)
+      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
+                                  from_version: ^from_version,
+                                  to_version: ^to_version
+                                } ->
+        :ok
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
+    end
+
+    test "Failure on executing the hotupgrade - pre-commands" do
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn -> [] end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # keep the version unchanged, triggering full deployment
+        from_version
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: new deployment, after hotupgrade fails
         called = Process.get("start_service", 0)
@@ -271,128 +388,166 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _instance -> :ok end)
-      |> stub(:run_pre_commands, fn _instance, _release, :new -> {:ok, []} end)
+      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:run_pre_commands, fn _sname, _release, :new -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: to_version, hash: "local", pre_commands: []}
       end)
-      |> stub(:download_and_unpack, fn _instance, "2.0.0" ->
-        {:ok, :hot_upgrade}
+      |> stub(:download_release, fn _app_name, ^to_version, _download_path ->
+        :ok
       end)
 
       Deployer.UpgradeMock
-      |> stub(:execute, fn _instance, _app_name, _app_lang, "1.0.0", "2.0.0" ->
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :hot_upgrade}
+      end)
+      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
+                                  from_version: ^from_version,
+                                  to_version: ^to_version
+                                } ->
         {:error, "any"}
       end)
 
       assert capture_log(fn ->
-               assert {:ok, _pid} =
-                        Deployment.start_link(
-                          timeout_rollback: 1_000,
-                          schedule_interval: 200,
-                          name: name,
-                          mStatus: Deployer.StatusMock
-                        )
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Deployment.start_link(
+                            timeout_rollback: 1_000,
+                            schedule_interval: 200,
+                            name: module_name,
+                            mStatus: Deployer.StatusMock
+                          )
 
-               assert_receive {:handle_ref_event, ^ref}, 1_000
+                 assert_receive {:handle_ref_event, ^ref}, 1_000
+               end
              end) =~ "Hot Upgrade failed, running for full deployment"
     end
   end
 
   describe "Deployment Status" do
     test "Check deployment succeed and move to the next instance" do
-      name = "#{__MODULE__}-status-000" |> String.to_atom()
-
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update
         # the next ones should be the new version
         called = Process.get("current_version", 0)
         Process.put("current_version", called + 1)
 
-        if called > 1 do
-          "2.0.0"
+        if called > 2 do
+          to_version
         else
-          "1.0.0"
+          from_version
         end
       end)
-      |> expect(:update, 1, fn 1 -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn sname, _language, _port, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
         Process.put("start_service", called + 1)
 
         if called > 0 do
-          send(pid, {:handle_ref_event, ref})
+          send(pid, {:handle_ref_event, ref, sname})
         end
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
       end)
-      |> expect(:download_and_unpack, 1, fn 1, "2.0.0" ->
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
         {:ok, :full_deployment}
       end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 100,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+        assert_receive {:handle_ref_event, ^ref, sname}, 1_000
 
-      state = :sys.get_state(name)
-      deploy_ref = state.deployments[1].deploy_ref
-      Deployer.Deployment.notify_application_running(name, 1, deploy_ref)
-      state = :sys.get_state(name)
+        _state = :sys.get_state(module_name)
+        Deployment.notify_application_running(module_name, sname)
+        state = :sys.get_state(module_name)
 
-      assert state.current == 2
+        assert state.current == 2
+      end
     end
 
     @tag :capture_log
     test "Check deployment won't move to the next instance with invalid notification" do
-      name = "#{__MODULE__}-status-001" |> String.to_atom()
-
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
       test_event_ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update,
         # the next ones should be the new version
         called = Process.get("current_version", 0)
         Process.put("current_version", called + 1)
 
-        if called > 1 do
+        if called > 2 do
           "2.0.0"
         else
-          "1.0.0"
+          from_version
         end
       end)
-      |> expect(:update, 1, fn 1 -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -404,42 +559,144 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
-        %{version: "2.0.0", hash: "local", pre_commands: []}
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
       end)
-      |> expect(:download_and_unpack, 1, fn 1, "2.0.0" ->
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
         {:ok, :full_deployment}
       end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 100,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+        assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      state = :sys.get_state(name)
-      deploy_ref = state.deployments[1].deploy_ref
-      # Send multiple invalid data combination
-      Deployer.Deployment.notify_application_running(name, 99, deploy_ref)
-      Deployer.Deployment.notify_application_running(name, 1, "123456")
-      Deployer.Deployment.notify_application_running(name, 99, "123456")
-      state = :sys.get_state(name)
+        _state = :sys.get_state(module_name)
+        # Send multiple invalid data combination
+        Deployment.notify_application_running(module_name, "invalid_name-99")
+        Deployment.notify_application_running(module_name, "invalid_name-1")
+        Deployment.notify_application_running(module_name, "invalid_name-99")
+        state = :sys.get_state(module_name)
 
-      assert state.current == 1
+        assert state.current == 1
+      end
+    end
+
+    test "Deployment error while trying to download" do
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      test_event_ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn -> [] end)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update,
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          "2.0.0"
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn _sname, _language, _port, _options -> {:ok, self()} end)
+      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> stub(:download_release, fn _app_name, version, _download_path
+                                    when version in [from_version, to_version] ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_release", 0)
+        Process.put("download_release", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, test_event_ref})
+          {:error, :any}
+        else
+          :ok
+        end
+      end)
+
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Deployment.start_link(
+                            timeout_rollback: 1_000,
+                            schedule_interval: 100,
+                            name: module_name,
+                            mStatus: Deployer.StatusMock
+                          )
+
+                 assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+                 state = :sys.get_state(module_name)
+
+                 assert state.current == 1
+               end
+             end) =~ " Download and unpack error: {:error, :any} current_sname:"
     end
   end
 
   describe "Deployment manual version" do
     test "Configure Manual version from automatic" do
-      name = "#{__MODULE__}-manual-000" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
@@ -456,24 +713,25 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
         # First time: initialization version
         # Second time: check_deployment
         # Third time: manual deployment done
         called = Process.get("current_version", 0)
         Process.put("current_version", called + 1)
 
-        if called > 1 do
+        if called > 2 do
           manual_version
         else
           automatic_version
         end
       end)
-      |> expect(:update, 1, fn 1 -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -485,25 +743,43 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> stub(:stop_service, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 1, fn 1, ^manual_version -> {:ok, :full_deployment} end)
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: automatic_version, hash: "local", pre_commands: []}
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [manual_version, automatic_version] ->
+        :ok
+      end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 30_000,
-                 schedule_interval: 200,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^automatic_version,
+                                to_version: ^manual_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 30_000,
+                   schedule_interval: 200,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
     end
 
     test "Configure Automatic version from manual" do
-      name = "#{__MODULE__}-manual-001" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
@@ -526,24 +802,25 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
         # First time: initialization version
         # Second time: check_deployment
         # Third time: automatic deployment done
         called = Process.get("current_version", 0)
         Process.put("current_version", called + 1)
 
-        if called > 1 do
+        if called > 2 do
           automatic_version
         else
           manual_version
         end
       end)
-      |> expect(:update, 1, fn 1 -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -555,29 +832,44 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> stub(:stop_service, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> expect(:download_and_unpack, 1, fn 1, ^automatic_version -> {:ok, :full_deployment} end)
-      |> stub(:get_current_version_map, fn -> automatic_version_map end)
+      |> stub(:download_version_map, fn _app_name -> automatic_version_map end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [automatic_version, manual_version] ->
+        :ok
+      end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 30_000,
-                 schedule_interval: 200,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^manual_version,
+                                to_version: ^automatic_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 30_000,
+                   schedule_interval: 200,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
     end
   end
 
   describe "Deployment rollback" do
     @tag :capture_log
     test "Rollback a version after timeout" do
-      name = "#{__MODULE__}-rollback-000" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
@@ -586,14 +878,15 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 -> version_to_ghost end)
-      |> expect(:update, 1, fn 1 -> :ok end)
-      |> expect(:set_current_version_map, 1, fn _instance, _release, _attrs -> :ok end)
-      |> expect(:current_version_map, 1, fn _instance ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> version_to_ghost end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+      |> expect(:current_version_map, 1, fn _sname ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _instance ->
+      |> expect(:history_version_list, 1, fn _sname ->
         [
           %{version: version_to_ghost, hash: "local", pre_commands: []},
           %{version: version_to_rollback, hash: "local", pre_commands: []}
@@ -601,7 +894,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
         # First time: initialization
         # Second time: rolling back
         called = Process.get("start_service", 0)
@@ -613,35 +906,42 @@ defmodule Deployer.DeploymentTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> stub(:stop_service, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 1, fn 1, ^version_to_rollback ->
-        {:ok, :full_deployment}
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [version_to_ghost, version_to_rollback] ->
+        :ok
       end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 50,
-                 schedule_interval: 200,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 50,
+                   schedule_interval: 200,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
-      assert state.current == 1
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        state = :sys.get_state(module_name)
+        assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
+        assert state.current == 1
+      end
     end
 
     @tag :capture_log
     test "Rollback a version after timeout without history" do
-      name = "#{__MODULE__}-rollback-001" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
@@ -649,28 +949,29 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 -> version_to_ghost end)
-      |> expect(:update, 0, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
-      |> expect(:current_version_map, 1, fn _instance ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> version_to_ghost end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
+      |> expect(:current_version_map, 1, fn _sname ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _instance -> [] end)
+      |> expect(:history_version_list, 1, fn _sname -> [] end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, _instance, _deploy_ref, _options ->
+      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> stub(:stop_service, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
+      |> stub(:download_version_map, fn _app_name ->
         # First time: initialization
         # Second time: check_deployment after rolling back signal without history
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
 
         if called > 0 do
           send(pid, {:handle_ref_event, ref})
@@ -678,77 +979,122 @@ defmodule Deployer.DeploymentTest do
 
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
-      |> expect(:download_and_unpack, 0, fn _instance, _version_to_rollback ->
-        {:ok, :full_deployment}
+      |> expect(:download_release, 1, fn _app_name, ^version_to_ghost, _download_path ->
+        :ok
       end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 50,
-                 schedule_interval: 200,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 50,
+                   schedule_interval: 200,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
-      assert state.current == 1
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        state = :sys.get_state(module_name)
+        assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
+        assert state.current == 1
+      end
     end
 
     test "Invalid rollback message" do
-      name = "#{__MODULE__}-rollback-002" |> String.to_atom()
-
-      start_service_ref = make_ref()
-      running_ref = make_ref()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn _instance -> "1.2.3" end)
-
-      Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, _instance, _deploy_ref, _options ->
-        send(pid, {:handle_ref_event, start_service_ref})
-        {:ok, self()}
-      end)
-
-      Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
-        # For this test, check_deployments() is expected to run
-        # a couple of times after sendint the timeout_rollback
-        # First time: initialization
-        # Second time: first check_deployment
-        # Third time: second check_deployment
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
 
         if called > 2 do
-          send(pid, {:handle_ref_event, running_ref})
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref})
         end
 
-        %Deployer.Release.Version{}
+        {:ok, self()}
+      end)
+      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
       end)
 
-      assert {:ok, pid} =
-               Deployment.start_link(
-                 timeout_rollback: 1_000,
-                 schedule_interval: 100,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
 
-      assert_receive {:handle_ref_event, ^start_service_ref}, 1_000
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Deployment.start_link(
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: module_name,
+                   mStatus: Deployer.StatusMock
+                 )
 
-      send(pid, {:timeout_rollback, 1, make_ref()})
+        assert_receive {:handle_ref_event, ^ref}, 1_000
 
-      assert_receive {:handle_ref_event, ^running_ref}, 1_000
+        _state = :sys.get_state(module_name)
+
+        send(pid, {:timeout_rollback, 1, make_ref()})
+        state = :sys.get_state(module_name)
+
+        assert state.current == 1
+      end
     end
 
-    @tag :capture_log
     test "Failing rolling back a version when downloading and unpacking" do
-      name = "#{__MODULE__}-rollback-003" |> String.to_atom()
+      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
       ref = make_ref()
       pid = self()
@@ -757,14 +1103,15 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.StatusMock
       |> expect(:ghosted_version_list, fn -> [] end)
-      |> stub(:current_version, fn 1 -> version_to_ghost end)
-      |> expect(:update, 0, fn _instance -> :ok end)
-      |> expect(:set_current_version_map, 0, fn _instance, _release, _attrs -> :ok end)
-      |> expect(:current_version_map, 1, fn _instance ->
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> version_to_ghost end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
+      |> expect(:current_version_map, 1, fn _sname ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _instance ->
+      |> expect(:history_version_list, 1, fn _sname ->
         [
           %{version: version_to_ghost, hash: "local", pre_commands: []},
           %{version: version_to_rollback, hash: "local", pre_commands: []}
@@ -772,43 +1119,50 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _language, 1, _deploy_ref, _options -> {:ok, self()} end)
-      |> stub(:stop_service, fn 1 -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _instance, _release, _type -> {:ok, []} end)
+      |> expect(:start_service, 1, fn _sname, _language, _port, _options -> {:ok, self()} end)
+      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
-      |> stub(:get_current_version_map, fn ->
-        # For this test, check_deployments() is expected to run
-        # a couple of times after sendint the timeout_rollback
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
+      end)
+      |> stub(:download_release, fn _app_name, version, _download_path
+                                    when version in [version_to_ghost, version_to_rollback] ->
         # First time: initialization
-        # Second time: first check_deployment
-        # Third time: second check_deployment
-        called = Process.get("get_current_version_map", 0)
-        Process.put("get_current_version_map", called + 1)
+        # Second time: new deployment
+        called = Process.get("download_release", 0)
+        Process.put("download_release", called + 1)
 
         if called > 0 do
           send(pid, {:handle_ref_event, ref})
+          {:error, :any}
+        else
+          :ok
         end
-
-        %{version: version_to_ghost, hash: "local", pre_commands: []}
-      end)
-      |> expect(:download_and_unpack, 1, fn 1, ^version_to_rollback ->
-        {:error, :invalid_unpack}
       end)
 
-      assert {:ok, _pid} =
-               Deployment.start_link(
-                 timeout_rollback: 50,
-                 schedule_interval: 200,
-                 name: name,
-                 mStatus: Deployer.StatusMock
-               )
+      Deployer.UpgradeMock
+      |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Deployment.start_link(
+                            timeout_rollback: 50,
+                            schedule_interval: 200,
+                            name: module_name,
+                            mStatus: Deployer.StatusMock
+                          )
 
-      state = :sys.get_state(name)
-      assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
-      assert state.current == 1
+                 assert_receive {:handle_ref_event, ^ref}, 1_000
+
+                 state = :sys.get_state(module_name)
+                 assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
+                 assert state.current == 1
+               end
+             end) =~ " Download and unpack error: {:error, :any} current_sname:"
     end
   end
 end

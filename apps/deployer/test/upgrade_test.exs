@@ -6,6 +6,8 @@ defmodule Deployer.UpgradeAppTest do
   import ExUnit.CaptureLog
 
   alias Deployer.Upgrade.Application, as: UpgradeApp
+  alias Deployer.Upgrade.Check
+  alias Deployer.Upgrade.Execute
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
@@ -120,69 +122,73 @@ defmodule Deployer.UpgradeAppTest do
 
   setup do
     FixtureCatalog.cleanup()
-    {:ok, hostname} = :inet.gethostname()
 
-    app_name = "testapp"
-    instance = 1
+    app_name = "upgrade_testapp"
+
+    sname = Catalog.create_sname(app_name)
+    %{node: node} = Catalog.node_info(sname)
+    Catalog.setup(sname)
 
     %{
-      node: :"#{app_name}-#{instance}@#{hostname}",
+      node: node,
+      sname: sname,
       app_name: app_name,
-      instance: instance,
+      current_path: Catalog.current_path(sname),
+      new_path: Catalog.new_path(sname),
       from_version: "0.1.0",
       to_version: "0.2.0",
       base_path: Application.get_env(:foundation, :base_path)
     }
   end
 
-  test "connect/1 success connecting to the monitored app", %{
-    node: node,
-    instance: instance
-  } do
+  test "connect/1 success connecting to the monitored app", %{node: node} do
     with_mock Node, connect: fn ^node -> true end do
-      assert {:ok, ^node} = UpgradeApp.connect(instance)
+      assert {:ok, ^node} = UpgradeApp.connect(node)
     end
   end
 
-  test "connect/1 error while trying to connect to the monitored app", %{
-    node: node,
-    instance: instance
-  } do
+  test "connect/1 error while trying to connect to the monitored app", %{node: node} do
     with_mock Node, connect: fn ^node -> false end do
       assert capture_log(fn ->
-               assert {:error, :not_connecting} = UpgradeApp.connect(instance)
+               assert {:error, :not_connecting} = UpgradeApp.connect(node)
              end) =~ "Error while trying to connect with node:"
     end
   end
 
   test "check/1 Elixir full deployment", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, reason"
   end
 
   test "check/1 Elixir valid appup, return hot upgrade detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version,
     base_path: base_path
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    current_releases_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
+    current_releases_path = "#{current_path}/releases/#{to_version}"
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(current_releases_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
@@ -191,148 +197,172 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:ok, :hot_upgrade} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        "#{base_path}/#{app_name}-#{to_version}.tar.gz",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: "#{base_path}/#{app_name}-#{to_version}.tar.gz",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
 
              assert File.exists?("#{current_releases_path}/#{app_name}.tar.gz")
            end) =~ "HOT UPGRADE version DETECTED - [%{\"from\" => \"0.1.0\""
   end
 
   test "check/1 Elixir invalid appup version, return hot upgrade not detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
   end
 
   test "check/1 Elixir invalid jellyfish version, return hot upgrade not detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @incorrect_version_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @invalid_jellyfish_version)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
   end
 
   test "check/1 Elixir invalid appup file, return hot upgrade not detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/testapp-0.2.0/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/testapp.appup", @invalid_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :error_reading_file"
   end
 
   test "check/1 Elixir appup file not found, return hot upgrade not detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/testapp-0.2.0/ebin"
+    new_lib_ebin_path = "#{new_path}/lib/testapp-0.2.0/ebin"
     File.mkdir_p!(new_lib_ebin_path)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "elixir",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found"
   end
 
   test "check/1 Erlang full deployment", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "erlang",
-                        ".",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "erlang",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, result"
   end
 
   test "check/1 Erlang valid appup, return hot upgrade detected", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version,
     base_path: base_path
   } do
-    new_lib_ebin_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    new_lib_priv_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
-    new_releases_path = "#{Catalog.new_path(instance)}/releases"
-    current_releases_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
+    new_lib_priv_path = "#{new_path}/lib/#{app_name}-#{to_version}/priv/appup"
+    new_releases_path = "#{new_path}/releases"
+    current_releases_path = "#{current_path}/releases/#{to_version}"
 
     File.mkdir_p!(new_lib_ebin_path)
     File.mkdir_p!(new_lib_priv_path)
@@ -344,15 +374,19 @@ defmodule Deployer.UpgradeAppTest do
     File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
+             assert :ok = UpgradeApp.prepare_new_path(app_name, "erlang", to_version, new_path)
+
              assert {:ok, :hot_upgrade} =
-                      UpgradeApp.check(
-                        instance,
-                        app_name,
-                        "erlang",
-                        "#{base_path}/#{app_name}-#{to_version}.tar.gz",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "erlang",
+                        download_path: "#{base_path}/#{app_name}-#{to_version}.tar.gz",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
 
              assert File.exists?("#{new_releases_path}/#{app_name}-#{to_version}.rel")
              refute File.exists?("#{new_releases_path}/#{app_name}.rel")
@@ -361,14 +395,25 @@ defmodule Deployer.UpgradeAppTest do
   end
 
   test "check/1 Gleam full deployment", %{
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
     assert capture_log(fn ->
              assert {:ok, :full_deployment} =
-                      UpgradeApp.check(instance, app_name, "gleam", ".", from_version, to_version)
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "gleam",
+                        download_path: ".",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~ "HOT UPGRADE version NOT SUPPORTED, full deployment required"
   end
 
@@ -383,8 +428,10 @@ defmodule Deployer.UpgradeAppTest do
 
   test "make_relup/1 Elixir success", %{
     node: node,
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
@@ -399,13 +446,24 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.make_relup(node, instance, app_name, "elixir", from_version, to_version)
+             UpgradeApp.make_relup(%Execute{
+               node: node,
+               sname: sname,
+               name: app_name,
+               language: "elixir",
+               current_path: current_path,
+               new_path: new_path,
+               from_version: from_version,
+               to_version: to_version
+             })
   end
 
   test "make_relup/1 Elixir error", %{
     node: node,
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
@@ -421,29 +479,33 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :make_relup} =
-                      UpgradeApp.make_relup(
-                        node,
-                        instance,
-                        app_name,
-                        "elixir",
-                        from_version,
-                        to_version
-                      )
+                      UpgradeApp.make_relup(%Execute{
+                        node: node,
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
            end) =~ "systools:make_relup failed, reason: :badrpc"
   end
 
   test "make_relup/1 Erlang success", %{
     node: node,
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
     root = ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
-    new_lib_priv_path = "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup"
-    current_lib_ebin_path = "#{Catalog.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin"
-    current_releases_path = "#{Catalog.current_path(instance)}/releases"
+    new_lib_priv_path = "#{new_path}/lib/#{app_name}-#{to_version}/priv/appup"
+    current_lib_ebin_path = "#{current_path}/lib/#{app_name}-#{to_version}/ebin"
+    current_releases_path = "#{current_path}/releases"
 
     File.mkdir_p!(new_lib_priv_path)
     File.mkdir_p!(current_lib_ebin_path)
@@ -461,7 +523,16 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.make_relup(node, instance, app_name, "erlang", from_version, to_version)
+             UpgradeApp.make_relup(%Execute{
+               node: node,
+               sname: sname,
+               name: app_name,
+               language: "erlang",
+               current_path: current_path,
+               new_path: new_path,
+               from_version: from_version,
+               to_version: to_version
+             })
 
     assert File.exists?("#{current_lib_ebin_path}/#{app_name}.appup")
     assert File.exists?("#{current_releases_path}/#{app_name}-#{to_version}.rel")
@@ -480,10 +551,19 @@ defmodule Deployer.UpgradeAppTest do
       {:ok, to_version}
     end)
 
-    assert :ok = UpgradeApp.unpack_release(node, app_name, to_version)
+    assert :ok =
+             UpgradeApp.unpack_release(%Execute{
+               node: node,
+               name: app_name,
+               to_version: to_version
+             })
   end
 
-  test "unpack_release/1 error", %{node: node, app_name: app_name, to_version: to_version} do
+  test "unpack_release/1 error", %{
+    node: node,
+    app_name: app_name,
+    to_version: to_version
+  } do
     release_link = "#{to_version}/#{app_name}" |> to_charlist
 
     Foundation.RpcMock
@@ -496,7 +576,12 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert capture_log(fn ->
-             assert {:error, :badrpc} = UpgradeApp.unpack_release(node, app_name, to_version)
+             assert {:error, :badrpc} =
+                      UpgradeApp.unpack_release(%Execute{
+                        node: node,
+                        name: app_name,
+                        to_version: to_version
+                      })
            end) =~ "Error while unpacking the release #{to_version}, reason: :badrpc"
   end
 
@@ -510,7 +595,11 @@ defmodule Deployer.UpgradeAppTest do
       {:ok, :any, :any}
     end)
 
-    assert :ok = UpgradeApp.check_install_release(node, to_version)
+    assert :ok =
+             UpgradeApp.check_install_release(%Execute{
+               node: node,
+               to_version: to_version
+             })
   end
 
   test "check_install_release/1 error", %{node: node, to_version: to_version} do
@@ -524,7 +613,11 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert capture_log(fn ->
-             assert {:error, :badrpc} = UpgradeApp.check_install_release(node, to_version)
+             assert {:error, :badrpc} =
+                      UpgradeApp.check_install_release(%Execute{
+                        node: node,
+                        to_version: to_version
+                      })
            end) =~ "release_handler:check_install_release failed, reason: :badrpc"
   end
 
@@ -538,7 +631,11 @@ defmodule Deployer.UpgradeAppTest do
       {:ok, :any, :any}
     end)
 
-    assert :ok = UpgradeApp.install_release(node, to_version)
+    assert :ok =
+             UpgradeApp.install_release(%Execute{
+               node: node,
+               to_version: to_version
+             })
   end
 
   test "install_release/1 error", %{node: node, to_version: to_version} do
@@ -552,14 +649,18 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert capture_log(fn ->
-             assert {:error, :badrpc} = UpgradeApp.install_release(node, to_version)
+             assert {:error, :badrpc} =
+                      UpgradeApp.install_release(%Execute{
+                        node: node,
+                        to_version: to_version
+                      })
            end) =~ "release_handler:install_release failed, reason: :badrpc"
   end
 
   test "permfy/1 Elixir success", %{
     node: node,
     app_name: app_name,
-    instance: instance,
+    new_path: new_path,
     to_version: to_version
   } do
     Foundation.RpcMock
@@ -571,13 +672,20 @@ defmodule Deployer.UpgradeAppTest do
       :ok
     end)
 
-    assert :ok = UpgradeApp.permfy(node, instance, app_name, "elixir", to_version)
+    assert :ok =
+             UpgradeApp.permfy(%Execute{
+               node: node,
+               name: app_name,
+               language: "elixir",
+               new_path: new_path,
+               to_version: to_version
+             })
   end
 
   test "permfy/1 Elixir error", %{
     node: node,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
     Foundation.RpcMock
@@ -591,7 +699,13 @@ defmodule Deployer.UpgradeAppTest do
 
     assert capture_log(fn ->
              assert {:error, :badrpc} =
-                      UpgradeApp.permfy(node, instance, app_name, "elixir", to_version)
+                      UpgradeApp.permfy(%Execute{
+                        node: node,
+                        name: app_name,
+                        language: "elixir",
+                        current_path: current_path,
+                        to_version: to_version
+                      })
            end) =~
              "Error while trying to set a permanent version for #{to_version}, reason: :badrpc"
   end
@@ -599,10 +713,10 @@ defmodule Deployer.UpgradeAppTest do
   test "permfy/1 Erlang success", %{
     node: node,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
-    current_bin_path = "#{Catalog.current_path(instance)}/bin"
+    current_bin_path = "#{current_path}/bin"
 
     File.mkdir_p!(current_bin_path)
 
@@ -618,38 +732,57 @@ defmodule Deployer.UpgradeAppTest do
       :ok
     end)
 
-    assert :ok = UpgradeApp.permfy(node, instance, app_name, "erlang", to_version)
+    assert :ok =
+             UpgradeApp.permfy(%Execute{
+               node: node,
+               name: app_name,
+               language: "erlang",
+               current_path: current_path,
+               to_version: to_version
+             })
+
     assert File.exists?("#{current_bin_path}/#{app_name}")
   end
 
   test "return_original_sys_config/1 Elixir success", %{
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
 
     File.write("#{current_releases_version_path}/original.sys.config", "empty")
     File.rm("#{current_releases_version_path}/sys.config")
 
-    assert :ok = UpgradeApp.return_original_sys_config(instance, "elixir", to_version)
+    assert :ok =
+             UpgradeApp.return_original_sys_config(%Execute{
+               language: "elixir",
+               current_path: current_path,
+               to_version: to_version
+             })
+
     assert File.exists?("#{current_releases_version_path}/sys.config")
   end
 
   test "return_original_sys_config/1 Erlang success", %{
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
-    assert :ok = UpgradeApp.return_original_sys_config(instance, "erlang", to_version)
+    assert :ok =
+             UpgradeApp.return_original_sys_config(%Execute{
+               language: "erlang",
+               current_path: current_path,
+               to_version: to_version
+             })
   end
 
   test "update_sys_config_from_installed_version/1 Elixir success", %{
     node: node,
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
@@ -660,21 +793,21 @@ defmodule Deployer.UpgradeAppTest do
     end)
 
     assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(
-               node,
-               instance,
-               "elixir",
-               to_version
-             )
+             UpgradeApp.update_sys_config_from_installed_version(%Execute{
+               node: node,
+               language: "elixir",
+               current_path: current_path,
+               to_version: to_version
+             })
   end
 
   @tag :skip
   test "update_sys_config_from_installed_version/1 Elixir error", %{
     node: node,
-    instance: instance,
+    current_path: current_path,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
@@ -687,38 +820,40 @@ defmodule Deployer.UpgradeAppTest do
     with_mock File, [:passthrough], rename: fn _source, _destination -> {:error, :any} end do
       assert capture_log(fn ->
                assert {:error, :any} =
-                        UpgradeApp.update_sys_config_from_installed_version(
-                          node,
-                          instance,
-                          "elixir",
-                          to_version
-                        )
+                        UpgradeApp.update_sys_config_from_installed_version(%Execute{
+                          node: node,
+                          language: "elixir",
+                          current_path: current_path,
+                          to_version: to_version
+                        })
              end) =~ "Error while updating sys.config to: #{to_version}, reason: :any"
     end
   end
 
   test "update_sys_config_from_installed_version/1 Erlang success", %{
     node: node,
-    instance: instance,
+    new_path: new_path,
     to_version: to_version
   } do
     assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(
-               node,
-               instance,
-               "erlang",
-               to_version
-             )
+             UpgradeApp.update_sys_config_from_installed_version(%Execute{
+               node: node,
+               language: "erlang",
+               new_path: new_path,
+               to_version: to_version
+             })
   end
 
   test "execute/5 Elixir success", %{
     node: node,
+    sname: sname,
     app_name: app_name,
-    instance: instance,
+    current_path: current_path,
+    new_path: new_path,
     from_version: from_version,
     to_version: to_version
   } do
-    current_releases_version_path = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
 
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
@@ -749,11 +884,32 @@ defmodule Deployer.UpgradeAppTest do
 
     with_mock Node, connect: fn ^node -> true end do
       assert :ok =
-               UpgradeApp.execute(instance, app_name, "elixir", from_version, to_version)
+               UpgradeApp.execute(%Execute{
+                 node: node,
+                 sname: sname,
+                 name: app_name,
+                 language: "elixir",
+                 current_path: current_path,
+                 new_path: new_path,
+                 from_version: from_version,
+                 to_version: to_version
+               })
     end
   end
 
-  test "execute/5 Elixir error", %{app_name: app_name, instance: instance} do
-    assert {:error, :invalid_version} = UpgradeApp.execute(instance, app_name, "elixir", nil, nil)
+  test "execute/5 Elixir error", %{
+    app_name: app_name,
+    sname: sname,
+    current_path: current_path,
+    new_path: new_path
+  } do
+    assert {:error, :invalid_version} =
+             UpgradeApp.execute(%Execute{
+               sname: sname,
+               name: app_name,
+               language: "elixir",
+               current_path: current_path,
+               new_path: new_path
+             })
   end
 end

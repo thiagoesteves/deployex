@@ -141,7 +141,7 @@ config :sentinel, Sentinel.Watchdog,
     memory: %{
       enable_restart: true,
       warning_threshold_percent: 75,
-      restart_threshold_percent: 85
+      restart_threshold_percent: 95
     }
   ]
 

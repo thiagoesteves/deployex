@@ -4,6 +4,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
   require Logger
 
   alias DeployexWeb.Helper
+  alias Foundation.Catalog
   alias Host.Terminal
 
   @impl true
@@ -16,7 +17,10 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
       </.header>
 
       <div class="bg-white w-full shadow-lg rounded">
-        <.table_logs id={"application-live-logs-#{@id}"} rows={@streams.log_messages}>
+        <.table_logs
+          id={Helper.normalize_id("application-live-logs-#{@id}")}
+          rows={@streams.log_messages}
+        >
           <:col :let={{_id, log_message}} label="CONTENT">
             <div class="flex">
               <span
@@ -54,10 +58,8 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     {:ok, socket}
   end
 
-  defp handle_log_update(
-         %{assigns: %{id: instance, terminal_message: nil, action: action}} = socket
-       ) do
-    log_file = log_path(instance, action)
+  defp handle_log_update(%{assigns: %{id: sname, terminal_message: nil, action: action}} = socket) do
+    log_file = log_path(sname, action)
 
     socket
     |> tail_if_exists(log_file)
@@ -93,26 +95,23 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
     |> stream(:log_messages, messages)
   end
 
-  defp log_path(instance, :logs_stdout) do
-    instance
-    |> String.to_integer()
-    |> Foundation.Catalog.stdout_path()
+  defp log_path(sname, :logs_stdout) do
+    Catalog.stdout_path(sname)
   end
 
-  defp log_path(instance, :logs_stderr) do
-    instance
-    |> String.to_integer()
-    |> Foundation.Catalog.stderr_path()
+  defp log_path(sname, :logs_stderr) do
+    Catalog.stderr_path(sname)
   end
 
-  defp tail_if_exists(%{assigns: %{id: id, action: action}} = socket, path) do
+  defp tail_if_exists(%{assigns: %{id: sname, action: action}} = socket, path) do
     if File.exists?(path) do
       commands = "tail -F -n 10 #{path}"
       options = [:stdout]
+      node = Helper.sname_to_node(sname)
 
       {:ok, _pid} =
         Terminal.new(%Terminal{
-          instance: id,
+          node: node,
           commands: commands,
           options: options,
           target: self(),

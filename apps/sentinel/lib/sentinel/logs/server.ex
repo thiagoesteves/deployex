@@ -8,13 +8,14 @@ defmodule Sentinel.Logs.Server do
 
   @behaviour Sentinel.Logs.Adapter
 
+  alias Deployer.Monitor
   alias Foundation.Catalog
   alias Host.Terminal
   alias Sentinel.Logs.Message
 
   @logs_storage_table :logs_storage_table
   @logs_types "log-types"
-  @registry_key "registry-nodes"
+  @registry_key "registry-snames"
 
   @available_log_types ["stdout", "stderr"]
 
@@ -22,14 +23,14 @@ defmodule Sentinel.Logs.Server do
   @retention_data_delete_interval :timer.minutes(1)
 
   @type t :: %__MODULE__{
-          nodes: [atom()],
-          node_logs_tables: map(),
+          snames: [String.t()],
+          sname_logs_tables: map(),
           persist_data?: boolean(),
           data_retention_period: nil | non_neg_integer()
         }
 
-  defstruct nodes: [],
-            node_logs_tables: %{},
+  defstruct snames: [],
+            sname_logs_tables: %{},
             persist_data?: false,
             data_retention_period: nil
 
@@ -62,22 +63,25 @@ defmodule Sentinel.Logs.Server do
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
 
-    # List all expected nodes within the cluster
-    expected_nodes = Catalog.expected_nodes()
+    # Subscribe to receive a notification every time we have a new deploy
+    Monitor.subscribe_new_deploy()
 
-    node_logs_tables =
-      Enum.reduce(expected_nodes, %{}, fn node, acc ->
-        case maybe_init_log_table(node) do
+    # List all expected snames within the cluster
+    expected_snames = Monitor.list() ++ [self_sname()]
+
+    sname_logs_tables =
+      Enum.reduce(expected_snames, %{}, fn sname, acc ->
+        case maybe_init_log_table(sname) do
           nil -> acc
-          table -> Map.put(acc, node, table)
+          table -> Map.put(acc, sname, table)
         end
       end)
 
     {:ok,
      %{
-       expected_nodes: expected_nodes,
+       expected_snames: expected_snames,
        persist_data?: persist_data?.(),
-       node_logs_tables: node_logs_tables,
+       sname_logs_tables: sname_logs_tables,
        data_retention_period: data_retention_period
      }}
   end
@@ -86,23 +90,23 @@ defmodule Sentinel.Logs.Server do
   def handle_info(
         {:terminal_update,
          %{
-           metadata: %{context: :terminal_logs, node: reporter, type: log_key},
-           myself: _pid,
+           metadata: %{context: :terminal_logs, sname: reporter, type: log_key},
+           source_pid: _pid,
            message: message
          }},
         %{
-          expected_nodes: expected_nodes,
+          expected_snames: expected_snames,
           persist_data?: persist_data?,
-          node_logs_tables: node_logs_tables
+          sname_logs_tables: sname_logs_tables
         } =
           state
       ) do
-    if reporter in expected_nodes do
-      node_log_table = Map.get(node_logs_tables, reporter)
+    if reporter in expected_snames do
+      sname_log_table = Map.get(sname_logs_tables, reporter)
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      log_keys = get_types_by_node(reporter)
+      log_keys = get_types_by_sname(reporter)
       timed_log_type_key = log_type_key(log_key, minute)
 
       data = %Message{
@@ -110,16 +114,35 @@ defmodule Sentinel.Logs.Server do
         log: message
       }
 
-      if persist_data?, do: ets_append_to_list(node_log_table, timed_log_type_key, data)
+      if persist_data?, do: ets_append_to_list(sname_log_table, timed_log_type_key, data)
 
       notify_new_log_data(reporter, log_key, data)
 
       if log_key not in log_keys do
-        :ets.insert(node_log_table, {@logs_types, [log_key] ++ log_keys})
+        :ets.insert(sname_log_table, {@logs_types, [log_key] ++ log_keys})
       end
     end
 
     {:noreply, state}
+  end
+
+  def handle_info(
+        {:new_deploy, source_node, sname},
+        %{sname_logs_tables: sname_logs_tables, expected_snames: expected_snames} = state
+      ) do
+    with true <- source_node == Node.self(),
+         false <- sname in expected_snames,
+         table when not is_nil(table) <- maybe_init_log_table(sname) do
+      {:noreply,
+       %{
+         state
+         | sname_logs_tables: Map.put(sname_logs_tables, sname, table),
+           expected_snames: expected_snames ++ [sname]
+       }}
+    else
+      _error ->
+        {:noreply, state}
+    end
   end
 
   def handle_info({:nodeup, _node}, state) do
@@ -131,20 +154,22 @@ defmodule Sentinel.Logs.Server do
         {:nodedown, node},
         %{
           persist_data?: persist_data?,
-          node_logs_tables: node_logs_tables,
-          expected_nodes: expected_nodes
+          sname_logs_tables: sname_logs_tables,
+          expected_snames: expected_snames
         } =
           state
       ) do
-    if node in expected_nodes do
-      node_log_table = Map.get(node_logs_tables, node)
+    %{sname: sname} = Catalog.node_info(node)
+
+    if sname in expected_snames do
+      sname_log_table = Map.get(sname_logs_tables, sname)
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      # Report Node Down at stderr
-      log_type = "stderr"
-
       if persist_data? do
+        # Report Node Down at stderr
+        log_type = "stderr"
+
         timed_log_type_key = log_type_key(log_type, minute)
 
         data = %Message{
@@ -152,9 +177,9 @@ defmodule Sentinel.Logs.Server do
           log: "DeployEx detected node down for node: #{node}"
         }
 
-        ets_append_to_list(node_log_table, timed_log_type_key, data)
+        ets_append_to_list(sname_log_table, timed_log_type_key, data)
 
-        notify_new_log_data(node, log_type, data)
+        notify_new_log_data(sname, log_type, data)
       end
     end
 
@@ -163,7 +188,7 @@ defmodule Sentinel.Logs.Server do
 
   def handle_info(
         :prune_expired_entries,
-        %{node_logs_tables: tables, data_retention_period: data_retention_period} = state
+        %{sname_logs_tables: tables, data_retention_period: data_retention_period} = state
       ) do
     now_minutes = unix_to_minutes()
     retention_period = trunc(data_retention_period / @one_minute_in_milliseconds)
@@ -176,9 +201,9 @@ defmodule Sentinel.Logs.Server do
       end)
     end
 
-    Enum.each(tables, fn {node, table} ->
-      node
-      |> get_types_by_node()
+    Enum.each(tables, fn {sname, table} ->
+      sname
+      |> get_types_by_sname()
       |> Enum.each(&prune_keys.(&1, table))
     end)
 
@@ -189,36 +214,30 @@ defmodule Sentinel.Logs.Server do
   ### ObserverWeb.Telemetry.Adapter implementation
   ### ==========================================================================
   @impl true
-  def subscribe_for_new_logs(node, key) do
-    Phoenix.PubSub.subscribe(Sentinel.PubSub, logs_topic(node, key))
+  def subscribe_for_new_logs(sname, key) do
+    Phoenix.PubSub.subscribe(Sentinel.PubSub, logs_topic(sname, key))
   end
 
   @impl true
-  def unsubscribe_for_new_logs(node, key) do
-    Phoenix.PubSub.unsubscribe(Sentinel.PubSub, logs_topic(node, key))
+  def unsubscribe_for_new_logs(sname, key) do
+    Phoenix.PubSub.unsubscribe(Sentinel.PubSub, logs_topic(sname, key))
   end
 
   @impl true
-  def list_data_by_node_log_type(node, type, options \\ [])
+  def list_data_by_sname_log_type(sname, type, options \\ [])
 
-  def list_data_by_node_log_type(node, type, options) when is_binary(node) do
-    node
-    |> String.to_existing_atom()
-    |> list_data_by_node_log_type(type, options)
-  end
-
-  def list_data_by_node_log_type(node, type, options) when is_atom(node) do
+  def list_data_by_sname_log_type(sname, type, options) do
     from = Keyword.get(options, :from, 15)
     order = Keyword.get(options, :order, :asc)
 
     now_minutes = unix_to_minutes()
     from_minutes = now_minutes - from
 
-    node_table = node_log_table(node)
+    sname_table = sname_log_table(sname)
 
     result =
       Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
-        case :ets.lookup(node_table, log_type_key(type, minute)) do
+        case :ets.lookup(sname_table, log_type_key(type, minute)) do
           [{_, value}] ->
             value ++ acc
 
@@ -231,23 +250,23 @@ defmodule Sentinel.Logs.Server do
   end
 
   @impl true
-  def get_types_by_node(nil), do: []
+  def get_types_by_sname(nil), do: []
 
-  def get_types_by_node(node) do
-    node
-    |> node_log_table()
+  def get_types_by_sname(sname) do
+    sname
+    |> sname_log_table()
     |> ets_lookup_if_exist(@logs_types, [])
   end
 
   @impl true
-  def list_active_nodes do
+  def list_active_snames do
     ets_lookup_if_exist(@logs_storage_table, @registry_key, [])
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp node_log_table(node), do: String.to_atom("deployex-logs::#{node}")
+  defp sname_log_table(sname), do: String.to_atom("deployex-logs::#{sname}")
 
   defp log_type_key(type, timestamp), do: "#{type}|#{timestamp}"
 
@@ -286,7 +305,7 @@ defmodule Sentinel.Logs.Server do
   end
 
   # NOTE: PubSub topics
-  defp logs_topic(node, type), do: "logs::#{node}::#{type}"
+  defp logs_topic(sname, type), do: "logs::#{sname}::#{type}"
 
   defp notify_new_log_data(reporter, log_type, data) do
     Phoenix.PubSub.broadcast(
@@ -296,42 +315,40 @@ defmodule Sentinel.Logs.Server do
     )
   end
 
-  defp maybe_init_log_table(node) do
-    instance = get_instance(node)
-
+  defp maybe_init_log_table(sname) do
     create_terminal = fn log_type ->
-      path = log_path(instance, log_type)
+      path = log_path(sname, log_type)
       commands = "tail -F -n 0 #{path}"
       options = [:"#{log_type}"]
 
       Terminal.new(%Terminal{
-        instance: instance,
+        # node: node,
         commands: commands,
         options: options,
         target: self(),
         timeout_session: :infinity,
-        metadata: %{context: :terminal_logs, node: node, type: log_type}
+        metadata: %{context: :terminal_logs, sname: sname, type: log_type}
       })
     end
 
-    log_files_exist? = fn instance ->
+    log_files_exist? = fn sname ->
       @available_log_types
       |> Enum.all?(fn log_type ->
-        instance
+        sname
         |> log_path(log_type)
         |> File.exists?()
       end)
     end
 
-    if log_files_exist?.(instance) do
-      table = node_log_table(node)
+    if log_files_exist?.(sname) do
+      table = sname_log_table(sname)
 
       # Create Logs table
       :ets.new(table, [:set, :protected, :named_table])
       :ets.insert(table, {@logs_types, []})
 
-      # Add node the to registry
-      ets_append_to_list(@logs_storage_table, @registry_key, node)
+      # Add sname the to registry
+      ets_append_to_list(@logs_storage_table, @registry_key, sname)
 
       Enum.each(@available_log_types, &create_terminal.(&1))
 
@@ -341,17 +358,16 @@ defmodule Sentinel.Logs.Server do
     end
   end
 
-  defp get_instance(node) do
-    [sname, _hostname] = String.split("#{node}", ["@"])
-
-    if sname == "deployex" do
-      0
-    else
-      [_name, instance] = String.split(sname, ["-"])
-      String.to_integer(instance)
-    end
+  defp log_path(sname, "stdout") do
+    Catalog.stdout_path(sname)
   end
 
-  defp log_path(instance, "stdout"), do: Catalog.stdout_path(instance)
-  defp log_path(instance, "stderr"), do: Catalog.stderr_path(instance)
+  defp log_path(sname, "stderr") do
+    Catalog.stderr_path(sname)
+  end
+
+  defp self_sname do
+    [sname, _hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
+    sname
+  end
 end

@@ -3,7 +3,6 @@ defmodule Deployer.Release.Adapter do
   Behaviour that defines the release adapter callback
   """
 
-  @callback get_current_version_map() :: Deployer.Release.Version.t()
-  @callback download_and_unpack(integer(), String.t()) ::
-              {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
+  @callback download_version_map(String.t()) :: map()
+  @callback download_release(String.t(), String.t(), String.t()) :: :ok | {:error, any()}
 end

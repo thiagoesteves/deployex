@@ -6,14 +6,16 @@ defmodule Deployer.Status.ApplicationTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
+  alias Deployer.Release
   alias Deployer.Status.Application, as: StatusApp
   alias Foundation.Catalog
+  alias Foundation.Common
   alias Foundation.Fixture.Catalog, as: CatalogFixture
 
   setup do
     CatalogFixture.cleanup()
 
-    release = %Deployer.Release.Version{
+    release = %Release.Version{
       version: "1.0.0",
       hash: "ABC",
       pre_commands: []
@@ -21,62 +23,64 @@ defmodule Deployer.Status.ApplicationTest do
 
     attrs = [deployment: :full_deployment, deploy_ref: make_ref()]
 
-    StatusApp.set_current_version_map(2, %{release | version: "1.0.2"}, attrs)
-    StatusApp.set_current_version_map(1, %{release | version: "1.0.1"}, attrs)
-    StatusApp.set_current_version_map(3, %{release | version: "1.0.3"}, attrs)
-    StatusApp.set_current_version_map(0, %{release | version: "1.0.0"}, attrs)
+    sname_1 = Catalog.create_sname("test_app")
+    sname_2 = Catalog.create_sname("test_app")
+    sname_3 = Catalog.create_sname("test_app")
 
-    %{release: release, attrs: attrs}
+    StatusApp.set_current_version_map(sname_1, %{release | version: "1.0.2"}, attrs)
+    StatusApp.set_current_version_map(sname_2, %{release | version: "1.0.1"}, attrs)
+    StatusApp.set_current_version_map(sname_3, %{release | version: "1.0.3"}, attrs)
+
+    %{release: release, attrs: attrs, sname_1: sname_1, sname_2: sname_2, sname_3: sname_3}
   end
 
-  test "current_version_map/1 no version configured" do
+  test "current_version_map/1 no version configured", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     CatalogFixture.cleanup()
 
-    assert StatusApp.current_version(1) == nil
-    assert StatusApp.current_version(2) == nil
-    assert StatusApp.current_version(3) == nil
+    assert StatusApp.current_version(sname_1) == nil
+    assert StatusApp.current_version(sname_2) == nil
+    assert StatusApp.current_version(sname_3) == nil
   end
 
-  test "current_version / current_version_map" do
-    expected_version_0 = "1.0.0"
-    expected_version_1 = "1.0.1"
-    expected_version_2 = "1.0.2"
+  test "current_version / current_version_map", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    expected_version_1 = "1.0.2"
+    expected_version_2 = "1.0.1"
     expected_version_3 = "1.0.3"
     expected_hash = "ABC"
     expected_deployment = :full_deployment
 
-    assert StatusApp.current_version(0) == expected_version_0
-    assert StatusApp.current_version(1) == expected_version_1
-    assert StatusApp.current_version(2) == expected_version_2
-    assert StatusApp.current_version(3) == expected_version_3
-
-    assert %{
-             deployment: ^expected_deployment,
-             hash: ^expected_hash,
-             pre_commands: [],
-             version: ^expected_version_0
-           } = StatusApp.current_version_map(0)
+    assert StatusApp.current_version(sname_1) == expected_version_1
+    assert StatusApp.current_version(sname_2) == expected_version_2
+    assert StatusApp.current_version(sname_3) == expected_version_3
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
              version: ^expected_version_1
-           } = StatusApp.current_version_map(1)
+           } = StatusApp.current_version_map(sname_1)
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
              version: ^expected_version_2
-           } = StatusApp.current_version_map(2)
+           } = StatusApp.current_version_map(sname_2)
 
     assert %{
              deployment: ^expected_deployment,
              hash: ^expected_hash,
              pre_commands: [],
              version: ^expected_version_3
-           } = StatusApp.current_version_map(3)
+           } = StatusApp.current_version_map(sname_3)
   end
 
   test "monitored_app_name/0" do
@@ -91,10 +95,10 @@ defmodule Deployer.Status.ApplicationTest do
     assert StatusApp.subscribe() == :ok
   end
 
-  test "ghosted_version" do
+  test "ghosted_version", %{sname_1: sname_1} do
     assert Enum.empty?(StatusApp.ghosted_version_list())
 
-    version_map = StatusApp.current_version_map(1)
+    version_map = StatusApp.current_version_map(sname_1)
 
     # Add a version to the ghosted version list
     assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
@@ -109,38 +113,36 @@ defmodule Deployer.Status.ApplicationTest do
     assert length(StatusApp.ghosted_version_list()) == 2
   end
 
-  test "history_version_list" do
+  test "history_version_list", %{sname_1: sname_1, sname_2: sname_2, sname_3: sname_3} do
     version_list = StatusApp.history_version_list()
 
-    assert length(version_list) == 4
+    assert length(version_list) == 3
 
-    assert [_] = StatusApp.history_version_list(0)
-    assert [_] = StatusApp.history_version_list(1)
-    assert [_] = StatusApp.history_version_list(2)
-    assert [_] = StatusApp.history_version_list(3)
+    assert [_] = StatusApp.history_version_list(sname_1)
+    assert [_] = StatusApp.history_version_list(sname_2)
+    assert [_] = StatusApp.history_version_list(sname_3)
 
-    assert [_] = StatusApp.history_version_list("0")
-    assert [_] = StatusApp.history_version_list("1")
-    assert [_] = StatusApp.history_version_list("2")
-    assert [_] = StatusApp.history_version_list("3")
-
-    assert %{instance: 0} = Enum.at(version_list, 0)
-    assert %{instance: 2} = Enum.at(version_list, 3)
+    assert %Catalog.Version{version: "1.0.3"} = Enum.at(version_list, 0)
+    assert %Catalog.Version{version: "1.0.2"} = Enum.at(version_list, 2)
   end
 
-  test "update monitoring apps with Idle State" do
+  test "update monitoring apps with Idle State", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     Deployer.MonitorMock
-    |> expect(:state, 3, fn instance ->
+    |> expect(:state, 3, fn sname ->
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :idle,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -153,39 +155,43 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :idle)
            )
   end
 
-  test "update monitoring apps with running state and otp not connected" do
+  test "update monitoring apps with running state and otp not connected", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     Deployer.MonitorMock
-    |> expect(:state, 3, fn instance ->
+    |> expect(:state, 3, fn sname ->
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :running,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
     Deployer.UpgradeMock
-    |> stub(:connect, fn _instance -> {:error, :not_connecting} end)
+    |> stub(:connect, fn _node -> {:error, :not_connecting} end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -198,39 +204,43 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :running and &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running and &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running and &1.otp == :not_connected)
            )
   end
 
-  test "update monitoring apps with running state and otp connected" do
+  test "update monitoring apps with running state and otp connected", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     Deployer.MonitorMock
-    |> expect(:state, 3, fn instance ->
+    |> expect(:state, 3, fn sname ->
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :running,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
     Deployer.UpgradeMock
-    |> stub(:connect, fn _instance -> {:ok, :connected} end)
+    |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -243,39 +253,43 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :running and &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running and &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running and &1.otp == :connected)
            )
   end
 
-  test "update monitoring apps with running state and with ghosted version list" do
+  test "update monitoring apps with running state and with ghosted version list", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     Deployer.MonitorMock
-    |> expect(:state, 3, fn instance ->
+    |> expect(:state, 3, fn sname ->
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :running,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
     Deployer.UpgradeMock
-    |> stub(:connect, fn _instance -> {:ok, :connected} end)
+    |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     ghosted_version = "1.1.1"
     version_map = StatusApp.current_version_map(1)
@@ -294,39 +308,43 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 1 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 2 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "testapp" and not &1.supervisor and &1.instance == 3 and
+             &(&1.name == "test_app" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running)
            )
   end
 
   test "Initialize a GenServer and capture its state" do
-    name = "#{__MODULE__}-status-000" |> String.to_atom()
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     assert {:ok, _pid} = Deployer.Status.Application.start_link(name: name)
 
     assert {:ok, []} = Deployer.Status.Application.monitoring(name)
   end
 
-  test "Test set mode configuration to manual [valid version]" do
-    name = "#{__MODULE__}-mode-000" |> String.to_atom()
+  test "Test set mode configuration to manual [valid version]", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
 
     Deployer.MonitorMock
-    |> stub(:state, fn instance ->
+    |> stub(:state, fn sname ->
       called = Process.get("state", 0)
       Process.put("state", called + 1)
 
@@ -336,14 +354,14 @@ defmodule Deployer.Status.ApplicationTest do
 
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :idle,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     assert {:ok, _pid} =
              Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
@@ -357,7 +375,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert %{
              mode: :manual,
-             manual_version: %Deployer.Status.Version{
+             manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
                version: "1.0.1"
@@ -365,12 +383,16 @@ defmodule Deployer.Status.ApplicationTest do
            } = Catalog.config()
   end
 
-  test "Test set mode configuration to manual [valid version] - default name" do
+  test "Test set mode configuration to manual [valid version] - default name", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
     ref = make_ref()
     pid = self()
 
     Deployer.MonitorMock
-    |> stub(:state, fn instance ->
+    |> stub(:state, fn sname ->
       called = Process.get("state", 0)
       Process.put("state", called + 1)
 
@@ -380,14 +402,14 @@ defmodule Deployer.Status.ApplicationTest do
 
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :idle,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     assert {:ok, _pid} =
              Deployer.Status.Application.start_link(update_apps_interval: 50)
@@ -401,7 +423,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert %{
              mode: :manual,
-             manual_version: %Deployer.Status.Version{
+             manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
                version: "1.0.1"
@@ -409,14 +431,18 @@ defmodule Deployer.Status.ApplicationTest do
            } = Catalog.config()
   end
 
-  test "Test set mode configuration to manual [invalid version]" do
-    name = "#{__MODULE__}-mode-001" |> String.to_atom()
+  test "Test set mode configuration to manual [invalid version]", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
 
     Deployer.MonitorMock
-    |> stub(:state, fn instance ->
+    |> stub(:state, fn sname ->
       called = Process.get("state", 0)
       Process.put("state", called + 1)
 
@@ -426,14 +452,14 @@ defmodule Deployer.Status.ApplicationTest do
 
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :idle,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     assert {:ok, _pid} =
              Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
@@ -448,14 +474,18 @@ defmodule Deployer.Status.ApplicationTest do
     assert %{mode: :manual, manual_version: nil} = Catalog.config()
   end
 
-  test "Test set mode configuration to automatic" do
-    name = "#{__MODULE__}-mode-002" |> String.to_atom()
+  test "Test set mode configuration to automatic", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
 
     Deployer.MonitorMock
-    |> stub(:state, fn instance ->
+    |> stub(:state, fn sname ->
       called = Process.get("state", 0)
       Process.put("state", called + 1)
 
@@ -465,14 +495,14 @@ defmodule Deployer.Status.ApplicationTest do
 
       %Deployer.Monitor{
         current_pid: nil,
-        instance: instance,
+        sname: sname,
         status: :idle,
         crash_restart_count: 0,
         force_restart_count: 0,
-        start_time: nil,
-        deploy_ref: :init
+        start_time: nil
       }
     end)
+    |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     assert {:ok, _pid} =
              Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
@@ -487,13 +517,10 @@ defmodule Deployer.Status.ApplicationTest do
     assert %{mode: :automatic, manual_version: nil} = Catalog.config()
   end
 
-  test "update" do
-    path = Catalog.new_path(1)
-    assert :ok = StatusApp.update(1)
+  test "update", %{sname_2: sname_2} do
+    path = Catalog.new_path(sname_2)
+    assert :ok = StatusApp.update(sname_2)
     refute File.exists?(path)
-  end
-
-  test "clear_new" do
-    assert :ok = StatusApp.clear_new(1)
+    assert :ok = StatusApp.update(nil)
   end
 end

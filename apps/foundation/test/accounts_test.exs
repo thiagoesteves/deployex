@@ -20,7 +20,7 @@ defmodule Foundation.AccountsTest do
   test "get_user_by_session_token/1 success" do
     token = Accounts.generate_user_session_token(%{username: "admin"})
 
-    assert %Foundation.Accounts.User{hashed_password: nil, username: "admin"} ==
+    assert %Accounts.User{hashed_password: nil, username: "admin"} ==
              Accounts.get_user_by_session_token(token)
   end
 

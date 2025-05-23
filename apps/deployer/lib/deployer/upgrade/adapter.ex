@@ -3,22 +3,9 @@ defmodule Deployer.Upgrade.Adapter do
   Behaviour that defines the upgrade adapter callback
   """
 
-  @callback connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
-  @callback check(
-              integer(),
-              String.t(),
-              String.t(),
-              binary(),
-              binary() | charlist() | nil,
-              binary() | charlist()
-            ) ::
+  @callback connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  @callback prepare_new_path(String.t(), String.t(), String.t(), String.t()) :: :ok
+  @callback check(Deployer.Upgrade.Check.t()) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  @callback execute(
-              integer(),
-              String.t(),
-              String.t(),
-              binary() | charlist() | nil,
-              binary() | charlist() | nil
-            ) ::
-              :ok | {:error, any()}
+  @callback execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
 end

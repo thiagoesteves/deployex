@@ -6,6 +6,7 @@ defmodule Foundation.Catalog.Local do
 
   use GenServer
 
+  alias Foundation.Catalog
   alias Foundation.Common
 
   @behaviour Foundation.Catalog.Adapter
@@ -13,7 +14,8 @@ defmodule Foundation.Catalog.Local do
   require Logger
 
   @token_table :tokens
-  @deployex_instance 0
+  @deployex_sname "deployex"
+  @nohost_sname "nonode"
   @config_key_file "config.term"
 
   ### ==========================================================================
@@ -59,19 +61,7 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def setup do
-    replicas_list()
-    |> Enum.each(fn instance ->
-      # Create the service folders (If they don't exist)
-      [new_path(instance), current_path(instance), previous_path(instance)]
-      |> Enum.each(&File.mkdir_p!/1)
-
-      # Create folder and Log message files (If they don't exist)
-      File.mkdir_p!("#{log_path()}/#{monitored_app_name()}")
-      File.touch(stdout_path(instance))
-      File.touch(stderr_path(instance))
-    end)
-
-    # Create storage for deployex instance (If they don't exist)
+    # Create paths to store persistent information
     File.mkdir_p!(config_path())
     File.mkdir_p!(history_version_path())
     File.mkdir_p!(ghosted_version_path())
@@ -80,13 +70,42 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
+  def setup(sname) do
+    case node_info(sname) do
+      %{name: name} ->
+        [new_path(sname), current_path(sname), previous_path(sname)]
+        |> Enum.each(&File.mkdir_p!/1)
+
+        File.mkdir_p!("#{log_path()}/#{name}")
+        File.touch(stdout_path(sname))
+        File.touch(stderr_path(sname))
+
+        :ok
+
+      nil ->
+        :ok
+    end
+  end
+
+  @impl true
+  def cleanup(nil), do: :ok
+
+  def cleanup(sname) do
+    case node_info(sname) do
+      %{name: name} ->
+        File.rm_rf("#{service_path(name)}/#{sname}")
+        :ok
+
+      nil ->
+        :ok
+    end
+  end
+
+  @impl true
   def replicas, do: Application.get_env(:foundation, :replicas)
 
   @impl true
   def replicas_list, do: Enum.to_list(1..replicas())
-
-  @impl true
-  def instance_list, do: Enum.to_list(0..replicas())
 
   @impl true
   def monitored_app_name, do: Application.fetch_env!(:foundation, :monitored_app_name)
@@ -101,117 +120,137 @@ defmodule Foundation.Catalog.Local do
   def monitored_app_start_port, do: Application.get_env(:foundation, :monitored_app_start_port)
 
   @impl true
-  def expected_nodes do
-    {:ok, hostname} = :inet.gethostname()
-
-    instance_to_node = fn instance ->
-      :"#{sname(instance)}@#{hostname}"
-    end
-
-    # List all expected nodes within the cluster
-    Enum.map(instance_list(), &instance_to_node.(&1))
+  def create_sname(name) do
+    suffix = Common.random_small_alphanum()
+    "#{name}-#{suffix}"
   end
 
   @impl true
-  def monitored_nodes do
-    {:ok, hostname} = :inet.gethostname()
+  def node_info(nil), do: nil
 
-    instance_to_node = fn instance ->
-      :"#{sname(instance)}@#{hostname}"
+  def node_info(node_or_sname) when is_atom(node_or_sname) do
+    node_or_sname |> Atom.to_string() |> node_info()
+  end
+
+  def node_info(node_or_sname) do
+    parse_sname = fn sname, node, hostname ->
+      case String.split(sname, ["-"]) do
+        [name, suffix] ->
+          %Catalog.Node{
+            node: node,
+            sname: sname,
+            name: name,
+            hostname: hostname,
+            suffix: suffix,
+            # NOTE: Leave the next call with __MODULE__ until multiple apps are implemented
+            #       It is used for testing purpose
+            language: __MODULE__.monitored_app_lang()
+          }
+
+        [name] when name in [@deployex_sname, @nohost_sname] ->
+          %Catalog.Node{
+            node: Node.self(),
+            sname: @deployex_sname,
+            name: @deployex_sname,
+            hostname: hostname,
+            suffix: "",
+            language: "elixir"
+          }
+
+        _ ->
+          nil
+      end
     end
 
-    # List all monitored nodes within the cluster
-    Enum.map(replicas_list(), &instance_to_node.(&1))
+    case String.split(node_or_sname, ["@"]) do
+      [sname, hostname] ->
+        node = String.to_atom("#{sname}@#{hostname}")
+        parse_sname.(sname, node, hostname)
+
+      [sname] ->
+        {:ok, hostname} = :inet.gethostname()
+        node = String.to_atom("#{sname}@#{hostname}")
+        parse_sname.(sname, node, hostname)
+    end
   end
 
   @impl true
-  @spec parse_node_name(String.t() | atom()) :: map() | nil
-  def parse_node_name(node) when is_atom(node) do
-    node |> Atom.to_string() |> parse_node_name()
+  def stdout_path(@deployex_sname) do
+    log_path = Application.fetch_env!(:foundation, :log_path)
+    "#{log_path}/deployex-stdout.log"
   end
 
-  def parse_node_name(node) do
-    [sname, hostname] = String.split(node, ["@"])
+  def stdout_path(sname) do
+    %{name: name} = node_info(sname)
+    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+    "#{log_path}/#{name}/#{sname}-stdout.log"
+  end
 
-    case String.split(sname, ["-"]) do
-      [name, instance] ->
-        %{
-          name_string: name,
-          name_atom: String.to_atom(name),
-          hostname: hostname,
-          instance: String.to_integer(instance)
-        }
+  @impl true
+  def stderr_path(@deployex_sname) do
+    log_path = Application.fetch_env!(:foundation, :log_path)
+    "#{log_path}/deployex-stderr.log"
+  end
 
-      ["deployex"] ->
-        %{name_string: "deployex", name_atom: :deployex, hostname: hostname, instance: 0}
+  def stderr_path(sname) do
+    %{name: name} = node_info(sname)
+    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+    "#{log_path}/#{name}/#{sname}-stderr.log"
+  end
 
-      _ ->
+  @impl true
+  def bin_path(@deployex_sname, _language, _bin_service) do
+    Application.fetch_env!(:foundation, :bin_path)
+  end
+
+  # credo:disable-for-lines:1
+  def bin_path(sname, language, bin_service) do
+    %{name: name} = node_info(sname)
+
+    cond do
+      bin_service == :new and language in ["elixir", "erlang"] ->
+        "#{new_path(sname)}/bin/#{name}"
+
+      bin_service == :new and language in ["gleam"] ->
+        "#{new_path(sname)}/erlang-shipment"
+
+      bin_service == :current and language in ["elixir", "erlang"] ->
+        "#{current_path(sname)}/bin/#{name}"
+
+      bin_service == :current and language in ["gleam"] ->
+        "#{current_path(sname)}/erlang-shipment"
+
+      true ->
         nil
     end
   end
 
   @impl true
-  def stdout_path(@deployex_instance) do
-    log_path = Application.fetch_env!(:foundation, :log_path)
-    "#{log_path}/deployex-stdout.log"
-  end
+  def service_path(name), do: "#{base_path()}/service/#{name}"
 
-  def stdout_path(instance) do
-    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-    monitored_app = monitored_app_name()
-    "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stdout.log"
+  @impl true
+  def new_path(nil), do: nil
+
+  def new_path(sname) do
+    %{name: name} = node_info(sname)
+    "#{service_path(name)}/#{sname}/new"
   end
 
   @impl true
-  def stderr_path(@deployex_instance) do
-    log_path = Application.fetch_env!(:foundation, :log_path)
-    "#{log_path}/deployex-stderr.log"
-  end
+  def current_path(nil), do: nil
 
-  def stderr_path(instance) do
-    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-    monitored_app = monitored_app_name()
-    "#{log_path}/#{monitored_app}/#{monitored_app}-#{instance}-stderr.log"
+  def current_path(sname) do
+    %{name: name} = node_info(sname)
+    "#{service_path(name)}/#{sname}/current"
   end
 
   @impl true
-  def sname(@deployex_instance), do: "deployex"
-  def sname(instance), do: "#{monitored_app_name()}-#{instance}"
+  def previous_path(nil), do: nil
 
-  @impl true
-  def bin_path(@deployex_instance, _monitored_app_lang, _bin_service) do
-    Application.fetch_env!(:foundation, :bin_path)
+  def previous_path(sname) do
+    %{name: name} = node_info(sname)
+    "#{service_path(name)}/#{sname}/previous"
   end
-
-  def bin_path(instance, app_lang, :new) when app_lang in ["elixir", "erlang"] do
-    monitored_app = monitored_app_name()
-    "#{new_path(instance)}/bin/#{monitored_app}"
-  end
-
-  def bin_path(instance, app_lang, :current) when app_lang in ["elixir", "erlang"] do
-    monitored_app = monitored_app_name()
-    "#{current_path(instance)}/bin/#{monitored_app}"
-  end
-
-  def bin_path(instance, "gleam", :new) do
-    "#{new_path(instance)}/erlang-shipment"
-  end
-
-  def bin_path(instance, "gleam", :current) do
-    "#{current_path(instance)}/erlang-shipment"
-  end
-
-  @impl true
-  def base_path, do: Application.fetch_env!(:foundation, :base_path)
-
-  @impl true
-  def new_path(instance), do: "#{service_path()}/#{instance}/new"
-
-  @impl true
-  def current_path(instance), do: "#{service_path()}/#{instance}/current"
-
-  @impl true
-  def previous_path(instance), do: "#{service_path()}/#{instance}/previous"
 
   @impl true
   def versions do
@@ -221,9 +260,8 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def versions(instance) do
-    versions()
-    |> Enum.filter(&(&1.instance == instance))
+  def versions(sname) do
+    Enum.filter(versions(), &(&1.sname == sname))
   end
 
   @impl true
@@ -268,7 +306,7 @@ defmodule Foundation.Catalog.Local do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp service_path, do: "#{base_path()}/service/#{monitored_app_name()}"
+  defp base_path, do: Application.fetch_env!(:foundation, :base_path)
   defp log_path, do: Application.fetch_env!(:foundation, :monitored_app_log_path)
 
   defp config_path,

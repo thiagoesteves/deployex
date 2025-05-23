@@ -16,44 +16,34 @@ defmodule Deployer.Upgrade do
   ### ==========================================================================
 
   @doc """
-  This function tries to connetc the respective instance to the OTP distribution
+  This function tries to connetc the respective node to the OTP distribution
   """
   @impl true
-  @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
-  def connect(instance), do: default().connect(instance)
+  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  def connect(node), do: default().connect(node)
+
+  @doc """
+  This function acts like a hook for any modification before starting the app
+  """
+  @impl true
+  @spec prepare_new_path(String.t(), String.t(), String.t(), String.t()) :: :ok
+  def prepare_new_path(name, language, to_version, new_path),
+    do: default().prepare_new_path(name, language, to_version, new_path)
 
   @doc """
   This function check the release package type
   """
   @impl true
-  @spec check(
-          integer(),
-          String.t(),
-          String.t(),
-          binary(),
-          binary() | charlist() | nil,
-          binary() | charlist()
-        ) ::
+  @spec check(Deployer.Upgrade.Check.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, app_name, app_lang, download_path, from_version, to_version) do
-    default().check(instance, app_name, app_lang, download_path, from_version, to_version)
-  end
+  def check(%Deployer.Upgrade.Check{} = data), do: default().check(data)
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(
-          integer(),
-          String.t(),
-          String.t(),
-          binary() | charlist() | nil,
-          binary() | charlist() | nil
-        ) ::
-          :ok | {:error, any()}
-  def execute(instance, app_name, app_lang, from_version, to_version) do
-    default().execute(instance, app_name, app_lang, from_version, to_version)
-  end
+  @spec execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
+  def execute(%Deployer.Upgrade.Execute{} = data), do: default().execute(data)
 
   ### ==========================================================================
   ### Private functions

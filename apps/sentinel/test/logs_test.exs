@@ -4,40 +4,49 @@ defmodule Sentinel.LogsTest do
   import Mox
   setup :verify_on_exit!
 
+  alias Foundation.Catalog
   alias Sentinel.Logs
 
   test "subscribe_for_new_logs/2" do
-    Sentinel.LogsMock
-    |> expect(:subscribe_for_new_logs, fn _node, _type -> :ok end)
+    sname = Catalog.create_sname("sentinel_app")
 
-    assert :ok = Logs.subscribe_for_new_logs(:node, :type)
+    Sentinel.LogsMock
+    |> expect(:subscribe_for_new_logs, fn _sname, _type -> :ok end)
+
+    assert :ok = Logs.subscribe_for_new_logs(sname, :type)
   end
 
   test "unsubscribe_for_new_logs/2" do
-    Sentinel.LogsMock
-    |> expect(:unsubscribe_for_new_logs, fn _node, _type -> :ok end)
+    sname = Catalog.create_sname("sentinel_app")
 
-    assert :ok = Logs.unsubscribe_for_new_logs(:node, :type)
+    Sentinel.LogsMock
+    |> expect(:unsubscribe_for_new_logs, fn _sname, _type -> :ok end)
+
+    assert :ok = Logs.unsubscribe_for_new_logs(sname, :type)
   end
 
-  test "list_data_by_node_log_type/2" do
-    Sentinel.LogsMock
-    |> expect(:list_data_by_node_log_type, fn _node, _type, _options -> [] end)
+  test "list_data_by_sname_log_type/2" do
+    sname = Catalog.create_sname("sentinel_app")
 
-    assert [] = Logs.list_data_by_node_log_type(:node, :type, [])
+    Sentinel.LogsMock
+    |> expect(:list_data_by_sname_log_type, fn _sname, _type, _options -> [] end)
+
+    assert [] = Logs.list_data_by_sname_log_type(sname, :type, [])
   end
 
-  test "get_types_by_node/1" do
-    Sentinel.LogsMock
-    |> expect(:get_types_by_node, fn _node -> [] end)
+  test "get_types_by_sname/1" do
+    sname = Catalog.create_sname("sentinel_app")
 
-    assert [] = Logs.get_types_by_node(:node)
+    Sentinel.LogsMock
+    |> expect(:get_types_by_sname, fn _sname -> [] end)
+
+    assert [] = Logs.get_types_by_sname(sname)
   end
 
-  test "list_active_nodes/0" do
+  test "list_active_snames/0" do
     Sentinel.LogsMock
-    |> expect(:list_active_nodes, fn -> [] end)
+    |> expect(:list_active_snames, fn -> [] end)
 
-    assert [] = Logs.list_active_nodes()
+    assert [] = Logs.list_active_snames()
   end
 end

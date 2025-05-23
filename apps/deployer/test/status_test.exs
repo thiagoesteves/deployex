@@ -29,7 +29,7 @@ defmodule Deployer.StatusTest do
 
   test "current_version/1" do
     Deployer.StatusMock
-    |> expect(:current_version, fn _instance -> "0.0.0" end)
+    |> expect(:current_version, fn _node -> "0.0.0" end)
 
     assert "0.0.0" = Status.current_version(1)
   end
@@ -43,7 +43,7 @@ defmodule Deployer.StatusTest do
 
   test "set_current_version_map/3" do
     Deployer.StatusMock
-    |> expect(:set_current_version_map, fn _instance, _release, _attrs -> :ok end)
+    |> expect(:set_current_version_map, fn _node, _release, _attrs -> :ok end)
 
     assert :ok = Status.set_current_version_map(0, %Deployer.Release.Version{}, [])
   end
@@ -71,23 +71,16 @@ defmodule Deployer.StatusTest do
 
   test "history_version_list/1" do
     Deployer.StatusMock
-    |> expect(:history_version_list, fn _instance -> [] end)
+    |> expect(:history_version_list, fn _node -> [] end)
 
     assert [] = Status.history_version_list(0)
   end
 
-  test "clear_new/1" do
-    Deployer.StatusMock
-    |> expect(:clear_new, fn _instance -> :ok end)
-
-    assert :ok = Status.clear_new(0)
-  end
-
   test "update/1" do
     Deployer.StatusMock
-    |> expect(:update, fn _instance -> :ok end)
+    |> expect(:update, fn _node -> :ok end)
 
-    assert :ok = Status.update(0)
+    assert :ok = Status.update("node")
   end
 
   test "set_mode/2" do

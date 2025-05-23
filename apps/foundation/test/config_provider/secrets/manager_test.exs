@@ -29,8 +29,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
     assert [
              {:foundation,
               [
-                {Foundation.ConfigProvider.Secrets.Manager,
-                 [adapter: SecretsMock, path: "any-env-path"]},
+                {Manager, [adapter: SecretsMock, path: "any-env-path"]},
                 {:env, "prod"},
                 {Foundation.Accounts,
                  [
@@ -50,8 +49,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
              Manager.load(
                [
                  foundation: [
-                   {Foundation.ConfigProvider.Secrets.Manager,
-                    adapter: SecretsMock, path: "any-env-path"},
+                   {Manager, adapter: SecretsMock, path: "any-env-path"},
                    {:env, "prod"}
                  ]
                ],
@@ -77,8 +75,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
       assert [
                {:foundation,
                 [
-                  {Foundation.ConfigProvider.Secrets.Manager,
-                   [adapter: SecretsMock, path: "any-env-path"]},
+                  {Manager, [adapter: SecretsMock, path: "any-env-path"]},
                   {:env, "prod"},
                   {Foundation.Accounts,
                    [
@@ -98,8 +95,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
                Manager.load(
                  [
                    foundation: [
-                     {Foundation.ConfigProvider.Secrets.Manager,
-                      adapter: SecretsMock, path: "any-env-path"},
+                     {Manager, adapter: SecretsMock, path: "any-env-path"},
                      {:env, "prod"}
                    ]
                  ],
@@ -112,16 +108,14 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
     assert [
              {:foundation,
               [
-                {Foundation.ConfigProvider.Secrets.Manager,
-                 [adapter: Foundation.ConfigProvider.SecretsMock, path: "any-env-path"]},
+                {Manager, [adapter: SecretsMock, path: "any-env-path"]},
                 {:env, "local"}
               ]}
            ] =
              Manager.load(
                [
                  foundation: [
-                   {Foundation.ConfigProvider.Secrets.Manager,
-                    adapter: SecretsMock, path: "any-env-path"},
+                   {Manager, adapter: SecretsMock, path: "any-env-path"},
                    {:env, "local"}
                  ]
                ],

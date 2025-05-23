@@ -11,10 +11,10 @@ defmodule Host.Terminal.Server do
     """
     @type t :: %__MODULE__{
             metadata: any(),
-            myself: pid() | nil,
+            node: node() | nil,
+            source_pid: pid() | nil,
             process: pid() | nil,
             msg_sequence: integer(),
-            instance: non_neg_integer(),
             status: :open | :closed,
             message: String.t() | nil
           }
@@ -22,10 +22,10 @@ defmodule Host.Terminal.Server do
     @derive Jason.Encoder
 
     defstruct metadata: nil,
-              myself: nil,
+              node: nil,
+              source_pid: nil,
               process: nil,
               msg_sequence: 0,
-              instance: "",
               status: :open,
               message: nil
   end
@@ -48,7 +48,7 @@ defmodule Host.Terminal.Server do
         :timeout_session,
         state.timeout_session || @default_terminal_timeout_session_ms
       )
-      |> Map.put(:myself, self())
+      |> Map.put(:source_pid, self())
 
     if state.timeout_session != :infinity,
       do: Process.send_after(self(), :session_timeout, state.timeout_session)
@@ -67,11 +67,11 @@ defmodule Host.Terminal.Server do
   end
 
   @impl true
-  def handle_continue(:open_erlexec_connection, %{instance: instance, metadata: metadata} = state) do
+  def handle_continue(:open_erlexec_connection, %{node: node, metadata: metadata} = state) do
     case Commander.run(state.commands, state.options) do
       {:ok, _pid, process} ->
         message =
-          "Initializing Terminal instance: #{instance} - #{inspect(metadata)} at process os_pid: #{process}"
+          "Initializing Terminal node: #{node} - #{inspect(metadata)} at process os_pid: #{process}"
 
         Logger.info(message)
 
@@ -84,7 +84,7 @@ defmodule Host.Terminal.Server do
 
       reason ->
         Logger.error(
-          "Error while trying to run the commands for instance: #{instance} - #{inspect(metadata)}, reason: #{inspect(reason)}"
+          "Error while trying to run the commands for node: #{node} - #{inspect(metadata)}, reason: #{inspect(reason)}"
         )
 
         {:stop, :normal, state}
@@ -172,10 +172,10 @@ defmodule Host.Terminal.Server do
       {:terminal_update,
        %Host.Terminal.Server.Message{
          metadata: state.metadata,
-         myself: state.myself,
+         source_pid: state.source_pid,
+         node: state.node,
          process: state.process,
          msg_sequence: state.msg_sequence,
-         instance: state.instance,
          status: state.status,
          message: state.message
        }}

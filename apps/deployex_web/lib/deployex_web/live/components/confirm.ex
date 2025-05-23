@@ -1,6 +1,7 @@
 defmodule DeployexWeb.Components.Confirm do
   @moduledoc false
   use Phoenix.Component
+  alias DeployexWeb.Helper
 
   attr :id, :string, required: true
   slot :header, required: true
@@ -46,7 +47,7 @@ defmodule DeployexWeb.Components.Confirm do
   def cancel_button(assigns) do
     ~H"""
     <button
-      id={"cancel-button-#{@id}"}
+      id={Helper.normalize_id("cancel-button-#{@id}")}
       class="flex-1 px-4 py-2 border border-gray-800 rounded-full"
       phx-click="confirm-close-modal"
     >
@@ -63,7 +64,7 @@ defmodule DeployexWeb.Components.Confirm do
   def confirm_button(assigns) do
     ~H"""
     <button
-      id={"confirm-button-#{@id}"}
+      id={Helper.normalize_id("confirm-button-#{@id}")}
       class="flex-1 px-4 py-2 text-white bg-blue-600 rounded-full"
       phx-click={@event}
       phx-value-id={@value}

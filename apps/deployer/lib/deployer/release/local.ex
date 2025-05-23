@@ -5,64 +5,48 @@ defmodule Deployer.Release.Local do
 
   @behaviour Deployer.Release.Adapter
 
-  alias Deployer.Status
-  alias Deployer.Upgrade
-  alias Foundation.Catalog
-
   require Logger
+
+  import Foundation.Macros
 
   ### ==========================================================================
   ### Release Callbacks
   ### ==========================================================================
 
-  @doc """
-  Retrieve current version
-  """
   @impl true
-  def get_current_version_map do
-    app_name = Catalog.monitored_app_name()
-
+  def download_version_map(app_name) do
     file_path = "#{bucket()}/versions/#{app_name}/#{env()}/current.json"
 
     case File.read(file_path) do
       {:ok, data} ->
         Jason.decode!(data)
 
-      {:error, reason} ->
-        Logger.error("Invalid version map at: #{file_path} reason: #{reason}")
+      reason ->
+        Logger.error(
+          "Error downloading release version for #{app_name}, reason: #{inspect(reason)}"
+        )
+
         nil
     end
   end
 
-  @doc """
-  Download and unpack the application
-  """
   @impl true
-  def download_and_unpack(instance, version) do
-    app_name = Catalog.monitored_app_name()
-    app_lang = Catalog.monitored_app_lang()
+  def download_release(app_name, release_version, download_path) do
+    release_name = "#{app_name}-#{release_version}.tar.gz"
+    file_path = "#{bucket()}/dist/#{app_name}/#{release_name}"
 
-    download_path = "#{bucket()}/dist/#{app_name}/#{app_name}-#{version}.tar.gz"
+    if_not_test do
+      dest_path = "#{download_path}"
+    else
+      dest_path = "#{download_path}/#{release_name}"
+    end
 
-    Status.clear_new(instance)
-    new_path = Catalog.new_path(instance)
-
-    {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_path])
-
-    Upgrade.check(
-      instance,
-      app_name,
-      app_lang,
-      download_path,
-      Status.current_version(instance),
-      version
-    )
+    File.cp(file_path, dest_path)
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-
   defp env, do: Application.get_env(:foundation, :env)
 
   defp bucket, do: Application.get_env(:deployer, Deployer.Release)[:bucket]

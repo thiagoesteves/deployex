@@ -11,7 +11,7 @@ defmodule Deployer.Upgrade.Application do
 
   2. During deployment, the release app-new-version.tar.gz is copied to a directory named
      after the version under the current/releases folder, for example:
-     /var/lib/deployex/service/myapp/current/{instance}/releases/{new-version}/app-new-version.tar.gz
+     /var/lib/deployex/service/{myapp}/{myapp}-{suffix}/current/releases/{new-version}/app-new-version.tar.gz
 
   3. A sequence of commands is executed by this module:
        a. Unpack a release using release_handler:unpack_release
@@ -50,10 +50,12 @@ defmodule Deployer.Upgrade.Application do
 
   @timeout 300_000
 
-  alias Foundation.Catalog
   alias Foundation.Rpc
 
   @behaviour Deployer.Upgrade.Adapter
+
+  alias Deployer.Upgrade.Check
+  alias Deployer.Upgrade.Execute
 
   require Logger
 
@@ -62,34 +64,31 @@ defmodule Deployer.Upgrade.Application do
   ### ==========================================================================
 
   @impl true
-  @spec execute(
-          integer(),
-          String.t(),
-          String.t(),
-          binary() | charlist() | nil,
-          binary() | charlist() | nil
-        ) ::
-          :ok | {:error, any()}
-  def execute(_instance, _app_name, _app_lang, from_version, to_version)
+  @spec execute(Execute.t()) :: :ok | {:error, any()}
+  def execute(%Execute{from_version: from_version, to_version: to_version})
       when is_nil(from_version) or is_nil(to_version),
       do: {:error, :invalid_version}
 
-  def execute(instance, app_name, app_lang, from_version, to_version)
+  def execute(%Execute{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
-    execute(instance, app_name, app_lang, from_version |> to_charlist, to_version |> to_charlist)
+    execute(%{
+      data
+      | from_version: from_version |> to_charlist,
+        to_version: to_version |> to_charlist
+    })
   end
 
-  def execute(instance, app_name, app_lang, from_version, to_version) do
-    with {:ok, node} <- connect(instance),
-         :ok <- unpack_release(node, app_name, to_version),
-         :ok <- make_relup(node, instance, app_name, app_lang, from_version, to_version),
-         :ok <- check_install_release(node, to_version),
-         :ok <- update_sys_config_from_installed_version(node, instance, app_lang, to_version),
-         :ok <- install_release(node, to_version),
-         :ok <- permfy(node, instance, app_name, app_lang, to_version),
-         :ok <- return_original_sys_config(instance, app_lang, to_version) do
+  def execute(%Execute{from_version: from_version, to_version: to_version} = data) do
+    with {:ok, node} <- connect(data.node),
+         :ok <- unpack_release(data),
+         :ok <- make_relup(data),
+         :ok <- check_install_release(data),
+         :ok <- update_sys_config_from_installed_version(data),
+         :ok <- install_release(data),
+         :ok <- permfy(data),
+         :ok <- return_original_sys_config(data) do
       message =
-        "Release upgrade executed with success at instance: #{instance} from: #{from_version} to: #{to_version}"
+        "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
 
       Logger.info(message)
 
@@ -97,17 +96,21 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec which_releases(atom()) :: list()
+  @spec which_releases(node()) :: list()
   def which_releases(node) do
     releases = Rpc.call(node, :release_handler, :which_releases, [], @timeout)
 
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
 
-  @spec update_sys_config_from_installed_version(atom(), integer(), String.t(), charlist()) ::
-          :ok | {:error, any()}
-  def update_sys_config_from_installed_version(node, instance, "elixir", to_version) do
-    rel_vsn_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+  @spec update_sys_config_from_installed_version(Execute.t()) :: :ok | {:error, any()}
+  def update_sys_config_from_installed_version(%Execute{
+        node: node,
+        language: "elixir",
+        current_path: current_path,
+        to_version: to_version
+      }) do
+    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
     # Read the build time config from build.config
@@ -136,57 +139,80 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  def update_sys_config_from_installed_version(_node, _instance, _app_lang, _to_version), do: :ok
+  def update_sys_config_from_installed_version(_data), do: :ok
 
-  @spec return_original_sys_config(integer(), String.t(), charlist()) :: :ok | {:error, atom()}
-  def return_original_sys_config(instance, "elixir", to_version) do
-    rel_vsn_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+  @spec return_original_sys_config(Execute.t()) :: :ok | {:error, any()}
+  def return_original_sys_config(%Execute{
+        language: "elixir",
+        current_path: current_path,
+        to_version: to_version
+      }) do
+    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
     sys_config_path = "#{rel_vsn_dir}/sys.config"
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
 
     File.rename(original_sys_config_file, sys_config_path)
   end
 
-  def return_original_sys_config(_instance, _app_lang, _to_version), do: :ok
+  def return_original_sys_config(_data), do: :ok
 
   @impl true
-  @spec check(
-          integer(),
-          String.t(),
-          String.t(),
-          binary(),
-          binary() | charlist() | nil,
-          binary() | charlist()
-        ) ::
-          {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(instance, app_name, app_lang, download_path, from_version, to_version)
-      when is_binary(from_version) or is_binary(to_version) do
-    check(
-      instance,
-      app_name,
-      app_lang,
-      download_path,
-      from_version |> to_charlist,
-      to_version |> to_charlist
-    )
+  def prepare_new_path(name, "erlang", to_version, new_path) do
+    priv_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
+
+    ebin_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
+
+    if File.exists?(priv_app_up_file) do
+      File.cp(priv_app_up_file, ebin_app_up_file)
+    end
+
+    releases = "#{new_path}/releases"
+
+    if File.exists?("#{releases}/#{name}.rel") do
+      File.rename("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
+    end
+
+    :ok
   end
 
-  def check(instance, app_name, "elixir", download_path, from_version, to_version) do
+  def prepare_new_path(_name, _language, _to_version, _new_path), do: :ok
+
+  @impl true
+  def check(%Check{from_version: from_version, to_version: to_version} = data)
+      when is_binary(from_version) or is_binary(to_version) do
+    check(%{
+      data
+      | from_version: from_version |> to_charlist,
+        to_version: to_version |> to_charlist
+    })
+  end
+
+  def check(%Check{
+        name: name,
+        language: "elixir",
+        current_path: current_path,
+        new_path: new_path,
+        download_path: download_path,
+        from_version: from_version,
+        to_version: to_version
+      }) do
     # NOTE: Single file for single elixir app or multiple files for umbrella
-    jellyfish_files = Path.wildcard("#{Catalog.new_path(instance)}/lib/*-*/ebin/jellyfish.json")
+    jellyfish_files = Path.wildcard("#{new_path}/lib/*-*/ebin/jellyfish.json")
 
     case check_jellyfish_files(jellyfish_files, from_version, to_version) do
       {:ok, jellyfish_info} ->
         Logger.warning("HOT UPGRADE version DETECTED - #{inspect(jellyfish_info)}")
 
         # Copy binary to the release folder under the version directory
-        dest_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+        dest_dir = "#{current_path}/releases/#{to_version}"
 
         File.rm_rf(dest_dir)
 
         File.mkdir_p!(dest_dir)
 
-        File.cp!(download_path, "#{dest_dir}/#{app_name}.tar.gz")
+        File.cp!(download_path, "#{dest_dir}/#{name}.tar.gz")
 
         {:ok, :hot_upgrade}
 
@@ -199,36 +225,28 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  def check(instance, app_name, "erlang", download_path, from_version, to_version) do
-    priv_app_up_file =
-      "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
-
-    ebin_app_up_file =
-      "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
-
-    if File.exists?(priv_app_up_file) do
-      File.cp!(priv_app_up_file, ebin_app_up_file)
-    end
-
-    releases = "#{Catalog.new_path(instance)}/releases"
-
-    if File.exists?("#{releases}/#{app_name}.rel") do
-      File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
-    end
-
+  def check(%Check{
+        name: name,
+        language: "erlang",
+        current_path: current_path,
+        new_path: new_path,
+        download_path: download_path,
+        from_version: from_version,
+        to_version: to_version
+      }) do
     with [file_path] <-
-           Path.wildcard("#{Catalog.new_path(instance)}/lib/#{app_name}-*/ebin/*.appup"),
+           Path.wildcard("#{new_path}/lib/#{name}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do
       Logger.warning("HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}")
 
       # Copy binary to the release folder under the version directory
-      dest_dir = "#{Catalog.current_path(instance)}/releases/#{to_version}"
+      dest_dir = "#{current_path}/releases/#{to_version}"
 
       File.rm_rf(dest_dir)
 
       File.mkdir_p!(dest_dir)
 
-      File.cp!(download_path, "#{dest_dir}/#{app_name}.tar.gz")
+      File.cp!(download_path, "#{dest_dir}/#{name}.tar.gz")
 
       {:ok, :hot_upgrade}
     else
@@ -241,7 +259,7 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  def check(_instance, _app_name, "gleam", _download_path, _from_version, _to_version) do
+  def check(_data) do
     Logger.warning("HOT UPGRADE version NOT SUPPORTED, full deployment required")
 
     {:ok, :full_deployment}
@@ -309,9 +327,9 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec unpack_release(atom(), String.t(), charlist()) :: :ok | {:error, any()}
-  def unpack_release(node, app_name, to_version) do
-    release_link = "#{to_version}/#{app_name}" |> to_charlist
+  @spec unpack_release(Execute.t()) :: :ok | {:error, any()}
+  def unpack_release(%Execute{node: node, name: name, to_version: to_version}) do
+    release_link = "#{to_version}/#{name}" |> to_charlist
 
     case Rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
       {:ok, version} ->
@@ -327,17 +345,22 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec make_relup(atom(), integer(), String.t(), String.t(), charlist(), charlist()) ::
-          :ok | {:error, :make_relup}
-  def make_relup(node, instance, app_name, app_lang, from_version, to_version) do
+  @spec make_relup(Execute.t()) :: :ok | {:error, any()}
+  def make_relup(%Execute{
+        node: node,
+        name: name,
+        language: language,
+        current_path: current_path,
+        new_path: new_path,
+        from_version: from_version,
+        to_version: to_version
+      }) do
     root = root_dir(node)
 
     cp_appup_priv_to_ebin = fn ->
-      priv_app_up_file =
-        "#{Catalog.new_path(instance)}/lib/#{app_name}-#{to_version}/priv/appup/#{app_name}.appup"
+      priv_app_up_file = "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
 
-      ebin_app_up_file =
-        "#{Catalog.current_path(instance)}/lib/#{app_name}-#{to_version}/ebin/#{app_name}.appup"
+      ebin_app_up_file = "#{current_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
 
       if File.exists?(priv_app_up_file) do
         File.cp!(priv_app_up_file, ebin_app_up_file)
@@ -345,14 +368,14 @@ defmodule Deployer.Upgrade.Application do
     end
 
     add_version_to_rel_file = fn ->
-      releases = "#{Catalog.current_path(instance)}/releases"
+      releases = "#{current_path}/releases"
 
-      if File.exists?("#{releases}/#{app_name}.rel") do
-        File.rename!("#{releases}/#{app_name}.rel", "#{releases}/#{app_name}-#{to_version}.rel")
+      if File.exists?("#{releases}/#{name}.rel") do
+        File.rename!("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
       end
     end
 
-    if app_lang == "erlang" do
+    if language == "erlang" do
       cp_appup_priv_to_ebin.()
       add_version_to_rel_file.()
     end
@@ -362,9 +385,9 @@ defmodule Deployer.Upgrade.Application do
       :systools,
       :make_relup,
       [
-        root ++ ~c"/releases/#{app_name}-" ++ to_version,
-        [root ++ ~c"/releases/#{app_name}-" ++ from_version],
-        [root ++ ~c"/releases/#{app_name}-" ++ from_version],
+        root ++ ~c"/releases/#{name}-" ++ to_version,
+        [root ++ ~c"/releases/#{name}-" ++ from_version],
+        [root ++ ~c"/releases/#{name}-" ++ from_version],
         [
           {:path, [root ++ ~c"/lib/*/ebin"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
@@ -382,8 +405,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec check_install_release(atom(), charlist()) :: :ok | {:error, any()}
-  def check_install_release(node, to_version) do
+  @spec check_install_release(Execute.t()) :: :ok | {:error, any()}
+  def check_install_release(%Execute{node: node, to_version: to_version}) do
     case Rpc.call(node, :release_handler, :check_install_release, [to_version], @timeout) do
       {:ok, _other, _desc} ->
         :ok
@@ -394,8 +417,8 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec install_release(atom(), charlist()) :: :ok | {:error, any()}
-  def install_release(node, to_version) do
+  @spec install_release(Execute.t()) :: :ok | {:error, any()}
+  def install_release(%Execute{node: node, to_version: to_version}) do
     case Rpc.call(
            node,
            :release_handler,
@@ -413,16 +436,22 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec permfy(atom(), integer(), String.t(), String.t(), charlist()) :: :ok | {:error, any()}
-  def permfy(node, instance, app_name, app_lang, to_version) do
+  @spec permfy(Execute.t()) :: :ok | {:error, any()}
+  def permfy(%Execute{
+        node: node,
+        name: name,
+        language: language,
+        current_path: current_path,
+        to_version: to_version
+      }) do
     case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
       :ok ->
         Logger.info("Made release permanent: #{to_version}")
 
-        if app_lang == "erlang" do
+        if language == "erlang" do
           File.cp!(
-            "#{Catalog.current_path(instance)}/bin/#{app_name}-#{to_version}",
-            "#{Catalog.current_path(instance)}/bin/#{app_name}"
+            "#{current_path}/bin/#{name}-#{to_version}",
+            "#{current_path}/bin/#{name}"
           )
         end
 
@@ -437,18 +466,12 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec root_dir(atom()) :: any()
+  @spec root_dir(node()) :: any()
   def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @timeout)
 
   @impl true
-  @spec connect(integer()) :: {:error, :not_connecting} | {:ok, atom()}
-  def connect(instance) do
-    {:ok, hostname} = :inet.gethostname()
-    app_sname = Catalog.sname(instance)
-    # NOTE: The command below represents the creation of an atom. However, with OTP distribution,
-    #       all connected nodes share the same atoms, including its name.
-    node = :"#{app_sname}@#{hostname}"
-
+  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  def connect(node) do
     case Node.connect(node) do
       true ->
         {:ok, node}

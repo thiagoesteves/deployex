@@ -4,14 +4,14 @@ defmodule Deployer.Status.Application do
   """
 
   use GenServer
-
-  alias Deployer.Monitor
-  alias Foundation.Catalog
-  alias Foundation.Common
+  require Logger
 
   @behaviour Deployer.Status.Adapter
 
-  require Logger
+  alias Deployer.Monitor
+  alias Deployer.Status
+  alias Foundation.Catalog
+  alias Foundation.Common
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
@@ -33,7 +33,7 @@ defmodule Deployer.Status.Application do
     |> Keyword.get(:update_apps_interval, @update_apps_interval)
     |> :timer.send_interval(:update_apps)
 
-    {:ok, %{instances: Catalog.replicas(), monitoring: []}}
+    {:ok, %{monitoring: []}}
   end
 
   @impl true
@@ -50,10 +50,16 @@ defmodule Deployer.Status.Application do
   def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
+    sname_to_node = fn sname ->
+      %{node: node} = Catalog.node_info(sname)
+      node
+    end
+
     monitoring_apps =
-      Catalog.replicas_list()
-      |> Enum.map(fn instance ->
-        update_monitored_app_name(instance)
+      Monitor.list()
+      |> Enum.map(&sname_to_node.(&1))
+      |> Enum.map(fn node ->
+        update_monitored_app_name(node)
       end)
 
     new_monitoring = [deployex] ++ monitoring_apps
@@ -86,18 +92,18 @@ defmodule Deployer.Status.Application do
   def subscribe, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @apps_data_updated_topic)
 
   @impl true
-  def current_version(instance) do
-    current_version_map(instance).version
+  def current_version(sname) do
+    current_version_map(sname).version
   end
 
   @impl true
-  def current_version_map(instance) do
-    instance
+  def current_version_map(sname) do
+    sname
     |> Catalog.versions()
     |> Enum.at(0)
     |> case do
       nil ->
-        %Deployer.Status.Version{}
+        %Catalog.Version{}
 
       version ->
         version
@@ -105,14 +111,16 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def set_current_version_map(instance, release, attrs) do
-    params = %Deployer.Status.Version{
+  def set_current_version_map(sname, release, attrs) do
+    %{name: name} = Catalog.node_info(sname)
+
+    params = %Catalog.Version{
       version: release.version,
       hash: release.hash,
       pre_commands: release.pre_commands,
-      instance: instance,
+      sname: sname,
+      name: name,
       deployment: Keyword.get(attrs, :deployment),
-      deploy_ref: Keyword.get(attrs, :deploy_ref),
       inserted_at: NaiveDateTime.utc_now()
     }
 
@@ -133,38 +141,33 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def history_version_list(instance) when is_binary(instance) do
-    history_version_list(String.to_integer(instance))
+  def history_version_list(sname) do
+    Catalog.versions(sname)
   end
 
   @impl true
-  def history_version_list(instance) do
-    Catalog.versions(instance)
+  def list_installed_apps(name) do
+    case File.ls("#{Catalog.service_path(name)}") do
+      {:ok, list} ->
+        list
+
+      _ ->
+        []
+    end
   end
 
   @impl true
-  def clear_new(instance) do
-    instance
-    |> Catalog.new_path()
-    |> File.rm_rf()
+  def update(nil), do: :ok
 
-    instance
-    |> Catalog.new_path()
-    |> File.mkdir_p()
-
-    :ok
-  end
-
-  @impl true
-  def update(instance) do
+  def update(sname) do
     # Remove previous path
-    instance
+    sname
     |> Catalog.previous_path()
     |> File.rm_rf()
 
     # Move current to previous and new to current
-    File.rename(Catalog.current_path(instance), Catalog.previous_path(instance))
-    File.rename(Catalog.new_path(instance), Catalog.current_path(instance))
+    File.rename(Catalog.current_path(sname), Catalog.previous_path(sname))
+    File.rename(Catalog.new_path(sname), Catalog.current_path(sname))
     :ok
   end
 
@@ -206,8 +209,9 @@ defmodule Deployer.Status.Application do
 
     config = Catalog.config()
 
-    %Deployer.Status{
+    %Status{
       name: "deployex",
+      sname: "deployex",
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),
@@ -220,32 +224,35 @@ defmodule Deployer.Status.Application do
     }
   end
 
-  defp update_monitored_app_name(instance) do
+  defp update_monitored_app_name(node) do
+    %{name: name, sname: sname} = Catalog.node_info(node)
+
     %{
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       start_time: start_time
-    } = Monitor.state(instance)
+    } = Monitor.state(sname)
 
     check_otp_monitored_app = fn
-      instance, :running ->
-        case Deployer.Upgrade.connect(instance) do
+      node, :running ->
+        case Deployer.Upgrade.connect(node) do
           {:ok, _} -> :connected
           _ -> :not_connected
         end
 
-      _instance, _deployment ->
+      _node, _deployment ->
         :not_connected
     end
 
-    %Deployer.Status{
-      name: Application.get_env(:foundation, :monitored_app_name),
-      instance: instance,
-      version: current_version(instance),
-      otp: check_otp_monitored_app.(instance, status),
+    %Status{
+      name: name,
+      sname: sname,
+      node: node,
+      version: current_version(sname),
+      otp: check_otp_monitored_app.(node, status),
       tls: Common.check_mtls(),
-      last_deployment: current_version_map(instance).deployment,
+      last_deployment: current_version_map(sname).deployment,
       supervisor: false,
       status: status,
       crash_restart_count: crash_restart_count,

@@ -13,7 +13,7 @@ defmodule Host.TerminalTest do
     test "Check initializatioon with passed options" do
       ref = make_ref()
       test_pid_process = self()
-      instance = 1000
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -28,7 +28,7 @@ defmodule Host.TerminalTest do
       end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: options,
         target: test_pid_process,
@@ -47,7 +47,7 @@ defmodule Host.TerminalTest do
     test "Check initializatioon with empty options" do
       ref = make_ref()
       test_pid_process = self()
-      instance = 1001
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -62,7 +62,7 @@ defmodule Host.TerminalTest do
       end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: [],
         target: test_pid_process,
@@ -83,7 +83,7 @@ defmodule Host.TerminalTest do
     test "Timeout" do
       ref = make_ref()
       test_pid_process = self()
-      instance = 1002
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -98,7 +98,7 @@ defmodule Host.TerminalTest do
       end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: options,
         target: test_pid_process,
@@ -114,7 +114,7 @@ defmodule Host.TerminalTest do
     test "Receiving a text from the OS process" do
       ref = make_ref()
       test_pid_process = self()
-      instance = 1001
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -132,7 +132,7 @@ defmodule Host.TerminalTest do
       end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: [],
         target: test_pid_process,
@@ -164,7 +164,7 @@ defmodule Host.TerminalTest do
     test "Receive a DOWN message from the caller" do
       ref = make_ref()
       test_pid_process = self()
-      instance = 1001
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -180,7 +180,7 @@ defmodule Host.TerminalTest do
       end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: [],
         target: test_pid_process,
@@ -197,9 +197,35 @@ defmodule Host.TerminalTest do
     end
 
     @tag :capture_log
+    test "Error while trying to run the commands" do
+      ref = make_ref()
+      test_pid_process = self()
+      node = Node.self()
+      commands = "command_1"
+
+      Host.CommanderMock
+      |> expect(:run, fn _commands, _options ->
+        Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+        {:error, :any}
+      end)
+
+      state = %Terminal{
+        node: node,
+        commands: commands,
+        options: [],
+        target: test_pid_process,
+        metadata: "test"
+      }
+
+      assert {:ok, _pid} = Terminal.new(state)
+
+      assert_receive {:handle_ref_event, ^ref}, 1_000
+    end
+
+    @tag :capture_log
     test "Receive a DOWN message from the OS system process" do
       test_pid_process = self()
-      instance = 1001
+      node = Node.self()
       os_pid = 123_456
       commands = "command_1"
       options = [:monitor]
@@ -211,7 +237,7 @@ defmodule Host.TerminalTest do
       |> expect(:stop, 0, fn ^os_pid -> :ok end)
 
       state = %Terminal{
-        instance: instance,
+        node: node,
         commands: commands,
         options: [],
         target: test_pid_process,

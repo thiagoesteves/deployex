@@ -12,7 +12,7 @@ defmodule Foundation.Catalog do
   ### ==========================================================================
 
   @doc """
-  Ensure all directories are initialised
+  Ensure all directories are initialised for deployex app
 
     ## Examples
 
@@ -22,6 +22,33 @@ defmodule Foundation.Catalog do
   @impl true
   @spec setup() :: :ok
   def setup, do: default().setup()
+
+  @doc """
+  Ensure all directories are initialised for the respective node
+
+    ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert Catalog.setup("node-1234") == :ok
+    ...> assert Catalog.setup(nil) == :ok
+  """
+  @impl true
+  @spec setup(String.t()) :: :ok
+  def setup(sname), do: default().setup(sname)
+
+  @doc """
+  Ensure all folders for the respective node are cleaned
+
+    ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert Catalog.cleanup("node-1234") == :ok
+    ...> assert Catalog.cleanup("node-1234-1") == :ok
+    ...> assert Catalog.cleanup(nil) == :ok
+  """
+  @impl true
+  @spec cleanup(String.t() | nil) :: :ok
+  def cleanup(sname), do: default().cleanup(sname)
 
   @doc """
   This function return the number of replicas configured
@@ -49,19 +76,6 @@ defmodule Foundation.Catalog do
   def replicas_list, do: default().replicas_list()
 
   @doc """
-  This function return a list with all replicas that needs to be
-  monitored, including deployex
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.instance_list == [0, 1, 2, 3]
-  """
-  @impl true
-  @spec instance_list() :: list()
-  def instance_list, do: default().instance_list()
-
-  @doc """
   Return the app name that will be monitored
 
   ## Examples
@@ -70,7 +84,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.monitored_app_name() == "testapp"
   """
   @impl true
-  @spec monitored_app_name() :: binary()
+  @spec monitored_app_name() :: String.t()
   def monitored_app_name, do: default().monitored_app_name()
 
   @doc """
@@ -82,7 +96,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.monitored_app_lang() == "elixir"
   """
   @impl true
-  @spec monitored_app_lang() :: binary()
+  @spec monitored_app_lang() :: String.t()
   def monitored_app_lang, do: default().monitored_app_lang()
 
   @doc """
@@ -91,7 +105,7 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.monitored_app_env() == []
+    ...> assert Catalog.monitored_app_env() == ["SECRET=value", "PHX_SERVER=true"]
   """
   @impl true
   @spec monitored_app_env() :: list()
@@ -110,38 +124,17 @@ defmodule Foundation.Catalog do
   def monitored_app_start_port, do: default().monitored_app_start_port()
 
   @doc """
-  Return a list of expected nodes, including deployex (instance 0)
+  Create a new sname for a monitored application
 
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> nodes = Enum.map(Catalog.expected_nodes(), &Atom.to_string/1)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "deployex") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-1") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-2") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-3") end)
+    ...> assert "testapp-" <> _suffix = Catalog.create_sname("testapp")
 
   """
   @impl true
-  @spec expected_nodes() :: list()
-  def expected_nodes, do: default().expected_nodes()
-
-  @doc """
-  Return a list of expected nodes, including deployex (instance 0)
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> nodes = Enum.map(Catalog.monitored_nodes(), &Atom.to_string/1)
-    ...> refute Enum.any?(nodes, fn node -> String.contains?(node, "deployex") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-1") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-2") end)
-    ...> assert Enum.any?(nodes, fn node -> String.contains?(node, "testapp-3") end)
-
-  """
-  @impl true
-  @spec monitored_nodes() :: list()
-  def monitored_nodes, do: default().monitored_nodes()
+  @spec create_sname(String.t()) :: String.t()
+  def create_sname(name), do: default().create_sname(name)
 
   @doc """
   Return the respective node details: name, hostname and instance
@@ -149,14 +142,16 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert %{name_string: "testapp", hostname: _,  instance: 1} = Catalog.parse_node_name(:"testapp-1@nohost")
-    ...> assert %{name_string: "testapp", hostname: _,  instance: 2} = Catalog.parse_node_name(:"testapp-2@nohost")
-    ...> assert %{name_string: "testapp", hostname: _,  instance: 3} = Catalog.parse_node_name(:"testapp-3@nohost")
-
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-1@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-2@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-3@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"deployex@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"nonode@nohost")
+    ...> refute Catalog.node_info(:"testapp-1-1@host")
   """
   @impl true
-  @spec parse_node_name(String.t() | atom()) :: map() | nil
-  def parse_node_name(node), do: default().parse_node_name(node)
+  @spec node_info(String.t() | node() | nil) :: Foundation.Catalog.Node.t() | nil
+  def node_info(node_or_sname), do: default().node_info(node_or_sname)
 
   @doc """
   Return the path for the stdout log file
@@ -164,14 +159,14 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.stdout_path(0) == "/var/log/deployex/deployex-stdout.log"
-    ...> assert Catalog.stdout_path(1) == "/tmp/testapp/testapp/testapp-1-stdout.log"
-    ...> assert Catalog.stdout_path(2) == "/tmp/testapp/testapp/testapp-2-stdout.log"
-    ...> assert Catalog.stdout_path(3) == "/tmp/testapp/testapp/testapp-3-stdout.log"
+    ...> assert Catalog.stdout_path("deployex") == "/var/log/deployex/deployex-stdout.log"
+    ...> assert Catalog.stdout_path("testapp-1") == "/tmp/testapp/testapp/testapp-1-stdout.log"
+    ...> assert Catalog.stdout_path("testapp-2") == "/tmp/testapp/testapp/testapp-2-stdout.log"
+    ...> assert Catalog.stdout_path("testapp-3") == "/tmp/testapp/testapp/testapp-3-stdout.log"
   """
   @impl true
-  @spec stdout_path(integer()) :: binary()
-  def stdout_path(instance), do: default().stdout_path(instance)
+  @spec stdout_path(String.t()) :: String.t() | nil
+  def stdout_path(sname), do: default().stdout_path(sname)
 
   @doc """
   Return the path for the stderr log file
@@ -179,29 +174,14 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.stderr_path(0) == "/var/log/deployex/deployex-stderr.log"
-    ...> assert Catalog.stderr_path(1) == "/tmp/testapp/testapp/testapp-1-stderr.log"
-    ...> assert Catalog.stderr_path(2) == "/tmp/testapp/testapp/testapp-2-stderr.log"
-    ...> assert Catalog.stderr_path(3) == "/tmp/testapp/testapp/testapp-3-stderr.log"
+    ...> assert Catalog.stderr_path("deployex") == "/var/log/deployex/deployex-stderr.log"
+    ...> assert Catalog.stderr_path("testapp-1") == "/tmp/testapp/testapp/testapp-1-stderr.log"
+    ...> assert Catalog.stderr_path("testapp-2") == "/tmp/testapp/testapp/testapp-2-stderr.log"
+    ...> assert Catalog.stderr_path("testapp-3") == "/tmp/testapp/testapp/testapp-3-stderr.log"
   """
   @impl true
-  @spec stderr_path(integer()) :: binary()
-  def stderr_path(instance), do: default().stderr_path(instance)
-
-  @doc """
-  Return the sname of the application with the correct instance suffix
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.sname(0) == "deployex"
-    ...> assert Catalog.sname(1) == "testapp-1"
-    ...> assert Catalog.sname(2) == "testapp-2"
-    ...> assert Catalog.sname(3) == "testapp-3"
-  """
-  @impl true
-  @spec sname(integer()) :: String.t()
-  def sname(instance), do: default().sname(instance)
+  @spec stderr_path(String.t()) :: String.t() | nil
+  def stderr_path(sname), do: default().stderr_path(sname)
 
   @doc """
   Retrieve the bin path for the respective instance (current)
@@ -209,36 +189,39 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.bin_path(0, "elixir", :current) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
-    ...> assert Catalog.bin_path(2, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
-    ...> assert Catalog.bin_path(3, "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
-    ...> assert Catalog.bin_path(0, "gleam", :current) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/erlang-shipment"
-    ...> assert Catalog.bin_path(2, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/erlang-shipment"
-    ...> assert Catalog.bin_path(3, "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/erlang-shipment"
-    ...> assert Catalog.bin_path(0, "erlang", :current) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/1/current/bin/testapp"
-    ...> assert Catalog.bin_path(2, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/2/current/bin/testapp"
-    ...> assert Catalog.bin_path(3, "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/3/current/bin/testapp"
-    ...> assert Catalog.bin_path(0, "elixir", :new) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
-    ...> assert Catalog.bin_path(2, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
-    ...> assert Catalog.bin_path(3, "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
-    ...> assert Catalog.bin_path(0, "gleam", :new) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/erlang-shipment"
-    ...> assert Catalog.bin_path(2, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/erlang-shipment"
-    ...> assert Catalog.bin_path(3, "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/erlang-shipment"
-    ...> assert Catalog.bin_path(0, "erlang", :new) == "/opt/deployex/bin/deployex"
-    ...> assert Catalog.bin_path(1, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/1/new/bin/testapp"
-    ...> assert Catalog.bin_path(2, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/2/new/bin/testapp"
-    ...> assert Catalog.bin_path(3, "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/3/new/bin/testapp"
+    ...> assert Catalog.bin_path("deployex", "elixir", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-2", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-3", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/bin/testapp"
+    ...> assert Catalog.bin_path("deployex", "gleam", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/erlang-shipment"
+    ...> assert Catalog.bin_path("testapp-2", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/erlang-shipment"
+    ...> assert Catalog.bin_path("testapp-3", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex", "erlang", :current) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-2", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-3", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/bin/testapp"
+    ...> assert Catalog.bin_path("deployex", "elixir", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-2", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-3", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/bin/testapp"
+    ...> assert Catalog.bin_path("deployex", "gleam", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/erlang-shipment"
+    ...> assert Catalog.bin_path("testapp-2", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/erlang-shipment"
+    ...> assert Catalog.bin_path("testapp-3", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex", "erlang", :new) == "/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("testapp-1", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-2", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/bin/testapp"
+    ...> assert Catalog.bin_path("testapp-3", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/bin/testapp"
+    ...> refute Catalog.bin_path("testapp-1", "", :current)
+    ...> refute Catalog.bin_path("testapp-1", "elixir", :any)
+    ...> refute Catalog.bin_path("deployex-", "elixir", :any)
   """
   @impl true
-  @spec bin_path(integer(), String.t(), Foundation.Catalog.Adapter.bin_service()) :: String.t()
+  @spec bin_path(String.t(), String.t(), Foundation.Catalog.Adapter.bin_service()) :: String.t()
 
-  def bin_path(instance, monitored_app_lang, bin_service),
-    do: default().bin_path(instance, monitored_app_lang, bin_service)
+  def bin_path(sname, monitored_app_lang, bin_service),
+    do: default().bin_path(sname, monitored_app_lang, bin_service)
 
   @doc """
   Base path for the state and service data
@@ -246,11 +229,11 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.base_path() == "/tmp/deployex/test/varlib"
+    ...> assert Catalog.service_path("testapp") == "/tmp/deployex/test/varlib/service/testapp"
   """
   @impl true
-  @spec base_path :: String.t()
-  def base_path, do: default().base_path()
+  @spec service_path(String.t()) :: String.t()
+  def service_path(name), do: default().service_path(name)
 
   @doc """
   Path for retrieving the new app data
@@ -258,14 +241,15 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.new_path(0) == "/tmp/deployex/test/varlib/service/testapp/0/new"
-    ...> assert Catalog.new_path(1) == "/tmp/deployex/test/varlib/service/testapp/1/new"
-    ...> assert Catalog.new_path(2) == "/tmp/deployex/test/varlib/service/testapp/2/new"
-    ...> assert Catalog.new_path(3) == "/tmp/deployex/test/varlib/service/testapp/3/new"
+    ...> assert Catalog.new_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/new"
+    ...> assert Catalog.new_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new"
+    ...> assert Catalog.new_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new"
+    ...> assert Catalog.new_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new"
+    ...> refute Catalog.new_path(nil)
   """
   @impl true
-  @spec new_path(integer()) :: binary()
-  def new_path(instance), do: default().new_path(instance)
+  @spec new_path(String.t()) :: String.t()
+  def new_path(sname), do: default().new_path(sname)
 
   @doc """
   Path where the app will be running from
@@ -273,14 +257,15 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.current_path(0) == "/tmp/deployex/test/varlib/service/testapp/0/current"
-    ...> assert Catalog.current_path(1) == "/tmp/deployex/test/varlib/service/testapp/1/current"
-    ...> assert Catalog.current_path(2) == "/tmp/deployex/test/varlib/service/testapp/2/current"
-    ...> assert Catalog.current_path(3) == "/tmp/deployex/test/varlib/service/testapp/3/current"
+    ...> assert Catalog.current_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/current"
+    ...> assert Catalog.current_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current"
+    ...> assert Catalog.current_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current"
+    ...> assert Catalog.current_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current"
+    ...> refute Catalog.current_path(nil)
   """
   @impl true
-  @spec current_path(integer()) :: binary()
-  def current_path(instance), do: default().current_path(instance)
+  @spec current_path(String.t()) :: String.t()
+  def current_path(sname), do: default().current_path(sname)
 
   @doc """
   Path to move the previous app files
@@ -288,14 +273,15 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.previous_path(0) == "/tmp/deployex/test/varlib/service/testapp/0/previous"
-    ...> assert Catalog.previous_path(1) == "/tmp/deployex/test/varlib/service/testapp/1/previous"
-    ...> assert Catalog.previous_path(2) == "/tmp/deployex/test/varlib/service/testapp/2/previous"
-    ...> assert Catalog.previous_path(3) == "/tmp/deployex/test/varlib/service/testapp/3/previous"
+    ...> assert Catalog.previous_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/previous"
+    ...> assert Catalog.previous_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/previous"
+    ...> assert Catalog.previous_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/previous"
+    ...> assert Catalog.previous_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/previous"
+    ...> refute Catalog.previous_path(nil)
   """
   @impl true
-  @spec previous_path(integer()) :: binary()
-  def previous_path(instance), do: default().previous_path(instance)
+  @spec previous_path(String.t()) :: String.t()
+  def previous_path(sname), do: default().previous_path(sname)
 
   @doc """
   Retrieve the history of set versions
@@ -305,11 +291,11 @@ defmodule Foundation.Catalog do
   def versions, do: default().versions()
 
   @doc """
-  Retrieve the history of set versions by instance
+  Retrieve the history of set versions by sname
   """
   @impl true
-  @spec versions(integer()) :: list()
-  def versions(instance), do: default().versions(instance)
+  @spec versions(String.t()) :: list()
+  def versions(sname), do: default().versions(sname)
 
   @doc """
   Add a version to the version history

@@ -3,6 +3,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
 
   import Mock
 
+  alias Foundation.ConfigProvider.Secrets.Aws
   alias Foundation.ConfigProvider.Secrets.Manager
 
   test "secrets/3 with success" do
@@ -22,8 +23,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
                {:ex_aws, [region: "us-east-2"]},
                {:foundation,
                 [
-                  {Foundation.ConfigProvider.Secrets.Manager,
-                   [adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"]},
+                  {Manager, [adapter: Aws, path: "any-env-path"]},
                   {:env, "prod"},
                   {Foundation.Accounts,
                    [
@@ -43,8 +43,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
                Manager.load(
                  [
                    foundation: [
-                     {Foundation.ConfigProvider.Secrets.Manager,
-                      adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
+                     {Manager, adapter: Aws, path: "any-env-path"},
                      {:env, "prod"}
                    ],
                    ex_aws: [region: "us-east-2"]
@@ -65,8 +64,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
         [
           {:foundation,
            [
-             {Foundation.ConfigProvider.Secrets.Manager,
-              [adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"]},
+             {Manager, [adapter: Aws, path: "any-env-path"]},
              {:env, "prod"},
              {Foundation.Accounts,
               [
@@ -86,8 +84,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
           Manager.load(
             [
               foundation: [
-                {Foundation.ConfigProvider.Secrets.Manager,
-                 adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
+                {Manager, adapter: Aws, path: "any-env-path"},
                 {:env, "prod"}
               ],
               ex_aws: [region: "us-east-1"]

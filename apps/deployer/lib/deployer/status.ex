@@ -4,35 +4,12 @@ defmodule Deployer.Status do
   """
 
   alias Deployer.Release
-
-  defmodule Version do
-    @moduledoc """
-    Structure to handle the application version
-    """
-    @type t :: %__MODULE__{
-            version: String.t() | nil,
-            hash: String.t() | nil,
-            pre_commands: list(),
-            instance: integer(),
-            deployment: :full_deployment | :hot_upgrade,
-            deploy_ref: String.t() | nil,
-            inserted_at: NaiveDateTime.t()
-          }
-
-    @derive Jason.Encoder
-
-    defstruct version: nil,
-              hash: nil,
-              pre_commands: [],
-              instance: 1,
-              deployment: :full_deployment,
-              deploy_ref: nil,
-              inserted_at: nil
-  end
+  alias Foundation.Catalog
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
-          instance: integer(),
+          sname: String.t() | nil,
+          node: node() | nil,
           version: nil,
           otp: :connected | :not_connected,
           tls: :supported | :not_supported,
@@ -45,11 +22,12 @@ defmodule Deployer.Status do
           last_ghosted_version: String.t() | nil,
           mode: :automatic | :manual,
           language: String.t(),
-          manual_version: Deployer.Status.Version.t() | nil
+          manual_version: Catalog.Version.t() | nil
         }
 
   defstruct name: nil,
-            instance: 0,
+            sname: nil,
+            node: nil,
             version: nil,
             otp: :not_connected,
             tls: :not_supported,
@@ -95,15 +73,15 @@ defmodule Deployer.Status do
   Retrieve the current version set for the monitored application
   """
   @impl true
-  @spec current_version(integer()) :: String.t() | nil
-  def current_version(instance), do: default().current_version(instance)
+  @spec current_version(String.t()) :: String.t() | nil
+  def current_version(sname), do: default().current_version(sname)
 
   @doc """
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(integer()) :: Deployer.Status.Version.t()
-  def current_version_map(instance), do: default().current_version_map(instance)
+  @spec current_version_map(String.t()) :: Catalog.Version.t()
+  def current_version_map(sname), do: default().current_version_map(sname)
 
   @doc """
   Subscribe to receive status update
@@ -116,15 +94,15 @@ defmodule Deployer.Status do
   Set the current version map
   """
   @impl true
-  @spec set_current_version_map(integer(), Release.Version.t(), Keyword.t()) :: :ok
-  def set_current_version_map(instance, release, attrs),
-    do: default().set_current_version_map(instance, release, attrs)
+  @spec set_current_version_map(String.t(), Release.Version.t(), Keyword.t()) :: :ok
+  def set_current_version_map(sname, release, attrs),
+    do: default().set_current_version_map(sname, release, attrs)
 
   @doc """
   Add a ghosted version in the list
   """
   @impl true
-  @spec add_ghosted_version(Deployer.Status.Version.t()) :: {:ok, list()}
+  @spec add_ghosted_version(Catalog.Version.t()) :: {:ok, list()}
   def add_ghosted_version(version_map), do: default().add_ghosted_version(version_map)
 
   @doc """
@@ -142,27 +120,26 @@ defmodule Deployer.Status do
   def history_version_list, do: default().history_version_list()
 
   @doc """
-  Retrieve the history version list by instance
+  Retrieve the history version list by sname
   """
   @impl true
-  @spec history_version_list(integer() | binary()) :: list()
-  def history_version_list(instance), do: default().history_version_list(instance)
+  @spec history_version_list(String.t()) :: list()
+  def history_version_list(sname), do: default().history_version_list(sname)
 
   @doc """
-  This function clears the service new path, so it can download and unpack
-  a new release
+  Retrieve the list of installed apps by name
   """
   @impl true
-  @spec clear_new(integer()) :: :ok
-  def clear_new(instance), do: default().clear_new(instance)
+  @spec list_installed_apps(String.t()) :: list()
+  def list_installed_apps(name), do: default().list_installed_apps(name)
 
   @doc """
   This function removes the previous service path and move the current
   to previous and new to current.
   """
   @impl true
-  @spec update(integer()) :: :ok
-  def update(instance), do: default().update(instance)
+  @spec update(String.t()) :: :ok
+  def update(sname), do: default().update(sname)
 
   @doc """
   Set the configuration mode
