@@ -19,7 +19,37 @@ defmodule DeployexWeb.Applications.TerminalTest do
   alias Foundation.Catalog
   alias Host.Fixture.Terminal, as: FixtureTerminal
 
-  test "Access to terminal by instance", %{conn: conn} do
+  test "Access to terminal for Deployex", %{conn: conn} do
+    ref = make_ref()
+    test_pid_process = self()
+    os_pid = 123_456
+    name = "deployex"
+
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, [FixtureStatus.deployex()]} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn -> [] end)
+
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
+    |> expect(:stop, fn ^os_pid ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      :ok
+    end)
+
+    FixtureFiles.create_deployex_bin_files()
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    assert index_live |> element("#app-terminal-#{name}") |> render_click() =~
+             "Bin: /tmp/deployex/test/opt/#{name}"
+
+    FixtureTerminal.terminate_all()
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+  end
+
+  test "Access to terminal for Elixir apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
@@ -55,7 +85,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Access to terminal by instance - Gleam", %{conn: conn} do
+  test "Access to terminal for Gleam apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
@@ -99,7 +129,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     end
   end
 
-  test "Access to terminal by instance - Erlang", %{conn: conn} do
+  test "Access to terminal for Erlang apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456

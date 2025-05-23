@@ -5,6 +5,8 @@ monitored_app_name = "testapp"
 config :foundation,
   env: "local",
   base_path: "/tmp/deployex/test/varlib",
+  bin_dir: "/tmp/deployex/test/opt",
+  bin_path: "/tmp/deployex/test/opt/deployex",
   monitored_app_name: monitored_app_name,
   monitored_app_lang: "elixir",
   monitored_app_log_path: "/tmp/#{monitored_app_name}",

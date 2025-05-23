@@ -27,6 +27,17 @@ defmodule Deployer.Fixture.Files do
     File.mkdir_p(new)
   end
 
+  def create_deployex_bin_files do
+    bin_file = Catalog.bin_path("deployex", "elixir", :current)
+
+    bin_file
+    |> Path.dirname()
+    |> String.trim()
+    |> File.mkdir_p()
+
+    File.touch!(bin_file)
+  end
+
   def create_log_files(sname) do
     sname |> Catalog.stdout_path() |> Path.dirname() |> String.trim() |> File.mkdir_p()
 

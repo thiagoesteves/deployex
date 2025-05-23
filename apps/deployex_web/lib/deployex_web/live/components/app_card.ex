@@ -58,7 +58,7 @@ defmodule DeployexWeb.Components.AppCard do
             </strong>
           </p>
 
-          <p :if={@supervisor == false} class="flex  tracking-tight pt-3 justify-between">
+          <p class="flex  tracking-tight pt-3 justify-between">
             <span class="text-xs font-bold ml-3">Node</span>
             <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
               {@node}
