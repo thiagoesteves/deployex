@@ -4,5 +4,5 @@ defmodule Deployer.Release.Adapter do
   """
 
   @callback download_version_map(String.t()) :: map()
-  @callback download_release(String.t(), String.t(), String.t()) :: :ok
+  @callback download_release(String.t(), String.t(), String.t()) :: :ok | {:error, any()}
 end

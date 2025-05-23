@@ -81,9 +81,7 @@ defmodule Deployer.Release.GcpStorageTest do
          request: fn _data, _module -> {:error, :invalid_data} end
        ]}
     ]) do
-      assert_raise RuntimeError, fn ->
-        GcpStorage.download_release(name, version, new_path)
-      end
+      assert {:error, :invalid_data} = GcpStorage.download_release(name, version, new_path)
     end
   end
 end

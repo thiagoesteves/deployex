@@ -42,14 +42,11 @@ defmodule Deployer.Release.GcpStorage do
     |> Finch.request(Deployer.Finch)
     |> case do
       {:ok, %Finch.Response{body: body}} ->
-        File.write!("#{download_path}/#{app_name}-#{release_version}.tar.gz", body)
-        :ok
+        File.write("#{download_path}/#{app_name}-#{release_version}.tar.gz", body)
 
       reason ->
-        raise "Error downloading release for #{app_name}, reason: #{inspect(reason)}"
+        reason
     end
-
-    :ok
   end
 
   ### ==========================================================================

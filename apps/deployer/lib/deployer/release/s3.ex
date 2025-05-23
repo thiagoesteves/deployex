@@ -35,12 +35,13 @@ defmodule Deployer.Release.S3 do
   def download_release(app_name, release_version, download_path) do
     s3_path = "dist/#{app_name}/#{app_name}-#{release_version}.tar.gz"
 
-    {:ok, :done} =
-      bucket()
-      |> ExAws.S3.download_file(s3_path, download_path)
-      |> ExAws.request()
+    case bucket() |> ExAws.S3.download_file(s3_path, download_path) |> ExAws.request() do
+      {:ok, :done} ->
+        :ok
 
-    :ok
+      reason ->
+        reason
+    end
   end
 
   ### ==========================================================================

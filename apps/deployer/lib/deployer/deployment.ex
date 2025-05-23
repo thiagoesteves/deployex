@@ -232,11 +232,7 @@ defmodule Deployer.Deployment do
         {:ok, _} ->
           full_deployment(state, current_sname, previous_version_map)
 
-        reason ->
-          Logger.error(
-            "Error while rolling back sname: #{current_sname} to previous version, reason: #{inspect(reason)}"
-          )
-
+        {:error, _reason} ->
           state
       end
     end
@@ -301,6 +297,9 @@ defmodule Deployer.Deployment do
           Monitor.run_pre_commands(current_sname, pre_commands, :new)
 
           hot_upgrade(state, new_sname, release)
+
+        {:error, _reason} ->
+          state
       end
     end
 

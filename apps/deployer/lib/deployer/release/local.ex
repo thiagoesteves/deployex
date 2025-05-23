@@ -30,11 +30,11 @@ defmodule Deployer.Release.Local do
 
   @impl true
   def download_release(app_name, release_version, download_path) do
-    path = "#{bucket()}/dist/#{app_name}/#{app_name}-#{release_version}.tar.gz"
+    release_name = "#{app_name}-#{release_version}.tar.gz"
+    file_path = "#{bucket()}/dist/#{app_name}/#{release_name}"
+    dest_path = "#{download_path}/#{release_name}"
 
-    File.cp(path, download_path)
-
-    :ok
+    File.cp(file_path, dest_path)
   end
 
   ### ==========================================================================

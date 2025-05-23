@@ -35,8 +35,9 @@ defmodule Deployer.Fixture.Files do
   end
 
   def create_tar(name, version) do
-    File.mkdir_p("/tmp/testapp/dist/#{name}/")
-    File.touch("/tmp/testapp/dist/#{name}/#{name}-#{version}.tar.gz")
+    bucket = Application.get_env(:deployer, Deployer.Release)[:bucket]
+    :ok = File.mkdir_p("#{bucket}/dist/#{name}")
+    :ok = File.touch("#{bucket}/dist/#{name}/#{name}-#{version}.tar.gz")
   end
 
   def remove_bin_files(sname) do

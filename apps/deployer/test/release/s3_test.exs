@@ -42,4 +42,19 @@ defmodule Deployer.Release.S3Test do
       assert :ok = S3.download_release(name, version, new_path)
     end
   end
+
+  test "download_release/2 error" do
+    version = "5.0.0"
+    name = "s3_testapp"
+    sname = Catalog.create_sname(name)
+    new_path = Catalog.new_path(sname)
+    source_path = "dist/#{name}/#{name}-#{version}.tar.gz"
+
+    with_mocks([
+      {System, [], [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
+      {ExAws, [], [request: fn _command -> {:error, :invalid_data} end]}
+    ]) do
+      assert {:error, :invalid_data} = S3.download_release(name, version, new_path)
+    end
+  end
 end

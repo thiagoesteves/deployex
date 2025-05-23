@@ -2,6 +2,7 @@ defmodule Deployer.Release do
   @moduledoc """
   This module will provide methods to retrieve the release information
   """
+  require Logger
 
   alias Deployer.Upgrade
   alias Foundation.Catalog
@@ -61,37 +62,32 @@ defmodule Deployer.Release do
       }) do
     {:ok, download_path} = Briefly.create()
 
-    %{name: name, language: language} = Catalog.node_info(current_sname || new_sname)
-
-    # Download the release file
-    default().download_release(name, release_version, download_path)
-
-    if current_sname do
-      # Prepare new folder to receive the release binaries
-      current_sname_new_path |> File.rm_rf()
-      current_sname_new_path |> File.mkdir_p()
-
-      {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", current_sname_new_path])
-    end
-
-    if is_nil(current_sname) or is_nil(new_sname) do
-      if new_sname do
-        {"", 0} = System.cmd("tar", ["-x", "-f", download_path, "-C", new_sname_new_path])
+    with %{name: name, language: language} <- Catalog.node_info(current_sname || new_sname),
+         :ok <- default().download_release(name, release_version, download_path),
+         :ok <- untar_to_new_path(current_sname, download_path, current_sname_new_path),
+         :ok <- untar_to_new_path(new_sname, download_path, new_sname_new_path) do
+      if is_nil(current_sname) or is_nil(new_sname) do
+        {:ok, :full_deployment}
+      else
+        %Upgrade.Check{
+          sname: current_sname,
+          name: name,
+          language: language,
+          download_path: download_path,
+          current_path: current_sname_current_path,
+          new_path: current_sname_new_path,
+          from_version: current_version,
+          to_version: release_version
+        }
+        |> Upgrade.check()
       end
-
-      {:ok, :full_deployment}
     else
-      %Upgrade.Check{
-        sname: current_sname,
-        name: name,
-        language: language,
-        download_path: download_path,
-        current_path: current_sname_current_path,
-        new_path: current_sname_new_path,
-        from_version: current_version,
-        to_version: release_version
-      }
-      |> Upgrade.check()
+      reason ->
+        Logger.error(
+          "Download and unpack error: #{inspect(reason)} current_sname: #{current_sname} new_sname: #{new_sname}"
+        )
+
+        {:error, :donwload_process_error}
     end
   after
     Briefly.cleanup()
@@ -101,4 +97,20 @@ defmodule Deployer.Release do
   ### Private functions
   ### ==========================================================================
   defp default, do: Application.fetch_env!(:deployer, __MODULE__)[:adapter]
+
+  defp untar_to_new_path(sname, _download_path, new_path)
+       when is_nil(sname) or is_nil(new_path) do
+    :ok
+  end
+
+  defp untar_to_new_path(_sname, download_path, new_path) do
+    # Prepare new folder to receive the release binaries
+    File.rm_rf(new_path)
+    File.mkdir_p(new_path)
+
+    case System.cmd("tar", ["-x", "-f", download_path, "-C", new_path]) do
+      {"", 0} -> :ok
+      _ -> {:error, :untar}
+    end
+  end
 end
