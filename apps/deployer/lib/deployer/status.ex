@@ -4,6 +4,7 @@ defmodule Deployer.Status do
   """
 
   alias Deployer.Release
+  alias Foundation.Catalog
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
@@ -21,7 +22,7 @@ defmodule Deployer.Status do
           last_ghosted_version: String.t() | nil,
           mode: :automatic | :manual,
           language: String.t(),
-          manual_version: Deployer.Status.Version.t() | nil
+          manual_version: Catalog.Version.t() | nil
         }
 
   defstruct name: nil,
@@ -79,7 +80,7 @@ defmodule Deployer.Status do
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(String.t()) :: Deployer.Status.Version.t()
+  @spec current_version_map(String.t()) :: Catalog.Version.t()
   def current_version_map(sname), do: default().current_version_map(sname)
 
   @doc """
@@ -101,7 +102,7 @@ defmodule Deployer.Status do
   Add a ghosted version in the list
   """
   @impl true
-  @spec add_ghosted_version(Deployer.Status.Version.t()) :: {:ok, list()}
+  @spec add_ghosted_version(Catalog.Version.t()) :: {:ok, list()}
   def add_ghosted_version(version_map), do: default().add_ghosted_version(version_map)
 
   @doc """
