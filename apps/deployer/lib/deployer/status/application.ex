@@ -212,6 +212,7 @@ defmodule Deployer.Status.Application do
     %Status{
       name: "deployex",
       sname: "deployex",
+      node: Node.self(),
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),

@@ -132,7 +132,15 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             #{bin_path} remote_console
             """
 
-          # Deafult to Elixir language
+          sname == "deployex" ->
+            """
+            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+            export PATH=#{path}
+            export RELEASE_COOKIE=#{cookie}
+            #{bin_path} remote
+            """
+
           true ->
             """
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
