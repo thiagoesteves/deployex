@@ -1,5 +1,19 @@
 # CHANGELOG (0.4.x)
 
+## 0.5.0 ()
+
+### Backwards incompatible changes for 0.4.2
+ * This version has a major change from instance to node/sname, this will require to prune existing version data.
+
+### Installer Actions
+ * Run `./depoloyex.sh --install deployex.yaml` to prune existing version data
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`ISSUE-64`](https://github.com/thiagoesteves/deployex/issues/64) Modify Deployex to use node/sname instead instance
+
 ## 0.4.2 🚀 (2025-05-13)
 
 ### Backwards incompatible changes for 0.4.1
