@@ -24,37 +24,40 @@ defmodule Deployer.ReleaseTest do
     end)
 
     assert %Release.Version{hash: "local", pre_commands: [], version: "1.0.0"} ==
-             Release.get_current_version_map("testapp")
+             Release.get_current_version_map("myelixir")
   end
 
   test "get_current_version_map/1 manual mode non-optional field" do
-    config = Catalog.config()
+    name = "myelixir"
+    config = Catalog.config(name)
 
-    Catalog.config_update(%{
+    Catalog.config_update(name, %{
       config
       | mode: :manual,
         manual_version: %{"version" => "1.0.0", "hash" => "local"}
     })
 
     assert %Release.Version{hash: "local", pre_commands: [], version: "1.0.0"} ==
-             Release.get_current_version_map("testapp")
+             Release.get_current_version_map(name)
   end
 
   test "get_current_version_map/1 manual mode" do
+    name = "myelixir"
+
     expected_version = %Release.Version{
       hash: "local",
       pre_commands: ["cmd1"],
       version: "1.0.0"
     }
 
-    config = Catalog.config()
-    Catalog.config_update(%{config | mode: :manual, manual_version: expected_version})
+    config = Catalog.config(name)
+    Catalog.config_update(name, %{config | mode: :manual, manual_version: expected_version})
 
-    assert expected_version == Release.get_current_version_map("testapp")
+    assert expected_version == Release.get_current_version_map(name)
   end
 
   test "download_and_unpack/1 - Startup - full deployment" do
-    name = "release_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 
@@ -80,7 +83,7 @@ defmodule Deployer.ReleaseTest do
   end
 
   test "download_and_unpack/1 - Empty new release - full deployment" do
-    name = "release_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
     current_path = Catalog.current_path(sname)
@@ -108,7 +111,7 @@ defmodule Deployer.ReleaseTest do
   end
 
   test "download_and_unpack/1 - Hot upgrade is detected" do
-    name = "release_testapp"
+    name = "myelixir"
     sname_1 = Catalog.create_sname(name)
     new_path_1 = Catalog.new_path(sname_1)
     current_path_1 = Catalog.current_path(sname_1)
@@ -152,7 +155,7 @@ defmodule Deployer.ReleaseTest do
   end
 
   test "download_and_unpack/1 - Hot upgrade is not detected" do
-    name = "release_testapp"
+    name = "myelixir"
     sname_1 = Catalog.create_sname(name)
     new_path_1 = Catalog.new_path(sname_1)
     current_path_1 = Catalog.current_path(sname_1)

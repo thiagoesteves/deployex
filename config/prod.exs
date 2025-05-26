@@ -18,8 +18,7 @@ config :deployex_web, DeployexWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 config :foundation,
-  base_path: "/var/lib/deployex",
-  monitored_app_log_path: "/var/log"
+  base_path: "/var/lib/deployex"
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: DeployexWeb.Finch

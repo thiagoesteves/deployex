@@ -23,17 +23,30 @@ defmodule Deployer.Application do
 
   if_not_test do
     alias Deployer.Deployment
+    alias Foundation.Catalog
 
-    defp application_servers do
-      [
-        Deployer.Status.Application,
+    defp deployment_servers do
+      Enum.map(Catalog.applications(), fn %{name: name} = application ->
+        timeout_rollback = Application.fetch_env!(:deployer, Deployment)[:timeout_rollback]
+        schedule_interval = Application.fetch_env!(:deployer, Deployment)[:schedule_interval]
+        ghosted_version_list = Deployer.Status.ghosted_version_list(name)
+
         {Deployment,
          [
-           timeout_rollback: Application.fetch_env!(:deployer, Deployment)[:timeout_rollback],
-           schedule_interval: Application.fetch_env!(:deployer, Deployment)[:schedule_interval],
-           name: Deployment
+           struct(
+             %Deployment{
+               timeout_rollback: timeout_rollback,
+               schedule_interval: schedule_interval,
+               ghosted_version_list: ghosted_version_list
+             },
+             application
+           )
          ]}
-      ]
+      end)
+    end
+
+    defp application_servers do
+      [Deployer.Status.Application] ++ deployment_servers()
     end
   else
     defp application_servers, do: []

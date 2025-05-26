@@ -74,22 +74,24 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-# Release configuration
-monitored_app_name = System.get_env("DEPLOYEX_MONITORED_APP_NAME", "myphoenixapp")
-monitored_app_lang = System.get_env("DEPLOYEX_MONITORED_APP_LANG", "elixir")
-
 config :foundation,
   env: "local",
   base_path: "/tmp/deployex/varlib",
-  monitored_app_name: monitored_app_name,
-  monitored_app_lang: monitored_app_lang,
-  monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_env: [
-    "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
-    "PHX_SERVER=true",
-    "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+  monitored_app_log_path: "/tmp/deployex/varlog",
+  applications: [
+    %{
+      name: "myphoenixapp",
+      replicas: 3,
+      language: "elixir",
+      initial_port: 4000,
+      env: [
+        "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
+        "PHX_SERVER=true",
+        "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+      ]
+    }
   ]
 
 config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,
-  bucket: "/tmp/#{monitored_app_name}"
+  bucket: "/tmp/deployex/bucket"

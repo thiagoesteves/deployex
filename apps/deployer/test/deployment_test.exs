@@ -11,7 +11,6 @@ defmodule Deployer.DeploymentTest do
   alias Deployer.Deployment
   alias Deployer.Fixture.Files, as: FixtureFiles
   alias Foundation.Catalog
-  alias Foundation.Common
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
@@ -20,38 +19,44 @@ defmodule Deployer.DeploymentTest do
 
   describe "Initialization tests" do
     test "init/1" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
 
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 5_000,
-                   name: module_name
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 5_000,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert {:error, {:already_started, _pid}} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 5_000,
-                   name: module_name
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 5_000,
+                     name: name,
+                     language: language
+                   }
+                 ])
       end
     end
 
     test "Initialization with version not configured" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> expect(:current_version, 1, fn _sname -> "1.0.0" end)
       |> expect(:update, 0, fn _sname -> :ok end)
@@ -59,7 +64,9 @@ defmodule Deployer.DeploymentTest do
 
       Deployer.MonitorMock
       |> expect(:stop_service, 0, fn _sname -> :ok end)
-      |> expect(:start_service, 0, fn _sname, _language, _port, _options -> {:ok, self()} end)
+      |> expect(:start_service, 0, fn _service ->
+        {:ok, self()}
+      end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -78,35 +85,39 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link(
-                            timeout_rollback: 1_000,
-                            schedule_interval: 10,
-                            name: module_name,
-                            mStatus: Deployer.StatusMock
-                          )
+                          Deployment.start_link([
+                            %Deployment{
+                              timeout_rollback: 1_000,
+                              schedule_interval: 10,
+                              name: name,
+                              language: language
+                            }
+                          ])
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
                end
-             end) =~ "No versions set yet for testapp"
+             end) =~ "No versions set yet for myelixir"
     end
 
     test "Initialization with version configured" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
-      sname = Catalog.create_sname("test_app")
+      sname = Catalog.create_sname("myelixir")
       FixtureFiles.create_bin_files(sname)
       version = "1.2.3"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> expect(:current_version, 2, fn _sname -> version end)
-      |> expect(:history_version_list, fn -> [%Catalog.Version{version: version}] end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn ^sname, _language, _port, _options ->
+      |> expect(:start_service, 1, fn %{sname: ^sname} ->
         send(pid, {:handle_ref_event, ref})
         {:ok, self()}
       end)
@@ -117,12 +128,14 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 10,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -131,14 +144,14 @@ defmodule Deployer.DeploymentTest do
 
   describe "Checking deployment" do
     test "Check for new version - full deployment - no pre-commands" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         called = Process.get("current_version", 0)
@@ -154,7 +167,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -199,19 +212,22 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 10,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
 
     test "Check for new version - ignore ghosted version" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
@@ -219,14 +235,13 @@ defmodule Deployer.DeploymentTest do
       ghosted_version = "2.0.0"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [%{version: ghosted_version}] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> expect(:update, 1, fn _sname -> :ok end)
       |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
       |> stub(:current_version, fn _sname -> "1.0.0" end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
       |> expect(:stop_service, 1, fn _sname -> :ok end)
@@ -255,19 +270,23 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 10,
+                     name: name,
+                     language: language,
+                     ghosted_version_list: [%{version: ghosted_version}]
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
 
     test "Check for new version - hotupgrade - pre-commands" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       from_version = "1.0.0"
       to_version = "2.0.0"
@@ -275,7 +294,6 @@ defmodule Deployer.DeploymentTest do
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # 0 -> check_deployment
@@ -305,7 +323,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
       |> expect(:stop_service, 1, fn _sname -> :ok end)
@@ -347,26 +365,28 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 10,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
 
     test "Failure on executing the hotupgrade - pre-commands" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # keep the version unchanged, triggering full deployment
@@ -376,7 +396,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: new deployment, after hotupgrade fails
         called = Process.get("start_service", 0)
@@ -418,12 +438,14 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link(
-                            timeout_rollback: 1_000,
-                            schedule_interval: 200,
-                            name: module_name,
-                            mStatus: Deployer.StatusMock
-                          )
+                          Deployment.start_link([
+                            %Deployment{
+                              timeout_rollback: 1_000,
+                              schedule_interval: 200,
+                              name: name,
+                              language: language
+                            }
+                          ])
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
                end
@@ -433,14 +455,14 @@ defmodule Deployer.DeploymentTest do
 
   describe "Deployment Status" do
     test "Check deployment succeed and move to the next instance" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update
@@ -458,7 +480,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn %{sname: sname} ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -503,17 +525,21 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 100,
+                     name: name,
+                     language: language,
+                     replicas: 3
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref, sname}, 1_000
 
+        module_name = String.to_atom(name)
         _state = :sys.get_state(module_name)
-        Deployment.notify_application_running(module_name, sname)
+        Deployment.notify_application_running(sname)
         state = :sys.get_state(module_name)
 
         assert state.current == 2
@@ -522,14 +548,14 @@ defmodule Deployer.DeploymentTest do
 
     @tag :capture_log
     test "Check deployment won't move to the next instance with invalid notification" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       test_event_ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update,
@@ -547,7 +573,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -592,20 +618,23 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 100,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
+        module_name = String.to_atom(name)
         _state = :sys.get_state(module_name)
         # Send multiple invalid data combination
-        Deployment.notify_application_running(module_name, "invalid_name-99")
-        Deployment.notify_application_running(module_name, "invalid_name-1")
-        Deployment.notify_application_running(module_name, "invalid_name-99")
+        Deployment.notify_application_running("invalid_name-99")
+        Deployment.notify_application_running("invalid_name-1")
+        Deployment.notify_application_running("invalid_name-99")
         state = :sys.get_state(module_name)
 
         assert state.current == 1
@@ -613,14 +642,14 @@ defmodule Deployer.DeploymentTest do
     end
 
     test "Deployment error while trying to download" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       test_event_ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update,
@@ -638,7 +667,9 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _sname, _language, _port, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn _service ->
+        {:ok, self()}
+      end)
       |> expect(:stop_service, 1, fn _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
@@ -677,15 +708,18 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link(
-                            timeout_rollback: 1_000,
-                            schedule_interval: 100,
-                            name: module_name,
-                            mStatus: Deployer.StatusMock
-                          )
+                          Deployment.start_link([
+                            %Deployment{
+                              timeout_rollback: 1_000,
+                              schedule_interval: 100,
+                              name: name,
+                              language: language
+                            }
+                          ])
 
                  assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
+                 module_name = String.to_atom(name)
                  state = :sys.get_state(module_name)
 
                  assert state.current == 1
@@ -696,7 +730,8 @@ defmodule Deployer.DeploymentTest do
 
   describe "Deployment manual version" do
     test "Configure Manual version from automatic" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
@@ -705,14 +740,13 @@ defmodule Deployer.DeploymentTest do
       manual_version = "1.0.0"
       manual_version_map = %{version: manual_version, hash: "local", pre_commands: []}
 
-      Catalog.config_update(%{
-        Catalog.config()
+      Catalog.config_update("myelixir", %{
+        Catalog.config("myelixir")
         | mode: :manual,
           manual_version: manual_version_map
       })
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First time: initialization version
@@ -731,7 +765,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -767,19 +801,22 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 30_000,
-                   schedule_interval: 200,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 30_000,
+                     schedule_interval: 200,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
 
     test "Configure Automatic version from manual" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
@@ -794,14 +831,13 @@ defmodule Deployer.DeploymentTest do
 
       manual_version = "1.0.0"
 
-      Catalog.config_update(%{
-        Catalog.config()
+      Catalog.config_update("myelixir", %{
+        Catalog.config("myelixir")
         | mode: :automatic,
           manual_version: nil
       })
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First time: initialization version
@@ -820,7 +856,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: start manual version
         called = Process.get("start_service", 0)
@@ -854,12 +890,14 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 30_000,
-                   schedule_interval: 200,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 30_000,
+                     schedule_interval: 200,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -869,7 +907,8 @@ defmodule Deployer.DeploymentTest do
   describe "Deployment rollback" do
     @tag :capture_log
     test "Rollback a version after timeout" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
@@ -877,7 +916,6 @@ defmodule Deployer.DeploymentTest do
       version_to_ghost = "2.0.0"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname -> version_to_ghost end)
       |> expect(:update, 2, fn _sname -> :ok end)
@@ -886,7 +924,7 @@ defmodule Deployer.DeploymentTest do
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _sname ->
+      |> expect(:history_version_list, 1, fn _name, _options ->
         [
           %{version: version_to_ghost, hash: "local", pre_commands: []},
           %{version: version_to_rollback, hash: "local", pre_commands: []}
@@ -894,7 +932,7 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: rolling back
         called = Process.get("start_service", 0)
@@ -924,15 +962,18 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 50,
-                   schedule_interval: 200,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 50,
+                     schedule_interval: 200,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
+        module_name = String.to_atom(name)
         state = :sys.get_state(module_name)
         assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
         assert state.current == 1
@@ -941,14 +982,14 @@ defmodule Deployer.DeploymentTest do
 
     @tag :capture_log
     test "Rollback a version after timeout without history" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
       version_to_ghost = "2.0.0"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname -> version_to_ghost end)
       |> expect(:update, 1, fn _sname -> :ok end)
@@ -957,10 +998,10 @@ defmodule Deployer.DeploymentTest do
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _sname -> [] end)
+      |> expect(:history_version_list, 1, fn _name, _options -> [] end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _sname -> :ok end)
@@ -989,15 +1030,18 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 50,
-                   schedule_interval: 200,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 50,
+                     schedule_interval: 200,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
+        module_name = String.to_atom(name)
         state = :sys.get_state(module_name)
         assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
         assert state.current == 1
@@ -1005,14 +1049,14 @@ defmodule Deployer.DeploymentTest do
     end
 
     test "Invalid rollback message" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
       from_version = "1.0.0"
       to_version = "2.0.0"
       ref = make_ref()
       pid = self()
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname ->
         # First 2 calls are the starting process and update
@@ -1030,7 +1074,7 @@ defmodule Deployer.DeploymentTest do
       |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 2, fn _sname, _language, _port, _options ->
+      |> expect(:start_service, 2, fn _service ->
         # First time: initialization
         # Second time: new deployment
         called = Process.get("start_service", 0)
@@ -1075,15 +1119,18 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link(
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
-                   name: module_name,
-                   mStatus: Deployer.StatusMock
-                 )
+                 Deployment.start_link([
+                   %Deployment{
+                     timeout_rollback: 1_000,
+                     schedule_interval: 100,
+                     name: name,
+                     language: language
+                   }
+                 ])
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
+        module_name = String.to_atom(name)
         _state = :sys.get_state(module_name)
 
         send(pid, {:timeout_rollback, 1, make_ref()})
@@ -1094,7 +1141,8 @@ defmodule Deployer.DeploymentTest do
     end
 
     test "Failing rolling back a version when downloading and unpacking" do
-      module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+      name = "myelixir"
+      language = "elixir"
 
       ref = make_ref()
       pid = self()
@@ -1102,7 +1150,6 @@ defmodule Deployer.DeploymentTest do
       version_to_ghost = "2.0.0"
 
       Deployer.StatusMock
-      |> expect(:ghosted_version_list, fn -> [] end)
       |> expect(:list_installed_apps, fn _name -> [] end)
       |> stub(:current_version, fn _sname -> version_to_ghost end)
       |> expect(:update, 1, fn _sname -> :ok end)
@@ -1111,7 +1158,7 @@ defmodule Deployer.DeploymentTest do
         %{version: version_to_ghost, hash: "local", pre_commands: []}
       end)
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
-      |> expect(:history_version_list, 1, fn _sname ->
+      |> expect(:history_version_list, 1, fn _name, _options ->
         [
           %{version: version_to_ghost, hash: "local", pre_commands: []},
           %{version: version_to_rollback, hash: "local", pre_commands: []}
@@ -1119,7 +1166,9 @@ defmodule Deployer.DeploymentTest do
       end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _sname, _language, _port, _options -> {:ok, self()} end)
+      |> expect(:start_service, 1, fn _service ->
+        {:ok, self()}
+      end)
       |> expect(:stop_service, 2, fn _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
@@ -1149,15 +1198,18 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link(
-                            timeout_rollback: 50,
-                            schedule_interval: 200,
-                            name: module_name,
-                            mStatus: Deployer.StatusMock
-                          )
+                          Deployment.start_link([
+                            %Deployment{
+                              timeout_rollback: 50,
+                              schedule_interval: 200,
+                              name: name,
+                              language: language
+                            }
+                          ])
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
 
+                 module_name = String.to_atom(name)
                  state = :sys.get_state(module_name)
                  assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
                  assert state.current == 1

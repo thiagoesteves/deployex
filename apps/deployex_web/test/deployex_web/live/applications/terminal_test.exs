@@ -28,7 +28,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, [FixtureStatus.deployex()]} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
@@ -53,7 +53,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -62,7 +62,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -90,7 +90,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     test_pid_process = self()
     os_pid = 123_456
 
-    name = "test_app"
+    name = "mygleam"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
     app_lang = "gleam"
@@ -104,7 +104,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -115,18 +115,16 @@ defmodule DeployexWeb.Applications.TerminalTest do
       :ok
     end)
 
-    with_mock Catalog.Local, [:passthrough], monitored_app_lang: fn -> app_lang end do
-      FixtureFiles.create_bin_files(app_lang, sname)
+    FixtureFiles.create_bin_files(app_lang, sname)
 
-      {:ok, index_live, _html} = live(conn, ~p"/applications")
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-      assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-               "Bin: /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/erlang-shipment"
+    assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
+             "Bin: /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/erlang-shipment"
 
-      FixtureTerminal.terminate_all()
+    FixtureTerminal.terminate_all()
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
-    end
+    assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
   test "Access to terminal for Erlang apps", %{conn: conn} do
@@ -134,7 +132,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     test_pid_process = self()
     os_pid = 123_456
 
-    name = "test_app"
+    name = "myerlang"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
     app_lang = "erlang"
@@ -148,7 +146,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -159,24 +157,22 @@ defmodule DeployexWeb.Applications.TerminalTest do
       :ok
     end)
 
-    with_mock Catalog.Local, [:passthrough], monitored_app_lang: fn -> app_lang end do
-      FixtureFiles.create_bin_files(app_lang, sname)
+    FixtureFiles.create_bin_files(app_lang, sname)
 
-      {:ok, index_live, _html} = live(conn, ~p"/applications")
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-      assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-               "Bin: /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
+    assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
+             "Bin: /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
 
-      FixtureTerminal.terminate_all()
+    FixtureTerminal.terminate_all()
 
-      assert_receive {:handle_ref_event, ^ref}, 1_000
-    end
+    assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
   test "Invalid cookie", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
 
     %{sname: sname, suffix: suffix, node: node} =
@@ -187,7 +183,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
     |> expect(:run, 1, fn _command, _options ->
@@ -213,7 +209,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     test_pid_process = self()
     os_pid = 123_456
     message = "Opening Terminal"
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -222,7 +218,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
@@ -249,7 +245,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Try to execute without binary file", %{conn: conn} do
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -262,9 +258,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
-    # Binary.create_bin_files(node)
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
@@ -275,7 +270,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -284,7 +279,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [] end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -318,7 +313,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   test "Error when :nocookie is set", %{conn: conn} do
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -327,7 +322,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     FixtureFiles.create_bin_files(sname)
 

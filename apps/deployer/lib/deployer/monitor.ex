@@ -3,12 +3,16 @@ defmodule Deployer.Monitor do
   This module will provide module abstraction
   """
 
-  @behaviour Deployer.Monitor.Adapter
+  alias Deployer.Monitor
+
+  @behaviour Monitor.Adapter
 
   @type t :: %__MODULE__{
           current_pid: pid() | nil,
+          name: String.t() | nil,
           sname: String.t() | nil,
           port: non_neg_integer(),
+          env: list(),
           language: String.t() | nil,
           status: :idle | :running | :starting,
           crash_restart_count: integer(),
@@ -19,8 +23,10 @@ defmodule Deployer.Monitor do
         }
 
   defstruct current_pid: nil,
+            name: nil,
             sname: nil,
             port: 0,
+            env: nil,
             language: nil,
             status: :idle,
             crash_restart_count: 0,
@@ -34,13 +40,12 @@ defmodule Deployer.Monitor do
   ### ==========================================================================
 
   @doc """
-  Starts monitor service for an specific sname
+  Starts monitor service for an specific service
   """
   @impl true
-  @spec start_service(String.t(), String.t(), non_neg_integer(), list()) ::
-          {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(sname, language, port, options \\ []) do
-    default().start_service(sname, language, port, options)
+  @spec start_service(Monitor.Service.t()) :: {:ok, pid} | {:error, pid(), :already_started}
+  def start_service(%Monitor.Service{} = service) do
+    default().start_service(service)
   end
 
   @doc """
@@ -68,7 +73,7 @@ defmodule Deployer.Monitor do
   Download and unpack the application
   """
   @impl true
-  @spec run_pre_commands(String.t(), list(), :new | :current) ::
+  @spec run_pre_commands(String.t(), list(), Monitor.Adapter.bin_path()) ::
           {:ok, list()} | {:error, :rescued}
   def run_pre_commands(sname, pre_commands, app_bin_path),
     do: default().run_pre_commands(sname, pre_commands, app_bin_path)
@@ -79,6 +84,10 @@ defmodule Deployer.Monitor do
   @impl true
   @spec list() :: list()
   def list, do: default().list()
+
+  @impl true
+  @spec list(Keyword.t()) :: list()
+  def list(options), do: default().list(options)
 
   @doc """
   Subscribe to Monitor New deploy Event

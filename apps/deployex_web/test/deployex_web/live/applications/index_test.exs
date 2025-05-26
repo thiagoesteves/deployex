@@ -16,7 +16,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, _lv, html} = live(conn, ~p"/applications")
 
@@ -37,7 +37,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -64,7 +64,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -100,7 +100,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -128,7 +128,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -162,7 +162,7 @@ defmodule DeployexWeb.Applications.IndexTest do
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
@@ -229,7 +229,7 @@ defmodule DeployexWeb.Applications.IndexTest do
        ]}
     end)
     |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, view, html} = live(conn, ~p"/applications")
 

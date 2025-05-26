@@ -159,28 +159,26 @@ defmodule Sentinel.Logs.Server do
         } =
           state
       ) do
-    %{sname: sname} = Catalog.node_info(node)
-
-    if sname in expected_snames do
+    with %{sname: sname} <- Catalog.node_info(node),
+         true <- sname in expected_snames,
+         true <- persist_data? do
       sname_log_table = Map.get(sname_logs_tables, sname)
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
 
-      if persist_data? do
-        # Report Node Down at stderr
-        log_type = "stderr"
+      # Report Node Down at stderr
+      log_type = "stderr"
 
-        timed_log_type_key = log_type_key(log_type, minute)
+      timed_log_type_key = log_type_key(log_type, minute)
 
-        data = %Message{
-          timestamp: now,
-          log: "DeployEx detected node down for node: #{node}"
-        }
+      data = %Message{
+        timestamp: now,
+        log: "DeployEx detected node down for node: #{node}"
+      }
 
-        ets_append_to_list(sname_log_table, timed_log_type_key, data)
+      ets_append_to_list(sname_log_table, timed_log_type_key, data)
 
-        notify_new_log_data(sname, log_type, data)
-      end
+      notify_new_log_data(sname, log_type, data)
     end
 
     {:noreply, state}
@@ -359,11 +357,11 @@ defmodule Sentinel.Logs.Server do
   end
 
   defp log_path(sname, "stdout") do
-    Catalog.stdout_path(sname)
+    Catalog.stdout_path(sname) || ""
   end
 
   defp log_path(sname, "stderr") do
-    Catalog.stderr_path(sname)
+    Catalog.stderr_path(sname) || ""
   end
 
   defp self_sname do

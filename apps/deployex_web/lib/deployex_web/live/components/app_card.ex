@@ -10,6 +10,7 @@ defmodule DeployexWeb.Components.AppCard do
   attr :status, :atom, required: true
   attr :node, :integer, required: true
   attr :sname, :integer, required: true
+  attr :language, :string, required: true
   attr :crash_restart_count, :integer, required: true
   attr :force_restart_count, :integer, required: true
   attr :name, :string, required: true
@@ -18,12 +19,8 @@ defmodule DeployexWeb.Components.AppCard do
   attr :otp, :atom, required: true
   attr :tls, :atom, required: true
   attr :last_deployment, :atom, required: true
-  attr :last_ghosted_version, :string, required: true
   attr :restart_path, :string, required: true
-  attr :mode, :atom, required: true
-  attr :language, :string, required: true
-  attr :manual_version, :map, required: true
-  attr :versions, :list, required: true
+  attr :metadata, :map, required: true
 
   def content(assigns) do
     ~H"""
@@ -90,16 +87,6 @@ defmodule DeployexWeb.Components.AppCard do
             <.restarts restarts={@force_restart_count} />
           </p>
 
-          <p
-            :if={@supervisor and @last_ghosted_version}
-            class="flex items-center tracking-tight pt-3 justify-between"
-          >
-            <span class="text-xs font-bold ml-3 ">Last ghosted version</span>
-            <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
-              {@last_ghosted_version}
-            </span>
-          </p>
-
           <p class="flex items-center tracking-tight pt-3 justify-between">
             <span class="text-xs font-bold ml-3 ">uptime</span>
             <span class="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-blue-400 border border-blue-400">
@@ -107,8 +94,11 @@ defmodule DeployexWeb.Components.AppCard do
             </span>
           </p>
 
-          <p :if={@supervisor} class="flex tracking-tight pt-3 items-center justify-between">
-            <.mode mode={@mode} manual_version={@manual_version} versions={@versions} />
+          <p
+            :if={@supervisor and @metadata}
+            class="flex tracking-tight pt-3 items-center justify-between"
+          >
+            <.app_config metadata={@metadata} />
           </p>
 
           <p class="flex items-center tracking-tight pt-3 justify-between">
@@ -160,10 +150,11 @@ defmodule DeployexWeb.Components.AppCard do
             </button>
 
             <button
+              :if={not @supervisor}
               id={Helper.normalize_id("app-versions-#{@sname}")}
               phx-click="app-versions-click"
-              phx-value-node={@node}
               phx-value-sname={@sname}
+              phx-value-name={@name}
               type="button"
               class="me-2 mb-2 text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-2 py-1 text-center"
             >
@@ -255,9 +246,10 @@ defmodule DeployexWeb.Components.AppCard do
     ~H"""
     <div>
       <form
-        id="form-mode-select"
+        id={Helper.normalize_id("#{@name}-form-mode-select")}
         class="flex items-center justify-between"
         phx-change="app-mode-select"
+        phx-value-name={@name}
       >
         <span class="text-xs font-bold ml-3 ">Mode</span>
         <.input
@@ -340,6 +332,55 @@ defmodule DeployexWeb.Components.AppCard do
         <div class={[@default_spec_class, "bg-gradient-to-t from-gray-400 to-gray-600 animate-pulse"]}>
           version not set
         </div>
+    <% end %>
+    """
+  end
+
+  defp app_config(assigns) do
+    applications = Map.keys(assigns.metadata)
+
+    assigns =
+      assigns
+      |> assign(applications: applications)
+
+    ~H"""
+    <%= for app <- @applications do %>
+      <div class="grid grid-flow-col grid-rows-3">
+        <div class="row-span-3 relative border border-black rounded p-1">
+          <div class="font-mono text-black font-bold flex items-center justify-center">
+            {app}
+          </div>
+          <.mode
+            name={app}
+            mode={@metadata[app].mode}
+            manual_version={@metadata[app].manual_version}
+            versions={@metadata[app].versions}
+          />
+
+          <div
+            :if={@metadata[app].last_ghosted_version}
+            class="flex items-center tracking-tight pt-3 justify-between"
+          >
+            <span class="text-xs font-bold ml-3 ">Last ghosted version</span>
+            <span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-5 py-0.5 rounded dark:bg-gray-700 dark:text-yellow-300 border border-yellow-300">
+              {@metadata[app].last_ghosted_version}
+            </span>
+          </div>
+
+          <div class="flex items-center tracking-tight pt-3 justify-between">
+            <span class="text-xs font-bold ml-3 ">History</span>
+            <button
+              id={Helper.normalize_id("app-versions-#{app}")}
+              phx-click="app-versions-click"
+              phx-value-name={app}
+              type="button"
+              class="me-2 mb-2 text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-2 py-1 text-center"
+            >
+              versions
+            </button>
+          </div>
+        </div>
+      </div>
     <% end %>
     """
   end

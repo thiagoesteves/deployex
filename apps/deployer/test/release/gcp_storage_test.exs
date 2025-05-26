@@ -46,7 +46,7 @@ defmodule Deployer.Release.GcpStorageTest do
 
   test "download_release/2 success" do
     version = "5.0.0"
-    name = "gcp_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 
@@ -67,7 +67,7 @@ defmodule Deployer.Release.GcpStorageTest do
 
   test "download_release/2 error" do
     version = "5.0.0"
-    name = "gcp_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 

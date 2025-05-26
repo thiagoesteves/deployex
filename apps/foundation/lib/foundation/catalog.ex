@@ -29,7 +29,7 @@ defmodule Foundation.Catalog do
     ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.setup("node-1234") == :ok
+    ...> assert Catalog.setup("testapp") == :ok
     ...> assert Catalog.setup(nil) == :ok
   """
   @impl true
@@ -42,7 +42,7 @@ defmodule Foundation.Catalog do
     ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.cleanup("node-1234") == :ok
+    ...> assert Catalog.cleanup("testapp") == :ok
     ...> assert Catalog.cleanup("node-1234-1") == :ok
     ...> assert Catalog.cleanup(nil) == :ok
   """
@@ -51,77 +51,17 @@ defmodule Foundation.Catalog do
   def cleanup(sname), do: default().cleanup(sname)
 
   @doc """
-  This function return the number of replicas configured
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.replicas == 3
-  """
-  @impl true
-  @spec replicas() :: integer()
-  def replicas, do: default().replicas()
-
-  @doc """
-  This function return a list with all replicas that needs to be
+  This function return a list with all monitored applications
   monitored
 
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.replicas_list == [1, 2, 3]
+    ...> assert Catalog.applications == [ %{env: ["SECRET=value", "PHX_SERVER=true"], initial_port: 4444, language: "elixir", name: "myelixir", replicas: 3}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "myerlang", replicas: 3, language: "erlang", initial_port: 5555}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "mygleam", replicas: 3, language: "gleam", initial_port: 6666} ]
   """
   @impl true
-  @spec replicas_list() :: list()
-  def replicas_list, do: default().replicas_list()
-
-  @doc """
-  Return the app name that will be monitored
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.monitored_app_name() == "testapp"
-  """
-  @impl true
-  @spec monitored_app_name() :: String.t()
-  def monitored_app_name, do: default().monitored_app_name()
-
-  @doc """
-  Return the app language that will be monitored
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.monitored_app_lang() == "elixir"
-  """
-  @impl true
-  @spec monitored_app_lang() :: String.t()
-  def monitored_app_lang, do: default().monitored_app_lang()
-
-  @doc """
-  Return the app environment vars that will be set
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.monitored_app_env() == ["SECRET=value", "PHX_SERVER=true"]
-  """
-  @impl true
-  @spec monitored_app_env() :: list()
-  def monitored_app_env, do: default().monitored_app_env()
-
-  @doc """
-  Return the monitored app phoenix port
-
-  ## Examples
-
-    iex> alias Foundation.Catalog
-    ...> assert Catalog.monitored_app_start_port() == 4444
-  """
-  @impl true
-  @spec monitored_app_start_port() :: integer()
-  def monitored_app_start_port, do: default().monitored_app_start_port()
+  @spec applications() :: list()
+  def applications, do: default().applications()
 
   @doc """
   Create a new sname for a monitored application
@@ -142,12 +82,12 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-1@nohost")
-    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-2@nohost")
-    ...> assert %Foundation.Catalog.Node{name: "testapp", hostname: _,  suffix: _suffix} = Catalog.node_info(:"testapp-3@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "myelixir", hostname: _,  suffix: _suffix} = Catalog.node_info(:"myelixir-1@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "myelixir", hostname: _,  suffix: _suffix} = Catalog.node_info(:"myelixir-2@nohost")
+    ...> assert %Foundation.Catalog.Node{name: "myelixir", hostname: _,  suffix: _suffix} = Catalog.node_info(:"myelixir-3@nohost")
     ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"deployex@nohost")
     ...> assert %Foundation.Catalog.Node{name: "deployex", hostname: _,  suffix: _suffix} = Catalog.node_info(:"nonode@nohost")
-    ...> refute Catalog.node_info(:"testapp-1-1@host")
+    ...> refute Catalog.node_info(:"myelixir-1-1@host")
   """
   @impl true
   @spec node_info(String.t() | node() | nil) :: Foundation.Catalog.Node.t() | nil
@@ -160,9 +100,9 @@ defmodule Foundation.Catalog do
 
     iex> alias Foundation.Catalog
     ...> assert Catalog.stdout_path("deployex") == "/var/log/deployex/deployex-stdout.log"
-    ...> assert Catalog.stdout_path("testapp-1") == "/tmp/testapp/testapp/testapp-1-stdout.log"
-    ...> assert Catalog.stdout_path("testapp-2") == "/tmp/testapp/testapp/testapp-2-stdout.log"
-    ...> assert Catalog.stdout_path("testapp-3") == "/tmp/testapp/testapp/testapp-3-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-1") == "/tmp/deployex/test/varlog/myelixir/myelixir-1-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-2") == "/tmp/deployex/test/varlog/myelixir/myelixir-2-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-3") == "/tmp/deployex/test/varlog/myelixir/myelixir-3-stdout.log"
   """
   @impl true
   @spec stdout_path(String.t()) :: String.t() | nil
@@ -175,9 +115,9 @@ defmodule Foundation.Catalog do
 
     iex> alias Foundation.Catalog
     ...> assert Catalog.stderr_path("deployex") == "/var/log/deployex/deployex-stderr.log"
-    ...> assert Catalog.stderr_path("testapp-1") == "/tmp/testapp/testapp/testapp-1-stderr.log"
-    ...> assert Catalog.stderr_path("testapp-2") == "/tmp/testapp/testapp/testapp-2-stderr.log"
-    ...> assert Catalog.stderr_path("testapp-3") == "/tmp/testapp/testapp/testapp-3-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-1") == "/tmp/deployex/test/varlog/myelixir/myelixir-1-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-2") == "/tmp/deployex/test/varlog/myelixir/myelixir-2-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-3") == "/tmp/deployex/test/varlog/myelixir/myelixir-3-stderr.log"
   """
   @impl true
   @spec stderr_path(String.t()) :: String.t() | nil
@@ -189,39 +129,36 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.bin_path("deployex", "elixir", :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-2", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-3", "elixir", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/bin/testapp"
-    ...> assert Catalog.bin_path("deployex", "gleam", :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/erlang-shipment"
-    ...> assert Catalog.bin_path("testapp-2", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/erlang-shipment"
-    ...> assert Catalog.bin_path("testapp-3", "gleam", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/erlang-shipment"
-    ...> assert Catalog.bin_path("deployex", "erlang", :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-2", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-3", "erlang", :current) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current/bin/testapp"
-    ...> assert Catalog.bin_path("deployex", "elixir", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-2", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-3", "elixir", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/bin/testapp"
-    ...> assert Catalog.bin_path("deployex", "gleam", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/erlang-shipment"
-    ...> assert Catalog.bin_path("testapp-2", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/erlang-shipment"
-    ...> assert Catalog.bin_path("testapp-3", "gleam", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/erlang-shipment"
-    ...> assert Catalog.bin_path("deployex", "erlang", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("testapp-1", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-2", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new/bin/testapp"
-    ...> assert Catalog.bin_path("testapp-3", "erlang", :new) == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new/bin/testapp"
-    ...> refute Catalog.bin_path("testapp-1", "", :current)
-    ...> refute Catalog.bin_path("testapp-1", "elixir", :any)
-    ...> refute Catalog.bin_path("deployex-", "elixir", :any)
+    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("myelixir-1", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/current/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-2", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/current/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-3", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/current/bin/myelixir"
+    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("mygleam-1", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-1/current/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-2", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-2/current/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-3", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-3/current/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex",  :current) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("myerlang-1", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-1/current/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-2", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-2/current/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-3", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-3/current/bin/myerlang"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("myelixir-1", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/new/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-2", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/new/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-3", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/new/bin/myelixir"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("mygleam-1", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-1/new/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-2", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-2/new/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-3", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-3/new/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
+    ...> assert Catalog.bin_path("myerlang-1", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-1/new/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-2", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-2/new/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-3", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-3/new/bin/myerlang"
   """
   @impl true
-  @spec bin_path(String.t(), String.t(), Foundation.Catalog.Adapter.bin_service()) :: String.t()
+  @spec bin_path(String.t(), Foundation.Catalog.Adapter.bin_service()) :: String.t()
 
-  def bin_path(sname, monitored_app_lang, bin_service),
-    do: default().bin_path(sname, monitored_app_lang, bin_service)
+  def bin_path(sname, bin_service),
+    do: default().bin_path(sname, bin_service)
 
   @doc """
   Base path for the state and service data
@@ -241,10 +178,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.new_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/new"
-    ...> assert Catalog.new_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/new"
-    ...> assert Catalog.new_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/new"
-    ...> assert Catalog.new_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/new"
+    ...> assert Catalog.new_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/new"
+    ...> assert Catalog.new_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/new"
+    ...> assert Catalog.new_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/new"
+    ...> assert Catalog.new_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/new"
     ...> refute Catalog.new_path(nil)
   """
   @impl true
@@ -257,10 +194,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.current_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/current"
-    ...> assert Catalog.current_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/current"
-    ...> assert Catalog.current_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/current"
-    ...> assert Catalog.current_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/current"
+    ...> assert Catalog.current_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/current"
+    ...> assert Catalog.current_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/current"
+    ...> assert Catalog.current_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/current"
+    ...> assert Catalog.current_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/current"
     ...> refute Catalog.current_path(nil)
   """
   @impl true
@@ -273,10 +210,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.previous_path("testapp-0") == "/tmp/deployex/test/varlib/service/testapp/testapp-0/previous"
-    ...> assert Catalog.previous_path("testapp-1") == "/tmp/deployex/test/varlib/service/testapp/testapp-1/previous"
-    ...> assert Catalog.previous_path("testapp-2") == "/tmp/deployex/test/varlib/service/testapp/testapp-2/previous"
-    ...> assert Catalog.previous_path("testapp-3") == "/tmp/deployex/test/varlib/service/testapp/testapp-3/previous"
+    ...> assert Catalog.previous_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/previous"
+    ...> assert Catalog.previous_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/previous"
+    ...> assert Catalog.previous_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/previous"
+    ...> assert Catalog.previous_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/previous"
     ...> refute Catalog.previous_path(nil)
   """
   @impl true
@@ -284,18 +221,11 @@ defmodule Foundation.Catalog do
   def previous_path(sname), do: default().previous_path(sname)
 
   @doc """
-  Retrieve the history of set versions
-  """
-  @impl true
-  @spec versions() :: list()
-  def versions, do: default().versions()
-
-  @doc """
   Retrieve the history of set versions by sname
   """
   @impl true
-  @spec versions(String.t()) :: list()
-  def versions(sname), do: default().versions(sname)
+  @spec versions(String.t(), Keyword.t()) :: list()
+  def versions(name, options), do: default().versions(name, options)
 
   @doc """
   Add a version to the version history
@@ -306,11 +236,11 @@ defmodule Foundation.Catalog do
   def add_version(version), do: default().add_version(version)
 
   @doc """
-  Retrieve the ghosted version history
+  Retrieve the ghosted version history for the respective application
   """
   @impl true
-  @spec ghosted_versions() :: list()
-  def ghosted_versions, do: default().ghosted_versions()
+  @spec ghosted_versions(String.t()) :: list()
+  def ghosted_versions(name), do: default().ghosted_versions(name)
 
   @doc """
   Add a version to the ghosted version history
@@ -337,15 +267,16 @@ defmodule Foundation.Catalog do
   Retrieve the current deployex dynamic configuration
   """
   @impl true
-  @spec config() :: Foundation.Catalog.Config.t()
-  def config, do: default().config() || %Foundation.Catalog.Config{}
+  @spec config(String.t()) :: Foundation.Catalog.Config.t()
+  def config(name), do: default().config(name) || %Foundation.Catalog.Config{}
 
   @doc """
   Update the current deployex dynamic configuration
   """
   @impl true
-  @spec config_update(Foundation.Catalog.Config.t()) :: {:ok, Foundation.Catalog.Config.t()}
-  def config_update(config), do: default().config_update(config)
+  @spec config_update(String.t(), Foundation.Catalog.Config.t()) ::
+          {:ok, Foundation.Catalog.Config.t()}
+  def config_update(name, config), do: default().config_update(name, config)
 
   ### ==========================================================================
   ### Private functions

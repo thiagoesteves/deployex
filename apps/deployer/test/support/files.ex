@@ -28,7 +28,7 @@ defmodule Deployer.Fixture.Files do
   end
 
   def create_deployex_bin_files do
-    bin_file = Catalog.bin_path("deployex", "elixir", :current)
+    bin_file = Catalog.bin_path("deployex", :current)
 
     bin_file
     |> Path.dirname()

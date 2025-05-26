@@ -1,17 +1,34 @@
 import Config
 
-monitored_app_name = "testapp"
-
 config :foundation,
   env: "local",
   base_path: "/tmp/deployex/test/varlib",
   bin_dir: "/tmp/deployex/test/opt",
   bin_path: "/tmp/deployex/test/opt/deployex",
-  monitored_app_name: monitored_app_name,
-  monitored_app_lang: "elixir",
-  monitored_app_log_path: "/tmp/#{monitored_app_name}",
-  monitored_app_start_port: 4444,
-  monitored_app_env: ["SECRET=value", "PHX_SERVER=true"]
+  monitored_app_log_path: "/tmp/deployex/test/varlog",
+  applications: [
+    %{
+      name: "myelixir",
+      replicas: 3,
+      language: "elixir",
+      initial_port: 4444,
+      env: ["SECRET=value", "PHX_SERVER=true"]
+    },
+    %{
+      name: "myerlang",
+      replicas: 3,
+      language: "erlang",
+      initial_port: 5555,
+      env: ["SECRET=value", "PHX_SERVER=true"]
+    },
+    %{
+      name: "mygleam",
+      replicas: 3,
+      language: "gleam",
+      initial_port: 6666,
+      env: ["SECRET=value", "PHX_SERVER=true"]
+    }
+  ]
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -28,7 +45,7 @@ config :deployer, Deployer.Monitor, adapter: Deployer.MonitorMock
 
 config :deployer, Deployer.Release,
   adapter: Deployer.ReleaseMock,
-  bucket: "/tmp/#{monitored_app_name}"
+  bucket: "/tmp/deployex/test/bucket"
 
 config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 

@@ -21,10 +21,13 @@ config :foundation,
   booted_at: System.monotonic_time(),
   bin_dir: "/opt/deployex/bin",
   bin_path: "/opt/deployex/bin/deployex",
+  base_path: "/var/lib/deployex",
   log_path: "/var/log/deployex",
-  replicas: 3,
-  monitored_app_start_port: 4000,
-  monitored_app_env: []
+  monitored_app_log_path: "/var/log",
+  # replicas: 3,
+  # monitored_app_start_port: 4000,
+  # monitored_app_env: [],
+  applications: nil
 
 # NOTE: The default username/pass is admin/admin and in order to generate
 #       the hashed password, it is required to use:

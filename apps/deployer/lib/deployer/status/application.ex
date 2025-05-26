@@ -16,6 +16,8 @@ defmodule Deployer.Status.Application do
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "monitoring_app_updated"
 
+  @manual_version_max_list 10
+
   ### ==========================================================================
   ### Callback GenServer functions
   ### ==========================================================================
@@ -41,8 +43,8 @@ defmodule Deployer.Status.Application do
     {:reply, {:ok, state.monitoring}, state}
   end
 
-  def handle_call({:set_mode, mode, version}, _from, state) do
-    res = do_set_mode(mode, version)
+  def handle_call({:set_mode, name, mode, version}, _from, state) do
+    res = do_set_mode(name, mode, version)
     {:reply, res, state}
   end
 
@@ -83,12 +85,6 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def monitored_app_name, do: Catalog.monitored_app_name()
-
-  @impl true
-  def monitored_app_lang, do: Catalog.monitored_app_lang()
-
-  @impl true
   def subscribe, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @apps_data_updated_topic)
 
   @impl true
@@ -97,9 +93,13 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
+  def current_version_map(nil), do: %Catalog.Version{}
+
   def current_version_map(sname) do
-    sname
-    |> Catalog.versions()
+    %{name: name} = Catalog.node_info(sname)
+
+    name
+    |> Catalog.versions(sname: sname)
     |> Enum.at(0)
     |> case do
       nil ->
@@ -131,19 +131,10 @@ defmodule Deployer.Status.Application do
   def add_ghosted_version(version), do: Catalog.add_ghosted_version(version)
 
   @impl true
-  def ghosted_version_list do
-    Catalog.ghosted_versions()
-  end
+  def ghosted_version_list(name), do: Catalog.ghosted_versions(name)
 
   @impl true
-  def history_version_list do
-    Catalog.versions()
-  end
-
-  @impl true
-  def history_version_list(sname) do
-    Catalog.versions(sname)
-  end
+  def history_version_list(name, options), do: Catalog.versions(name, options)
 
   @impl true
   def list_installed_apps(name) do
@@ -172,26 +163,25 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def set_mode(module \\ __MODULE__, mode, version) when mode in [:manual, :automatic] do
-    Common.call_gen_server(module, {:set_mode, mode, version})
+  def set_mode(module \\ __MODULE__, name, mode, version) when mode in [:manual, :automatic] do
+    Common.call_gen_server(module, {:set_mode, name, mode, version})
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp do_set_mode(:automatic = mode, _version) do
-    config = Catalog.config()
-    Catalog.config_update(%{config | mode: mode})
+  defp do_set_mode(name, :automatic = mode, _version) do
+    config = Catalog.config(name)
+    Catalog.config_update(name, %{config | mode: mode})
   end
 
-  defp do_set_mode(:manual = mode, version) do
-    versions = history_version_list()
+  defp do_set_mode(name, :manual = mode, version) do
+    versions = history_version_list(name, [])
 
-    %Catalog.Config{
+    Catalog.config_update(name, %Catalog.Config{
       mode: mode,
       manual_version: Enum.find(versions, &(&1.version == version))
-    }
-    |> Catalog.config_update()
+    })
   end
 
   defp update_deployex_app do
@@ -201,13 +191,32 @@ defmodule Deployer.Status.Application do
 
     uptime = Common.uptime_to_string(Application.get_env(:foundation, :booted_at))
 
-    last_ghosted_version =
-      case ghosted_version_list() do
-        [] -> "-/-"
-        list -> Enum.at(list, 0).version
-      end
+    metadata =
+      Enum.reduce(Catalog.applications(), %{}, fn %{name: name}, acc ->
+        config = Catalog.config(name)
 
-    config = Catalog.config()
+        last_ghosted_version =
+          case ghosted_version_list(name) do
+            [] -> "-/-"
+            list -> Enum.at(list, 0).version
+          end
+
+        versions =
+          name
+          |> history_version_list([])
+          |> Enum.map(& &1.version)
+          |> Enum.uniq()
+          |> Enum.take(@manual_version_max_list)
+
+        app_info = %{
+          last_ghosted_version: last_ghosted_version,
+          mode: config.mode,
+          manual_version: config.manual_version,
+          versions: versions
+        }
+
+        Map.put(acc, name, app_info)
+      end)
 
     %Status{
       name: "deployex",
@@ -219,14 +228,12 @@ defmodule Deployer.Status.Application do
       supervisor: true,
       status: :running,
       uptime: uptime,
-      last_ghosted_version: last_ghosted_version,
-      mode: config.mode,
-      manual_version: config.manual_version
+      metadata: metadata
     }
   end
 
   defp update_monitored_app_name(node) do
-    %{name: name, sname: sname} = Catalog.node_info(node)
+    %{name: name, sname: sname, language: language} = Catalog.node_info(node)
 
     %{
       status: status,
@@ -259,7 +266,7 @@ defmodule Deployer.Status.Application do
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
-      language: Application.get_env(:foundation, :monitored_app_lang)
+      language: language
     }
   end
 end

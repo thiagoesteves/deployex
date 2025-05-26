@@ -7,36 +7,38 @@ defmodule Foundation.CatalogTest do
   setup do
     Application.get_env(:foundation, :base_path) |> File.rm_rf()
 
-    # Remove any current.json file
-    monitored_app = Catalog.monitored_app_name()
-    current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
-    File.rm_rf(current_json_dir)
+    # # Remove any current.json file
+    # monitored_app = Catalog.monitored_app_name()
+    # bucket = Application.fetch_env!(:deployer, Deployer.Release)[:bucket]
+    # current_json_dir = "#{bucket}/versions/#{monitored_app}/local"
+    # File.rm_rf(current_json_dir)
+    name =
+      Application.get_env(:foundation, :applications)
+      |> Enum.at(0)
+      |> Map.get(:name)
 
     Catalog.setup()
+    %{name: name}
   end
 
-  test "versions/0" do
-    assert Catalog.versions() == []
+  test "versions/2", %{name: name} do
+    assert Catalog.versions(name, []) == []
   end
 
-  test "versions/1" do
-    assert Catalog.versions("sname") == []
-  end
-
-  test "add_version/1" do
-    version = %Catalog.Version{version: "0.0.0"}
+  test "add_version/1", %{name: name} do
+    version = %Catalog.Version{version: "0.0.0", name: name}
     assert :ok = Catalog.add_version(version)
-    assert [^version] = Catalog.versions()
+    assert [^version] = Catalog.versions(name, [])
   end
 
-  test "ghosted_versions/0" do
-    assert [] == Catalog.ghosted_versions()
+  test "ghosted_versions/0", %{name: name} do
+    assert [] == Catalog.ghosted_versions(name)
   end
 
-  test "add_ghosted_version/1" do
-    version = %Catalog.Version{version: "0.0.0"}
+  test "add_ghosted_version/1", %{name: name} do
+    version = %Catalog.Version{version: "0.0.0", name: name}
     assert {:ok, [^version]} = Catalog.add_ghosted_version(version)
-    assert [^version] = Catalog.ghosted_versions()
+    assert [^version] = Catalog.ghosted_versions(name)
   end
 
   test "add_user_session_token/1" do
@@ -45,14 +47,14 @@ defmodule Foundation.CatalogTest do
     assert user_session == Catalog.get_user_session_token_by_token(user_session.token)
   end
 
-  test "config/1" do
-    assert %Catalog.Config{mode: :automatic, manual_version: nil} = Catalog.config()
+  test "config/1", %{name: name} do
+    assert %Catalog.Config{mode: :automatic, manual_version: nil} = Catalog.config(name)
   end
 
-  test "config_update/1" do
+  test "config_update/1", %{name: name} do
     expected_config = %Catalog.Config{mode: :manual, manual_version: nil}
-    config = Catalog.config()
-    assert {:ok, ^expected_config} = Catalog.config_update(%{config | mode: :manual})
-    assert ^expected_config = Catalog.config()
+    config = Catalog.config(name)
+    assert {:ok, ^expected_config} = Catalog.config_update(name, %{config | mode: :manual})
+    assert ^expected_config = Catalog.config(name)
   end
 end

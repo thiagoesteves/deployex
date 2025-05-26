@@ -57,12 +57,25 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:foundation,
                 [
                   {:env, "prod"},
-                  {:monitored_app_name, "myphoenixapp"},
-                  {:replicas, 3},
-                  {:monitored_app_lang, "elixir"},
-                  {:monitored_app_start_port, 4000},
-                  {:monitored_app_env,
-                   ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"]},
+                  {:applications,
+                   [
+                     %{
+                       env: ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"],
+                       name: "myphoenixapp",
+                       monitoring: [],
+                       replicas: 3,
+                       language: "elixir",
+                       initial_port: 4000
+                     },
+                     %{
+                       env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
+                       name: "myumbrella",
+                       monitoring: [],
+                       replicas: 2,
+                       language: "erlang",
+                       initial_port: 4050
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -76,11 +89,17 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      {Foundation.ConfigProvider.Secrets.Manager,
                       adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
                      {:env, "not-set"},
-                     {:monitored_app_name, "not-set"},
-                     {:replicas, 99},
-                     {:monitored_app_lang, "not-set"},
-                     {:monitored_app_start_port, 99_999},
-                     {:monitored_app_env, []}
+                     {:applications,
+                      [
+                        %{
+                          env: [],
+                          name: "myphoenixapp",
+                          monitoring: [],
+                          replicas: 3,
+                          language: "not-set",
+                          initial_port: 1000
+                        }
+                      ]}
                    ],
                    deployer: [
                      {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
@@ -178,12 +197,41 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:foundation,
                 [
                   {:env, "prod"},
-                  {:monitored_app_name, "myphoenixapp"},
-                  {:replicas, 3},
-                  {:monitored_app_lang, "elixir"},
-                  {:monitored_app_start_port, 4000},
-                  {:monitored_app_env,
-                   ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"]},
+                  {:applications,
+                   [
+                     %{
+                       env: ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"],
+                       name: "myphoenixapp",
+                       monitoring: [
+                         atom: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         },
+                         process: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         },
+                         port: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         }
+                       ],
+                       replicas: 3,
+                       language: "elixir",
+                       initial_port: 4000
+                     },
+                     %{
+                       env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
+                       name: "myumbrella",
+                       monitoring: [],
+                       replicas: 2,
+                       language: "erlang",
+                       initial_port: 4050
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -265,12 +313,25 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:foundation,
                 [
                   {:env, "prod"},
-                  {:monitored_app_name, "myphoenixapp"},
-                  {:replicas, 3},
-                  {:monitored_app_lang, "elixir"},
-                  {:monitored_app_start_port, 4000},
-                  {:monitored_app_env,
-                   ["MYPHOENIXAPP_PHX_SERVER=false", "MYPHOENIXAPP_PHX_SERVER2=false"]},
+                  {:applications,
+                   [
+                     %{
+                       env: ["MYPHOENIXAPP_PHX_SERVER=false", "MYPHOENIXAPP_PHX_SERVER2=false"],
+                       name: "myphoenixapp",
+                       monitoring: [],
+                       replicas: 3,
+                       language: "elixir",
+                       initial_port: 4000
+                     },
+                     %{
+                       env: ["MYUMBRELLA_PHX_SERVER=false", "MYUMBRELLA_PHX_SERVER2=false"],
+                       name: "myumbrella",
+                       monitoring: [],
+                       replicas: 2,
+                       language: "erlang",
+                       initial_port: 4050
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -283,12 +344,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    foundation: [
                      {Foundation.ConfigProvider.Secrets.Manager,
                       adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-                     {:env, "not-set"},
-                     {:monitored_app_name, "not-set"},
-                     {:replicas, 99},
-                     {:monitored_app_lang, "not-set"},
-                     {:monitored_app_start_port, 99_999},
-                     {:monitored_app_env, []}
+                     {:env, "not-set"}
                    ],
                    deployer: [
                      {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
@@ -318,12 +374,12 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
         foundation: [
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-          {:env, "not-set"},
-          {:monitored_app_name, "not-set"},
-          {:replicas, 99},
-          {:monitored_app_lang, "not-set"},
-          {:monitored_app_start_port, 99_999},
-          {:monitored_app_env, []}
+          {:env, "not-set"}
+          # {:monitored_app_name, "not-set"},
+          # {:replicas, 99},
+          # {:monitored_app_lang, "not-set"},
+          # {:monitored_app_start_port, 99_999},
+          # {:monitored_app_env, []}
         ],
         deployer: [
           {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
@@ -380,11 +436,17 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:foundation,
                 [
                   {:env, "prod"},
-                  {:monitored_app_name, "myphoenixapp"},
-                  {:replicas, 3},
-                  {:monitored_app_lang, "elixir"},
-                  {:monitored_app_start_port, 4000},
-                  {:monitored_app_env, []},
+                  {:applications,
+                   [
+                     %{
+                       env: [],
+                       name: "myphoenixapp",
+                       monitoring: [],
+                       replicas: 3,
+                       language: "elixir",
+                       initial_port: 4000
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -421,12 +483,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
         foundation: [
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-          {:env, "not-set"},
-          {:monitored_app_name, "not-set"},
-          {:replicas, 99},
-          {:monitored_app_lang, "not-set"},
-          {:monitored_app_start_port, 99_999},
-          {:monitored_app_env, []}
+          {:env, "not-set"}
         ],
         deployer: [
           {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
@@ -459,12 +516,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
          [
            {Foundation.ConfigProvider.Secrets.Manager,
             adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
-           {:env, "not-set"},
-           {:monitored_app_name, "not-set"},
-           {:replicas, 99},
-           {:monitored_app_lang, "not-set"},
-           {:monitored_app_start_port, 99_999},
-           {:monitored_app_env, []}
+           {:env, "not-set"}
          ]},
         {:deployer,
          [
