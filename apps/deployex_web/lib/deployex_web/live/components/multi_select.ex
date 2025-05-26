@@ -166,13 +166,13 @@ defmodule DeployexWeb.Components.MultiSelect do
     """
   end
 
-  def border_item_color("services"), do: "border-teal-300"
-  def border_item_color("logs"), do: "border-yellow-400"
-  def border_item_color(_), do: "border-gray-300"
+  defp border_item_color("services"), do: "border-teal-300"
+  defp border_item_color("logs"), do: "border-yellow-400"
+  defp border_item_color(_), do: "border-gray-300"
 
-  def text_item_color("services"), do: "text-teal-700"
-  def text_item_color("logs"), do: "text-yellow-700"
-  def text_item_color(_), do: "text-teal-700"
+  defp text_item_color("services"), do: "text-teal-700"
+  defp text_item_color("logs"), do: "text-yellow-700"
+  defp text_item_color(_), do: "text-teal-700"
 
   defp unselected_highlight_color(key, unselected_highlight) do
     if key in unselected_highlight do
