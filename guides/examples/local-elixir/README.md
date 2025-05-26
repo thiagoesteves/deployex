@@ -133,16 +133,15 @@ Move back to the DeployEx project and run the command line:
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
-[info] Update is needed at instance: 1 from: <no current set> to: 0.1.0.
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 32656.
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+[info] Update is needed at sname: myphoenixapp-v636fq from: <no current set> to: 0.1.0
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myphoenixapp-ud48pz
+[info] Initializing monitor server for sname: myphoenixapp-ud48pz language: elixir
+[info] Ensure running requested for sname: myphoenixapp-ud48pz version: 0.1.0
+[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/myphoenixapp-ud48pz/current/bin/myphoenixapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.790.0>, OS process = 36891 deploy_ref: 32656.
-[info]  # Application instance: 1 is running
-[info]  # Moving to the next instance: 2
+[info]  # Running sname: myphoenixapp-ud48pz, monitoring pid = #PID<0.3037.0>, OS process = 6479 sname: myphoenixapp-ud48pz
+
 ...
 iex(deployex@hostname)1>
 ```
@@ -186,17 +185,18 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1.
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 37406.
-[info] Requested instance: 1 to stop application pid: #PID<0.790.0>
-[warning] Remaining beam app removed for instance: 1
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/1/current/bin/myphoenixapp
+
+[info] Update is needed at sname: myphoenixapp-ud48pz from: 0.1.0 to: 0.1.1
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myphoenixapp-1j535g
+[info] Requested sname: myphoenixapp-ipzc1l to stop application pid: #PID<0.1392.0>
+[warning] Remaining beam app removed for sname: myphoenixapp-ipzc1l
+[info] Initializing monitor server for sname: myphoenixapp-1j535g language: elixir
+[info] Ensure running requested for sname: myphoenixapp-1j535g version: 0.1.1
+[info]  # Identified executable: /tmp/deployex/varlib/service/myphoenixapp/myphoenixapp-1j535g/current/bin/myphoenixapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.843.0>, OS process = 37992 deploy_ref: 37406.
-[info]  # Application instance: 1 is running
+[info]  # Running sname: myphoenixapp-1j535g, monitoring pid = #PID<0.3423.0>, OS process = 6967 sname: myphoenixapp-1j535g
+[info]  # Application sname: myphoenixapp-1j535g is running
 [info]  # Moving to the next instance: 2
 ...
 ```
@@ -231,14 +231,14 @@ echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 You can then check that DeployEx had executed a hot upgrade in the application:
 
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.1 to: 0.1.2.
-[warning] HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
-[info] Hot upgrade instance: 1 deploy_ref: 37406.
+[info] Update is needed at sname: myphoenixapp-1j535g from: 0.1.1 to: 0.1.2
+[warning] HOT UPGRADE version DETECTED - [%{"from" => "0.1.1", "name" => "myphoenixapp", "to" => "0.1.2"}]
+[info] Hot upgrade instance: 3 sname: myphoenixapp-1j535g
 [info] Unpacked successfully: ~c"0.1.2"
 [info] Installed Release: ~c"0.1.2"
 [info] Made release permanent: 0.1.2
-[info] Release upgrade executed with success at instance: 1 from: 0.1.1 to: 0.1.2
-[info]  # Moving to the next instance: 2
+[info] Release upgrade executed with success at node: myphoenixapp-1j535g@MacBookPro from: 0.1.1 to: 0.1.2
+[info]  # Moving to the next instance: 1
 ...
 ```
 

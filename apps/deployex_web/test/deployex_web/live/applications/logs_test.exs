@@ -16,7 +16,7 @@ defmodule DeployexWeb.Applications.LogsTest do
   alias Foundation.Catalog
   alias Host.Fixture.Terminal, as: FixtureTerminal
 
-  test "Access to stdout logs by instance", %{conn: conn} do
+  test "Access to stdout logs by sname", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
@@ -52,7 +52,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Access to stderr logs by instance", %{conn: conn} do
+  test "Access to stderr logs by sname", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456

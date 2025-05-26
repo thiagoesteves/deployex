@@ -76,16 +76,15 @@ export DEPLOYEX_MONITORED_APP_NAME=mygleamapp
 export DEPLOYEX_MONITORED_APP_LANG=gleam
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
-
-[info] Update is needed at instance: 1 from: <no current set> to: 0.1.0
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 9k416t
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Identified executable: /tmp/deployex/varlib/service/mygleamapp/1/current/erlang-shipment
+[info] Update is needed at sname: mygleamapp-v636fq from: <no current set> to: 0.1.0
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: mygleamapp-ud48pz
+[info] Initializing monitor server for sname: mygleamapp-ud48pz language: elixir
+[info] Ensure running requested for sname: mygleamapp-ud48pz version: 0.1.0
+[info]  # Identified executable: /tmp/deployex/varlib/service/mygleamapp/mygleamapp-ud48pz/current/bin/mygleamapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.819.0>, OS process = 87157 deploy_ref: 9k416t
-[info]  # Application instance: 1 is running
+[info]  # Running sname: mygleamapp-ud48pz, monitoring pid = #PID<0.3037.0>, OS process = 6479 sname: mygleamapp-ud48pz
+[info]  # Application sname: mygleamapp-ud48pz is running
 [info]  # Moving to the next instance: 2
 ...
 iex(deployex@hostname)1>
@@ -120,16 +119,17 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: xkmmz7
-[info] Requested instance: 1 to stop application pid: #PID<0.819.0>
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Identified executable: /tmp/deployex/varlib/service/mygleamapp/1/current/erlang-shipment
+[info] Update is needed at sname: mygleamapp-ud48pz from: 0.1.0 to: 0.1.1
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: mygleamapp-1j535g
+[info] Requested sname: mygleamapp-ipzc1l to stop application pid: #PID<0.1392.0>
+[warning] Remaining beam app removed for sname: mygleamapp-ipzc1l
+[info] Initializing monitor server for sname: mygleamapp-1j535g language: elixir
+[info] Ensure running requested for sname: mygleamapp-1j535g version: 0.1.1
+[info]  # Identified executable: /tmp/deployex/varlib/service/mygleamapp/mygleamapp-1j535g/current/bin/mygleamapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.1455.0>, OS process = 88828 deploy_ref: xkmmz7
-[info]  # Application instance: 1 is running
+[info]  # Running sname: mygleamapp-1j535g, monitoring pid = #PID<0.3423.0>, OS process = 6967 sname: mygleamapp-1j535g
+[info]  # Application sname: mygleamapp-1j535g is running
 [info]  # Moving to the next instance: 2
 ...
 ```
