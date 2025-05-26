@@ -66,7 +66,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     refute html =~ "0.3456702894.2351693834"
   end
 
-  test "GET /versions list by instance", %{conn: conn} do
+  test "GET /versions list by sname", %{conn: conn} do
     name = "test_app"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()

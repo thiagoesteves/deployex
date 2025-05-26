@@ -137,7 +137,7 @@ defmodule Foundation.Catalog do
   def create_sname(name), do: default().create_sname(name)
 
   @doc """
-  Return the respective node details: name, hostname and instance
+  Return the respective node details: name, hostname, suffix, etc
 
   ## Examples
 
@@ -184,7 +184,7 @@ defmodule Foundation.Catalog do
   def stderr_path(sname), do: default().stderr_path(sname)
 
   @doc """
-  Retrieve the bin path for the respective instance (current)
+  Retrieve the bin path for the respective sname
 
   ## Examples
 

@@ -185,15 +185,15 @@ export DEPLOYEX_MONITORED_APP_LANG=erlang
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
-[info] Update is needed at instance: 1 from: <no current set> to: 0.1.0
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: psukd1
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Identified executable: /tmp/deployex/varlib/service/myerlangapp/1/current/bin/myerlangapp
+[info] Update is needed at sname: myerlangapp-v636fq from: <no current set> to: 0.1.0
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myerlangapp-ud48pz
+[info] Initializing monitor server for sname: myerlangapp-ud48pz language: elixir
+[info] Ensure running requested for sname: myerlangapp-ud48pz version: 0.1.0
+[info]  # Identified executable: /tmp/deployex/varlib/service/myerlangapp/myerlangapp-ud48pz/current/bin/myerlangapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.790.0>, OS process = 22952 deploy_ref: psukd1
-[info]  # Application instance: 1 is running
+[info]  # Running sname: myerlangapp-ud48pz, monitoring pid = #PID<0.3037.0>, OS process = 6479 sname: myerlangapp-ud48pz
+[info]  # Application sname: myerlangapp-ud48pz is running
 [info]  # Moving to the next instance: 2
 ...
 iex(deployex@hostname)1>
@@ -233,16 +233,17 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: oxnnwu
-[info] Requested instance: 1 to stop application pid: #PID<0.790.0>
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Identified executable: /tmp/deployex/varlib/service/myerlangapp/1/current/bin/myerlangapp
+[info] Update is needed at sname: myerlangapp-ud48pz from: 0.1.0 to: 0.1.1
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myerlangapp-1j535g
+[info] Requested sname: myerlangapp-ipzc1l to stop application pid: #PID<0.1392.0>
+[warning] Remaining beam app removed for sname: myerlangapp-ipzc1l
+[info] Initializing monitor server for sname: myerlangapp-1j535g language: elixir
+[info] Ensure running requested for sname: myerlangapp-1j535g version: 0.1.1
+[info]  # Identified executable: /tmp/deployex/varlib/service/myerlangapp/myerlangapp-1j535g/current/bin/myerlangapp
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.852.0>, OS process = 23812 deploy_ref: oxnnwu
-[info]  # Application instance: 1 is running
+[info]  # Running sname: myerlangapp-1j535g, monitoring pid = #PID<0.3423.0>, OS process = 6967 sname: myerlangapp-1j535g
+[info]  # Application sname: myerlangapp-1j535g is running
 [info]  # Moving to the next instance: 2
 ...
 ```

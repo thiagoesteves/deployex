@@ -154,15 +154,15 @@ export DEPLOYEX_MONITORED_APP_NAME=myumbrella
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 
-[info] Update is needed at instance: 1 from: <no current set> to: 0.1.0.
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 32656.
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.0
-[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/1/current/bin/myumbrella
+[info] Update is needed at sname: myumbrella-v636fq from: <no current set> to: 0.1.0
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myumbrella-ud48pz
+[info] Initializing monitor server for sname: myumbrella-ud48pz language: elixir
+[info] Ensure running requested for sname: myumbrella-ud48pz version: 0.1.0
+[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/myumbrella-ud48pz/current/bin/myumbrella
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.790.0>, OS process = 36891 deploy_ref: 32656.
-[info]  # Application instance: 1 is running
+[info]  # Running sname: myumbrella-ud48pz, monitoring pid = #PID<0.3037.0>, OS process = 6479 sname: myumbrella-ud48pz
+[info]  # Application sname: myphoenixapp-ud48pz is running
 [info]  # Moving to the next instance: 2
 ...
 iex(deployex@hostname)1>
@@ -206,17 +206,17 @@ echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.0 to: 0.1.1.
-[warning] HOT UPGRADE version NOT DETECTED, full deployment required, result: []
-[info] Full deploy instance: 1 deploy_ref: 37406.
-[info] Requested instance: 1 to stop application pid: #PID<0.790.0>
-[warning] Remaining beam app removed for instance: 1
-[info] Initializing monitor server for instance: 1
-[info] Ensure running requested for instance: 1 version: 0.1.1
-[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/1/current/bin/myumbrella
+[info] Update is needed at sname: myumbrella-ud48pz from: 0.1.0 to: 0.1.1
+[warning] HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found
+[info] Full deploy instance: 1 sname: myumbrella-1j535g
+[info] Requested sname: myumbrella-ipzc1l to stop application pid: #PID<0.1392.0>
+[warning] Remaining beam app removed for sname: myumbrella-ipzc1l
+[info] Initializing monitor server for sname: myumbrella-1j535g language: elixir
+[info] Ensure running requested for sname: myumbrella-1j535g version: 0.1.1
+[info]  # Identified executable: /tmp/deployex/varlib/service/myumbrella/myumbrella-1j535g/current/bin/myumbrella
 [info]  # Starting application
-[info]  # Running instance: 1, monitoring pid = #PID<0.843.0>, OS process = 37992 deploy_ref: 37406.
-[info]  # Application instance: 1 is running
+[info]  # Running sname: myumbrella-1j535g, monitoring pid = #PID<0.3423.0>, OS process = 6967 sname: myumbrella-1j535g
+[info]  # Application sname: myumbrella-1j535g is running
 [info]  # Moving to the next instance: 2
 ...
 ```
@@ -267,14 +267,14 @@ echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 You can then check that DeployEx had executed a hot upgrade in the application:
 
 ```bash
-[info] Update is needed at instance: 1 from: 0.1.1 to: 0.1.2.
-[warning] HOT UPGRADE version DETECTED, from: 0.1.1 to: 0.1.2
-[info] Hot upgrade instance: 1 deploy_ref: 37406.
+[info] Update is needed at sname: myumbrella-1j535g from: 0.1.1 to: 0.1.2
+[warning] HOT UPGRADE version DETECTED - [%{"from" => "0.1.1", "name" => "myumbrella", "to" => "0.1.2"}]
+[info] Hot upgrade instance: 3 sname: myumbrella-1j535g
 [info] Unpacked successfully: ~c"0.1.2"
 [info] Installed Release: ~c"0.1.2"
 [info] Made release permanent: 0.1.2
-[info] Release upgrade executed with success at instance: 1 from: 0.1.1 to: 0.1.2
-[info]  # Moving to the next instance: 2
+[info] Release upgrade executed with success at node: myumbrella-1j535g@MacBookPro from: 0.1.1 to: 0.1.2
+[info]  # Moving to the next instance: 1
 ...
 ```
 
