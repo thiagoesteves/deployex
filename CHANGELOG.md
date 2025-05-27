@@ -1,6 +1,6 @@
 # CHANGELOG (0.4.x)
 
-## 0.5.0 🚀 (2025-05-26)
+## 0.5.0 🚀 (2025-05-27)
 
 ### Backwards incompatible changes for 0.4.2
  * This version has a major change from instance to node/sname, this will require to prune existing version data.
