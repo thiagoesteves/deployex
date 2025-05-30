@@ -8,7 +8,7 @@ defmodule Deployer.Monitor.Adapter do
   @type bin_path :: :new | :current
 
   @callback start_service(Monitor.Service.t()) :: {:ok, pid} | {:error, pid(), :already_started}
-  @callback stop_service(String.t() | nil) :: :ok
+  @callback stop_service(String.t() | nil, String.t() | nil) :: :ok
   @callback restart(String.t()) :: :ok | {:error, :application_is_not_running}
   @callback state(String.t()) :: Monitor.t()
   @callback subscribe_new_deploy() :: :ok

@@ -59,7 +59,7 @@ defmodule Deployer.EngineTest do
       |> expect(:set_current_version_map, 0, fn _sname, _release, _attrs -> :ok end)
 
       Deployer.MonitorMock
-      |> expect(:stop_service, 0, fn _sname -> :ok end)
+      |> expect(:stop_service, 0, fn _name, _sname -> :ok end)
       |> expect(:start_service, 0, fn _service ->
         {:ok, self()}
       end)
@@ -171,7 +171,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -234,7 +234,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:stop_service, 1, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -314,7 +314,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:stop_service, 1, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 1, fn _sname, _release, :new -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -394,7 +394,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
       |> stub(:run_pre_commands, fn _sname, _release, :new -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -476,7 +476,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -567,7 +567,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -650,7 +650,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:stop_service, 1, fn _sname -> :ok end)
+      |> expect(:stop_service, 1, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -755,7 +755,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -844,7 +844,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -918,7 +918,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -976,7 +976,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> stub(:stop_service, fn _sname -> :ok end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -1056,7 +1056,7 @@ defmodule Deployer.EngineTest do
 
         {:ok, self()}
       end)
-      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock
@@ -1137,7 +1137,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:stop_service, 2, fn _sname -> :ok end)
+      |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
       |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
 
       Deployer.ReleaseMock

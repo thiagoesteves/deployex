@@ -196,7 +196,7 @@ defmodule Deployer.Monitor.Application do
   defdelegate start_service(service), to: Monitor.Supervisor
 
   @impl true
-  defdelegate stop_service(sname), to: Monitor.Supervisor
+  defdelegate stop_service(name, sname), to: Monitor.Supervisor
 
   @impl true
   defdelegate list, to: Monitor.Supervisor

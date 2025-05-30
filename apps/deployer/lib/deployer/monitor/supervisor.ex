@@ -7,6 +7,10 @@ defmodule Deployer.Monitor.Supervisor do
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
+  def start_link(%{name: name} = init_arg) do
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: name)
+  end
+
   def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -19,34 +23,60 @@ defmodule Deployer.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-  def start_service(service) do
+  def create_monitor_supervisor(name) do
+    supervisor_name = supervisor_name(name)
+
+    spec = %{
+      id: supervisor_name,
+      start: {__MODULE__, :start_link, [%{name: supervisor_name}]},
+      type: :supervisor,
+      restart: :permanent
+    }
+
+    DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
+  def start_service(%{name: name} = service) do
     spec = %{
       id: Deployer.Monitor.Application,
       start: {Deployer.Monitor.Application, :start_link, [service]},
       restart: :transient
     }
 
-    DynamicSupervisor.start_child(__MODULE__, spec)
+    name
+    |> supervisor_name()
+    |> DynamicSupervisor.start_child(spec)
   end
 
   def list, do: list(format: :string)
 
   def list(options) do
-    format = Keyword.get(options, :format)
+    accumulate_pid_name = fn pid, acc ->
+      case :erlang.process_info(pid, :registered_name) do
+        {:registered_name, name} ->
+          acc ++ [%{name: name, pid: pid}]
+
+        _ ->
+          acc
+      end
+    end
 
     map_list =
       __MODULE__
       |> Supervisor.which_children()
-      |> Enum.map(fn {_, pid, :worker, _name} -> pid end)
-      |> Enum.reduce([], fn pid, acc ->
-        case :rpc.pinfo(pid, :registered_name) do
-          {:registered_name, name} ->
-            acc ++ [%{name: name, pid: pid}]
+      |> Enum.map(fn {_, pid, :supervisor, _name} -> pid end)
+      |> Enum.reduce([], &accumulate_pid_name.(&1, &2))
+      |> Enum.reduce([], fn %{name: supervisor}, acc ->
+        workers_list =
+          supervisor
+          |> Supervisor.which_children()
+          |> Enum.map(fn {_, pid, :worker, _name} -> pid end)
+          |> Enum.reduce([], &accumulate_pid_name.(&1, &2))
 
-          _ ->
-            acc
-        end
+        workers_list ++ acc
       end)
+
+    format = Keyword.get(options, :format)
 
     cond do
       format == :string ->
@@ -60,17 +90,18 @@ defmodule Deployer.Monitor.Supervisor do
     end
   end
 
-  @spec stop_service(String.t() | nil) :: :ok
-  def stop_service(nil), do: :ok
+  def stop_service(name, sname) when is_nil(name) or is_nil(sname), do: :ok
 
-  def stop_service(sname) do
+  def stop_service(name, sname) do
     module_name = String.to_existing_atom(sname)
 
     %{pid: child_pid} = list(format: :map) |> Enum.find(&(&1.name == module_name))
 
     Foundation.Common.call_gen_server(child_pid, :stop_service)
 
-    DynamicSupervisor.terminate_child(__MODULE__, child_pid)
+    name
+    |> supervisor_name()
+    |> DynamicSupervisor.terminate_child(child_pid)
 
     :ok
   rescue
@@ -78,4 +109,6 @@ defmodule Deployer.Monitor.Supervisor do
       Logger.error("Error while stopping sname: #{sname}")
       :ok
   end
+
+  defp supervisor_name(name), do: String.to_atom("#{__MODULE__}.#{Macro.camelize(name)}")
 end

@@ -24,6 +24,7 @@ defmodule Deployer.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _pid} = response ->
+        Deployer.Monitor.initialize_monitor_supervisor()
         init_deployment_workers()
         response
 

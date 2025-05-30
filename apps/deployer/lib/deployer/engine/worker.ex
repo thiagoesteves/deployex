@@ -135,14 +135,14 @@ defmodule Deployer.Engine.Worker do
     {:noreply, new_state}
   end
 
-  def handle_info({:timeout_rollback, instance, sname}, state) do
+  def handle_info({:timeout_rollback, instance, sname}, %{name: name} = state) do
     current_deployment = state.deployments[state.current]
 
     state =
       if instance == state.current and sname == current_deployment.sname do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        Monitor.stop_service(state.deployments[state.current].sname)
+        Monitor.stop_service(name, state.deployments[state.current].sname)
 
         rollback_to_previous_version(state)
       else
@@ -364,7 +364,7 @@ defmodule Deployer.Engine.Worker do
 
       sname = state.deployments[instance].sname
 
-      Monitor.stop_service(sname)
+      Monitor.stop_service(name, sname)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.

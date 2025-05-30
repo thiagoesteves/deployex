@@ -4,6 +4,7 @@ defmodule Deployer.Monitor do
   """
 
   alias Deployer.Monitor
+  alias Foundation.Catalog
 
   @behaviour Monitor.Adapter
 
@@ -49,11 +50,11 @@ defmodule Deployer.Monitor do
   end
 
   @doc """
-  Stops a monitor service fo an specific sname
+  Stops a monitor service for an specific name/sname
   """
   @impl true
-  @spec stop_service(String.t() | nil) :: :ok
-  def stop_service(sname), do: default().stop_service(sname)
+  @spec stop_service(String.t() | nil, String.t() | nil) :: :ok
+  def stop_service(name, sname), do: default().stop_service(name, sname)
 
   @doc """
   This function forces a restart of the application
@@ -95,6 +96,18 @@ defmodule Deployer.Monitor do
   @impl true
   @spec subscribe_new_deploy() :: :ok
   def subscribe_new_deploy, do: default().subscribe_new_deploy()
+
+  @doc """
+  Initialize one monitor supervisor per monitored application
+  """
+  @spec initialize_monitor_supervisor :: :ok
+  def initialize_monitor_supervisor do
+    Enum.each(Catalog.applications(), fn %{name: name} ->
+      {:ok, _pid} = Monitor.Supervisor.create_monitor_supervisor(name)
+    end)
+
+    :ok
+  end
 
   ### ==========================================================================
   ### Private functions

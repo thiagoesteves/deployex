@@ -65,7 +65,7 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
 
       refute Process.alive?(pid)
     end
@@ -101,8 +101,8 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(sname)
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
   end
 
@@ -142,7 +142,7 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
                "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
     end
@@ -182,7 +182,7 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
                "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/erlang-shipment"
     end
@@ -222,7 +222,7 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
                "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
     end
@@ -270,7 +270,7 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:new_deploy, _source_sname, _deploy_sname}, 1_000
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -313,7 +313,7 @@ defmodule Deployer.MonitorTest do
 
       assert %{status: :running} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -356,7 +356,7 @@ defmodule Deployer.MonitorTest do
 
       assert %{status: :running} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -398,7 +398,7 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     test "Running application with pre_commands not supported - gleam", %{
@@ -442,7 +442,7 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
                "Running not supported for language: #{language}, sname: #{sname}, command: eval command1"
     end
@@ -487,7 +487,7 @@ defmodule Deployer.MonitorTest do
 
                assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
                "Running not supported for language: #{language}, sname: #{sname}, command: eval command1"
     end
@@ -533,7 +533,7 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -574,7 +574,7 @@ defmodule Deployer.MonitorTest do
 
       assert %{status: :starting} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -624,7 +624,7 @@ defmodule Deployer.MonitorTest do
 
       {:ok, _pre_commands} = MonitorApp.run_pre_commands(sname, pre_commands, :new)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -676,7 +676,7 @@ defmodule Deployer.MonitorTest do
       # Check restart was increased
       assert %{status: :running, crash_restart_count: 1} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     @tag :capture_log
@@ -724,7 +724,7 @@ defmodule Deployer.MonitorTest do
       # Check restart was NOT incremented
       assert %{status: :running, crash_restart_count: 0} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
 
     test "Force Restart the Application with pre-commands", %{
@@ -770,7 +770,7 @@ defmodule Deployer.MonitorTest do
 
                assert :ok = MonitorApp.restart(sname)
 
-               assert :ok = MonitorApp.stop_service(sname)
+               assert :ok = MonitorApp.stop_service(name, sname)
              end) =~ "Restart requested for sname: #{sname}"
     end
 
@@ -812,7 +812,7 @@ defmodule Deployer.MonitorTest do
 
       assert %{status: :running} = MonitorApp.state(sname)
 
-      assert :ok = MonitorApp.stop_service(sname)
+      assert :ok = MonitorApp.stop_service(name, sname)
     end
   end
 
@@ -823,7 +823,7 @@ defmodule Deployer.MonitorTest do
   } do
     Deployer.MonitorMock
     |> expect(:start_service, fn _service -> {:ok, self()} end)
-    |> expect(:stop_service, fn _sname -> :ok end)
+    |> expect(:stop_service, fn _name, _sname -> :ok end)
     |> expect(:state, fn _sname -> {:ok, %{}} end)
     |> expect(:restart, fn _sname -> :ok end)
     |> expect(:run_pre_commands, fn _sname, cmds, _new_or_current -> {:ok, cmds} end)
@@ -836,7 +836,7 @@ defmodule Deployer.MonitorTest do
                port: port
              })
 
-    assert :ok = Deployer.Monitor.stop_service(sname)
+    assert :ok = Deployer.Monitor.stop_service(name, sname)
     assert {:ok, %{}} = Deployer.Monitor.state(sname)
     assert :ok = Deployer.Monitor.restart(sname)
     assert {:ok, []} = Deployer.Monitor.run_pre_commands(sname, [], :new)
@@ -890,6 +890,6 @@ defmodule Deployer.MonitorTest do
 
     assert state == MonitorApp.state(sname)
 
-    assert :ok = MonitorApp.stop_service(sname)
+    assert :ok = MonitorApp.stop_service(name, sname)
   end
 end
