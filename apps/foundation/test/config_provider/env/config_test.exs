@@ -566,11 +566,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
           {:env, "not-set"}
-          # {:monitored_app_name, "not-set"},
-          # {:replicas, 99},
-          # {:monitored_app_lang, "not-set"},
-          # {:monitored_app_start_port, 99_999},
-          # {:monitored_app_env, []}
         ],
         deployer: [
           {Deployer.Engine, [delay_between_deploys_ms: 60_000]}

@@ -8,11 +8,6 @@ defmodule Foundation.Fixture.Catalog do
   def cleanup do
     Application.get_env(:foundation, :base_path) |> File.rm_rf()
 
-    # Remove any current.json file
-    # monitored_app = Catalog.monitored_app_name()
-    # current_json_dir = "/tmp/#{monitored_app}/versions/#{monitored_app}/local"
-    # File.rm_rf(current_json_dir)
-
     Catalog.setup()
   end
 

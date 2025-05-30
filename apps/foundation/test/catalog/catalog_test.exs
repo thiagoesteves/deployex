@@ -7,11 +7,6 @@ defmodule Foundation.CatalogTest do
   setup do
     Application.get_env(:foundation, :base_path) |> File.rm_rf()
 
-    # # Remove any current.json file
-    # monitored_app = Catalog.monitored_app_name()
-    # bucket = Application.fetch_env!(:deployer, Deployer.Release)[:bucket]
-    # current_json_dir = "#{bucket}/versions/#{monitored_app}/local"
-    # File.rm_rf(current_json_dir)
     name =
       Application.get_env(:foundation, :applications)
       |> Enum.at(0)
