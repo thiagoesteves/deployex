@@ -24,9 +24,6 @@ config :foundation,
   base_path: "/var/lib/deployex",
   log_path: "/var/log/deployex",
   monitored_app_log_path: "/var/log",
-  # replicas: 3,
-  # monitored_app_start_port: 4000,
-  # monitored_app_env: [],
   applications: nil
 
 # NOTE: The default username/pass is admin/admin and in order to generate
@@ -103,7 +100,7 @@ config :ex_aws,
   ],
   http_client: Deployer.Aws.ExAwsHttpClient
 
-config :deployer, Deployer.Deployment,
+config :deployer, Deployer.Engine,
   timeout_rollback: :timer.minutes(10),
   schedule_interval: :timer.seconds(5),
   delay_between_deploys_ms: :timer.seconds(1)

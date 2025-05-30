@@ -5,7 +5,7 @@ defmodule Deployer.Monitor.Application do
   use GenServer
   require Logger
 
-  alias Deployer.Deployment
+  alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Status
   alias Foundation.Catalog
@@ -129,7 +129,7 @@ defmodule Deployer.Monitor.Application do
       when pid == state.current_pid and sname == state.sname do
     Logger.info(" # Application sname: #{state.sname} is running")
 
-    Deployment.notify_application_running(sname)
+    Engine.notify_application_running(sname)
 
     {:noreply, update_non_blocking_state(%{state | status: :running})}
   end

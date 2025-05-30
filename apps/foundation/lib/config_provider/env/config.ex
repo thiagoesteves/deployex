@@ -168,7 +168,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
           if deploy_rollback_timeout_ms do
             Config.Reader.merge(updated_config,
               deployer: [
-                {Deployer.Deployment,
+                {Deployer.Engine,
                  [
                    {:timeout_rollback, deploy_rollback_timeout_ms}
                  ]}
@@ -184,7 +184,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
           if deploy_schedule_interval_ms do
             Config.Reader.merge(updated_config,
               deployer: [
-                {Deployer.Deployment,
+                {Deployer.Engine,
                  [
                    {:schedule_interval, deploy_schedule_interval_ms}
                  ]}

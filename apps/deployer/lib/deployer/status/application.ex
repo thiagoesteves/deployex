@@ -59,6 +59,7 @@ defmodule Deployer.Status.Application do
 
     monitoring_apps =
       Monitor.list()
+      |> Enum.sort()
       |> Enum.map(&sname_to_node.(&1))
       |> Enum.map(fn node ->
         update_monitored_app_name(node)

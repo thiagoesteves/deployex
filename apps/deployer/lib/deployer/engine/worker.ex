@@ -1,4 +1,4 @@
-defmodule Deployer.Deployment do
+defmodule Deployer.Engine.Worker do
   @moduledoc """
   A GenServer responsible for managing deployments when a new version is available in the `current.json` file.
   It ensures deployments occur sequentially and prevents new deployments while a previous one is still in progress.
@@ -10,12 +10,13 @@ defmodule Deployer.Deployment do
   ![Deployment Architecture](guides/static/deployment_architecture.png)
 
   ## Usage
-  To start the server, use `Deployer.Deployment.start_link/1` with appropriate options.
+  To start the server, use `Deployer.Engine.start_link/1` with appropriate options.
   """
 
   use GenServer
   require Logger
 
+  alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Release
   alias Deployer.Status
@@ -50,8 +51,7 @@ defmodule Deployer.Deployment do
   ### Callback functions
   ### ==========================================================================
 
-  def start_link(args) do
-    %__MODULE__{name: name} = deployment = Enum.at(args, 0)
+  def start_link(%__MODULE__{name: name} = deployment) do
     GenServer.start_link(__MODULE__, deployment, name: String.to_atom(name))
   end
 
@@ -187,7 +187,7 @@ defmodule Deployer.Deployment do
 
   ## Examples
 
-      iex> Deployer.Deployment.notify_application_running(sname)
+      iex> Deployer.Engine.notify_application_running(sname)
       :ok
   """
   @spec notify_application_running(String.t()) :: :ok
@@ -368,7 +368,7 @@ defmodule Deployer.Deployment do
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
-      :timer.sleep(Application.fetch_env!(:deployer, __MODULE__)[:delay_between_deploys_ms])
+      :timer.sleep(Application.fetch_env!(:deployer, Engine)[:delay_between_deploys_ms])
 
       Status.update(new_sname)
 

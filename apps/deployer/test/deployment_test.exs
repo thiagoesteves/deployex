@@ -1,4 +1,4 @@
-defmodule Deployer.DeploymentTest do
+defmodule Deployer.EngineTest do
   use ExUnit.Case, async: false
 
   import Mox
@@ -8,7 +8,7 @@ defmodule Deployer.DeploymentTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  alias Deployer.Deployment
+  alias Deployer.Engine
   alias Deployer.Fixture.Files, as: FixtureFiles
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
@@ -28,24 +28,20 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 5_000,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 5_000,
+                   name: name,
+                   language: language
+                 })
 
         assert {:error, {:already_started, _pid}} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 5_000,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 5_000,
+                   name: name,
+                   language: language
+                 })
       end
     end
 
@@ -85,14 +81,12 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link([
-                            %Deployment{
-                              timeout_rollback: 1_000,
-                              schedule_interval: 10,
-                              name: name,
-                              language: language
-                            }
-                          ])
+                          Engine.Worker.start_link(%Engine.Worker{
+                            timeout_rollback: 1_000,
+                            schedule_interval: 10,
+                            name: name,
+                            language: language
+                          })
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
                end
@@ -128,14 +122,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 10,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -212,14 +204,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 10,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -270,15 +260,13 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 10,
-                     name: name,
-                     language: language,
-                     ghosted_version_list: [%{version: ghosted_version}]
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: name,
+                   language: language,
+                   ghosted_version_list: [%{version: ghosted_version}]
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -365,14 +353,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 10,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 10,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -438,14 +424,12 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link([
-                            %Deployment{
-                              timeout_rollback: 1_000,
-                              schedule_interval: 200,
-                              name: name,
-                              language: language
-                            }
-                          ])
+                          Engine.Worker.start_link(%Engine.Worker{
+                            timeout_rollback: 1_000,
+                            schedule_interval: 200,
+                            name: name,
+                            language: language
+                          })
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
                end
@@ -525,21 +509,19 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 100,
-                     name: name,
-                     language: language,
-                     replicas: 3
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: name,
+                   language: language,
+                   replicas: 3
+                 })
 
         assert_receive {:handle_ref_event, ^ref, sname}, 1_000
 
         module_name = String.to_atom(name)
         _state = :sys.get_state(module_name)
-        Deployment.notify_application_running(sname)
+        Engine.notify_application_running(sname)
         state = :sys.get_state(module_name)
 
         assert state.current == 2
@@ -618,23 +600,21 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 100,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
         module_name = String.to_atom(name)
         _state = :sys.get_state(module_name)
         # Send multiple invalid data combination
-        Deployment.notify_application_running("invalid_name-99")
-        Deployment.notify_application_running("invalid_name-1")
-        Deployment.notify_application_running("invalid_name-99")
+        Engine.notify_application_running("invalid_name-99")
+        Engine.notify_application_running("invalid_name-1")
+        Engine.notify_application_running("invalid_name-99")
         state = :sys.get_state(module_name)
 
         assert state.current == 1
@@ -708,14 +688,12 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link([
-                            %Deployment{
-                              timeout_rollback: 1_000,
-                              schedule_interval: 100,
-                              name: name,
-                              language: language
-                            }
-                          ])
+                          Engine.Worker.start_link(%Engine.Worker{
+                            timeout_rollback: 1_000,
+                            schedule_interval: 100,
+                            name: name,
+                            language: language
+                          })
 
                  assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
@@ -801,14 +779,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 30_000,
-                     schedule_interval: 200,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 30_000,
+                   schedule_interval: 200,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -890,14 +866,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 30_000,
-                     schedule_interval: 200,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 30_000,
+                   schedule_interval: 200,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
@@ -962,14 +936,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 50,
-                     schedule_interval: 200,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 50,
+                   schedule_interval: 200,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -1030,14 +1002,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 50,
-                     schedule_interval: 200,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 50,
+                   schedule_interval: 200,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -1119,14 +1089,12 @@ defmodule Deployer.DeploymentTest do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
-                 Deployment.start_link([
-                   %Deployment{
-                     timeout_rollback: 1_000,
-                     schedule_interval: 100,
-                     name: name,
-                     language: language
-                   }
-                 ])
+                 Engine.Worker.start_link(%Engine.Worker{
+                   timeout_rollback: 1_000,
+                   schedule_interval: 100,
+                   name: name,
+                   language: language
+                 })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -1198,14 +1166,12 @@ defmodule Deployer.DeploymentTest do
                with_mock System, [:passthrough],
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
-                          Deployment.start_link([
-                            %Deployment{
-                              timeout_rollback: 50,
-                              schedule_interval: 200,
-                              name: name,
-                              language: language
-                            }
-                          ])
+                          Engine.Worker.start_link(%Engine.Worker{
+                            timeout_rollback: 50,
+                            schedule_interval: 200,
+                            name: name,
+                            language: language
+                          })
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
 

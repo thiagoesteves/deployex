@@ -51,7 +51,7 @@ config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 
 config :deployer, Deployer.Upgrade, adapter: Deployer.UpgradeMock
 
-config :deployer, Deployer.Deployment, delay_between_deploys_ms: 10
+config :deployer, Deployer.Engine, delay_between_deploys_ms: 10
 
 # Config Mocks for Host
 config :host, Host.Commander, adapter: Host.CommanderMock

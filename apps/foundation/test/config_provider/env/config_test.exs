@@ -45,7 +45,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:deployer,
                 [
-                  {Deployer.Deployment,
+                  {Deployer.Engine,
                    [
                      delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
@@ -102,7 +102,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                       ]}
                    ],
                    deployer: [
-                     {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
+                     {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
                    ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
@@ -186,7 +186,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:deployer,
                 [
-                  {Deployer.Deployment,
+                  {Deployer.Engine,
                    [
                      timeout_rollback: 600_000,
                      schedule_interval: 5000
@@ -301,7 +301,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:goth, [file_credentials: "/home/ubuntu/gcp-config.json"]},
                {:deployer,
                 [
-                  {Deployer.Deployment,
+                  {Deployer.Engine,
                    [
                      delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
@@ -347,7 +347,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      {:env, "not-set"}
                    ],
                    deployer: [
-                     {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
+                     {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
                    ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
@@ -382,7 +382,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
           # {:monitored_app_env, []}
         ],
         deployer: [
-          {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
+          {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
         ],
         deployex_web: [
           {DeployexWeb.Endpoint,
@@ -425,7 +425,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:deployer,
                 [
-                  {Deployer.Deployment,
+                  {Deployer.Engine,
                    [
                      timeout_rollback: 700_000,
                      schedule_interval: 10_000
@@ -463,7 +463,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 1000]}
                    ],
                    deployer: [
-                     {Deployer.Deployment,
+                     {Deployer.Engine,
                       [
                         timeout_rollback: 700_000,
                         schedule_interval: 10_000
@@ -486,7 +486,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
           {:env, "not-set"}
         ],
         deployer: [
-          {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
+          {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
         ],
         deployex_web: [
           {DeployexWeb.Endpoint,
@@ -520,7 +520,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
          ]},
         {:deployer,
          [
-           {Deployer.Deployment, [delay_between_deploys_ms: 60_000]}
+           {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
          ]},
         {:deployex_web,
          [
