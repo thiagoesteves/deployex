@@ -64,7 +64,7 @@ defmodule Deployer.Engine.Worker do
           schedule_interval: schedule_interval
         } = state
       ) do
-    Logger.info("Initializing Deployment Server for name: #{name}")
+    Logger.info("Initializing Engine Server for #{name}")
 
     schedule_new_deployment(schedule_interval)
 

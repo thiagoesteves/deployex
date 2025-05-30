@@ -107,7 +107,7 @@ iex --sname deployex --cookie cookie -S mix phx.server
 Erlang/OTP 27 [erts-15.2.7] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
 [info] Initializing Host Memory Server
-[info] Initializing Deployment Server
+[info] Initializing Engine Server for myphoenixapp
 [info] Initializing Watchdog Server
 [info] Running DeployexWeb.Endpoint with Bandit 1.6.11 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001

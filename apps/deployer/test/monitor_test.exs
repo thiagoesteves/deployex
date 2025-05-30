@@ -24,7 +24,7 @@ defmodule Deployer.MonitorTest do
     erlang_name = "myerlang"
     erlang_sname = Catalog.create_sname(erlang_name)
 
-    # Note: Monitors are Created by Deployments, which assigns
+    # Note: Monitors are Created by Engines, which assigns
     #       names as atoms
     _atom = String.to_atom(name)
     _atom = String.to_atom(gleam_name)

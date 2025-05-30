@@ -69,7 +69,7 @@ config :sentinel, Sentinel.Watchdog,
       warning_threshold_percent: 10,
       restart_threshold_percent: 20
     },
-    testapp: [
+    myelixir: [
       port: %{
         enable_restart: true,
         warning_threshold_percent: 10,

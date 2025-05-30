@@ -8,6 +8,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   @yaml_aws_path "./test/support/files/deployex-aws.yaml"
   @yaml_aws_path_monitoring "./test/support/files/deployex-aws-monitoring.yaml"
+  @aws_monitoring_multiple_apps "./test/support/files/deployex-aws-monitoring-multiple-apps.yaml"
   @yaml_aws_path_optional "./test/support/files/deployex-aws-optional.yaml"
   @yaml_gcp_path "./test/support/files/deployex-gcp.yaml"
   @yaml_gcp_release_error_path "./test/support/files/deployex-gcp-release-error.yaml"
@@ -121,7 +122,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
-  test "load/3 with success for AWS - Monitoring" do
+  test "load/3 with success for AWS - Monitoring for a single app" do
     with_mocks([
       {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_path_monitoring end]}
     ]) do
@@ -227,6 +228,196 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
                        name: "myumbrella",
                        monitoring: [],
+                       replicas: 2,
+                       language: "erlang",
+                       initial_port: 4050
+                     }
+                   ]},
+                  {Foundation.ConfigProvider.Secrets.Manager,
+                   [
+                     adapter: Foundation.ConfigProvider.Secrets.Aws,
+                     path: "deployex-myapp-prod-secrets"
+                   ]}
+                ]}
+             ] =
+               Config.load(
+                 [
+                   sentinel: [
+                     {Sentinel.Watchdog,
+                      [
+                        applications_config: [
+                          default: %{
+                            enable_restart: true,
+                            warning_threshold_percent: 50,
+                            restart_threshold_percent: 70
+                          },
+                          myphoenixapp: [
+                            atom: %{
+                              enable_restart: false,
+                              warning_threshold_percent: 22,
+                              restart_threshold_percent: 33
+                            },
+                            port: %{
+                              enable_restart: false,
+                              warning_threshold_percent: 60,
+                              restart_threshold_percent: 98
+                            }
+                          ]
+                        ],
+                        system_config: [
+                          memory: %{
+                            enable_restart: false,
+                            warning_threshold_percent: 10,
+                            restart_threshold_percent: 20
+                          }
+                        ]
+                      ]}
+                   ]
+                 ],
+                 []
+               )
+    end
+  end
+
+  test "load/3 with success for AWS - Monitoring for a multiple applications" do
+    with_mocks([
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @aws_monitoring_multiple_apps end]}
+    ]) do
+      assert [
+               {:ex_aws, [region: "sa-east-1"]},
+               {:deployex_web,
+                [
+                  {DeployexWeb.Endpoint,
+                   [
+                     url: [host: "deployex.example.com"],
+                     http: [port: 5001]
+                   ]}
+                ]},
+               {:observer_web,
+                [
+                  {ObserverWeb.Telemetry,
+                   [
+                     data_retention_period: 3_600_000
+                   ]}
+                ]},
+               {:sentinel,
+                [
+                  {
+                    Sentinel.Watchdog,
+                    [
+                      {:system_config,
+                       [
+                         memory: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 85
+                         }
+                       ]},
+                      {:applications_config,
+                       [
+                         default: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 50,
+                           restart_threshold_percent: 70
+                         },
+                         myphoenixapp: [
+                           atom: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
+                           },
+                           process: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
+                           },
+                           port: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 75,
+                             restart_threshold_percent: 90
+                           }
+                         ],
+                         myumbrella: [
+                           atom: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 40,
+                             restart_threshold_percent: 50
+                           },
+                           process: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 60,
+                             restart_threshold_percent: 70
+                           },
+                           port: %{
+                             enable_restart: true,
+                             warning_threshold_percent: 80,
+                             restart_threshold_percent: 90
+                           }
+                         ]
+                       ]}
+                    ]
+                  },
+                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
+                ]},
+               {:deployer,
+                [
+                  {Deployer.Engine,
+                   [
+                     timeout_rollback: 600_000,
+                     schedule_interval: 5000
+                   ]},
+                  {Deployer.Release,
+                   [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
+                ]},
+               {:foundation,
+                [
+                  {:env, "prod"},
+                  {:applications,
+                   [
+                     %{
+                       env: ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"],
+                       name: "myphoenixapp",
+                       monitoring: [
+                         atom: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         },
+                         process: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         },
+                         port: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 75,
+                           restart_threshold_percent: 90
+                         }
+                       ],
+                       replicas: 3,
+                       language: "elixir",
+                       initial_port: 4000
+                     },
+                     %{
+                       env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
+                       name: "myumbrella",
+                       monitoring: [
+                         atom: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 40,
+                           restart_threshold_percent: 50
+                         },
+                         process: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 60,
+                           restart_threshold_percent: 70
+                         },
+                         port: %{
+                           enable_restart: true,
+                           warning_threshold_percent: 80,
+                           restart_threshold_percent: 90
+                         }
+                       ],
                        replicas: 2,
                        language: "erlang",
                        initial_port: 4050

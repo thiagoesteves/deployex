@@ -19,7 +19,10 @@ defmodule Mix.Shared do
         Deployer.Application,
         Deployer.Monitor.Adapter,
         Deployer.Monitor.Supervisor,
+        Deployer.Engine,
+        Deployer.Engine.Supervisor,
         Deployer.Release.Version,
+        Deployer.Monitor.Service,
         Deployer.Fixture.Files,
         # DeployEx Web
         DeployexWeb.Application,

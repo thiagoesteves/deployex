@@ -101,12 +101,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # Application Config monitoring
-        application = applications |> Enum.at(0)
+        applications_config =
+          Enum.reduce(applications, [], fn application, acc ->
+            # credo:disable-for-lines:1
+            if application.monitoring != [] do
+              acc ++ [{String.to_atom(application.name), application.monitoring}]
+            else
+              acc
+            end
+          end)
 
         updated_config =
-          if application.monitoring != [] do
-            applications_config = [{String.to_atom(application.name), application.monitoring}]
-
+          if applications_config != [] do
             Config.Reader.merge(updated_config,
               sentinel: [
                 {Sentinel.Watchdog, [{:applications_config, applications_config}]}
@@ -161,7 +167,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        # Deployment Config
+        # Engine Config
         deploy_rollback_timeout_ms = data["deploy_rollback_timeout_ms"]
 
         updated_config =
