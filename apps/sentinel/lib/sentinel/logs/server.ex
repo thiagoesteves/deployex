@@ -160,8 +160,7 @@ defmodule Sentinel.Logs.Server do
           state
       ) do
     with %{sname: sname} <- Catalog.node_info(node),
-         true <- sname in expected_snames,
-         true <- persist_data? do
+         true <- sname in expected_snames do
       sname_log_table = Map.get(sname_logs_tables, sname)
       now = System.os_time(:millisecond)
       minute = unix_to_minutes(now)
@@ -176,7 +175,9 @@ defmodule Sentinel.Logs.Server do
         log: "DeployEx detected node down for node: #{node}"
       }
 
-      ets_append_to_list(sname_log_table, timed_log_type_key, data)
+      if persist_data? do
+        ets_append_to_list(sname_log_table, timed_log_type_key, data)
+      end
 
       notify_new_log_data(sname, log_type, data)
     end

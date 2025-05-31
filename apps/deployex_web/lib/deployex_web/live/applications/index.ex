@@ -21,7 +21,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <div class="min-h-screen bg-gray-700 ">
       <div class="p-5">
-        <div class="grid grid-cols-3  gap-5 items-center p-30">
+        <div class="grid grid-cols-3 gap-5 items-start p-30">
           <%= for app <- @monitoring_apps_data do %>
             <DeployexWeb.Components.AppCard.content
               supervisor={app.supervisor}
@@ -71,9 +71,9 @@ defmodule DeployexWeb.ApplicationsLive do
     >
       <.live_component
         module={Versions}
-        id={@show_versions.name}
-        name={@show_versions.name}
-        sname={@show_versions.sname}
+        id={"version-#{@selected_name}-#{@selected_sname}"}
+        name={@selected_name}
+        sname={@selected_sname}
         title={@page_title}
         action={@live_action}
         patch={~p"/applications"}
@@ -163,7 +163,6 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
-      |> assign(:show_versions, nil)
 
     {:ok, socket}
   end
@@ -179,8 +178,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:selected_sname, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
-     |> assign(:mode_confirmation, nil)
-     |> assign(:show_versions, nil)}
+     |> assign(:mode_confirmation, nil)}
   end
 
   @impl true
@@ -221,13 +219,15 @@ defmodule DeployexWeb.ApplicationsLive do
   defp apply_action(socket, :versions, %{"sname" => sname, "name" => name}) do
     socket
     |> assign(:page_title, "#{sname} version history")
-    |> assign(:show_versions, %{name: name, sname: sname})
+    |> assign(:selected_name, name)
+    |> assign(:selected_sname, sname)
   end
 
   defp apply_action(socket, :versions, %{"name" => name}) do
     socket
     |> assign(:page_title, "#{name} version history")
-    |> assign(:show_versions, %{name: name, sname: nil})
+    |> assign(:selected_name, name)
+    |> assign(:selected_sname, nil)
   end
 
   defp apply_action(socket, :restart, %{"name" => name, "sname" => sname}) do

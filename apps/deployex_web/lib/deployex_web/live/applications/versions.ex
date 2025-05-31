@@ -63,6 +63,9 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
 
   @impl true
   def update(%{name: name, sname: sname} = assigns, socket) do
+    dbg()
+    IO.inspect(Status.history_version_list(name, sname: sname))
+
     socket =
       socket
       |> assign(assigns)
