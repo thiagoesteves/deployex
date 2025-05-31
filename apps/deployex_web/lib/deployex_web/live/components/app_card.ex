@@ -106,6 +106,7 @@ defmodule DeployexWeb.Components.AppCard do
               id={Helper.normalize_id("app-log-stdout-#{@sname}")}
               phx-click="app-log-click"
               phx-value-node={@node}
+              phx-value-name={@name}
               phx-value-sname={@sname}
               phx-value-std="stdout"
               type="button"
@@ -118,6 +119,7 @@ defmodule DeployexWeb.Components.AppCard do
               id={Helper.normalize_id("app-terminal-#{@sname}")}
               phx-click="app-terminal-click"
               phx-value-node={@node}
+              phx-value-name={@name}
               phx-value-sname={@sname}
               phx-value-std="terminal"
               type="button"
@@ -141,6 +143,7 @@ defmodule DeployexWeb.Components.AppCard do
               id={Helper.normalize_id("app-log-stderr-#{@sname}")}
               phx-click="app-log-click"
               phx-value-node={@node}
+              phx-value-name={@name}
               phx-value-sname={@sname}
               phx-value-std="stderr"
               type="button"
@@ -153,8 +156,8 @@ defmodule DeployexWeb.Components.AppCard do
               :if={not @supervisor}
               id={Helper.normalize_id("app-versions-#{@sname}")}
               phx-click="app-versions-click"
-              phx-value-sname={@sname}
               phx-value-name={@name}
+              phx-value-sname={@sname}
               type="button"
               class="me-2 mb-2 text-white bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-2 py-1 text-center"
             >

@@ -106,7 +106,7 @@ defmodule Deployer.Monitor.Supervisor do
     :ok
   rescue
     _ ->
-      Logger.error("Error while stopping sname: #{sname}")
+      Logger.error("Error while stopping name: #{name} sname: #{sname}")
       :ok
   end
 

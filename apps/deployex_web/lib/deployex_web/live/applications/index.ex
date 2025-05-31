@@ -37,7 +37,7 @@ defmodule DeployexWeb.ApplicationsLive do
               otp={app.otp}
               tls={app.tls}
               last_deployment={app.last_deployment}
-              restart_path={~p"/applications/#{app.sname}/restart"}
+              restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
               metadata={app.metadata}
             />
           <% end %>
@@ -158,6 +158,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:node, Node.self())
       |> assign(:host_info, nil)
       |> assign(:monitoring_apps_data, monitoring)
+      |> assign(:selected_name, nil)
       |> assign(:selected_sname, nil)
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
@@ -174,6 +175,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:node, Node.self())
      |> assign(:host_info, nil)
      |> assign(:monitoring_apps_data, [])
+     |> assign(:selected_name, nil)
      |> assign(:selected_sname, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
@@ -201,16 +203,18 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:terminal_process, nil)
   end
 
-  defp apply_action(socket, logs_type, %{"sname" => sname})
+  defp apply_action(socket, logs_type, %{"name" => name, "sname" => sname})
        when logs_type in [:logs_stdout, :logs_stderr] do
     socket
     |> assign(:page_title, "Application Logs")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
-  defp apply_action(socket, :terminal, %{"sname" => sname}) do
+  defp apply_action(socket, :terminal, %{"name" => name, "sname" => sname}) do
     socket
     |> assign(:page_title, "Application Terminal")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
@@ -226,9 +230,10 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:show_versions, %{name: name, sname: nil})
   end
 
-  defp apply_action(socket, :restart, %{"sname" => sname}) do
+  defp apply_action(socket, :restart, %{"name" => name, "sname" => sname}) do
     socket
     |> assign(:page_title, "Restart application")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
@@ -268,12 +273,17 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_event("app-log-click", %{"sname" => sname, "std" => std}, socket) do
-    {:noreply, push_patch(socket, to: std_path(sname, std))}
+  def handle_event("app-log-click", %{"name" => name, "sname" => sname, "std" => std}, socket) do
+    std_path = fn
+      name, sname, "stderr" -> ~p"/applications/#{name}/#{sname}/logs/stderr"
+      name, sname, "stdout" -> ~p"/applications/#{name}/#{sname}/logs/stdout"
+    end
+
+    {:noreply, push_patch(socket, to: std_path.(name, sname, std))}
   end
 
-  def handle_event("app-terminal-click", %{"sname" => sname}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{sname}/terminal")}
+  def handle_event("app-terminal-click", %{"name" => name, "sname" => sname}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/#{sname}/terminal")}
   end
 
   def handle_event("app-versions-click", %{"name" => name, "sname" => sname}, socket) do
@@ -346,7 +356,4 @@ defmodule DeployexWeb.ApplicationsLive do
        |> push_patch(to: ~p"/applications")}
     end
   end
-
-  defp std_path(sname, "stderr"), do: ~p"/applications/#{sname}/logs/stderr"
-  defp std_path(sname, "stdout"), do: ~p"/applications/#{sname}/logs/stdout"
 end

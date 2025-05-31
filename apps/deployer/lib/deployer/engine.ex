@@ -10,6 +10,7 @@ defmodule Deployer.Engine do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
+  @spec init_deployment_workers() :: :ok
   def init_deployment_workers do
     Enum.each(Catalog.applications(), fn %{name: name} = application ->
       timeout_rollback = Application.fetch_env!(:deployer, __MODULE__)[:timeout_rollback]
@@ -28,6 +29,8 @@ defmodule Deployer.Engine do
 
       {:ok, _pid} = Engine.Supervisor.start_deployment(service)
     end)
+
+    :ok
   end
 
   @doc """
