@@ -89,18 +89,18 @@ config :foundation,
         "PHX_SERVER=true",
         "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
       ]
-    },
-    %{
-      name: "myumbrella",
-      replicas: 2,
-      language: "elixir",
-      initial_port: 4040,
-      env: [
-        "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
-        "PHX_SERVER=true",
-        "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
-      ]
     }
+    # %{
+    #   name: "myumbrella",
+    #   replicas: 2,
+    #   language: "elixir",
+    #   initial_port: 4040,
+    #   env: [
+    #     "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
+    #     "PHX_SERVER=true",
+    #     "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+    #   ]
+    # }
   ]
 
 config :deployer, Deployer.Release,

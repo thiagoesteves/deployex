@@ -5,8 +5,8 @@ For local testing, the root path used for distribution releases and versions is 
 Create the required release folders:
 ```bash
 export monitored_app_name=myphoenixapp
-mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
-mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
+mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
+mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
 
 It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
@@ -36,8 +36,8 @@ vi rel/env.sh.eex
 # This default is temporary; update it using AWS secrets and config provider.
 [ -z ${RELEASE_COOKIE} ] && export RELEASE_COOKIE="cookie"
 export RELEASE_DISTRIBUTION=sname
-[ -z ${RELEASE_NODE_SUFFIX} ] && export RELEASE_NODE_SUFFIX=""
-export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
+# Remove RELEASE_NODE, it will be supplied by deployex
+# export RELEASE_NODE=<%= @release.name %>
 
 # save the file :wq
 ```
@@ -118,8 +118,8 @@ Check your digested files at "priv/static"
 Move the release file to the distributed folder and updated the version:
 ```bash
 export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 ## 7. Running DeployEx and deploy the app
@@ -179,8 +179,8 @@ Check your digested files at "priv/static"
 2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
@@ -224,8 +224,8 @@ Check your digested files at "priv/static"
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 You can then check that DeployEx had executed a hot upgrade in the application:

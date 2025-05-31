@@ -96,7 +96,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
            socket
        )
        when cookie != :nocookie do
-    %{node: node, suffix: suffix, hostname: hostname, name: app_name, language: app_lang} =
+    %{node: node, hostname: hostname, language: app_lang} =
       Catalog.node_info(sname)
 
     bin_path = Catalog.bin_path(sname, :current)
@@ -117,7 +117,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
-            erl -remsh #{app_name}-#{suffix}@#{hostname} -setcookie #{cookie} #{ssl_options}
+            erl -remsh #{sname}@#{hostname} -setcookie #{cookie} #{ssl_options}
             """
 
           app_lang == "erlang" and sname != "deployex" ->
@@ -126,7 +126,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELX_REPLACE_OS_VARS=true
-            export RELEASE_NODE=#{app_name}-#{suffix}
+            export RELEASE_NODE=#{sname}
             export RELEASE_COOKIE=#{cookie}
             export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
             #{bin_path} remote_console
@@ -146,7 +146,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
-            export RELEASE_NODE_SUFFIX=-#{suffix}
+            export RELEASE_NODE=#{sname}
             export RELEASE_COOKIE=#{cookie}
             #{bin_path} remote
             """
