@@ -5,6 +5,9 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
 
   alias Deployer.Status
 
+  attr :name, :string, required: true
+  attr :sname, :string, default: nil
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -59,20 +62,11 @@ defmodule DeployexWeb.ApplicationsLive.Versions do
   end
 
   @impl true
-  def update(assigns, socket) do
-    sname = assigns.id
-
-    version_list =
-      if sname == "deployex" do
-        Status.history_version_list()
-      else
-        Status.history_version_list(sname)
-      end
-
+  def update(%{name: name, sname: sname} = assigns, socket) do
     socket =
       socket
       |> assign(assigns)
-      |> assign(:version_list, version_list)
+      |> assign(:version_list, Status.history_version_list(name, sname: sname))
 
     {:ok, socket}
   end

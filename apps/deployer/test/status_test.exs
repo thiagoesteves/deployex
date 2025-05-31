@@ -13,25 +13,11 @@ defmodule Deployer.StatusTest do
     assert {:ok, []} = Status.monitoring()
   end
 
-  test "monitored_app_name/0" do
-    Deployer.StatusMock
-    |> expect(:monitored_app_name, fn -> "test" end)
-
-    assert "test" = Status.monitored_app_name()
-  end
-
-  test "monitored_app_lang/0" do
-    Deployer.StatusMock
-    |> expect(:monitored_app_lang, fn -> "test" end)
-
-    assert "test" = Status.monitored_app_lang()
-  end
-
   test "current_version/1" do
     Deployer.StatusMock
-    |> expect(:current_version, fn _node -> "0.0.0" end)
+    |> expect(:current_version, fn _sname -> "0.0.0" end)
 
-    assert "0.0.0" = Status.current_version(1)
+    assert "0.0.0" = Status.current_version("myelixir-1234")
   end
 
   test "current_version/0" do
@@ -43,9 +29,9 @@ defmodule Deployer.StatusTest do
 
   test "set_current_version_map/3" do
     Deployer.StatusMock
-    |> expect(:set_current_version_map, fn _node, _release, _attrs -> :ok end)
+    |> expect(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
 
-    assert :ok = Status.set_current_version_map(0, %Deployer.Release.Version{}, [])
+    assert :ok = Status.set_current_version_map("myelixir-1234", %Deployer.Release.Version{}, [])
   end
 
   test "add_ghosted_version/1" do
@@ -55,32 +41,18 @@ defmodule Deployer.StatusTest do
     assert {:ok, []} = Status.add_ghosted_version(%{})
   end
 
-  test "ghosted_version_list/0" do
+  test "history_version_list/2" do
     Deployer.StatusMock
-    |> expect(:ghosted_version_list, fn -> [] end)
+    |> expect(:history_version_list, fn _name, _options -> [] end)
 
-    assert [] = Status.ghosted_version_list()
-  end
-
-  test "history_version_list/0" do
-    Deployer.StatusMock
-    |> expect(:history_version_list, fn -> [] end)
-
-    assert [] = Status.history_version_list()
-  end
-
-  test "history_version_list/1" do
-    Deployer.StatusMock
-    |> expect(:history_version_list, fn _node -> [] end)
-
-    assert [] = Status.history_version_list(0)
+    assert [] = Status.history_version_list("myelixir", [])
   end
 
   test "update/1" do
     Deployer.StatusMock
-    |> expect(:update, fn _node -> :ok end)
+    |> expect(:update, fn _sname -> :ok end)
 
-    assert :ok = Status.update("node")
+    assert :ok = Status.update("sname")
   end
 
   test "set_mode/2" do
@@ -88,8 +60,8 @@ defmodule Deployer.StatusTest do
     version = "9.9.9"
 
     Deployer.StatusMock
-    |> expect(:set_mode, fn mode, version -> {:ok, %{mode: mode, version: version}} end)
+    |> expect(:set_mode, fn _name, mode, version -> {:ok, %{mode: mode, version: version}} end)
 
-    assert {:ok, %{mode: ^mode, version: ^version}} = Status.set_mode(mode, version)
+    assert {:ok, %{mode: ^mode, version: ^version}} = Status.set_mode("myelixir", mode, version)
   end
 end

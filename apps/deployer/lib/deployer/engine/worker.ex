@@ -1,4 +1,4 @@
-defmodule Deployer.Deployment do
+defmodule Deployer.Engine.Worker do
   @moduledoc """
   A GenServer responsible for managing deployments when a new version is available in the `current.json` file.
   It ensures deployments occur sequentially and prevents new deployments while a previous one is still in progress.
@@ -10,12 +10,13 @@ defmodule Deployer.Deployment do
   ![Deployment Architecture](guides/static/deployment_architecture.png)
 
   ## Usage
-  To start the server, use `Deployer.Deployment.start_link/1` with appropriate options.
+  To start the server, use `Deployer.Engine.start_link/1` with appropriate options.
   """
 
   use GenServer
   require Logger
 
+  alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Release
   alias Deployer.Status
@@ -27,6 +28,8 @@ defmodule Deployer.Deployment do
           current: non_neg_integer(),
           name: String.t(),
           language: String.t(),
+          env: list(),
+          initial_port: non_neg_integer(),
           ghosted_version_list: list(),
           deployments: map(),
           timeout_rollback: non_neg_integer(),
@@ -37,6 +40,8 @@ defmodule Deployer.Deployment do
             current: 1,
             name: "",
             language: "",
+            env: [],
+            initial_port: 0,
             ghosted_version_list: [],
             deployments: %{},
             timeout_rollback: 0,
@@ -46,23 +51,22 @@ defmodule Deployer.Deployment do
   ### Callback functions
   ### ==========================================================================
 
-  def start_link(args) do
-    name = Keyword.fetch!(args, :name)
-    GenServer.start_link(__MODULE__, args, name: name)
+  def start_link(%__MODULE__{name: name} = deployment) do
+    GenServer.start_link(__MODULE__, deployment, name: String.to_atom(name))
   end
 
   @impl true
-  def init(args) do
-    timeout_rollback = Keyword.fetch!(args, :timeout_rollback)
-    schedule_interval = Keyword.fetch!(args, :schedule_interval)
-
-    Logger.info("Initializing Deployment Server")
+  def init(
+        %__MODULE__{
+          name: name,
+          initial_port: initial_port,
+          replicas: replicas,
+          schedule_interval: schedule_interval
+        } = state
+      ) do
+    Logger.info("Initializing Engine Server for #{name}")
 
     schedule_new_deployment(schedule_interval)
-
-    initial_port = Catalog.monitored_app_start_port()
-    language = Catalog.monitored_app_lang()
-    name = Catalog.monitored_app_name()
 
     check_installled_apps = fn
       [] ->
@@ -70,7 +74,7 @@ defmodule Deployer.Deployment do
 
       installed_snames ->
         current_version =
-          case Enum.at(Status.history_version_list(), 0) do
+          case Enum.at(Status.history_version_list(name, []), 0) do
             %Catalog.Version{version: version} -> version
             _ -> nil
           end
@@ -79,7 +83,7 @@ defmodule Deployer.Deployment do
         #       and cleanup the snames that are not in the current version
         Enum.reduce(installed_snames, [], fn sname, acc ->
           with true <- current_version == Status.current_version(sname),
-               bin_path when bin_path != nil <- Catalog.bin_path(sname, language, :current) do
+               bin_path when bin_path != nil <- Catalog.bin_path(sname, :current) do
             acc ++ [sname]
           else
             _ ->
@@ -92,7 +96,7 @@ defmodule Deployer.Deployment do
     snames = check_installled_apps.(Status.list_installed_apps(name))
 
     deployments =
-      Catalog.replicas_list()
+      1..replicas
       |> Enum.with_index(fn instance, index ->
         {instance, initial_port + index, Enum.at(snames, index)}
       end)
@@ -105,16 +109,7 @@ defmodule Deployer.Deployment do
         })
       end)
 
-    {:ok,
-     %__MODULE__{
-       replicas: Catalog.replicas(),
-       deployments: deployments,
-       timeout_rollback: timeout_rollback,
-       schedule_interval: schedule_interval,
-       ghosted_version_list: Status.ghosted_version_list(),
-       name: name,
-       language: language
-     }}
+    {:ok, %{state | deployments: deployments}}
   end
 
   @impl true
@@ -140,14 +135,14 @@ defmodule Deployer.Deployment do
     {:noreply, new_state}
   end
 
-  def handle_info({:timeout_rollback, instance, sname}, state) do
+  def handle_info({:timeout_rollback, instance, sname}, %{name: name} = state) do
     current_deployment = state.deployments[state.current]
 
     state =
       if instance == state.current and sname == current_deployment.sname do
         Logger.warning("The instance: #{instance} is not stable, rolling back version")
 
-        Monitor.stop_service(state.deployments[state.current].sname)
+        Monitor.stop_service(name, state.deployments[state.current].sname)
 
         rollback_to_previous_version(state)
       else
@@ -192,12 +187,20 @@ defmodule Deployer.Deployment do
 
   ## Examples
 
-      iex> Deployer.Deployment.notify_application_running(sname)
+      iex> Deployer.Engine.notify_application_running(sname)
       :ok
   """
-  @spec notify_application_running(atom(), String.t()) :: :ok
-  def notify_application_running(name \\ __MODULE__, sname) do
-    GenServer.cast(name, {:application_running, sname})
+  @spec notify_application_running(String.t()) :: :ok
+  def notify_application_running(sname) do
+    case Catalog.node_info(sname) do
+      %{name: name} ->
+        name
+        |> String.to_existing_atom()
+        |> GenServer.cast({:application_running, sname})
+
+      _ ->
+        :ok
+    end
   end
 
   ### ==========================================================================
@@ -218,7 +221,7 @@ defmodule Deployer.Deployment do
     state = %{state | ghosted_version_list: new_list}
 
     # Retrieve previous version
-    previous_version_map = Status.history_version_list(current) |> Enum.at(1)
+    previous_version_map = Status.history_version_list(name, []) |> Enum.at(1)
 
     new_sname = new_sname(name)
 
@@ -249,13 +252,20 @@ defmodule Deployer.Deployment do
     end
   end
 
-  defp initialize_version(%{language: language, current: current} = state) do
+  defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do
     sname = state.deployments[current].sname
     port = state.deployments[current].port
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
-      {:ok, _} = Monitor.start_service(sname, language, port)
+      {:ok, _} =
+        Monitor.start_service(%Monitor.Service{
+          name: name,
+          sname: sname,
+          language: language,
+          port: port,
+          env: env
+        })
 
       set_timeout_to_rollback(state, sname)
     else
@@ -344,17 +354,21 @@ defmodule Deployer.Deployment do
     %{state | deployments: deployments}
   end
 
-  defp full_deployment(%{current: instance, language: language} = state, new_sname, release) do
+  defp full_deployment(
+         %{current: instance, language: language, name: name, env: env} = state,
+         new_sname,
+         release
+       ) do
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       Logger.info("Full deploy instance: #{instance} sname: #{new_sname}")
 
       sname = state.deployments[instance].sname
 
-      Monitor.stop_service(sname)
+      Monitor.stop_service(name, sname)
 
       # NOTE: Since killing the is pretty fast this delay will be enough to
       #       avoid race conditions for resources since they use the same name, ports, etc.
-      :timer.sleep(Application.fetch_env!(:deployer, __MODULE__)[:delay_between_deploys_ms])
+      :timer.sleep(Application.fetch_env!(:deployer, Engine)[:delay_between_deploys_ms])
 
       Status.update(new_sname)
 
@@ -362,7 +376,14 @@ defmodule Deployer.Deployment do
 
       port = state.deployments[state.current].port
 
-      {:ok, _} = Monitor.start_service(new_sname, language, port)
+      {:ok, _} =
+        Monitor.start_service(%Monitor.Service{
+          name: name,
+          sname: new_sname,
+          language: language,
+          port: port,
+          env: env
+        })
 
       Catalog.cleanup(sname)
     end)

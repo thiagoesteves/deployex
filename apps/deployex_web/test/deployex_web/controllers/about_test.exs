@@ -6,7 +6,7 @@ defmodule DeployexWeb.PageControllerTest do
 
   test "GET / redirect to /users/log_in if not authenticated", %{conn: conn} do
     Deployer.StatusMock
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     conn = get(conn, ~p"/")
 
@@ -18,7 +18,7 @@ defmodule DeployexWeb.PageControllerTest do
 
     test "GET / redirect to /applications if authenticated", %{conn: conn} do
       Deployer.StatusMock
-      |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
       conn = get(conn, ~p"/")
 

@@ -233,7 +233,7 @@ defmodule Sentinel.Logs.ServerTest do
   end
 
   defp create_consumer(context) do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
     Catalog.setup(sname)
 

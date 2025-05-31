@@ -16,11 +16,23 @@ defmodule DeployexWeb.Applications.ModeTest do
 
   test "Check all versions are available", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..40, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(%{
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :automatic,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..10, fn index -> "1.0.#{index}" end)
+             }
+           }
+         }),
+         FixtureStatus.application()
+       ]}
     end)
+    |> expect(:subscribe, fn -> :ok end)
 
     {:ok, _index_live, html} = live(conn, ~p"/applications")
 
@@ -44,15 +56,30 @@ defmodule DeployexWeb.Applications.ModeTest do
 
   test "Set manual mode - cancel operation", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(%{
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :automatic,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
+         }),
+         FixtureStatus.application()
+       ]}
     end)
+    |> expect(:subscribe, fn -> :ok end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert render_change(index_live, "app-mode-select", %{"select-mode" => "1.0.1"}) =~
+    assert render_change(index_live, "app-mode-select", %{
+             "select-mode" => "1.0.1",
+             "name" => "myelixir"
+           }) =~
              "Are you sure you want to set to 1.0.1?"
 
     assert index_live |> element("#cancel-button-mode", "Cancel") |> render_click()
@@ -69,9 +96,24 @@ defmodule DeployexWeb.Applications.ModeTest do
     expected_manual_version = "1.0.1"
 
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(%{
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :automatic,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
+         }),
+         FixtureStatus.application()
+       ]}
+    end)
     |> expect(:subscribe, fn -> :ok end)
-    |> expect(:set_mode, fn :manual, ^expected_manual_version ->
+    |> expect(:set_mode, fn _name, :manual, ^expected_manual_version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
       {:ok,
@@ -80,14 +122,12 @@ defmodule DeployexWeb.Applications.ModeTest do
          manual_version: FixtureStatus.version(%{version: expected_manual_version})
        }}
     end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
-    end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert render_change(index_live, "app-mode-select", %{
-             "select-mode" => expected_manual_version
+             "select-mode" => expected_manual_version,
+             "name" => "myelixir"
            }) =~ "Are you sure you want to set to 1.0.1?"
 
     assert index_live |> element("#confirm-button-mode", "Confirm") |> render_click()
@@ -106,14 +146,20 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           mode: :manual,
-           manual_version: FixtureStatus.version(%{version: "1.0.2"})
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :manual,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
          }),
          FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> expect(:set_mode, fn :automatic, _version ->
+    |> expect(:set_mode, fn _name, :automatic, _version ->
       Process.send_after(pid, {:handle_ref_event, ref}, 100)
 
       {:ok,
@@ -122,14 +168,15 @@ defmodule DeployexWeb.Applications.ModeTest do
          manual_version: FixtureStatus.version(%{version: "1.0.1"})
        }}
     end)
-    |> stub(:history_version_list, fn ->
+    |> stub(:history_version_list, fn _name, _options ->
       Enum.map(1..3, fn index -> FixtureStatus.version(%{version: "1.0.#{index}"}) end)
     end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert render_change(index_live, "app-mode-select", %{
-             "select-mode" => "automatic"
+             "select-mode" => "automatic",
+             "name" => "myelixir"
            }) =~ "Are you sure you want to set to automatic?"
 
     assert index_live |> element("#confirm-button-mode", "Confirm") |> render_click()
@@ -145,18 +192,19 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           mode: :manual,
-           manual_version: FixtureStatus.version(%{version: "1.0.2"})
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :manual,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
          }),
          FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..3, fn index ->
-        FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
-      end)
-    end)
 
     {:ok, _index_live, html} = live(conn, ~p"/applications")
 
@@ -169,40 +217,53 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           mode: :manual,
-           manual_version: FixtureStatus.version(%{version: "1.0.2"})
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :manual,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
          }),
          FixtureStatus.application()
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..3, fn index ->
-        FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
-      end)
-    end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     refute render_change(index_live, "app-mode-select", %{
-             "select-mode" => "1.0.2"
-           }) =~ "Are you sure you want to set"
+             "select-mode" => "1.0.2",
+             "name" => "myelixir"
+           }) =~ "Are you sure you want to set to 1.0.2"
   end
 
   test "Check setting the same mode is not possible", %{conn: conn} do
     Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn ->
-      Enum.map(1..3, fn index ->
-        FixtureStatus.version(%{version: "1.0.#{index}", mode: :manual})
-      end)
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(%{
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :automatic,
+               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+             }
+           }
+         }),
+         FixtureStatus.application()
+       ]}
     end)
+    |> expect(:subscribe, fn -> :ok end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     refute render_change(index_live, "app-mode-select", %{
-             "select-mode" => "automatic"
+             "select-mode" => "automatic",
+             "name" => "myelixir"
            }) =~ "Are you sure you want to set"
   end
 end

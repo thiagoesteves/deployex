@@ -5,19 +5,16 @@ defmodule Deployer.Monitor.Application do
   use GenServer
   require Logger
 
-  alias Deployer.Deployment
+  alias Deployer.Engine
+  alias Deployer.Monitor
   alias Deployer.Status
   alias Foundation.Catalog
   alias Foundation.Common
   alias Host.Commander
 
-  @behaviour Deployer.Monitor.Adapter
+  @behaviour Monitor.Adapter
 
   @monitor_table "monitor-table"
-
-  @default_timeout_app_ready :timer.seconds(30)
-  @default_retry_delay_pre_commands :timer.seconds(1)
-
   @new_deploy_topic "new-deploy-topic"
 
   ### ==========================================================================
@@ -25,26 +22,13 @@ defmodule Deployer.Monitor.Application do
   ### ==========================================================================
 
   @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
-  def start_link(args) do
-    sname = Keyword.fetch!(args, :sname)
-    name = global_name(sname)
-    GenServer.start_link(__MODULE__, args, name: {:global, name})
+  def start_link(%Monitor.Service{sname: sname} = service) do
+    GenServer.start_link(__MODULE__, service, name: String.to_atom(sname))
   end
 
   @impl true
-  def init(args) do
+  def init(%Monitor.Service{sname: sname, language: language} = service) do
     Process.flag(:trap_exit, true)
-
-    port = Keyword.fetch!(args, :port)
-    sname = Keyword.fetch!(args, :sname)
-    language = Keyword.fetch!(args, :language)
-    options = Keyword.fetch!(args, :options)
-
-    timeout_app_ready =
-      Keyword.get(options, :timeout_app_ready, @default_timeout_app_ready)
-
-    retry_delay_pre_commands =
-      Keyword.get(options, :retry_delay_pre_commands, @default_retry_delay_pre_commands)
 
     # NOTE: This ETS table provides non-blocking access to the state.
     :ets.new(table_name(sname), [:set, :protected, :named_table])
@@ -54,12 +38,13 @@ defmodule Deployer.Monitor.Application do
     trigger_run_service(sname)
 
     {:ok,
-     update_non_blocking_state(%Deployer.Monitor{
-       timeout_app_ready: timeout_app_ready,
-       retry_delay_pre_commands: retry_delay_pre_commands,
-       sname: sname,
-       port: port,
-       language: language
+     update_non_blocking_state(%Monitor{
+       timeout_app_ready: service.timeout_app_ready,
+       retry_delay_pre_commands: service.retry_delay_pre_commands,
+       sname: service.sname,
+       port: service.port,
+       language: language,
+       env: service.env
      })}
   end
 
@@ -67,7 +52,7 @@ defmodule Deployer.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %Deployer.Monitor{current_pid: current_pid, sname: sname} = state
+        %Monitor{current_pid: current_pid, sname: sname} = state
       )
       when is_nil(current_pid) do
     Logger.warning("Requested sname: #{sname} to stop but application is not running.")
@@ -78,7 +63,7 @@ defmodule Deployer.Monitor.Application do
   def handle_call(
         :stop_service,
         _from,
-        %Deployer.Monitor{sname: sname, current_pid: pid} = state
+        %Monitor{sname: sname, current_pid: pid} = state
       ) do
     Logger.info("Requested sname: #{sname} to stop application pid: #{inspect(pid)}")
 
@@ -122,7 +107,7 @@ defmodule Deployer.Monitor.Application do
   end
 
   @impl true
-  def handle_info({:run_service, sname}, %Deployer.Monitor{} = state)
+  def handle_info({:run_service, sname}, %Monitor{} = state)
       when sname == state.sname do
     version_map = Status.current_version_map(state.sname)
     version = version_map.version
@@ -144,7 +129,7 @@ defmodule Deployer.Monitor.Application do
       when pid == state.current_pid and sname == state.sname do
     Logger.info(" # Application sname: #{state.sname} is running")
 
-    Deployment.notify_application_running(sname)
+    Engine.notify_application_running(sname)
 
     {:noreply, update_non_blocking_state(%{state | status: :running})}
   end
@@ -197,24 +182,27 @@ defmodule Deployer.Monitor.Application do
     value
   rescue
     _ ->
-      %Deployer.Monitor{}
+      %Monitor{}
   end
 
   @impl true
   def run_pre_commands(sname, pre_commands, app_bin_service) do
-    global_name(sname)
+    sname
+    |> String.to_existing_atom()
     |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_service})
   end
 
   @impl true
-  defdelegate start_service(sname, language, port, options \\ []),
-    to: Deployer.Monitor.Supervisor
+  defdelegate start_service(service), to: Monitor.Supervisor
 
   @impl true
-  defdelegate stop_service(sname), to: Deployer.Monitor.Supervisor
+  defdelegate stop_service(name, sname), to: Monitor.Supervisor
 
   @impl true
-  defdelegate list, to: Deployer.Monitor.Supervisor
+  defdelegate list, to: Monitor.Supervisor
+
+  @impl true
+  defdelegate list(options), to: Monitor.Supervisor
 
   @impl true
   def subscribe_new_deploy do
@@ -224,7 +212,7 @@ defmodule Deployer.Monitor.Application do
   @impl true
   def restart(sname) do
     sname
-    |> global_name()
+    |> String.to_existing_atom()
     |> Common.call_gen_server(:restart)
   end
 
@@ -238,15 +226,14 @@ defmodule Deployer.Monitor.Application do
     do: Process.send_after(self(), {:run_service, sname}, timeout)
 
   defp run_service(
-         %Deployer.Monitor{
+         %Monitor{
            sname: sname,
            timeout_app_ready: timeout_app_ready,
-           retry_delay_pre_commands: retry_delay_pre_commands,
-           language: language
+           retry_delay_pre_commands: retry_delay_pre_commands
          } = state,
          version_map
        ) do
-    app_exec = Catalog.bin_path(sname, language, :current)
+    app_exec = Catalog.bin_path(sname, :current)
     version = version_map.version
 
     with true <- File.exists?(app_exec),
@@ -294,10 +281,14 @@ defmodule Deployer.Monitor.Application do
   #       - Export listening port that needs to be one per app
   defp run_app_bin(state, executable_path, command)
 
-  defp run_app_bin(%{sname: sname, language: "elixir", port: port}, executable_path, command) do
+  defp run_app_bin(
+         %{sname: sname, language: "elixir", port: port, env: env},
+         executable_path,
+         command
+       ) do
     %{suffix: suffix} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
-    app_env = compose_app_env(Catalog.monitored_app_env())
+    app_env = compose_app_env(env)
 
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
@@ -310,10 +301,14 @@ defmodule Deployer.Monitor.Application do
     """
   end
 
-  defp run_app_bin(%{sname: sname, language: "erlang", port: port}, executable_path, "start") do
+  defp run_app_bin(
+         %{sname: sname, language: "erlang", port: port, env: env},
+         executable_path,
+         "start"
+       ) do
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
-    app_env = compose_app_env(Catalog.monitored_app_env())
+    app_env = compose_app_env(env)
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -336,11 +331,15 @@ defmodule Deployer.Monitor.Application do
     """
   end
 
-  defp run_app_bin(%{sname: sname, language: "gleam", port: port}, executable_path, "start") do
+  defp run_app_bin(
+         %{sname: sname, language: "gleam", port: port, env: env},
+         executable_path,
+         "start"
+       ) do
     %{name: name} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
-    app_env = compose_app_env(Catalog.monitored_app_env())
+    app_env = compose_app_env(env)
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -387,11 +386,11 @@ defmodule Deployer.Monitor.Application do
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(
-         %{sname: sname, status: status, language: language} = state,
+         %{sname: sname, status: status} = state,
          pre_commands,
          bin_service
        ) do
-    migration_exec = Catalog.bin_path(sname, language, bin_service)
+    migration_exec = Catalog.bin_path(sname, bin_service)
 
     update_non_blocking_state(%{state | status: :pre_commands})
 

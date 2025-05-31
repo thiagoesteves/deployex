@@ -61,10 +61,13 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def setup do
-    # Create paths to store persistent information
-    File.mkdir_p!(config_path())
-    File.mkdir_p!(history_version_path())
-    File.mkdir_p!(ghosted_version_path())
+    applications()
+    |> Enum.each(fn %{name: name} ->
+      # Create paths to store persistent information
+      File.mkdir_p!(config_path(name))
+      File.mkdir_p!(history_version_path(name))
+      File.mkdir_p!(ghosted_version_path(name))
+    end)
 
     :ok
   end
@@ -102,22 +105,7 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def replicas, do: Application.get_env(:foundation, :replicas)
-
-  @impl true
-  def replicas_list, do: Enum.to_list(1..replicas())
-
-  @impl true
-  def monitored_app_name, do: Application.fetch_env!(:foundation, :monitored_app_name)
-
-  @impl true
-  def monitored_app_lang, do: Application.fetch_env!(:foundation, :monitored_app_lang)
-
-  @impl true
-  def monitored_app_env, do: Application.fetch_env!(:foundation, :monitored_app_env)
-
-  @impl true
-  def monitored_app_start_port, do: Application.get_env(:foundation, :monitored_app_start_port)
+  def applications, do: Application.fetch_env!(:foundation, :applications)
 
   @impl true
   def create_sname(name) do
@@ -136,16 +124,21 @@ defmodule Foundation.Catalog.Local do
     parse_sname = fn sname, node, hostname ->
       case String.split(sname, ["-"]) do
         [name, suffix] ->
-          %Catalog.Node{
-            node: node,
-            sname: sname,
-            name: name,
-            hostname: hostname,
-            suffix: suffix,
-            # NOTE: Leave the next call with __MODULE__ until multiple apps are implemented
-            #       It is used for testing purpose
-            language: __MODULE__.monitored_app_lang()
-          }
+          # credo:disable-for-lines:1
+          case Enum.find(applications(), &(&1.name == name)) do
+            %{language: language} ->
+              %Catalog.Node{
+                node: node,
+                sname: sname,
+                name: name,
+                hostname: hostname,
+                suffix: suffix,
+                language: language
+              }
+
+            _ ->
+              nil
+          end
 
         [name] when name in [@deployex_sname, @nohost_sname] ->
           %Catalog.Node{
@@ -181,9 +174,14 @@ defmodule Foundation.Catalog.Local do
   end
 
   def stdout_path(sname) do
-    %{name: name} = node_info(sname)
-    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-    "#{log_path}/#{name}/#{sname}-stdout.log"
+    case node_info(sname) do
+      %{name: name} ->
+        log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+        "#{log_path}/#{name}/#{sname}-stdout.log"
+
+      _ ->
+        nil
+    end
   end
 
   @impl true
@@ -193,19 +191,24 @@ defmodule Foundation.Catalog.Local do
   end
 
   def stderr_path(sname) do
-    %{name: name} = node_info(sname)
-    log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
-    "#{log_path}/#{name}/#{sname}-stderr.log"
+    case node_info(sname) do
+      %{name: name} ->
+        log_path = Application.fetch_env!(:foundation, :monitored_app_log_path)
+        "#{log_path}/#{name}/#{sname}-stderr.log"
+
+      _ ->
+        nil
+    end
   end
 
   @impl true
-  def bin_path(@deployex_sname, _language, _bin_service) do
+  def bin_path(@deployex_sname, _bin_service) do
     Application.fetch_env!(:foundation, :bin_path)
   end
 
   # credo:disable-for-lines:1
-  def bin_path(sname, language, bin_service) do
-    %{name: name} = node_info(sname)
+  def bin_path(sname, bin_service) do
+    %{name: name, language: language} = node_info(sname)
 
     cond do
       bin_service == :new and language in ["elixir", "erlang"] ->
@@ -253,37 +256,48 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def versions do
-    history_version_path()
+  def versions(name, options) do
+    sname = Keyword.get(options, :sname)
+
+    sorted_list =
+      name
+      |> history_version_path()
+      |> list()
+      |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
+
+    if sname do
+      Enum.filter(sorted_list, &(&1.sname == sname))
+    else
+      sorted_list
+    end
+  end
+
+  @impl true
+  def add_version(%{name: name} = version) do
+    name
+    |> history_version_path()
+    |> insert_by_timestamp(version)
+  end
+
+  @impl true
+  def ghosted_versions(name) do
+    name
+    |> ghosted_version_path()
     |> list()
-    |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
-  end
-
-  @impl true
-  def versions(sname) do
-    Enum.filter(versions(), &(&1.sname == sname))
-  end
-
-  @impl true
-  def add_version(version) do
-    insert_by_timestamp(history_version_path(), version)
-  end
-
-  @impl true
-  def ghosted_versions do
-    list(ghosted_version_path())
   end
 
   @impl true
   def add_ghosted_version(version_map) when is_map(version_map) do
     # Retrieve current ghosted version list
-    current_list = ghosted_versions()
+    current_list = ghosted_versions(version_map.name)
 
     ghosted_version? = Enum.any?(current_list, &(&1.version == version_map.version))
 
     # Add the version if not in the list
     if ghosted_version? == false do
-      insert_by_timestamp(ghosted_version_path(), version_map)
+      version_map.name
+      |> ghosted_version_path()
+      |> insert_by_timestamp(version_map)
 
       {:ok, [version_map | current_list]}
     else
@@ -292,13 +306,17 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def config do
-    get_by_key(config_path(), @config_key_file)
+  def config(name) do
+    name
+    |> config_path()
+    |> get_by_key(@config_key_file)
   end
 
   @impl true
-  def config_update(config) do
-    insert_by_key(config_path(), @config_key_file, config)
+  def config_update(name, config) do
+    name
+    |> config_path()
+    |> insert_by_key(@config_key_file, config)
 
     {:ok, config}
   end
@@ -309,14 +327,14 @@ defmodule Foundation.Catalog.Local do
   defp base_path, do: Application.fetch_env!(:foundation, :base_path)
   defp log_path, do: Application.fetch_env!(:foundation, :monitored_app_log_path)
 
-  defp config_path,
-    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/config"
+  defp config_path(name),
+    do: "#{base_path()}/storage/#{name}/deployex/config"
 
-  defp history_version_path,
-    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/history"
+  defp history_version_path(name),
+    do: "#{base_path()}/storage/#{name}/deployex/history"
 
-  defp ghosted_version_path,
-    do: "#{base_path()}/storage/#{monitored_app_name()}/deployex/ghosted"
+  defp ghosted_version_path(name),
+    do: "#{base_path()}/storage/#{name}/deployex/ghosted"
 
   defp insert_by_timestamp(path, data) do
     file = "#{System.os_time(:microsecond)}.term"

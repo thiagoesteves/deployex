@@ -64,7 +64,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "handle_info/2 - update application statistics - valid source" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -112,10 +112,10 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "handle_info/2 - update application statistics - invalid source" do
-    fake_sname = Catalog.create_sname("fake_app")
+    fake_sname = Catalog.create_sname("mygleam")
     %{node: fake_node} = Catalog.node_info(fake_sname)
 
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     monitored_nodes = [node]
@@ -165,7 +165,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - No warning if the statistic is inside the threshold" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -204,7 +204,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - statistic warning" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -274,7 +274,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - ignore nil data" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -308,7 +308,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Monitore application - restart" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
     monitored_nodes = [node]
 
@@ -365,7 +365,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
   end
 
   test "Node Up doesn't change any status" do
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
     monitored_nodes = [node]
 
@@ -403,7 +403,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -440,7 +440,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    sname = Catalog.create_sname("test_app")
+    sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
 
     Deployer.MonitorMock
@@ -495,9 +495,9 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     memory_total = 1_000_000
     self_node = Node.self()
 
-    sname_1 = Catalog.create_sname("test_app")
+    sname_1 = Catalog.create_sname("myelixir")
     %{node: node_1} = Catalog.node_info(sname_1)
-    sname_2 = Catalog.create_sname("test_app")
+    sname_2 = Catalog.create_sname("myelixir")
     %{node: node_2} = Catalog.node_info(sname_2)
 
     Deployer.MonitorMock

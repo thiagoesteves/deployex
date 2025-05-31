@@ -1,5 +1,5 @@
 defmodule Mix.Shared do
-  def version, do: "0.5.0"
+  def version, do: "0.5.1-rc1"
 
   def elixir, do: "~> 1.16"
 
@@ -19,7 +19,10 @@ defmodule Mix.Shared do
         Deployer.Application,
         Deployer.Monitor.Adapter,
         Deployer.Monitor.Supervisor,
+        Deployer.Engine,
+        Deployer.Engine.Supervisor,
         Deployer.Release.Version,
+        Deployer.Monitor.Service,
         Deployer.Fixture.Files,
         # DeployEx Web
         DeployexWeb.Application,

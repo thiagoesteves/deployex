@@ -20,7 +20,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 

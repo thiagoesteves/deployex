@@ -9,7 +9,7 @@ defmodule Foundation.Catalog.Version do
           name: String.t(),
           sname: String.t(),
           deployment: :full_deployment | :hot_upgrade,
-          inserted_at: NaiveDateTime.t()
+          inserted_at: NaiveDateTime.t() | nil
         }
 
   @derive Jason.Encoder

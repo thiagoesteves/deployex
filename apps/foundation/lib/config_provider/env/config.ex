@@ -32,37 +32,45 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
     case YamlElixir.read_from_file(yaml_path) do
       {:ok, data} ->
-        # DeployEx only suports one application for now
-        application = Enum.at(data["applications"], 0)
-
-        name = application["name"]
-        replicas = application["replicas"]
-        monitored_app_lang = application["language"]
-        monitored_app_start_port = application["initial_port"]
         env = data["account_name"]
 
-        app_env = application["env"]
+        read_application_env = fn
+          [_ | _] = app_env ->
+            Enum.map(app_env, fn %{"key" => key, "value" => value} ->
+              "#{key}=#{value}"
+            end)
 
-        # credo:disable-for-lines:4
-        monitored_app_env =
-          case app_env do
-            [_ | _] ->
-              Enum.map(app_env, fn %{"key" => key, "value" => value} ->
-                "#{key}=#{value}"
-              end)
+          _not_set ->
+            []
+        end
 
-            _not_set ->
-              []
-          end
+        applications =
+          data["applications"]
+          |> Enum.map(fn application ->
+            app_config_monitoring = application["monitoring"]
+
+            # credo:disable-for-lines:3
+            monitoring =
+              if app_config_monitoring do
+                parse_monitoring(app_config_monitoring)
+              else
+                []
+              end
+
+            %{
+              name: application["name"],
+              replicas: application["replicas"],
+              language: application["language"],
+              initial_port: application["initial_port"],
+              env: read_application_env.(application["env"]),
+              monitoring: monitoring
+            }
+          end)
 
         updated_config = [
           foundation: [
             {:env, env},
-            {:monitored_app_name, name},
-            {:replicas, replicas},
-            {:monitored_app_lang, monitored_app_lang},
-            {:monitored_app_start_port, monitored_app_start_port},
-            {:monitored_app_env, monitored_app_env}
+            {:applications, applications}
           ]
         ]
 
@@ -93,14 +101,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # Application Config monitoring
-        app_config_monitoring = application["monitoring"]
+        applications_config =
+          Enum.reduce(applications, [], fn application, acc ->
+            # credo:disable-for-lines:1
+            if application.monitoring != [] do
+              acc ++ [{String.to_atom(application.name), application.monitoring}]
+            else
+              acc
+            end
+          end)
 
         updated_config =
-          if app_config_monitoring do
-            parsed_list = parse_monitoring(app_config_monitoring)
-
-            applications_config = [{String.to_atom(application["name"]), parsed_list}]
-
+          if applications_config != [] do
             Config.Reader.merge(updated_config,
               sentinel: [
                 {Sentinel.Watchdog, [{:applications_config, applications_config}]}
@@ -155,14 +167,14 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        # Deployment Config
+        # Engine Config
         deploy_rollback_timeout_ms = data["deploy_rollback_timeout_ms"]
 
         updated_config =
           if deploy_rollback_timeout_ms do
             Config.Reader.merge(updated_config,
               deployer: [
-                {Deployer.Deployment,
+                {Deployer.Engine,
                  [
                    {:timeout_rollback, deploy_rollback_timeout_ms}
                  ]}
@@ -178,7 +190,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
           if deploy_schedule_interval_ms do
             Config.Reader.merge(updated_config,
               deployer: [
-                {Deployer.Deployment,
+                {Deployer.Engine,
                  [
                    {:schedule_interval, deploy_schedule_interval_ms}
                  ]}

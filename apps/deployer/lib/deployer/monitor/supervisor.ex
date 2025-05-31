@@ -7,6 +7,10 @@ defmodule Deployer.Monitor.Supervisor do
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
+  def start_link(%{name: name} = init_arg) do
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: name)
+  end
+
   def start_link(init_arg) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -19,53 +23,92 @@ defmodule Deployer.Monitor.Supervisor do
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
-  @spec start_service(String.t(), String.t(), non_neg_integer(), [Keyword.t()]) ::
-          {:ok, pid} | {:error, pid(), :already_started}
-  def start_service(sname, language, port, options) do
+  def create_monitor_supervisor(name) do
+    supervisor_name = supervisor_name(name)
+
     spec = %{
-      id: Deployer.Monitor.Application,
-      start:
-        {Deployer.Monitor.Application, :start_link,
-         [
-           [
-             language: language,
-             port: port,
-             sname: sname,
-             options: options
-           ]
-         ]},
-      restart: :transient
+      id: supervisor_name,
+      start: {__MODULE__, :start_link, [%{name: supervisor_name}]},
+      type: :supervisor,
+      restart: :permanent
     }
 
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
-  @spec list() :: list()
-  def list do
-    Enum.reduce(:global.registered_names(), [], fn
-      %{module: Deployer.Monitor.Application, sname: sname}, acc ->
-        acc ++ [sname]
+  def start_service(%{name: name} = service) do
+    spec = %{
+      id: Deployer.Monitor.Application,
+      start: {Deployer.Monitor.Application, :start_link, [service]},
+      restart: :transient
+    }
 
-      _, acc ->
-        acc
-    end)
+    name
+    |> supervisor_name()
+    |> DynamicSupervisor.start_child(spec)
   end
 
-  @spec stop_service(String.t() | nil) :: :ok
-  def stop_service(nil), do: :ok
+  def list, do: list(format: :string)
 
-  def stop_service(sname) do
-    sname
-    |> Deployer.Monitor.Application.global_name()
-    |> :global.whereis_name()
-    |> case do
-      :undefined ->
-        :ok
+  def list(options) do
+    accumulate_pid_name = fn pid, acc ->
+      case :erlang.process_info(pid, :registered_name) do
+        {:registered_name, name} ->
+          acc ++ [%{name: name, pid: pid}]
 
-      child_pid ->
-        Foundation.Common.call_gen_server(child_pid, :stop_service)
+        _ ->
+          acc
+      end
+    end
 
-        DynamicSupervisor.terminate_child(__MODULE__, child_pid)
+    map_list =
+      __MODULE__
+      |> Supervisor.which_children()
+      |> Enum.map(fn {_, pid, :supervisor, _name} -> pid end)
+      |> Enum.reduce([], &accumulate_pid_name.(&1, &2))
+      |> Enum.reduce([], fn %{name: supervisor}, acc ->
+        workers_list =
+          supervisor
+          |> Supervisor.which_children()
+          |> Enum.map(fn {_, pid, :worker, _name} -> pid end)
+          |> Enum.reduce([], &accumulate_pid_name.(&1, &2))
+
+        workers_list ++ acc
+      end)
+
+    format = Keyword.get(options, :format)
+
+    cond do
+      format == :string ->
+        Enum.map(map_list, fn %{name: name} -> Atom.to_string(name) end)
+
+      format == :atom ->
+        Enum.map(map_list, fn %{name: name} -> name end)
+
+      true ->
+        map_list
     end
   end
+
+  def stop_service(name, sname) when is_nil(name) or is_nil(sname), do: :ok
+
+  def stop_service(name, sname) do
+    module_name = String.to_existing_atom(sname)
+
+    %{pid: child_pid} = list(format: :map) |> Enum.find(&(&1.name == module_name))
+
+    Foundation.Common.call_gen_server(child_pid, :stop_service)
+
+    name
+    |> supervisor_name()
+    |> DynamicSupervisor.terminate_child(child_pid)
+
+    :ok
+  rescue
+    _ ->
+      Logger.error("Error while stopping name: #{name} sname: #{sname}")
+      :ok
+  end
+
+  defp supervisor_name(name), do: String.to_atom("#{__MODULE__}.#{Macro.camelize(name)}")
 end

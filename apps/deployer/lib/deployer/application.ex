@@ -5,12 +5,15 @@ defmodule Deployer.Application do
 
   import Foundation.Macros
 
+  require Logger
+
   @impl true
   def start(_type, _args) do
     children =
       [
         {Phoenix.PubSub, name: Deployer.PubSub},
         Deployer.Monitor.Supervisor,
+        Deployer.Engine.Supervisor,
         {Finch, name: Deployer.Finch},
         {Finch, name: ExAws.Request.Finch}
       ] ++ application_servers() ++ gcp_app_credentials()
@@ -18,25 +21,29 @@ defmodule Deployer.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Deployer.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    case Supervisor.start_link(children, opts) do
+      {:ok, _pid} = response ->
+        Deployer.Monitor.initialize_monitor_supervisor()
+        init_deployment_workers()
+        response
+
+      {:error, reason} = response ->
+        Logger.error("Error Initializing Deployer Supervisor reason: #{inspect(reason)}")
+        response
+    end
   end
 
   if_not_test do
-    alias Deployer.Deployment
+    alias Deployer.Engine
 
-    defp application_servers do
-      [
-        Deployer.Status.Application,
-        {Deployment,
-         [
-           timeout_rollback: Application.fetch_env!(:deployer, Deployment)[:timeout_rollback],
-           schedule_interval: Application.fetch_env!(:deployer, Deployment)[:schedule_interval],
-           name: Deployment
-         ]}
-      ]
-    end
+    defp application_servers, do: [Deployer.Status.Application]
+
+    defp init_deployment_workers, do: Engine.init_deployment_workers()
   else
     defp application_servers, do: []
+
+    defp init_deployment_workers, do: :ok
   end
 
   defp gcp_app_credentials do

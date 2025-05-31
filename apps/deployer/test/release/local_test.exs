@@ -19,7 +19,7 @@ defmodule Deployer.Release.LocalTest do
   test "get_current_version_map/1 optional fields" do
     version_map = %{"hash" => "local", "version" => "1.0.0"}
 
-    FixtureCatalog.create_current_json()
+    FixtureCatalog.create_current_json("testapp")
 
     assert version_map == Local.download_version_map("testapp")
   end
@@ -32,7 +32,7 @@ defmodule Deployer.Release.LocalTest do
 
   test "download_release/2 success" do
     version = "5.0.0"
-    name = "local_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 

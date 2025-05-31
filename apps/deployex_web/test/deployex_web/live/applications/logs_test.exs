@@ -20,7 +20,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -29,7 +29,7 @@ defmodule DeployexWeb.Applications.LogsTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -56,7 +56,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -65,7 +65,7 @@ defmodule DeployexWeb.Applications.LogsTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -92,7 +92,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -101,7 +101,7 @@ defmodule DeployexWeb.Applications.LogsTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -134,7 +134,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     ref = make_ref()
     test_pid_process = self()
     os_pid = 123_456
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -143,7 +143,7 @@ defmodule DeployexWeb.Applications.LogsTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
     |> expect(:run, fn _command, _options ->
@@ -176,7 +176,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 

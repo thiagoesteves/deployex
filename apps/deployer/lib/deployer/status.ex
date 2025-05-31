@@ -11,6 +11,7 @@ defmodule Deployer.Status do
           sname: String.t() | nil,
           node: node() | nil,
           version: nil,
+          language: String.t(),
           otp: :connected | :not_connected,
           tls: :supported | :not_supported,
           last_deployment: :full_deployment | :hot_upgrade,
@@ -19,16 +20,14 @@ defmodule Deployer.Status do
           crash_restart_count: integer(),
           force_restart_count: integer(),
           uptime: String.t() | nil,
-          last_ghosted_version: String.t() | nil,
-          mode: :automatic | :manual,
-          language: String.t(),
-          manual_version: Catalog.Version.t() | nil
+          metadata: map() | nil
         }
 
   defstruct name: nil,
             sname: nil,
             node: nil,
             version: nil,
+            language: "elixir",
             otp: :not_connected,
             tls: :not_supported,
             last_deployment: :full_deployment,
@@ -37,10 +36,7 @@ defmodule Deployer.Status do
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
-            last_ghosted_version: nil,
-            mode: :automatic,
-            language: "elixir",
-            manual_version: nil
+            metadata: nil
 
   @behaviour Deployer.Status.Adapter
 
@@ -56,20 +52,6 @@ defmodule Deployer.Status do
   def monitoring, do: default().monitoring()
 
   @doc """
-  Retrieve the current monitored app name
-  """
-  @impl true
-  @spec monitored_app_name() :: String.t()
-  def monitored_app_name, do: default().monitored_app_name()
-
-  @doc """
-  Retrieve the current monitored app language
-  """
-  @impl true
-  @spec monitored_app_lang() :: String.t()
-  def monitored_app_lang, do: default().monitored_app_lang()
-
-  @doc """
   Retrieve the current version set for the monitored application
   """
   @impl true
@@ -80,7 +62,7 @@ defmodule Deployer.Status do
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(String.t()) :: Catalog.Version.t()
+  @spec current_version_map(String.t() | nil) :: Catalog.Version.t()
   def current_version_map(sname), do: default().current_version_map(sname)
 
   @doc """
@@ -109,22 +91,15 @@ defmodule Deployer.Status do
   Retrieve the ghosted version list
   """
   @impl true
-  @spec ghosted_version_list :: list()
-  def ghosted_version_list, do: default().ghosted_version_list()
+  @spec ghosted_version_list(String.t()) :: list()
+  def ghosted_version_list(name), do: default().ghosted_version_list(name)
 
   @doc """
-  Retrieve the history version list
+  Retrieve the history version list by name
   """
   @impl true
-  @spec history_version_list :: list()
-  def history_version_list, do: default().history_version_list()
-
-  @doc """
-  Retrieve the history version list by sname
-  """
-  @impl true
-  @spec history_version_list(String.t()) :: list()
-  def history_version_list(sname), do: default().history_version_list(sname)
+  @spec history_version_list(String.t(), Keyword.t()) :: list()
+  def history_version_list(name, options), do: default().history_version_list(name, options)
 
   @doc """
   Retrieve the list of installed apps by name
@@ -145,8 +120,8 @@ defmodule Deployer.Status do
   Set the configuration mode
   """
   @impl true
-  @spec set_mode(:automatic | :manual, String.t()) :: {:ok, map()}
-  def set_mode(mode, version), do: default().set_mode(mode, version)
+  @spec set_mode(String.t(), :automatic | :manual, String.t()) :: {:ok, map()}
+  def set_mode(name, mode, version), do: default().set_mode(name, mode, version)
 
   ### ==========================================================================
   ### Private functions

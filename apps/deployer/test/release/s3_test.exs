@@ -30,7 +30,7 @@ defmodule Deployer.Release.S3Test do
 
   test "download_release/2 success" do
     version = "5.0.0"
-    name = "s3_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
     source_path = "dist/#{name}/#{name}-#{version}.tar.gz"
@@ -45,7 +45,7 @@ defmodule Deployer.Release.S3Test do
 
   test "download_release/2 error" do
     version = "5.0.0"
-    name = "s3_testapp"
+    name = "myelixir"
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
     source_path = "dist/#{name}/#{name}-#{version}.tar.gz"

@@ -15,7 +15,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   ]
 
   test "GET /versions full list", %{conn: conn} do
-    name = "test_app"
+    name = "myelixir"
     %{sname: sname_1, suffix: suffix_1} = name |> Catalog.create_sname() |> Catalog.node_info()
     %{sname: sname_2, suffix: suffix_2} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -37,28 +37,32 @@ defmodule DeployexWeb.Applications.VersionsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.deployex(%{
+           metadata: %{
+             "myelixir" => %{
+               last_ghosted_version: nil,
+               mode: :automatic,
+               manual_version: nil,
+               versions: []
+             }
+           }
+         }),
          FixtureStatus.application(%{sname: sname_1, name: name}),
          FixtureStatus.application(%{sname: sname_2, name: name})
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [sname_1_version, sname_2_version] end)
-    |> stub(:history_version_list, fn
-      ^sname_1 -> [sname_1_version]
-      ^sname_2 -> [sname_2_version]
-    end)
+    |> stub(:history_version_list, fn ^name, _options -> [sname_1_version, sname_2_version] end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-deployex") |> render_click()
+    html = index_live |> element("#app-versions-#{name}") |> render_click()
 
-    assert html =~ "Monitored App version history"
+    assert html =~ "#{name} version history"
     assert html =~ "10.11.12"
     assert html =~ :full_deployment |> to_string
     assert html =~ suffix_1
 
-    assert html =~ "Monitored App version history"
     assert html =~ "10.11.13"
     assert html =~ :hot_upgrade |> to_string
     assert html =~ suffix_2
@@ -67,7 +71,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   end
 
   test "GET /versions list by sname", %{conn: conn} do
-    name = "test_app"
+    name = "myelixir"
     name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
@@ -92,19 +96,17 @@ defmodule DeployexWeb.Applications.VersionsTest do
       {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
     end)
     |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn -> [sname_v1, sname_v2] end)
-    |> stub(:history_version_list, fn ^sname -> [sname_v1, sname_v2] end)
+    |> stub(:history_version_list, fn ^name, _options -> [sname_v1, sname_v2] end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     html = index_live |> element("#app-versions-#{name_id}-#{suffix}") |> render_click()
 
-    assert html =~ "Monitored App version history"
+    assert html =~ "#{sname} version history"
     assert html =~ "10.11.16"
     assert html =~ :full_deployment |> to_string
     assert html =~ suffix
 
-    assert html =~ "Monitored App version history"
     assert html =~ "10.11.17"
     assert html =~ :hot_upgrade |> to_string
     assert html =~ suffix

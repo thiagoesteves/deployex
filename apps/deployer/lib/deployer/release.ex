@@ -36,7 +36,7 @@ defmodule Deployer.Release do
   @spec get_current_version_map(String.t()) :: Deployer.Release.Version.t()
   def get_current_version_map(app_name) do
     # Check if the manual or automatic mode is enabled
-    case Catalog.config() do
+    case Catalog.config(app_name) do
       %{mode: :automatic} ->
         default().download_version_map(app_name)
 

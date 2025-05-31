@@ -123,7 +123,7 @@ defmodule Deployer.UpgradeAppTest do
   setup do
     FixtureCatalog.cleanup()
 
-    app_name = "upgrade_testapp"
+    app_name = "myelixir"
 
     sname = Catalog.create_sname(app_name)
     %{node: node} = Catalog.node_info(sname)

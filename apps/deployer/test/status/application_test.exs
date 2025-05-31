@@ -23,15 +23,28 @@ defmodule Deployer.Status.ApplicationTest do
 
     attrs = [deployment: :full_deployment, deploy_ref: make_ref()]
 
-    sname_1 = Catalog.create_sname("test_app")
-    sname_2 = Catalog.create_sname("test_app")
-    sname_3 = Catalog.create_sname("test_app")
+    name_1 = "myelixir"
+    name_2 = "myerlang"
+    name_3 = "mygleam"
+
+    sname_1 = Catalog.create_sname(name_1)
+    sname_2 = Catalog.create_sname(name_2)
+    sname_3 = Catalog.create_sname(name_3)
 
     StatusApp.set_current_version_map(sname_1, %{release | version: "1.0.2"}, attrs)
     StatusApp.set_current_version_map(sname_2, %{release | version: "1.0.1"}, attrs)
     StatusApp.set_current_version_map(sname_3, %{release | version: "1.0.3"}, attrs)
 
-    %{release: release, attrs: attrs, sname_1: sname_1, sname_2: sname_2, sname_3: sname_3}
+    %{
+      release: release,
+      attrs: attrs,
+      name_1: name_1,
+      name_2: name_2,
+      name_3: name_3,
+      sname_1: sname_1,
+      sname_2: sname_2,
+      sname_3: sname_3
+    }
   end
 
   test "current_version_map/1 no version configured", %{
@@ -83,47 +96,44 @@ defmodule Deployer.Status.ApplicationTest do
            } = StatusApp.current_version_map(sname_3)
   end
 
-  test "monitored_app_name/0" do
-    assert StatusApp.monitored_app_name() == "testapp"
-  end
-
-  test "monitored_app_lang/0" do
-    assert StatusApp.monitored_app_lang() == "elixir"
-  end
-
   test "subscribe/0" do
     assert StatusApp.subscribe() == :ok
   end
 
-  test "ghosted_version", %{sname_1: sname_1} do
-    assert Enum.empty?(StatusApp.ghosted_version_list())
+  test "ghosted_version", %{name_1: name_1, sname_1: sname_1} do
+    assert Enum.empty?(StatusApp.ghosted_version_list(name_1))
 
     version_map = StatusApp.current_version_map(sname_1)
 
     # Add a version to the ghosted version list
     assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
-    assert length(StatusApp.ghosted_version_list()) == 1
+    assert length(StatusApp.ghosted_version_list(name_1)) == 1
 
     # Try to add the same and check the list didn't increase
     assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
-    assert length(StatusApp.ghosted_version_list()) == 1
+    assert length(StatusApp.ghosted_version_list(name_1)) == 1
 
     # Add another version
     assert {:ok, _} = StatusApp.add_ghosted_version(%{version_map | version: "1.1.1"})
-    assert length(StatusApp.ghosted_version_list()) == 2
+    assert length(StatusApp.ghosted_version_list(name_1)) == 2
   end
 
-  test "history_version_list", %{sname_1: sname_1, sname_2: sname_2, sname_3: sname_3} do
-    version_list = StatusApp.history_version_list()
+  test "history_version_list", %{name_1: name_1, name_2: name_2, name_3: name_3} do
+    version_list_1 = StatusApp.history_version_list(name_1, [])
+    version_list_2 = StatusApp.history_version_list(name_2, [])
+    version_list_3 = StatusApp.history_version_list(name_3, [])
 
-    assert length(version_list) == 3
+    assert length(version_list_1) == 1
+    assert length(version_list_2) == 1
+    assert length(version_list_3) == 1
 
-    assert [_] = StatusApp.history_version_list(sname_1)
-    assert [_] = StatusApp.history_version_list(sname_2)
-    assert [_] = StatusApp.history_version_list(sname_3)
+    assert [_] = StatusApp.history_version_list(name_1, [])
+    assert [_] = StatusApp.history_version_list(name_2, [])
+    assert [_] = StatusApp.history_version_list(name_3, [])
 
-    assert %Catalog.Version{version: "1.0.3"} = Enum.at(version_list, 0)
-    assert %Catalog.Version{version: "1.0.2"} = Enum.at(version_list, 2)
+    assert %Catalog.Version{version: "1.0.2"} = Enum.at(version_list_1, 0)
+    assert %Catalog.Version{version: "1.0.1"} = Enum.at(version_list_2, 0)
+    assert %Catalog.Version{version: "1.0.3"} = Enum.at(version_list_3, 0)
   end
 
   test "update monitoring apps with Idle State", %{
@@ -155,19 +165,19 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myerlang" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myelixir" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "mygleam" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :idle)
            )
   end
@@ -204,19 +214,19 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myerlang" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :running and &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myelixir" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running and &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "mygleam" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running and &1.otp == :not_connected)
            )
   end
@@ -253,24 +263,25 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myerlang" and not &1.supervisor and
                  &1.version == "1.0.1" and &1.status == :running and &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myelixir" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running and &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "mygleam" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running and &1.otp == :connected)
            )
   end
 
   test "update monitoring apps with running state and with ghosted version list", %{
+    name_1: name_1,
     sname_1: sname_1,
     sname_2: sname_2,
     sname_3: sname_3
@@ -292,7 +303,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     ghosted_version = "1.1.1"
-    version_map = StatusApp.current_version_map(1)
+    version_map = StatusApp.current_version_map(sname_1)
     # Add ghosted version
     assert {:ok, _} = StatusApp.add_ghosted_version(%{version_map | version: ghosted_version})
 
@@ -300,27 +311,29 @@ defmodule Deployer.Status.ApplicationTest do
     assert {:noreply, %{monitoring: monitoring}} =
              StatusApp.handle_info(:update_apps, %{monitoring: []})
 
+    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
+    assert deployex.metadata[name_1].last_ghosted_version == ghosted_version
+
     assert Enum.find(
              monitoring,
-             &(&1.name == "deployex" and &1.supervisor and &1.status == :running and
-                 &1.last_ghosted_version == ghosted_version)
+             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
-                 &1.version == "1.0.1" and &1.status == :running)
-           )
-
-    assert Enum.find(
-             monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myelixir" and not &1.supervisor and
                  &1.version == "1.0.2" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "test_app" and not &1.supervisor and
+             &(&1.name == "myerlang" and not &1.supervisor and
+                 &1.version == "1.0.1" and &1.status == :running)
+           )
+
+    assert Enum.find(
+             monitoring,
+             &(&1.name == "mygleam" and not &1.supervisor and
                  &1.version == "1.0.3" and &1.status == :running)
            )
   end
@@ -328,17 +341,18 @@ defmodule Deployer.Status.ApplicationTest do
   test "Initialize a GenServer and capture its state" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
-    assert {:ok, _pid} = Deployer.Status.Application.start_link(name: name)
+    assert {:ok, _pid} = StatusApp.start_link(name: name)
 
-    assert {:ok, []} = Deployer.Status.Application.monitoring(name)
+    assert {:ok, []} = StatusApp.monitoring(name)
   end
 
   test "Test set mode configuration to manual [valid version]", %{
+    name_1: name_1,
     sname_1: sname_1,
     sname_2: sname_2,
     sname_3: sname_3
   } do
-    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+    module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
@@ -363,31 +377,34 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
-    assert {:ok, _pid} =
-             Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
+    assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
-    {:ok, _map} = Deployer.Status.Application.set_mode(name, :manual, "1.0.1")
+    {:ok, _map} = StatusApp.set_mode(module_name, name_1, :manual, "1.0.2")
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, monitoring} = Deployer.Status.Application.monitoring(name)
-    assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
+    assert {:ok, monitoring} = StatusApp.monitoring(module_name)
+    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
+    assert deployex.metadata[name_1].mode == :manual
 
     assert %{
              mode: :manual,
              manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
-               version: "1.0.1"
+               version: "1.0.2"
              }
-           } = Catalog.config()
+           } = Catalog.config(name_1)
   end
 
   test "Test set mode configuration to manual [valid version] - default name", %{
+    name_1: name_1,
     sname_1: sname_1,
     sname_2: sname_2,
     sname_3: sname_3
   } do
+    module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
     ref = make_ref()
     pid = self()
 
@@ -411,32 +428,33 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
-    assert {:ok, _pid} =
-             Deployer.Status.Application.start_link(update_apps_interval: 50)
+    assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
-    {:ok, _map} = Deployer.Status.Application.set_mode(:manual, "1.0.1")
+    {:ok, _map} = StatusApp.set_mode(module_name, name_1, :manual, "1.0.2")
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, monitoring} = Deployer.Status.Application.monitoring()
-    assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
+    assert {:ok, monitoring} = StatusApp.monitoring(module_name)
+    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
+    assert deployex.metadata[name_1].mode == :manual
 
     assert %{
              mode: :manual,
              manual_version: %Catalog.Version{
                hash: "ABC",
                pre_commands: [],
-               version: "1.0.1"
+               version: "1.0.2"
              }
-           } = Catalog.config()
+           } = Catalog.config(name_1)
   end
 
   test "Test set mode configuration to manual [invalid version]", %{
+    name_1: name_1,
     sname_1: sname_1,
     sname_2: sname_2,
     sname_3: sname_3
   } do
-    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+    module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
@@ -461,25 +479,25 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
-    assert {:ok, _pid} =
-             Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
+    assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
-    {:ok, _map} = Deployer.Status.Application.set_mode(name, :manual, "invalid")
+    {:ok, _map} = StatusApp.set_mode(module_name, name_1, :manual, "invalid")
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, monitoring} = Deployer.Status.Application.monitoring(name)
-    assert Enum.find(monitoring, &(&1.mode == :manual and &1.name == "deployex"))
-
-    assert %{mode: :manual, manual_version: nil} = Catalog.config()
+    assert {:ok, monitoring} = StatusApp.monitoring(module_name)
+    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
+    assert deployex.metadata[name_1].mode == :manual
+    assert %{mode: :manual, manual_version: nil} = Catalog.config(name_1)
   end
 
   test "Test set mode configuration to automatic", %{
+    name_1: name_1,
     sname_1: sname_1,
     sname_2: sname_2,
     sname_3: sname_3
   } do
-    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+    module_name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     ref = make_ref()
     pid = self()
@@ -504,17 +522,16 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
-    assert {:ok, _pid} =
-             Deployer.Status.Application.start_link(update_apps_interval: 50, name: name)
+    assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
-    {:ok, _map} = Deployer.Status.Application.set_mode(name, :automatic, %{})
+    {:ok, _map} = StatusApp.set_mode(module_name, name_1, :automatic, %{})
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
-    assert {:ok, monitoring} = Deployer.Status.Application.monitoring(name)
-    assert Enum.find(monitoring, &(&1.mode == :automatic and &1.name == "deployex"))
-
-    assert %{mode: :automatic, manual_version: nil} = Catalog.config()
+    assert {:ok, monitoring} = StatusApp.monitoring(module_name)
+    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
+    assert deployex.metadata[name_1].mode == :automatic
+    assert %{mode: :automatic, manual_version: nil} = Catalog.config(name_1)
   end
 
   test "update", %{sname_2: sname_2} do

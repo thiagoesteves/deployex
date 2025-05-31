@@ -36,8 +36,7 @@ defmodule DeployexWeb.Fixture.Status do
       tls: :supported,
       supervisor: true,
       status: :running,
-      uptime: "short time",
-      last_ghosted_version: "-/-"
+      uptime: "short time"
     }
 
     Map.merge(deployex, attrs)

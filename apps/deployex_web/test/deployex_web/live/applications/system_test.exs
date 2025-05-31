@@ -24,7 +24,7 @@ defmodule DeployexWeb.Applications.SystemTest do
       send(test_pid_process, {:liveview_pid, self()})
       :ok
     end)
-    |> stub(:history_version_list, fn -> FixtureStatus.versions() end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     {:ok, liveview, _html} = live(conn, ~p"/applications")
 

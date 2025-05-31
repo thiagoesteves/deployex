@@ -12,7 +12,6 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Foundation.Common
   alias Host.Terminal.Server
 
-  @manual_version_max_list 10
   @deployex_terminate_delay 300
 
   @impl true
@@ -22,13 +21,14 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <div class="min-h-screen bg-gray-700 ">
       <div class="p-5">
-        <div class="grid grid-cols-3  gap-5 items-center p-30">
+        <div class="grid grid-cols-3 gap-5 items-start p-30">
           <%= for app <- @monitoring_apps_data do %>
             <DeployexWeb.Components.AppCard.content
               supervisor={app.supervisor}
               status={app.status}
               node={app.node}
               sname={app.sname}
+              language={app.language}
               crash_restart_count={app.crash_restart_count}
               force_restart_count={app.force_restart_count}
               name={app.name}
@@ -37,12 +37,8 @@ defmodule DeployexWeb.ApplicationsLive do
               otp={app.otp}
               tls={app.tls}
               last_deployment={app.last_deployment}
-              last_ghosted_version={app.last_ghosted_version}
-              restart_path={~p"/applications/#{app.sname}/restart"}
-              mode={app.mode}
-              manual_version={app.manual_version}
-              versions={@versions}
-              language={app.language}
+              restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
+              metadata={app.metadata}
             />
           <% end %>
         </div>
@@ -75,7 +71,9 @@ defmodule DeployexWeb.ApplicationsLive do
     >
       <.live_component
         module={Versions}
-        id={@selected_sname}
+        id={"version-#{@selected_name}-#{@selected_sname}"}
+        name={@selected_name}
+        sname={@selected_sname}
         title={@page_title}
         action={@live_action}
         patch={~p"/applications"}
@@ -122,7 +120,7 @@ defmodule DeployexWeb.ApplicationsLive do
       </Confirm.content>
     <% end %>
 
-    <%= if @mode_confirmation.enabled do %>
+    <%= if @mode_confirmation do %>
       <Confirm.content id="app-set-mode-modal-deployex">
         <:header>Attention</:header>
         <p>
@@ -155,27 +153,16 @@ defmodule DeployexWeb.ApplicationsLive do
 
     {:ok, monitoring} = Deployer.Status.monitoring()
 
-    mode_or_version =
-      monitoring
-      |> Enum.find(&(&1.name == "deployex"))
-      |> case do
-        %{mode: :automatic} -> "automatic"
-        app -> app.manual_version.version
-      end
-
     socket =
       socket
       |> assign(:node, Node.self())
       |> assign(:host_info, nil)
       |> assign(:monitoring_apps_data, monitoring)
+      |> assign(:selected_name, nil)
       |> assign(:selected_sname, nil)
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
-      |> assign(:versions, [])
-      |> assign(:mode_confirmation, %{
-        enabled: false,
-        mode_or_version: mode_or_version
-      })
+      |> assign(:mode_confirmation, nil)
 
     {:ok, socket}
   end
@@ -187,14 +174,11 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:node, Node.self())
      |> assign(:host_info, nil)
      |> assign(:monitoring_apps_data, [])
+     |> assign(:selected_name, nil)
      |> assign(:selected_sname, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
-     |> assign(:versions, [])
-     |> assign(:mode_confirmation, %{
-       enabled: false,
-       mode_or_version: nil
-     })}
+     |> assign(:mode_confirmation, nil)}
   end
 
   @impl true
@@ -203,15 +187,8 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   defp apply_action(%{assigns: %{terminal_process: nil}} = socket, :index, _params) do
-    versions =
-      Status.history_version_list()
-      |> Enum.map(& &1.version)
-      |> Enum.uniq()
-      |> Enum.take(@manual_version_max_list)
-
     socket
     |> assign(:page_title, "Listing Applications")
-    |> assign(:versions, versions)
   end
 
   # NOTE: A terminal message was received without any configured terminal
@@ -224,28 +201,39 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:terminal_process, nil)
   end
 
-  defp apply_action(socket, logs_type, %{"sname" => sname})
+  defp apply_action(socket, logs_type, %{"name" => name, "sname" => sname})
        when logs_type in [:logs_stdout, :logs_stderr] do
     socket
     |> assign(:page_title, "Application Logs")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
-  defp apply_action(socket, :terminal, %{"sname" => sname}) do
+  defp apply_action(socket, :terminal, %{"name" => name, "sname" => sname}) do
     socket
     |> assign(:page_title, "Application Terminal")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
-  defp apply_action(socket, :versions, %{"sname" => sname}) do
+  defp apply_action(socket, :versions, %{"sname" => sname, "name" => name}) do
     socket
-    |> assign(:page_title, "Monitored App version history")
+    |> assign(:page_title, "#{sname} version history")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
-  defp apply_action(socket, :restart, %{"sname" => sname}) do
+  defp apply_action(socket, :versions, %{"name" => name}) do
+    socket
+    |> assign(:page_title, "#{name} version history")
+    |> assign(:selected_name, name)
+    |> assign(:selected_sname, nil)
+  end
+
+  defp apply_action(socket, :restart, %{"name" => name, "sname" => sname}) do
     socket
     |> assign(:page_title, "Restart application")
+    |> assign(:selected_name, name)
     |> assign(:selected_sname, sname)
   end
 
@@ -285,16 +273,25 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_event("app-log-click", %{"sname" => sname, "std" => std}, socket) do
-    {:noreply, push_patch(socket, to: std_path(sname, std))}
+  def handle_event("app-log-click", %{"name" => name, "sname" => sname, "std" => std}, socket) do
+    std_path = fn
+      name, sname, "stderr" -> ~p"/applications/#{name}/#{sname}/logs/stderr"
+      name, sname, "stdout" -> ~p"/applications/#{name}/#{sname}/logs/stdout"
+    end
+
+    {:noreply, push_patch(socket, to: std_path.(name, sname, std))}
   end
 
-  def handle_event("app-terminal-click", %{"sname" => sname}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{sname}/terminal")}
+  def handle_event("app-terminal-click", %{"name" => name, "sname" => sname}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/#{sname}/terminal")}
   end
 
-  def handle_event("app-versions-click", %{"sname" => sname}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{sname}/versions")}
+  def handle_event("app-versions-click", %{"name" => name, "sname" => sname}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/#{sname}/versions")}
+  end
+
+  def handle_event("app-versions-click", %{"name" => name}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/versions")}
   end
 
   def handle_event("restart", %{"id" => "deployex"}, socket) do
@@ -308,42 +305,55 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 
-  def handle_event("set-mode", %{"id" => mode_or_version}, socket) do
+  def handle_event("set-mode", %{"id" => _}, %{assigns: %{mode_confirmation: nil}} = socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "set-mode",
+        %{"id" => mode_or_version},
+        %{assigns: %{mode_confirmation: %{name: name}}} = socket
+      ) do
     if mode_or_version == "automatic" do
-      Status.set_mode(:automatic, "")
+      Status.set_mode(name, :automatic, "")
     else
-      Status.set_mode(:manual, mode_or_version)
+      Status.set_mode(name, :manual, mode_or_version)
     end
 
     {:noreply,
      socket
-     |> assign(:mode_confirmation, %{socket.assigns.mode_confirmation | enabled: false})
+     |> assign(:mode_confirmation, nil)
      |> push_patch(to: ~p"/applications")}
   end
 
   def handle_event("confirm-close-modal", _, socket) do
     {:noreply,
      socket
-     |> assign(:mode_confirmation, %{socket.assigns.mode_confirmation | enabled: false})
+     |> assign(:mode_confirmation, nil)
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event(
-        "app-mode-select",
-        %{"select-mode" => rcv_mode_or_version},
-        %{assigns: %{mode_confirmation: %{mode_or_version: mode_or_version}}} = socket
-      )
-      when rcv_mode_or_version == mode_or_version or mode_or_version == nil do
-    {:noreply, push_patch(socket, to: ~p"/applications")}
-  end
+  def handle_event("app-mode-select", %{"select-mode" => mode_or_version, "name" => name}, socket) do
+    # NOTE: this check is needed due to phoenix reconnect (replay form events)
+    already_current? = fn name, mode_or_version ->
+      metadata = Enum.find(socket.assigns.monitoring_apps_data, &(&1.name == "deployex")).metadata
 
-  def handle_event("app-mode-select", %{"select-mode" => mode_or_version}, socket) do
-    {:noreply,
-     socket
-     |> assign(:mode_confirmation, %{enabled: true, mode_or_version: mode_or_version})
-     |> push_patch(to: ~p"/applications")}
-  end
+      current_mode_or_version =
+        case Map.get(metadata, name) do
+          %{mode: :automatic} -> "automatic"
+          %{manual_version: %{version: version}} -> version
+        end
 
-  defp std_path(sname, "stderr"), do: ~p"/applications/#{sname}/logs/stderr"
-  defp std_path(sname, "stdout"), do: ~p"/applications/#{sname}/logs/stdout"
+      current_mode_or_version == mode_or_version
+    end
+
+    if already_current?.(name, mode_or_version) do
+      {:noreply, socket}
+    else
+      {:noreply,
+       socket
+       |> assign(:mode_confirmation, %{name: name, mode_or_version: mode_or_version})
+       |> push_patch(to: ~p"/applications")}
+    end
+  end
 end
