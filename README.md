@@ -140,7 +140,7 @@ Expected location in the release folder:
 # production path
 ./{bucket}/versions/{monitored_app}/{env}/current.json
 # local test path
-/tmp/{monitored_app}/versions/{monitored_app}/{env}/current.json
+/tmp/deployex/bucket/versions/{monitored_app}/{env}/current.json
 ```
 
 Expected JSON format for `current.json`:
@@ -161,7 +161,7 @@ Expected location in the release folder:
 # production path
 ./{bucket}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 # local test path
-/tmp/{monitored_app}/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
+/tmp/deployex/bucket/dist/{monitored_app}/{monitored_app}-{version}.tar.gz
 ```
 ## 🛠️ Production Information
 
@@ -320,8 +320,8 @@ export sname="${monitored_app_name}-2l0rkp"
 tail -f /var/log/${monitored_app_name}/${sname}-stdout.log
 tail -f /var/log/${monitored_app_name}/${sname}-stderr.log
 # local test
-tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${sname}-stdout.log
-tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${sname}-stderr.log
+tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stdout.log
+tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stderr.log
 ```
 
 ### Connecting to the monitored app manually

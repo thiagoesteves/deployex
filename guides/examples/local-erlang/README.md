@@ -3,8 +3,8 @@
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Let's create the required release folders:
 ```bash
 export monitored_app_name=myerlangapp
-mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
-mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
+mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
+mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
 
 Since Elixir is the default language for deployex, it will require set the respective values in the same terminal where deployex will run:
@@ -168,8 +168,8 @@ rebar3 as prod tar
 Pack the release and move it to the distributed folder and updated the version:
 ```bash
 export app_name=myerlangapp
-cp _build/prod/rel/${app_name}/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/rel/${app_name}/${app_name}-0.1.0.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 ## 4. Running DeployEx and deploy the app
@@ -227,8 +227,8 @@ rebar3 as prod tar
 2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myerlangapp
-cp _build/prod/rel/${app_name}/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/rel/${app_name}/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
@@ -288,8 +288,8 @@ rebar3 as prod tar
 Copy the files in the respective folders:
 ```bash
 export app_name=myerlangapp
-cp _build/prod/rel/${app_name}/${app_name}-0.1.2.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp _build/prod/rel/${app_name}/${app_name}-0.1.2.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 you can check in the logs that the Hotupgrade was executed with success:

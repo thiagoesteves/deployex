@@ -3,8 +3,8 @@
 For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Let's create the required release folders:
 ```bash
 export monitored_app_name=mygleamapp
-mkdir -p /tmp/${monitored_app_name}/dist/${monitored_app_name}
-mkdir -p /tmp/${monitored_app_name}/versions/${monitored_app_name}/local/
+mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
+mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
 
 Since Elixir is the default language for deployex, it will require set the respective values in the same terminal where deployex will run:
@@ -56,8 +56,8 @@ cd build
 export app_name=mygleamapp
 export release_path=erlang-shipment
 tar -czvf ${release_path}/${app_name}-0.1.0.tar.gz ${release_path}
-cp ${release_path}/${app_name}-0.1.0.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp ${release_path}/${app_name}-0.1.0.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 > [!NOTE]
@@ -113,8 +113,8 @@ export app_name=mygleamapp
 export release_path=erlang-shipment
 cd build
 tar -czvf ${release_path}/${app_name}-0.1.1.tar.gz ${release_path}
-cp ${release_path}/${app_name}-0.1.1.tar.gz /tmp/${app_name}/dist/${app_name}
-echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/${app_name}/versions/${app_name}/local/current.json
+cp ${release_path}/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
