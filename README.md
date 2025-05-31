@@ -77,7 +77,7 @@ Check out this must-watch video:
 
 ### What is coming next
 
-- [:construction:] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
+- [ :construction: ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
 - [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
 - [ ] [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
 - [ ] [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
@@ -88,7 +88,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 |----------|-------------|-------------|-------------|
-| [:soon:__0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.10__ | __27.3.4__ | -/- |
+| [ :soon: __0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.10__ | __27.3.4__ | -/- |
 | [__0.5.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0)  | __26.2.5.10__ | __27.3.4__ | -/- |
 | [__0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.12__ | __27.3.3__ | -/- |
 | [__0.4.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.1)  | __26.2.5.10__ | __27.3.3__ | -/- |
