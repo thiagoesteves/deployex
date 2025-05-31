@@ -77,10 +77,10 @@ Check out this must-watch video:
 
 ### What is coming next
 
-- [ :construction: ] [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
-- [ ] [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
-- [ ] [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
-- [ ] [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
+- :construction: [ISSUE-109](https://github.com/thiagoesteves/deployex/issues/109) - Add support for different application
+- [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
+- [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
+- [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
 
 ## 📁 Getting Started
 
