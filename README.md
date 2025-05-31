@@ -330,9 +330,8 @@ tail -f /tmp/${monitored_app_name}/${monitored_app_name}/${sname}-stderr.log
 
 ```bash
 export monitored_app_name=myphoenixapp
-export suffix="v636fq"
-export sname="${monitored_app_name}-${suffix}"
-export RELEASE_NODE_SUFFIX=-${suffix}
+export sname="${monitored_app_name}-v636fq"
+export RELEASE_NODE=${sname}
 export RELEASE_COOKIE=cookie
 # production
 /var/lib/deployex/service/${monitored_app_name}/${sname}/current/bin/${monitored_app_name} remote

@@ -39,8 +39,8 @@ vi rel/env.sh.eex
 # This default is temporary; update it using AWS secrets and config provider.
 [ -z ${RELEASE_COOKIE} ] && export RELEASE_COOKIE="cookie"
 export RELEASE_DISTRIBUTION=sname
-[ -z ${RELEASE_NODE_SUFFIX} ] && export RELEASE_NODE_SUFFIX=""
-export RELEASE_NODE=<%= @release.name %>${RELEASE_NODE_SUFFIX}
+# Remove RELEASE_NODE, it will be supplied by deployex
+# export RELEASE_NODE=<%= @release.name %>
 
 # save the file :wq
 ```

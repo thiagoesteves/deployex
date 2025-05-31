@@ -11,7 +11,7 @@ defmodule Deployer.Upgrade.Application do
 
   2. During deployment, the release app-new-version.tar.gz is copied to a directory named
      after the version under the current/releases folder, for example:
-     /var/lib/deployex/service/{myapp}/{myapp}-{suffix}/current/releases/{new-version}/app-new-version.tar.gz
+     /var/lib/deployex/service/{myapp}/{sname}/current/releases/{new-version}/app-new-version.tar.gz
 
   3. A sequence of commands is executed by this module:
        a. Unpack a release using release_handler:unpack_release

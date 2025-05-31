@@ -277,7 +277,7 @@ defmodule Deployer.Monitor.Application do
 
   # NOTE: Some commands need to run prior starting the application
   #       - Unset env vars from the deployex release to not mix with the monitored app release
-  #       - Export suffix to add different snames to the apps
+  #       - Export RELEASE_NODE with sname
   #       - Export listening port that needs to be one per app
   defp run_app_bin(state, executable_path, command)
 
@@ -286,7 +286,6 @@ defmodule Deployer.Monitor.Application do
          executable_path,
          command
        ) do
-    %{suffix: suffix} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
     app_env = compose_app_env(env)
 
@@ -295,7 +294,7 @@ defmodule Deployer.Monitor.Application do
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
     export PATH=#{path}
-    export RELEASE_NODE_SUFFIX=-#{suffix}
+    export RELEASE_NODE=#{sname}
     export PORT=#{port}
     #{executable_path} #{command}
     """
