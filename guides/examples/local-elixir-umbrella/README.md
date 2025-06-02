@@ -1,6 +1,6 @@
 ## 1. Running DeployEx and Monitored Elixir Umbrella Application locally
 
-For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Follow these steps:
+For local testing, the root path used for distribution releases and versions is `/tmp/deployex/bucket`. Follow these steps:
 
 Create the required release folders:
 ```bash
@@ -9,7 +9,7 @@ mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
 mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
 
-It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
+It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex/varlib` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
 ## 2. Creating an Elixir phoenix umbrella app (default name is `myumbrella`)
 
@@ -39,8 +39,6 @@ vi rel/env.sh.eex
 # This default is temporary; update it using AWS secrets and config provider.
 [ -z ${RELEASE_COOKIE} ] && export RELEASE_COOKIE="cookie"
 export RELEASE_DISTRIBUTION=sname
-# Remove RELEASE_NODE, it will be supplied by deployex
-# export RELEASE_NODE=<%= @release.name %>
 
 # save the file :wq
 ```
@@ -144,13 +142,34 @@ echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 ## 7. Running DeployEx and deploy the app
 
-Move back to the DeployEx project and run the command line: 
+### Adding an Elixir Monitored Application
+
+The default `dev` application for deployex is `myphoenixapp`. To add another application to monitoring, update the `config/dev.exs` file:
+
+```elixir
+config :foundation,
+  env: "local",
+  base_path: "/tmp/deployex/varlib",
+  monitored_app_log_path: "/tmp/deployex/varlog",
+  applications: [
+    %{
+      name: "myumbrella",
+      replicas: 2,
+      language: "elixir",
+      initial_port: 4000,
+      env: []
+    }
+  ]
+```
+
+### Running DeployEx
 
 > [!ATTENTION]
-> The file `config/dev.exs` contains defaults for local development. You can modify environment variables by changing the `monitored_app_env` field. To customize the application name and language, use the environment variables `DEPLOYEX_MONITORED_APP_NAME` and `DEPLOYEX_MONITORED_APP_LANG`. Note that these environment variables and configurations only apply to development environments; production environments require configuration via YAML file.
+> The file `config/dev.exs` contains defaults for local development. Note that these configurations only apply to development environments; production environments require configuration via YAML file.
+
+Move back to the DeployEx project and run the command line:
 
 ```bash
-export DEPLOYEX_MONITORED_APP_NAME=myumbrella
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 

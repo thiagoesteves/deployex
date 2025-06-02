@@ -1,19 +1,13 @@
 ## 1. Running DeployEx and Monitored Gleam Application locally
 
-For local testing, the root path used for distribution releases and versions is `/tmp/{monitored_app}`. Let's create the required release folders:
+For local testing, the root path used for distribution releases and versions is `/tmp/deployex/bucket`. Let's create the required release folders:
 ```bash
 export monitored_app_name=mygleamapp
 mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
 mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
 
-Since Elixir is the default language for deployex, it will require set the respective values in the same terminal where deployex will run:
-```bash
-export DEPLOYEX_MONITORED_APP_NAME=mygleamapp
-export DEPLOYEX_MONITORED_APP_LANG=gleam
-```
-
-It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
+It is important to note that for local deployments, DeployEx will use the path `/tmp/deployex/varlib` for local storage. This means you can delete the entire folder to reset any local version, history, or configurations.
 
 ## 2. Creating a Gleam app (default name is `mygleamapp`)
 
@@ -66,14 +60,34 @@ echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 
 ## 4. Running DeployEx and deploy the app
 
-Move back to the DeployEx project and run the command line: 
+### Adding a Gleam Monitored Application
+
+The default `dev` application for deployex is `myphoenixapp`. To add a Gleam application to monitoring, update the `config/dev.exs` file:
+
+```elixir
+config :foundation,
+  env: "local",
+  base_path: "/tmp/deployex/varlib",
+  monitored_app_log_path: "/tmp/deployex/varlog",
+  applications: [
+    %{
+      name: "mygleam",
+      replicas: 2,
+      language: "gleam",
+      initial_port: 4000,
+      env: []
+    }
+  ]
+```
+
+### Running DeployEx
 
 > [!ATTENTION]
-> The file `config/dev.exs` contains defaults for local development. You can modify environment variables by changing the `monitored_app_env` field. To customize the application name and language, use the environment variables `DEPLOYEX_MONITORED_APP_NAME` and `DEPLOYEX_MONITORED_APP_LANG`. Note that these environment variables and configurations only apply to development environments; production environments require configuration via YAML file.
+> The file `config/dev.exs` contains defaults for local development. Note that these configurations only apply to development environments; production environments require configuration via YAML file.
+
+Move back to the DeployEx project and run the command line:
 
 ```bash
-export DEPLOYEX_MONITORED_APP_NAME=mygleamapp
-export DEPLOYEX_MONITORED_APP_LANG=gleam
 iex --sname deployex --cookie cookie -S mix phx.server
 ...
 [info] Update is needed at sname: mygleamapp-v636fq from: <no current set> to: 0.1.0

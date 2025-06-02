@@ -159,7 +159,12 @@ defmodule Deployer.Monitor.Application do
     # Retry with backoff pattern
     trigger_run_service(state.sname, 2 * crash_restart_count * 1000)
 
-    {:noreply, update_non_blocking_state(%{state | crash_restart_count: crash_restart_count})}
+    {:noreply,
+     update_non_blocking_state(%{
+       state
+       | current_pid: nil,
+         crash_restart_count: crash_restart_count
+     })}
   end
 
   def handle_info({:EXIT, pid, reason}, state) do
@@ -222,7 +227,7 @@ defmodule Deployer.Monitor.Application do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  def trigger_run_service(sname, timeout \\ 1),
+  defp trigger_run_service(sname, timeout \\ 1),
     do: Process.send_after(self(), {:run_service, sname}, timeout)
 
   defp run_service(

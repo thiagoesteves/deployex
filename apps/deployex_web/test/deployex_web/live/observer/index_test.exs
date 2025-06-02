@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Terminal.Observerest do
+defmodule DeployexWeb.Terminal.ObserverTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
