@@ -650,7 +650,7 @@ defmodule Deployer.MonitorTest do
         Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
         {:ok, test_pid_process, os_pid}
       end)
-      |> expect(:run, 2, fn _commands, _options ->
+      |> expect(:run, 1, fn _commands, _options ->
         Process.send_after(test_pid_process, {:handle_restart_event, test_event_ref}, 100)
         {:ok, test_pid_process}
       end)

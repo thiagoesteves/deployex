@@ -214,7 +214,7 @@ defmodule Deployer.Engine.Worker do
 
     # Add current version to the ghosted version list
     {:ok, new_list} =
-      current
+      current_sname
       |> Status.current_version_map()
       |> Status.add_ghosted_version()
 

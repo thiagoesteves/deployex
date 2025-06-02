@@ -34,3 +34,6 @@ erl_crash.dump
 # Ignore PLT files
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+
+# Ignore override config settings
+config/*.override.exs

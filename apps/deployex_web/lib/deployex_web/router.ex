@@ -56,6 +56,7 @@ defmodule DeployexWeb.Router do
       live "/applications/:name/versions", ApplicationsLive, :versions
       live "/applications/:name/:sname/versions", ApplicationsLive, :versions
       live "/applications/:name/:sname/restart", ApplicationsLive, :restart
+      live "/applications/deployex/docs", DocsLive, :index
     end
 
     observer_dashboard("/observer")

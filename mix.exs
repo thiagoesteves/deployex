@@ -39,7 +39,8 @@ defmodule Deployex.MixProject do
       dialyzer: [
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
-      ]
+      ],
+      aliases: aliases()
     ]
   end
 
@@ -114,6 +115,31 @@ defmodule Deployex.MixProject do
       {:mock, "~> 0.3.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp copy_ex_doc_images(_) do
+    static_destination_path = "./doc/guides/static"
+    File.mkdir_p!(static_destination_path)
+    File.cp_r("./guides/static", static_destination_path)
+  end
+
+  defp publish_docs(_) do
+    docs_folder = "apps/deployex_web/priv/static/docs"
+    File.cp_r("./doc", docs_folder)
+    System.cmd("tar", ["czf", "#{docs_folder}/docs.tar.gz", "-C", "./doc", "."])
+  end
+
+  defp digest_docs(_) do
+    docs_folder = "apps/deployex_web/priv/static/docs"
+    System.cmd("tar", ["xf", "#{docs_folder}/docs.tar.gz", "-C", docs_folder])
+    File.rm("#{docs_folder}/docs.tar.gz")
+  end
+
+  defp aliases do
+    [
+      docs: ["docs", &copy_ex_doc_images/1, &publish_docs/1],
+      release: [&digest_docs/1, "release"]
     ]
   end
 end

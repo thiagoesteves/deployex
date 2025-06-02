@@ -153,3 +153,11 @@ config :observer_web, ObserverWeb.Telemetry,
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
+
+# File used for configuration overrides and individual secrets.
+# Set config on this file according to the desired MIX_ENV.
+override_file = "#{config_env()}.override.exs"
+
+if File.exists?("config/#{override_file}") or File.exists?("../../config/#{override_file}") do
+  import_config override_file
+end
