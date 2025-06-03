@@ -13,4 +13,7 @@
 +sbwtdcpu none
 +sbwtdio none
 
+# Increase the maximum number of atoms (Defaults to 1,048,576)
++t 3000000
+
 

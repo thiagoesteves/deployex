@@ -4,7 +4,7 @@ For local testing, the root path used for distribution releases and versions is 
 
 Create the required release folders:
 ```bash
-export monitored_app_name=myphoenixapp
+export monitored_app_name=ectoapp
 mkdir -p /tmp/deployex/bucket/dist/${monitored_app_name}
 mkdir -p /tmp/deployex/bucket/versions/${monitored_app_name}/local/
 ```
@@ -115,7 +115,7 @@ Check your digested files at "priv/static"
 
 Move the release file to the distributed folder and updated the version:
 ```bash
-export app_name=myphoenixapp
+export app_name=ectoapp
 cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/deployex/bucket/dist/${app_name}
 echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
@@ -198,8 +198,8 @@ Check your digested files at "priv/static"
 
 2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
-export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
+export app_name=ectoapp
+cp _build/prod/${app_name}-0.1.0.tar.gz /tmp/deployex/bucket/dist/${app_name}
 echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
@@ -244,7 +244,7 @@ Check your digested files at "priv/static"
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myphoenixapp
-cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/deployex/bucket/dist/${app_name}
+cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
 echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
@@ -321,6 +321,9 @@ vi rel/env.sh.eex
 export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
 # save the file :q
 ```
+
+> [!ATTENTION]
+> Since tls is enabled during the startup of the application, a full deploy is required, remove `_build` folder before `mix release`.
 
 5. To enable `mTLS` for DeployEx, set the appropriate Erlang options before running the application in the terminal:
 ```bash

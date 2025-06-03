@@ -87,6 +87,10 @@ defmodule Deployex.MixProject do
         "guides/examples/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
         "guides/examples/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
         "guides/examples/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
+        "guides/examples/local-elixir/README.md": [
+          filename: "README.md",
+          title: "Local-Elixir-Ecto"
+        ],
         "guides/examples/local-elixir-umbrella/README.md": [
           filename: "README.md",
           title: "Local-Elixir-Umbrella"
