@@ -1,6 +1,6 @@
 # CHANGELOG (0.5.x)
 
-## 0.5.1 ()
+## 0.5.1 🚀 (2025-06-02)
 
 ### Backwards incompatible changes for 0.5.0
  * This version requires to modify the monitored applications release file `rel/env.sh.eex` to not export `RELEASE_NODE`
