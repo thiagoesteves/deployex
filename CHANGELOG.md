@@ -1,6 +1,6 @@
 # CHANGELOG (0.5.x)
 
-## 0.5.1 🚀 (2025-06-02)
+## 0.5.1 🚀 (2025-06-03)
 
 ### Backwards incompatible changes for 0.5.0
  * This version requires to modify the monitored applications release file `rel/env.sh.eex` to not export `RELEASE_NODE`
@@ -14,6 +14,7 @@
 ### Enhancements
  * [`ISSUE-138`](https://github.com/thiagoesteves/deployex/issues/138) Deprecate RELEASE_NODE_SUFFIX in favor of RELEASE_NODE=sname
  * [`ISSUE-109`](https://github.com/thiagoesteves/deployex/issues/109) Add support for different application
+ * [`PULL-142`](https://github.com/thiagoesteves/deployex/pull/142) Modify code to capture logs for migrations
 
 ## 0.5.0 🚀 (2025-05-27)
 
