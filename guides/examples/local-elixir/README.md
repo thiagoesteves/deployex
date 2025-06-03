@@ -322,6 +322,9 @@ export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.
 # save the file :q
 ```
 
+> [!ATTENTION]
+> Since tls is enabled during the startup of the application, a full deploy is required, remove `_build` folder before `mix release`.
+
 5. To enable `mTLS` for DeployEx, set the appropriate Erlang options before running the application in the terminal:
 ```bash
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server

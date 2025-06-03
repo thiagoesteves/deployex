@@ -206,7 +206,7 @@ applications:
   - name: "myphoenixapp"                           # Application: Monitored app name (Elixir app name format)
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)
     initial_port: 4000                             # Application: The initial port for starting the monitored app
-    replicas: 2                                    # Application (optional, default: 3): Number of replicas
+    replicas: 2                                    # Application: Number of replicas
     env:                                           # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
