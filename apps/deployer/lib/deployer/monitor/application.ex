@@ -241,16 +241,19 @@ defmodule Deployer.Monitor.Application do
     app_exec = Catalog.bin_path(sname, :current)
     version = version_map.version
 
-    with true <- File.exists?(app_exec),
-         :ok <- Logger.info(" # Identified executable: #{app_exec}"),
-         :ok <- execute_pre_commands(state, version_map.pre_commands, :current) do
-      Logger.info(" # Starting application")
-
+    notify_new_deploy = fn ->
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,
         @new_deploy_topic,
         {:new_deploy, Node.self(), sname}
       )
+    end
+
+    with true <- File.exists?(app_exec),
+         :ok <- notify_new_deploy.(),
+         :ok <- Logger.info(" # Identified executable: #{app_exec}"),
+         :ok <- execute_pre_commands(state, version_map.pre_commands, :current) do
+      Logger.info(" # Starting application")
 
       {:ok, pid, os_pid} =
         Commander.run_link(
