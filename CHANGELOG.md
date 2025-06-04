@@ -1,5 +1,19 @@
 # CHANGELOG (0.5.x)
 
+## 0.5.2 ()
+
+### Backwards incompatible changes for 0.5.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`ISSUE-143`](https://github.com/thiagoesteves/deployex/issues/143) Add support to collapsed menu to improve the user view
+
 ## 0.5.1 🚀 (2025-06-03)
 
 ### Backwards incompatible changes for 0.5.0

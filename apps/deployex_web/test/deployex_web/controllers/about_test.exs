@@ -25,9 +25,4 @@ defmodule DeployexWeb.PageControllerTest do
       assert html_response(conn, 200) =~ "Monitoring Elixir Apps"
     end
   end
-
-  test "GET /about", %{conn: conn} do
-    conn = get(conn, ~p"/about")
-    assert html_response(conn, 200) =~ "DeployEx is a lightweight tool designed"
-  end
 end

@@ -25,7 +25,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live
-           |> element("a", "History Logs")
+           |> element(~s{[href="/logs/history"]})
            |> render_click()
   end
 

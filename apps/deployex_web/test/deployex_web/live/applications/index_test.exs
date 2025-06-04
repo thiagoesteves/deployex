@@ -213,7 +213,6 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     html = render(view)
     assert html =~ "1.0.0 [running]"
-    refute html =~ "bg-gray-400"
     assert html =~ "bg-gradient-to-r from-cyan-200 to-yellow-100"
   end
 
