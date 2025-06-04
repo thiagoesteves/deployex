@@ -6,6 +6,7 @@ defmodule DeployexWeb.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      DeployexWeb.Cache,
       DeployexWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:deployex_web, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: DeployexWeb.PubSub},

@@ -2,15 +2,21 @@ defmodule DeployexWeb.Components.NavMenu do
   @moduledoc false
   use DeployexWeb, :live_component
 
+  alias DeployexWeb.Cache.UiSettings
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div id={"#{@id}"}>
-      <div class={[nav_bar_size(@collapsed), "bg-gray-300"]}>
-        <div class="flex flex-1 min-h-screen ">
-          <div class="hidden md:flex md:w-64 md:flex-col">
+      <div class={["bg-gray-300"]}>
+        <div class="flex flex-1 min-h-screen">
+          <div
+            class="hidden md:flex md:flex-col"
+            style={nav_bar_width(@ui_settings.nav_menu_collapsed)}
+          >
             <div class="flex flex-col flex-grow pt-5 bg-gray-300">
-              <div class="flex items-center flex-shrink-0 px-4">
-                <div class={icon_wrapper_class(@collapsed)}>
+              <div class="flex items-center flex-shrink-0">
+                <div class={icon_wrapper_class()}>
                   <svg
                     class="w-10 h-10 p-2 text-black rounded-full bg-primary"
                     xmlns="http://www.w3.org/2000/svg"
@@ -26,72 +32,25 @@ defmodule DeployexWeb.Components.NavMenu do
                 </div>
 
                 <span
-                  :if={@collapsed}
+                  :if={@ui_settings.nav_menu_collapsed}
                   class="self-center text-xl font-semibold whitespace-nowrap dark:text-black"
                 >
                   DeployEx
                 </span>
-                <%= if @collapsed do %>
-                  <button
-                    id="toggleBtn"
-                    phx-click="collpase-click"
-                    phx-value-collpased={to_string(@collapsed)}
-                    phx-target={@myself}
-                    class="p-1 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-                  >
-                    <svg
-                      class="w-5 h-5 text-gray-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                      >
-                      </path>
-                    </svg>
-                  </button>
-                <% else %>
-                  <button
-                    id="toggleBtn"
-                    phx-click="collpase-click"
-                    phx-value-collpased={to_string(@collapsed)}
-                    phx-target={@myself}
-                    class="p-1 rounded-lg hover:bg-gray-400 transition-colors duration-200"
-                    style="rotate: 180deg;"
-                  >
-                    <svg
-                      class="w-5 h-5 text-gray-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                      >
-                      </path>
-                    </svg>
-                  </button>
-                <% end %>
+                <.nav_menu_button collapsed={@ui_settings.nav_menu_collapsed} target={@myself} />
               </div>
 
-              <div class="px-4 mt-6">
+              <div class="px-2 mt-4">
                 <hr class="border-gray-400" />
               </div>
 
               <div class="flex flex-col flex-1 mt-6">
                 <div class="space-y-4">
                   <nav class="flex-1 space-y-2">
-                    <a href={~p"/applications"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+                    <a href={~p"/applications"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
-                          class="flex-shrink-0 w-5 h-5"
+                          class="flex-shrink-0 w-5 h-5 transition-all"
                           xmlns="http://www.w3.org/2000/svg"
                           class="w-6 h-6"
                           fill="none"
@@ -107,12 +66,16 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-2 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-2 self-center font-semibold"
+                      >
                         Applications
                       </div>
                     </a>
-                    <a href={~p"/logs/live"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+
+                    <a href={~p"/logs/live"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
                           class="flex-shrink-0 w-5 h-5"
                           width="24px"
@@ -127,13 +90,16 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-2 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-2 self-center  font-semibold "
+                      >
                         Live Logs
                       </div>
                     </a>
 
-                    <a href={~p"/logs/history"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+                    <a href={~p"/logs/history"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
                           class="flex-shrink-0 w-5 h-5"
                           viewBox="0 0 512 512.44"
@@ -148,15 +114,18 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-2 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-2 self-center  font-semibold "
+                      >
                         History Logs
                       </div>
                     </a>
 
-                    <a href={~p"/embedded-observer"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+                    <a href={~p"/embedded-observer"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
-                          class="flex-shrink-0 w-6 h-6 "
+                          class="flex-shrink-0 w-6 h-6"
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="none"
@@ -169,13 +138,16 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-1 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-1 self-center  font-semibold "
+                      >
                         Observer Web
                       </div>
                     </a>
 
-                    <a href={~p"/terminal"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+                    <a href={~p"/terminal"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
                           class="flex-shrink-0 w-5 h-5"
                           width="24px"
@@ -194,13 +166,16 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-2 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-2 self-center  font-semibold "
+                      >
                         Host Terminal
                       </div>
                     </a>
 
-                    <a href={~p"/applications/deployex/docs"} class={href_wrapper_class(@collapsed)}>
-                      <div class={icon_wrapper_class(@collapsed)}>
+                    <a href={~p"/applications/deployex/docs"} class={href_wrapper_class()}>
+                      <div class={icon_wrapper_class()}>
                         <svg
                           class="flex-shrink-0 w-5 h-5"
                           xmlns="http://www.w3.org/2000/svg"
@@ -217,7 +192,10 @@ defmodule DeployexWeb.Components.NavMenu do
                         </svg>
                       </div>
 
-                      <div :if={@collapsed} class="ml-2 self-center  font-semibold ">
+                      <div
+                        :if={@ui_settings.nav_menu_collapsed}
+                        class="ml-2 self-center  font-semibold "
+                      >
                         Docs
                       </div>
                     </a>
@@ -233,30 +211,80 @@ defmodule DeployexWeb.Components.NavMenu do
   end
 
   @impl true
-  def mount(socket) do
-    {:ok, assign(socket, :collapsed, true)}
+  def update(assigns, socket) do
+    {:ok, assign(socket, assigns)}
   end
 
   @impl true
-  def handle_event("collpase-click", %{"collpased" => "true"}, socket) do
-    {:noreply, assign(socket, :collapsed, false)}
+  def handle_event(
+        "collpase-click",
+        %{"collpased" => "true"},
+        %{assigns: %{ui_settings: ui_settings}} = socket
+      ) do
+    updated_options = %{ui_settings | nav_menu_collapsed: false}
+
+    UiSettings.set(updated_options)
+
+    {:noreply, assign(socket, :ui_settings, updated_options)}
   end
 
-  def handle_event("collpase-click", %{"collpased" => "false"}, socket) do
-    {:noreply, assign(socket, :collapsed, true)}
+  def handle_event(
+        "collpase-click",
+        %{"collpased" => "false"},
+        %{assigns: %{ui_settings: ui_settings}} = socket
+      ) do
+    updated_options = %{ui_settings | nav_menu_collapsed: true}
+
+    UiSettings.set(updated_options)
+
+    {:noreply, assign(socket, :ui_settings, updated_options)}
   end
 
-  defp href_wrapper_class(true) do
-    "flex items-right px-4 py-2.5 text-sm font-medium text-gray-900 transition-all duration-20 hover:text-white hover:bg-indigo-400 rounded-lg group"
+  defp nav_menu_button(assigns) do
+    assigns =
+      assigns
+      |> assign(rotation_class: if(assigns.collapsed, do: "", else: "rotate-180"))
+
+    ~H"""
+    <button
+      id="toggle-nav-menu-button"
+      phx-click="collpase-click"
+      phx-value-collpased={to_string(@collapsed)}
+      phx-target={@target}
+      class="ml-1 p-2 rounded-lg hover:bg-gray-400"
+    >
+      <svg
+        class={[
+          "w-5 h-5 text-gray-700 transition-transform duration-300 ease-in-out",
+          @rotation_class
+        ]}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+        >
+        </path>
+      </svg>
+    </button>
+    """
   end
 
-  defp href_wrapper_class(false) do
-    "flex items-right  py-2.5 text-sm font-medium text-gray-900 transition-all duration-20 hover:text-white hover:bg-indigo-400 rounded-lg group"
+  defp href_wrapper_class do
+    "flex items-right px-6 py-2.5 text-sm font-medium text-gray-900 transition-all duration-300 ease-in-out hover:text-white hover:bg-indigo-400 rounded-lg group"
   end
 
-  defp icon_wrapper_class(true), do: "flex items-center space-x-3"
-  defp icon_wrapper_class(false), do: "flex justify-center w-full"
+  defp icon_wrapper_class, do: "flex"
 
-  defp nav_bar_size(true), do: "w-[200px]"
-  defp nav_bar_size(false), do: "w-[96px]"
+  defp nav_bar_width(collapsed) do
+    if collapsed do
+      "width: 12rem;"
+    else
+      "width: 5rem;"
+    end
+  end
 end

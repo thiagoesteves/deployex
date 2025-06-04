@@ -23,7 +23,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live
-           |> element("a", "Host Terminal")
+           |> element(~s{[href="/terminal"]})
            |> render_click()
   end
 

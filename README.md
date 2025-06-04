@@ -88,6 +88,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 |----------|-------------|-------------|-------------|
+| [ :soon: __0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.5.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.12__ | __27.3.3__ | -/- |
@@ -275,8 +276,9 @@ Within the secrets, the following key-value pairs are required:
 
 ## 🏠 Running DeployEx locally
 
- * [Elixir Application](guides/examples/local-elixir/README.md)
- * [Elixir Umbrella Application](guides/examples/local-elixir-umbrella/README.md)
+ * [Elixir Application - No Ecto](guides/examples/local-elixir/README.md)
+ * [Elixir Application - With Ecto](guides/examples/local-elixir-ecto/README.md)
+ * [Elixir Umbrella Application - No Ecto](guides/examples/local-elixir-umbrella/README.md)
  * [Gleam Application](guides/examples/local-gleam/README.md)
  * [Erlang Application](guides/examples/local-erlang/README.md)
 
@@ -286,7 +288,7 @@ For local testing and development, check out these complementary repositories:
 
  * [Elixir - myphoenixapp](https://github.com/thiagoesteves/myphoenixapp)
  * [Elixir - myumbrella](https://github.com/thiagoesteves/myumbrella)
-
+ * [Elixir - ectoapp](https://github.com/thiagoesteves/ectoapp)
 
 ## 🔨 Throubleshooting
 

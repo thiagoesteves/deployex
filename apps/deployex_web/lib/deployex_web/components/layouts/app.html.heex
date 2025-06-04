@@ -1,6 +1,10 @@
 <main class="relative">
   <div class="flex justify-center">
-    <.live_component module={DeployexWeb.Components.NavMenu} id="navbar" />
+    <.live_component
+      module={DeployexWeb.Components.NavMenu}
+      ui_settings={@ui_settings}
+      id="navbar"
+    />
     <div class="w-full mx-auto">
       <.flash_group flash={@flash} />
       {@inner_content}

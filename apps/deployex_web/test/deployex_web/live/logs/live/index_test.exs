@@ -24,7 +24,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live
-           |> element("a", "Live Logs")
+           |> element(~s{[href="/logs/live"]})
            |> render_click()
   end
 
