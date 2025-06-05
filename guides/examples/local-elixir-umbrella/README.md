@@ -77,6 +77,17 @@ You also need to add the following line in the mix project
     ]
   end
 ```
+
+Also, make sure you have added the `runtime_tools` to the release so DeployEx can have access to tracing via Observer Web (For umbrella apps, you can add it to any of them):
+```elixir
+  def application do
+    [
+      mod: {AppWebWeb.Application, []},
+      extra_applications: [:logger, :runtime_tools]
+    ]
+  end
+```
+
 Open the `config/prod.exs` and replace the static manifest for a live reload
 
 ```elixir

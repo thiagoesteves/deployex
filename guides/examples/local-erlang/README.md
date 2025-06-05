@@ -13,6 +13,9 @@ It is important to note that for local deployments, DeployEx will use the path `
 
 In this example, we create a brand new erlang app:
 
+> [!ATTENTION]
+> make sure you have installed rebar3 and exported the path `export PATH=$PATH:~/.cache/rebar3/bin`, more details at [Installing Rebar3](https://rebar3.org/docs/getting-started/#installing-from-the-rebar3-escript).
+
 ```bash
 rebar3 new release myerlangapp
 cd myerlangapp
@@ -75,6 +78,16 @@ Change the `prod` profile at `rebar.config`. This is required for rebar3 appup p
         ]}
     ]}
 ]}.
+```
+
+Also, make sure you have added the `runtime_tools` to the release so DeployEx can have access to tracing via Observer Web:
+```erlang
+    {release, {myerlangapp, "0.1.0"}, [
+        myerlangapp,
+        sasl,
+        runtime_tools
+    ]},
+    ...
 ```
 
 ### Add gen_server for testing
