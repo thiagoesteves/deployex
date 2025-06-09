@@ -13,6 +13,7 @@
 
 ### Enhancements
  * [`ISSUE-143`](https://github.com/thiagoesteves/deployex/issues/143) Add support to collapsed menu to improve the user view
+ * [`PULL-145`](https://github.com/thiagoesteves/deployex/pull/145) Updating ELixir version to 1.18.4
 
 ## 0.5.1 🚀 (2025-06-03)
 
