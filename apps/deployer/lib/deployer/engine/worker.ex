@@ -101,12 +101,7 @@ defmodule Deployer.Engine.Worker do
         {instance, initial_port + index, Enum.at(snames, index)}
       end)
       |> Enum.reduce(%{}, fn {instance, port, sname}, acc ->
-        Map.put(acc, instance, %{
-          state: :init,
-          timer_ref: nil,
-          sname: sname,
-          port: port
-        })
+        Map.put(acc, instance, %Engine.Deployment{sname: sname, port: port})
       end)
 
     {:ok, %{state | deployments: deployments}}
