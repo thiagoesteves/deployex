@@ -223,6 +223,7 @@ defmodule Deployer.Status.Application do
       name: "deployex",
       sname: "deployex",
       node: Node.self(),
+      port: Application.get_env(:deployex_web, DeployexWeb.Endpoint)[:http][:port],
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),
@@ -240,7 +241,8 @@ defmodule Deployer.Status.Application do
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
-      start_time: start_time
+      start_time: start_time,
+      port: port
     } = Monitor.state(sname)
 
     check_otp_monitored_app = fn
@@ -258,6 +260,7 @@ defmodule Deployer.Status.Application do
       name: name,
       sname: sname,
       node: node,
+      port: port,
       version: current_version(sname),
       otp: check_otp_monitored_app.(node, status),
       tls: Common.check_mtls(),

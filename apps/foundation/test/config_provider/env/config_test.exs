@@ -48,7 +48,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 [
                   {Deployer.Engine,
                    [
-                     delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
                      schedule_interval: 5000
                    ]},
@@ -101,9 +100,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                           initial_port: 1000
                         }
                       ]}
-                   ],
-                   deployer: [
-                     {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
                    ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
@@ -494,7 +490,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 [
                   {Deployer.Engine,
                    [
-                     delay_between_deploys_ms: 60_000,
                      timeout_rollback: 600_000,
                      schedule_interval: 5000
                    ]},
@@ -537,9 +532,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                       adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
                      {:env, "not-set"}
                    ],
-                   deployer: [
-                     {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
-                   ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
                       [
@@ -566,9 +558,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
           {:env, "not-set"}
-        ],
-        deployer: [
-          {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
         ],
         deployex_web: [
           {DeployexWeb.Endpoint,
@@ -671,9 +660,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
           {:env, "not-set"}
         ],
-        deployer: [
-          {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
-        ],
         deployex_web: [
           {DeployexWeb.Endpoint,
            [
@@ -703,10 +689,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            {Foundation.ConfigProvider.Secrets.Manager,
             adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
            {:env, "not-set"}
-         ]},
-        {:deployer,
-         [
-           {Deployer.Engine, [delay_between_deploys_ms: 60_000]}
          ]},
         {:deployex_web,
          [

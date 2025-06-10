@@ -8,7 +8,8 @@ defmodule DeployexWeb.Components.AppCard do
   # NOTE: This structure is derived from the Deployer.Status structure
   attr :supervisor, :boolean, required: true
   attr :status, :atom, required: true
-  attr :node, :integer, required: true
+  attr :node, :string, required: true
+  attr :port, :integer, required: true
   attr :sname, :integer, required: true
   attr :language, :string, required: true
   attr :crash_restart_count, :integer, required: true
@@ -73,6 +74,11 @@ defmodule DeployexWeb.Components.AppCard do
           <p :if={@last_deployment} class="flex items-center tracking-tight pt-3 justify-between">
             <span class="text-xs font-bold ml-3">Last deployment</span>
             <.deployment deployment={@last_deployment} />
+          </p>
+
+          <p class="flex items-center tracking-tight pt-3 justify-between">
+            <span class="text-xs font-bold ml-3">Port</span>
+            <.port port={@port} />
           </p>
 
           <p :if={@supervisor == false} class="flex items-center tracking-tight pt-3 justify-between">
@@ -220,6 +226,14 @@ defmodule DeployexWeb.Components.AppCard do
           {@restarts}
         </span>
     <% end %>
+    """
+  end
+
+  defp port(assigns) do
+    ~H"""
+    <span class="bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500">
+      {@port}
+    </span>
     """
   end
 
