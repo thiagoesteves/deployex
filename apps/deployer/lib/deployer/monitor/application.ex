@@ -41,6 +41,7 @@ defmodule Deployer.Monitor.Application do
      update_non_blocking_state(%Monitor{
        timeout_app_ready: service.timeout_app_ready,
        retry_delay_pre_commands: service.retry_delay_pre_commands,
+       name: service.name,
        sname: service.sname,
        port: service.port,
        language: language,

@@ -4,6 +4,9 @@ defmodule Deployer.Monitor.Supervisor do
   use DynamicSupervisor
   require Logger
 
+  alias Deployer.Monitor
+  alias Foundation.Common
+
   ### ==========================================================================
   ### GenServer Callbacks
   ### ==========================================================================
@@ -36,10 +39,10 @@ defmodule Deployer.Monitor.Supervisor do
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
-  def start_service(%{name: name} = service) do
+  def start_service(%Monitor.Service{name: name} = service) do
     spec = %{
-      id: Deployer.Monitor.Application,
-      start: {Deployer.Monitor.Application, :start_link, [service]},
+      id: Monitor.Application,
+      start: {Monitor.Application, :start_link, [service]},
       restart: :transient
     }
 
@@ -97,7 +100,7 @@ defmodule Deployer.Monitor.Supervisor do
 
     %{pid: child_pid} = list(format: :map) |> Enum.find(&(&1.name == module_name))
 
-    Foundation.Common.call_gen_server(child_pid, :stop_service)
+    Common.call_gen_server(child_pid, :stop_service)
 
     name
     |> supervisor_name()
