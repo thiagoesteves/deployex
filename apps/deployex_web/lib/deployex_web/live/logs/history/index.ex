@@ -25,74 +25,76 @@ defmodule DeployexWeb.HistoryLive do
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
-    <div class="min-h-screen bg-white">
-      <Attention.content
-        id="logs-history-attention"
-        title="Configuration"
-        class="border-orange-400 text-orange-500 rounded-r-xl w-full"
-        message={@attention_msg}
-      >
-        <:inner_form>
-          <.form
-            for={@form}
-            id="logs-history-update-form"
-            class="flex ml-2 mr-2 text-xs rounded-r-xl text-center text-black whitespace-nowrap gap-5"
-            phx-change="form-update"
-          >
-            <.input
-              field={@form[:start_time]}
-              type="select"
-              label="Start Time"
-              options={["1m", "5m", "15m", "30m", "1h"]}
-            />
-          </.form>
-        </:inner_form>
-      </Attention.content>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+      <div class="min-h-screen bg-white">
+        <Attention.content
+          id="logs-history-attention"
+          title="Configuration"
+          class="border-orange-400 text-orange-500 rounded-r-xl w-full"
+          message={@attention_msg}
+        >
+          <:inner_form>
+            <.form
+              for={@form}
+              id="logs-history-update-form"
+              class="flex ml-2 mr-2 text-xs rounded-r-xl text-center text-black whitespace-nowrap gap-5"
+              phx-change="form-update"
+            >
+              <.input
+                field={@form[:start_time]}
+                type="select"
+                label="Start Time"
+                options={["1m", "5m", "15m", "30m", "1h"]}
+              />
+            </.form>
+          </:inner_form>
+        </Attention.content>
 
-      <div class="bg-white">
-        <div class="flex">
-          <MultiSelect.content
-            id="logs-history-multi-select"
-            selected_text="Selected logs"
-            selected={[
-              %{name: "services", keys: @node_info.selected_services},
-              %{name: "logs", keys: @node_info.selected_logs}
-            ]}
-            unselected={[
-              %{
-                name: "services",
-                keys: @unselected_services,
-                unselected_highlight: @services_unselected_highlight
-              },
-              %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
-            ]}
-            show_options={@show_log_options}
-          />
-        </div>
-        <div class="p-2">
-          <div class="bg-white w-full shadow-lg rounded">
-            <.table_logs id="logs-history-table" rows={@log_messages}>
-              <:col :let={log_message} label="SERVICE">
-                <div class="flex">
-                  <span
-                    class="w-[5px] rounded ml-1 mr-1"
-                    style={"background-color: #{log_message.color};"}
-                  >
-                  </span>
-                  <span>{log_message.service}</span>
-                </div>
-              </:col>
-              <:col :let={log_message} label="TYPE">
-                {log_message.type}
-              </:col>
-              <:col :let={log_message} label="CONTENT">
-                {log_message.content}
-              </:col>
-            </.table_logs>
+        <div class="bg-white">
+          <div class="flex">
+            <MultiSelect.content
+              id="logs-history-multi-select"
+              selected_text="Selected logs"
+              selected={[
+                %{name: "services", keys: @node_info.selected_services},
+                %{name: "logs", keys: @node_info.selected_logs}
+              ]}
+              unselected={[
+                %{
+                  name: "services",
+                  keys: @unselected_services,
+                  unselected_highlight: @services_unselected_highlight
+                },
+                %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
+              ]}
+              show_options={@show_log_options}
+            />
+          </div>
+          <div class="p-2">
+            <div class="bg-white w-full shadow-lg rounded">
+              <.table_logs id="logs-history-table" rows={@log_messages}>
+                <:col :let={log_message} label="SERVICE">
+                  <div class="flex">
+                    <span
+                      class="w-[5px] rounded ml-1 mr-1"
+                      style={"background-color: #{log_message.color};"}
+                    >
+                    </span>
+                    <span>{log_message.service}</span>
+                  </div>
+                </:col>
+                <:col :let={log_message} label="TYPE">
+                  {log_message.type}
+                </:col>
+                <:col :let={log_message} label="CONTENT">
+                  {log_message.content}
+                </:col>
+              </.table_logs>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

@@ -22,7 +22,7 @@ defmodule DeployexWeb.PageControllerTest do
 
       conn = get(conn, ~p"/")
 
-      assert html_response(conn, 200) =~ "Monitoring Elixir Apps"
+      assert html_response(conn, 200) =~ "Monitoring Beam Apps"
     end
   end
 end

@@ -14,6 +14,13 @@
 # is restricted to this project.
 
 # General application configuration
+# This file is responsible for configuring your application
+# and its dependencies with the aid of the Config module.
+#
+# This configuration file is loaded before any dependency and
+# is restricted to this project.
+
+# General application configuration
 import Config
 
 config :foundation,
@@ -68,14 +75,13 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "3.4.3",
+  version: "4.0.9",
   deployex_web: [
     args: ~w(
-      --config=tailwind.config.js
-      --input=css/app.css
-      --output=../priv/static/assets/app.css
+      --input=assets/css/app.css
+      --output=priv/static/assets/app.css
     ),
-    cd: Path.expand("../apps/deployex_web/assets", __DIR__)
+    cd: Path.expand("../apps/deployex_web", __DIR__)
   ]
 
 # Configures Elixir's Logger

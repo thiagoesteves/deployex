@@ -40,7 +40,8 @@ defmodule Deployex.MixProject do
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      listeners: [Phoenix.CodeReloader]
     ]
   end
 

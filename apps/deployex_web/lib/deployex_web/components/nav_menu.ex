@@ -18,7 +18,7 @@ defmodule DeployexWeb.Components.NavMenu do
               <div class="flex items-center flex-shrink-0">
                 <div class={icon_wrapper_class()}>
                   <svg
-                    class="w-10 h-10 p-2 text-black rounded-full bg-primary"
+                    class="w-10 h-10 p-2 text-black rounded-full"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     stroke="currentColor"
