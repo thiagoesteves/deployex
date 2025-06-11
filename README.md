@@ -200,9 +200,9 @@ metrics_retention_time_ms: 3600000                 # Deployex (optional, default
 logs_retention_time_ms: 3600000                    # Deployex (optional, default: 3600000): Retention time for logs
 monitoring:                                        # Deployex (optional, default: values described in memory): Monitoring features
   - type: "memory"
-    enable_restart: true                           # Deployex (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-    warning_threshold_percent: 75                  # Deployex (optional, default: 75): Issue a warning if memory usage exceeds this percent
-    restart_threshold_percent: 95                  # Deployex (optional, default: 95): Restart app if memory usage exceeds this percent
+    enable_restart: true                           # Deployex (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+    warning_threshold_percent: 75                  # Deployex (default: 75): Issue a warning if memory usage exceeds this percent
+    restart_threshold_percent: 95                  # Deployex (default: 95): Restart app if memory usage exceeds this percent
 applications:
   - name: "myphoenixapp"                           # Application: Monitored app name (Elixir app name format)
     language: "elixir"                             # Application: App language (elixir, erlang or gleam)
@@ -225,9 +225,9 @@ applications:
         value: "sa-east-1"
     monitoring:                                    # Application (optional, default: values described in atom, process and port): Monitoring features
       - type: "atom"
-        enable_restart: true                       # Application (optional, default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-        warning_threshold_percent: 75              # Application (optional, default: 75): Issue a warning if memory usage exceeds this percent
-        restart_threshold_percent: 90              # Application (optional, default: 90): Restart app if memory usage exceeds this percent
+        enable_restart: true                       # Application (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+        warning_threshold_percent: 75              # Application (default: 75): Issue a warning if memory usage exceeds this percent
+        restart_threshold_percent: 90              # Application (default: 90): Restart app if memory usage exceeds this percent
       - type: "process"
         enable_restart: true
         warning_threshold_percent: 75

@@ -131,9 +131,11 @@ write_files:
     permissions: "0644"
     content: |
       upstream phoenix {
+          # Attention: Keep (replicas + 1) upstream
           server 127.0.0.1:4000 max_fails=5 fail_timeout=60s;
           server 127.0.0.1:4001 max_fails=5 fail_timeout=60s;
           server 127.0.0.1:4002 max_fails=5 fail_timeout=60s;
+          server 127.0.0.1:4003 max_fails=5 fail_timeout=60s;
       }
 
       upstream deployex {
