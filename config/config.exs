@@ -102,8 +102,7 @@ config :ex_aws,
 
 config :deployer, Deployer.Engine,
   timeout_rollback: :timer.minutes(10),
-  schedule_interval: :timer.seconds(5),
-  delay_between_deploys_ms: :timer.seconds(1)
+  schedule_interval: :timer.seconds(5)
 
 # Foundation Adapters
 config :foundation, Foundation.Rpc, adapter: Foundation.Rpc.Local

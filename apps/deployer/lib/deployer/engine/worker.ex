@@ -30,8 +30,10 @@ defmodule Deployer.Engine.Worker do
           language: String.t(),
           env: list(),
           initial_port: non_neg_integer(),
+          available_port: non_neg_integer() | nil,
           ghosted_version_list: list(),
           deployments: map(),
+          deployment_to_terminate: %Engine.Deployment{} | nil,
           timeout_rollback: non_neg_integer(),
           schedule_interval: non_neg_integer()
         }
@@ -42,8 +44,10 @@ defmodule Deployer.Engine.Worker do
             language: "",
             env: [],
             initial_port: 0,
+            available_port: nil,
             ghosted_version_list: [],
             deployments: %{},
+            deployment_to_terminate: nil,
             timeout_rollback: 0,
             schedule_interval: 0
 
@@ -101,15 +105,10 @@ defmodule Deployer.Engine.Worker do
         {instance, initial_port + index, Enum.at(snames, index)}
       end)
       |> Enum.reduce(%{}, fn {instance, port, sname}, acc ->
-        Map.put(acc, instance, %{
-          state: :init,
-          timer_ref: nil,
-          sname: sname,
-          port: port
-        })
+        Map.put(acc, instance, %Engine.Deployment{sname: sname, port: port})
       end)
 
-    {:ok, %{state | deployments: deployments}}
+    {:ok, %{state | deployments: deployments, available_port: initial_port + replicas}}
   end
 
   @impl true
@@ -135,16 +134,41 @@ defmodule Deployer.Engine.Worker do
     {:noreply, new_state}
   end
 
-  def handle_info({:timeout_rollback, instance, sname}, %{name: name} = state) do
+  def handle_info(
+        {:timeout_rollback, instance, sname},
+        %{name: name, deployments: deployments, deployment_to_terminate: deployment_to_terminate} =
+          state
+      ) do
     current_deployment = state.deployments[state.current]
 
     state =
       if instance == state.current and sname == current_deployment.sname do
-        Logger.warning("The instance: #{instance} is not stable, rolling back version")
+        sname = current_deployment.sname
+        port = current_deployment.port
 
-        Monitor.stop_service(name, state.deployments[state.current].sname)
+        Logger.warning(
+          "The instance: #{instance} sname: #{sname} port: #{port} is not stable, ghosting version"
+        )
 
-        rollback_to_previous_version(state)
+        Monitor.stop_service(name, sname)
+        Catalog.cleanup(sname)
+
+        # Add current version to the ghosted version list
+        {:ok, new_list} =
+          sname
+          |> Status.current_version_map()
+          |> Status.add_ghosted_version()
+
+        # Return deployment to the current one
+        deployments = Map.put(deployments, state.current, deployment_to_terminate)
+
+        %{
+          state
+          | deployments: deployments,
+            deployment_to_terminate: nil,
+            ghosted_version_list: new_list,
+            available_port: port
+        }
       else
         # Ignore because the expiration is not for the current deployment
         state
@@ -154,7 +178,10 @@ defmodule Deployer.Engine.Worker do
   end
 
   @impl true
-  def handle_cast({:application_running, sname}, %__MODULE__{} = state) do
+  def handle_cast(
+        {:application_running, sname},
+        %__MODULE__{deployment_to_terminate: deployment_to_terminate} = state
+      ) do
     current_deployment = state.deployments[state.current]
 
     state =
@@ -164,9 +191,24 @@ defmodule Deployer.Engine.Worker do
         new_instance =
           if state.current == state.replicas, do: 1, else: state.current + 1
 
+        available_port =
+          if deployment_to_terminate do
+            Logger.info(" # Terminating previous node: #{deployment_to_terminate.sname}")
+            Monitor.stop_service(state.name, deployment_to_terminate.sname)
+            Catalog.cleanup(deployment_to_terminate.sname)
+            deployment_to_terminate.port
+          else
+            state.available_port
+          end
+
         Logger.info(" # Moving to the next instance: #{new_instance}")
 
-        %{state | current: new_instance}
+        %{
+          state
+          | current: new_instance,
+            deployment_to_terminate: nil,
+            available_port: available_port
+        }
       else
         Logger.warning(
           "Received sname: #{sname} that doesn't match the expected one: #{state.current} sname: #{current_deployment.sname}"
@@ -209,49 +251,6 @@ defmodule Deployer.Engine.Worker do
 
   defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
 
-  defp rollback_to_previous_version(%{current: current, name: name} = state) do
-    current_sname = state.deployments[current].sname
-
-    # Add current version to the ghosted version list
-    {:ok, new_list} =
-      current_sname
-      |> Status.current_version_map()
-      |> Status.add_ghosted_version()
-
-    state = %{state | ghosted_version_list: new_list}
-
-    # Retrieve previous version
-    previous_version_map = Status.history_version_list(name, []) |> Enum.at(1)
-
-    new_sname = new_sname(name)
-
-    deploy_application = fn ->
-      release_info = %Deployer.Release{
-        new_sname: new_sname,
-        new_sname_new_path: Catalog.new_path(new_sname),
-        release_version: previous_version_map.version
-      }
-
-      case Release.download_and_unpack(release_info) do
-        {:ok, _} ->
-          full_deployment(state, new_sname, previous_version_map)
-
-        {:error, _reason} ->
-          state
-      end
-    end
-
-    if previous_version_map != nil do
-      deploy_application.()
-    else
-      Logger.warning(
-        "Rollback requested for sname: #{current_sname} is not possible, no previous version available"
-      )
-
-      state
-    end
-  end
-
   defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do
     sname = state.deployments[current].sname
     port = state.deployments[current].port
@@ -267,7 +266,7 @@ defmodule Deployer.Engine.Worker do
           env: env
         })
 
-      set_timeout_to_rollback(state, sname)
+      set_timeout_to_rollback(state, sname, port)
     else
       state
     end
@@ -333,7 +332,7 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
-  defp set_timeout_to_rollback(%{deployments: deployments} = state, sname) do
+  defp set_timeout_to_rollback(%{deployments: deployments} = state, sname, port) do
     current_deployment = state.deployments[state.current]
 
     timer_ref =
@@ -348,47 +347,79 @@ defmodule Deployer.Engine.Worker do
       Map.put(deployments, state.current, %{
         current_deployment
         | timer_ref: timer_ref,
-          sname: sname
+          sname: sname,
+          port: port
       })
 
     %{state | deployments: deployments}
   end
 
   defp full_deployment(
-         %{current: instance, language: language, name: name, env: env} = state,
+         %{
+           name: name,
+           available_port: nil,
+           deployments: deployments,
+           deployment_to_terminate: deployment_to_terminate
+         } =
+           state,
          new_sname,
          release
        ) do
+    sname = state.deployments[state.current].sname
+    port = state.deployments[state.current].port
+
+    Logger.info(" # Terminating node: #{sname} before receiving running state")
+
+    Monitor.stop_service(name, sname)
+    Catalog.cleanup(sname)
+
+    # Return deployment to the current one
+    deployments = Map.put(deployments, state.current, deployment_to_terminate)
+
+    state = %{
+      state
+      | deployments: deployments,
+        deployment_to_terminate: nil,
+        available_port: port
+    }
+
+    full_deployment(state, new_sname, release)
+  end
+
+  defp full_deployment(
+         %{
+           current: instance,
+           language: language,
+           name: name,
+           env: env,
+           available_port: available_port
+         } = state,
+         new_sname,
+         release
+       ) do
+    deployment_to_terminate = state.deployments[state.current]
+
     :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
       Logger.info("Full deploy instance: #{instance} sname: #{new_sname}")
-
-      sname = state.deployments[instance].sname
-
-      Monitor.stop_service(name, sname)
-
-      # NOTE: Since killing the is pretty fast this delay will be enough to
-      #       avoid race conditions for resources since they use the same name, ports, etc.
-      :timer.sleep(Application.fetch_env!(:deployer, Engine)[:delay_between_deploys_ms])
 
       Status.update(new_sname)
 
       Status.set_current_version_map(new_sname, release, deployment: :full_deployment)
-
-      port = state.deployments[state.current].port
 
       {:ok, _} =
         Monitor.start_service(%Monitor.Service{
           name: name,
           sname: new_sname,
           language: language,
-          port: port,
+          port: available_port,
           env: env
         })
-
-      Catalog.cleanup(sname)
     end)
 
-    set_timeout_to_rollback(state, new_sname)
+    state
+    |> set_timeout_to_rollback(new_sname, available_port)
+    |> Map.put(:deployment_to_terminate, deployment_to_terminate)
+    |> Map.put(:available_port, nil)
   end
 
   defp hot_upgrade(
