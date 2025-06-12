@@ -102,10 +102,7 @@ defmodule DeployexWeb.Components.MultiSelect do
               </div>
             </div>
 
-            <div
-              :if={@show_options}
-              class="relative shadow top-100 bg-white z-40 lef-0 rounded max-h-select"
-            >
+            <div :if={@show_options} class="relative shadow bg-white z-40 lef-0 rounded max-h-select">
               <div phx-mounted={
                 JS.transition(
                   {"first:ease-in duration-300", "first:opacity-0 first:p-0 first:h-0",

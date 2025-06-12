@@ -39,22 +39,35 @@ defmodule DeployexWeb.Components.SystemBar do
       end
 
     ~H"""
-    <div class="items-center">
+    <div class="items-center bg-white">
       <div
         id="live-memory-bar"
         class="flex p-1 border-l-8 border-blue-400 rounded bg-gray-300 text-blue-500"
         role="alert"
       >
         <div class="flex items-center py-2">
-          <svg
-            class="flex-shrink-0 w-4 h-4 me-2"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path d="M3 4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4zm2 0v10h10V4H5zm1 12h8v2H6v-2z" />
-          </svg>
+          <img
+            src="/images/elixir.png"
+            alt=""
+            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
+          />
+          <span class="sr-only">Info</span>
+          <h3 class="text-sm font-medium text-nowrap ">v{Application.spec(:elixir, :vsn)}</h3>
+
+          <img
+            src="/images/phoenix.png"
+            alt=""
+            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
+          />
+
+          <span class="sr-only">Phoenix</span>
+          <h3 class="text-sm font-medium text-nowrap ">v{Application.spec(:phoenix, :vsn)}</h3>
+
+          <img
+            src={"/images/#{host_system_image(@system)}"}
+            alt=""
+            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
+          />
           <span class="sr-only">Info</span>
           <h3 class="text-sm font-medium text-nowrap ">{@system} - {@description}</h3>
         </div>
@@ -93,5 +106,23 @@ defmodule DeployexWeb.Components.SystemBar do
       </div>
     </div>
     """
+  end
+
+  defp host_system_image(system) do
+    down_case_system = String.downcase(system)
+
+    cond do
+      String.contains?(down_case_system, "macos") ->
+        "mac.png"
+
+      String.contains?(down_case_system, "linux") ->
+        "linux.png"
+
+      String.contains?(down_case_system, "win") ->
+        "windows.png"
+
+      true ->
+        "unknow.png"
+    end
   end
 end

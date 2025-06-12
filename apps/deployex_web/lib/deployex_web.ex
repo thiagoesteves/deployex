@@ -38,9 +38,7 @@ defmodule DeployexWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller,
-        formats: [:html, :json],
-        layouts: [html: DeployexWeb.Layouts]
+      use Phoenix.Controller, formats: [:html, :json]
 
       use Gettext, backend: DeployexWeb.Gettext
 
@@ -52,8 +50,7 @@ defmodule DeployexWeb do
 
   def live_view do
     quote do
-      use Phoenix.LiveView,
-        layout: {DeployexWeb.Layouts, :app}
+      use Phoenix.LiveView
 
       unquote(html_helpers())
       defguard is_connected?(socket) when socket.transport_pid != nil
@@ -86,13 +83,15 @@ defmodule DeployexWeb do
       # Translation
       use Gettext, backend: DeployexWeb.Gettext
 
+      # Common modules used in templates
+      alias Phoenix.LiveView.JS
       # HTML escaping functionality
       import Phoenix.HTML
+
+      alias DeployexWeb.Layouts
+
       # Core UI components
       import DeployexWeb.CoreComponents
-
-      # Shortcut for generating JS commands
-      alias Phoenix.LiveView.JS
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())

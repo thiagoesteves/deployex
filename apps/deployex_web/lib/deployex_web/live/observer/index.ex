@@ -8,17 +8,19 @@ defmodule DeployexWeb.ObserverLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <SystemBar.content info={@host_info} />
-    <div>
-      <iframe
-        src={~p"/observer/tracing?iframe=true"}
-        class="min-h-screen"
-        width="100%"
-        height="100%"
-        title="Observer Web"
-      >
-      </iframe>
-    </div>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+      <SystemBar.content info={@host_info} />
+      <div>
+        <iframe
+          src={~p"/observer/tracing?iframe=true"}
+          class="min-h-screen"
+          width="100%"
+          height="100%"
+          title="Observer Web"
+        >
+        </iframe>
+      </div>
+    </Layouts.app>
     """
   end
 

@@ -23,18 +23,20 @@ defmodule DeployexWeb.TerminalLive do
       |> assign(terminal_rows: @terminal_rows)
 
     ~H"""
-    <div class="flex min-h-screen bg-gray-700">
-      <div :if={@id}>
-        <div
-          id={"host-shell-#{@id}"}
-          phx-hook="Terminal"
-          data-rows={@terminal_rows}
-          data-cols={@terminal_cols}
-        >
-          <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+      <div class="flex min-h-screen bg-gray-700">
+        <div :if={@id}>
+          <div
+            id={"host-shell-#{@id}"}
+            phx-hook="Terminal"
+            data-rows={@terminal_rows}
+            data-cols={@terminal_cols}
+          >
+            <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

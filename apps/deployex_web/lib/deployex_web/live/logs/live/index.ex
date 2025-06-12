@@ -21,56 +21,58 @@ defmodule DeployexWeb.LogsLive do
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
-    <div class="min-h-screen bg-white">
-      <div class="flex">
-        <MultiSelect.content
-          id="logs-live-multi-select"
-          selected_text="Selected logs"
-          selected={[
-            %{name: "services", keys: @node_info.selected_services},
-            %{name: "logs", keys: @node_info.selected_logs}
-          ]}
-          unselected={[
-            %{
-              name: "services",
-              keys: @unselected_services,
-              unselected_highlight: @services_unselected_highlight
-            },
-            %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
-          ]}
-          show_options={@show_log_options}
-        />
-        <button
-          id="logs-live-multi-select-reset"
-          phx-click="logs-live-reset"
-          class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
-        >
-          RESET
-        </button>
-      </div>
-      <div class="p-2">
-        <div class="bg-white w-full shadow-lg rounded">
-          <.table_logs id="logs-live-table" rows={@streams.log_messages}>
-            <:col :let={{_id, log_message}} label="SERVICE">
-              <div class="flex">
-                <span
-                  class="w-[5px] rounded ml-1 mr-1"
-                  style={"background-color: #{log_message.color};"}
-                >
-                </span>
-                <span>{log_message.service}</span>
-              </div>
-            </:col>
-            <:col :let={{_id, log_message}} label="TYPE">
-              {log_message.type}
-            </:col>
-            <:col :let={{_id, log_message}} label="CONTENT">
-              {log_message.content}
-            </:col>
-          </.table_logs>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+      <div class="min-h-screen bg-white">
+        <div class="flex">
+          <MultiSelect.content
+            id="logs-live-multi-select"
+            selected_text="Selected logs"
+            selected={[
+              %{name: "services", keys: @node_info.selected_services},
+              %{name: "logs", keys: @node_info.selected_logs}
+            ]}
+            unselected={[
+              %{
+                name: "services",
+                keys: @unselected_services,
+                unselected_highlight: @services_unselected_highlight
+              },
+              %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
+            ]}
+            show_options={@show_log_options}
+          />
+          <button
+            id="logs-live-multi-select-reset"
+            phx-click="logs-live-reset"
+            class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
+          >
+            RESET
+          </button>
+        </div>
+        <div class="p-2">
+          <div class="bg-white w-full shadow-lg rounded">
+            <.table_logs id="logs-live-table" rows={@streams.log_messages}>
+              <:col :let={{_id, log_message}} label="SERVICE">
+                <div class="flex">
+                  <span
+                    class="w-[5px] rounded ml-1 mr-1"
+                    style={"background-color: #{log_message.color};"}
+                  >
+                  </span>
+                  <span>{log_message.service}</span>
+                </div>
+              </:col>
+              <:col :let={{_id, log_message}} label="TYPE">
+                {log_message.type}
+              </:col>
+              <:col :let={{_id, log_message}} label="CONTENT">
+                {log_message.content}
+              </:col>
+            </.table_logs>
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
     """
   end
 

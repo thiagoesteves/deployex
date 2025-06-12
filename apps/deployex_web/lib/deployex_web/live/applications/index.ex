@@ -17,34 +17,35 @@ defmodule DeployexWeb.ApplicationsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <SystemBar.content info={@host_info} />
-
-    <div class="min-h-screen bg-gray-700 ">
-      <div class="p-5">
-        <div class="grid grid-cols-3 gap-5 items-start p-30">
-          <%= for app <- @monitoring_apps_data do %>
-            <DeployexWeb.Components.AppCard.content
-              supervisor={app.supervisor}
-              status={app.status}
-              node={app.node}
-              sname={app.sname}
-              language={app.language}
-              crash_restart_count={app.crash_restart_count}
-              force_restart_count={app.force_restart_count}
-              name={app.name}
-              port={app.port}
-              version={app.version}
-              uptime={app.uptime}
-              otp={app.otp}
-              tls={app.tls}
-              last_deployment={app.last_deployment}
-              restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
-              metadata={app.metadata}
-            />
-          <% end %>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+      <div class="min-h-screen bg-gray-700">
+        <SystemBar.content info={@host_info} />
+        <div class="p-5">
+          <div class="grid grid-cols-3 gap-5 items-start text-black">
+            <%= for app <- @monitoring_apps_data do %>
+              <DeployexWeb.Components.AppCard.content
+                supervisor={app.supervisor}
+                status={app.status}
+                node={app.node}
+                sname={app.sname}
+                language={app.language}
+                crash_restart_count={app.crash_restart_count}
+                force_restart_count={app.force_restart_count}
+                name={app.name}
+                port={app.port}
+                version={app.version}
+                uptime={app.uptime}
+                otp={app.otp}
+                tls={app.tls}
+                last_deployment={app.last_deployment}
+                restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
+                metadata={app.metadata}
+              />
+            <% end %>
+          </div>
         </div>
       </div>
-    </div>
+    </Layouts.app>
 
     <.modal
       :if={@live_action in [:logs_stdout, :logs_stderr]}
