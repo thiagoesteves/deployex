@@ -18,9 +18,8 @@ defmodule DeployexWeb.ApplicationsLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} ui_settings={@ui_settings}>
-      <SystemBar.content info={@host_info} />
-
       <div class="min-h-screen bg-gray-700">
+        <SystemBar.content info={@host_info} />
         <div class="p-5">
           <div class="grid grid-cols-3 gap-5 items-start text-black">
             <%= for app <- @monitoring_apps_data do %>
