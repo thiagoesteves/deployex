@@ -77,7 +77,6 @@ Check out this must-watch video:
 
 ### What is coming next
 
-- [ISSUE-133](https://github.com/thiagoesteves/deployex/issues/133) - Modify Deployment to run a new instance for full deployments and only stop the current if deployment succeed
 - [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
 - [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
 - [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx 
@@ -100,8 +99,8 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 | [__0.3.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.1) | __26.2.5.6__ | -/- | -/- |
 | [__0.3.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | __26.2.5.6__ | -/- | -/- |
 
-__[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support OTP26
-__[2]__ - Binaries for `OTP-28` are under testing and preparation
+ * __[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support OTP26
+ * __[2]__ - Binaries for `OTP-28` are under testing and preparation
 
 ### Running the application
 

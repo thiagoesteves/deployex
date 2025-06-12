@@ -13,8 +13,9 @@
 
 ### Enhancements
  * [`ISSUE-143`](https://github.com/thiagoesteves/deployex/issues/143) Add support to collapsed menu to improve the user view
- * [`PULL-145`](https://github.com/thiagoesteves/deployex/pull/145) Updating ELixir version to 1.18.4
+ * [`PULL-145`](https://github.com/thiagoesteves/deployex/pull/145) Updating Elixir version to 1.18.4
  * [`ISSUE-133`](https://github.com/thiagoesteves/deployex/issues/133) Modify Deployment to run a new instance for full deployments and only stop the current if deployment succeed
+ * [`ISSUE-147`](https://github.com/thiagoesteves/deployex/issues/147) Update DeployEx to Phoenix 1.18.0-rc3
 
 ## 0.5.1 🚀 (2025-06-03)
 
