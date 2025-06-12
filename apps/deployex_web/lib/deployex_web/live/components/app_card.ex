@@ -369,7 +369,7 @@ defmodule DeployexWeb.Components.AppCard do
       |> assign(applications: applications)
 
     ~H"""
-    <div class="max-h-64 overflow-y-auto p-2">
+    <div class="max-h-80 overflow-y-auto p-2">
       <div class="grid grid-cols-2 gap-2">
         <%= for app <- @applications do %>
           <div class="grid grid-flow-col grid-rows-3 ">
