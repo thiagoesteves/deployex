@@ -39,7 +39,6 @@ defmodule DeployexWeb.Components.SystemBar do
       end
 
     ~H"""
-    <%!-- <div class="fixed top-0 w-full overflow-hidden"> --%>
     <div class="items-center bg-white">
       <div
         id="live-memory-bar"
@@ -106,7 +105,6 @@ defmodule DeployexWeb.Components.SystemBar do
         </div>
       </div>
     </div>
-    <%!-- </div> --%>
     """
   end
 
