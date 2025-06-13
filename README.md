@@ -87,7 +87,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> [2]|
 |----------|-------------|-------------|-------------|
-| [ :soon: __0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | -/- |
+| [ :soon: __0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | __28.0__ |
 | [__0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.5.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.12__ | __27.3.3__ | -/- |
@@ -100,7 +100,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 | [__0.3.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | __26.2.5.6__ | -/- | -/- |
 
  * __[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support `OTP-26`
- * __[2]__ - Binaries for `OTP-28` are under testing and preparation
+ * __[2]__ - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4) 
 
 ### Running the application
 
