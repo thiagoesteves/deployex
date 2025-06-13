@@ -85,9 +85,9 @@ Check out this must-watch video:
 
 Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP Major version to prevent compatibility issues and system malfunctions. DeployEx releases will contain binaries for the following OTP versions:
 
-| DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> [2]|
+| DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 |----------|-------------|-------------|-------------|
-| [ :soon: __0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | __28.0__ |
+| [__0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | __28.0__ [2]|
 | [__0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.5.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.4.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2)  | __26.2.5.12__ | __27.3.3__ | -/- |

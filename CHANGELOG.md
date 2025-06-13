@@ -1,6 +1,6 @@
 # CHANGELOG (0.5.x)
 
-## 0.5.2 ()
+## 0.5.2 🚀 (2025-06-13)
 
 ### Backwards incompatible changes for 0.5.1
  * None

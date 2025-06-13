@@ -1,0 +1,5 @@
+# Ignore everything
+*
+
+# Except the following files
+!docs.tar.gz

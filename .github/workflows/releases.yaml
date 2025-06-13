@@ -10,6 +10,7 @@ env:
   SHELL: /usr/bin/bash
   UBUNTU_2404_OTP_26_NAME: deployex-ubuntu-24.04-otp-26.tar.gz
   UBUNTU_2404_OTP_27_NAME: deployex-ubuntu-24.04-otp-27.tar.gz
+  UBUNTU_2404_OTP_28_NAME: deployex-ubuntu-24.04-otp-28.tar.gz
 
 jobs:
   buildUbuntu2404Otp26:
