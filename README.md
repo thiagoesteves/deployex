@@ -99,7 +99,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 | [__0.3.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.1) | __26.2.5.6__ | -/- | -/- |
 | [__0.3.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | __26.2.5.6__ | -/- | -/- |
 
- * __[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support OTP26
+ * __[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support `OTP-26`
  * __[2]__ - Binaries for `OTP-28` are under testing and preparation
 
 ### Running the application
@@ -170,15 +170,15 @@ Expected location in the release folder:
 
 ### Environment Variables
 
-DeployEx application typically requires a few environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production where the ones that have a default value available are not required:
+DeployEx application typically requires a few environment variables to be defined for proper operation. Ensure that you have the following environment variables set when running in production:
 
-| ENV NAME   |      EXAMPLE      |  SOURCE |  DEFAULT | DESCRIPTION |
-|----------|-------------|------:|------|------|
-| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws or gcp secrets | -/- | secret key used for encryption |
-| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws or gcp secrets | -/- | erlang cookie |
-| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | 2b1...5PAYTZjNQ42ASi | aws or gcp secrets | -/- | Hashed admin password for authentication |
-| __DEPLOYEX_CONFIG_YAML_PATH__ | /home/ubuntu/deployex.yaml | system ENV | -/- | Yaml configuration for Deployex and Monitored application |
-| __DEPLOYEX_OTP_TLS_CERT_PATH__ | /usr/local/share/ca-certificates | system ENV | -/- | If using mTLS, the certificate PATH is needed |
+|ENV NAME|EXAMPLE|SOURCE|DESCRIPTION|
+|----------|-------------|------:|------|
+| __DEPLOYEX_SECRET_KEY_BASE__ | 42otsNl...Fpq3dIJ02 | aws or gcp secrets | secret key used for encryption |
+| __DEPLOYEX_ERLANG_COOKIE__ | cookie | aws or gcp secrets | erlang cookie |
+| __DEPLOYEX_ADMIN_HASHED_PASSWORD__ | 2b1...42ASi | aws or gcp secrets | Hashed admin password for authentication |
+| __DEPLOYEX_CONFIG_YAML_PATH__ | /home/ubuntu/deployex.yaml | system ENV | Yaml configuration for Deployex and Monitored application |
+| __DEPLOYEX_OTP_TLS_CERT_PATH__ | /usr/local/share/ca-certificates | system ENV | If using mTLS, the certificate PATH is needed |
 
 Once DeployEx runs, it fetches the configuration from the YAML file described in the path `DEPLOYEX_CONFIG_YAML_PATH`. The YAML file configuration contains the following fields:
 
@@ -238,6 +238,25 @@ applications:
         enable_restart: true
         warning_threshold_percent: 75
         restart_threshold_percent: 90
+  - name: "myapp"                                 
+    language: "elixir"                            
+    initial_port: 4040                            
+    replicas: 2                                   
+    env:                                          
+      - key: MYAPP_PHX_HOST
+        value: "myapp.com"
+      - key: MYAPP_PHX_SERVER
+        value: true
+      - key: MYAPP_CLOUD_ENVIRONMENT
+        value: "prod"
+      - key: MYAPP_OTP_TLS_CERT_PATH
+        value:  "/usr/local/share/ca-certificates"
+      - key: MYAPP_SECRETS_ADAPTER
+        value: "aws"
+      - key: MYAPP_SECRETS_PATH
+        value: "myapp-prod-secrets"
+      - key: AWS_REGION
+        value: "sa-east-1"
 ```
 
 For local testing, these variables are not expected or set to default values.
