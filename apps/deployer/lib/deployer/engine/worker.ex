@@ -33,7 +33,7 @@ defmodule Deployer.Engine.Worker do
           available_port: non_neg_integer() | nil,
           ghosted_version_list: list(),
           deployments: map(),
-          deployment_to_terminate: %Engine.Deployment{} | nil,
+          deployment_to_terminate: map(),
           timeout_rollback: non_neg_integer(),
           schedule_interval: non_neg_integer()
         }
@@ -50,6 +50,8 @@ defmodule Deployer.Engine.Worker do
             deployment_to_terminate: nil,
             timeout_rollback: 0,
             schedule_interval: 0
+
+  @dialyzer {:nowarn_function, initialize_version: 1}
 
   ### ==========================================================================
   ### Callback functions

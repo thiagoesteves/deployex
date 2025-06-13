@@ -47,11 +47,19 @@ defmodule DeployexWeb.Components.SystemBar do
       >
         <div class="flex items-center py-2">
           <img
+            src="/images/erlang-otp.png"
+            alt=""
+            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
+          />
+          <span class="sr-only">Elixir</span>
+          <h3 class="text-sm font-medium text-nowrap ">OTP-{System.otp_release()}</h3>
+
+          <img
             src="/images/elixir.png"
             alt=""
             style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
           />
-          <span class="sr-only">Info</span>
+          <span class="sr-only">Elixir</span>
           <h3 class="text-sm font-medium text-nowrap ">v{Application.spec(:elixir, :vsn)}</h3>
 
           <img
@@ -72,7 +80,7 @@ defmodule DeployexWeb.Components.SystemBar do
           <h3 class="text-sm font-medium text-nowrap ">{@system} - {@description}</h3>
         </div>
 
-        <div class="grid grid-cols-6  w-full items-center">
+        <div class="ml-10 grid grid-cols-6  w-full items-center">
           <div class="text-center text-black text-xs font-bold">MEMORY</div>
 
           <div>

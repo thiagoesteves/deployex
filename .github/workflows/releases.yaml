@@ -12,7 +12,7 @@ env:
   UBUNTU_2404_OTP_27_NAME: deployex-ubuntu-24.04-otp-27.tar.gz
 
 jobs:
-  buildUbuntu2404Otp26: 
+  buildUbuntu2404Otp26:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -49,7 +49,7 @@ jobs:
           name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
           path: .
 
-  buildUbuntu2404Otp27: 
+  buildUbuntu2404Otp27:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -86,6 +86,43 @@ jobs:
           name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
           path: .
 
+  buildUbuntu2404Otp28:
+    if: github.event.base_ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libcap-dev [recommended by erlexec]
+        run: sudo apt-get install libcap-dev -y
+
+      - name: Copy .tool-versions
+        run: cp devops/releases/otp-28/.tool-versions .
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Install Elixir dependencies
+        run: mix do deps.get, compile --warnings-as-errors
+
+      - name: Assets Deploy
+        run: mix assets.deploy
+
+      - name: Compile and Generate a Release
+        run: mix release
+
+      - name: Rename Artifact
+        run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_28_NAME }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
+          path: .
+
   copyInstaller:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
@@ -105,31 +142,43 @@ jobs:
   createRelease:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
-    needs: [buildUbuntu2404Otp26, buildUbuntu2404Otp27, copyInstaller]
+    needs:
+      [
+        buildUbuntu2404Otp26,
+        buildUbuntu2404Otp27,
+        buildUbuntu2404Otp28,
+        copyInstaller,
+      ]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-     - name: Download ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
-         path: .
+      - name: Download ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
+          path: .
 
-     - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-         path: .
+      - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          path: .
 
-     - name: Download installer artefact
-       uses: actions/download-artifact@v4
-       with:
-         name: deployex.sh
-         path: .
+      - name: Download ${{ env.UBUNTU_2404_OTP_28_NAME }} artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
+          path: .
 
-     - name: Release the files
-       uses: ncipollo/release-action@v1
-       with:
-         artifacts: "${{ env.UBUNTU_2404_OTP_26_NAME }}, ${{ env.UBUNTU_2404_OTP_27_NAME }}, deployex.sh"
-         bodyFile: "CHANGELOG.md"
+      - name: Download installer artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployex.sh
+          path: .
+
+      - name: Release the files
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ env.UBUNTU_2404_OTP_26_NAME }}, ${{ env.UBUNTU_2404_OTP_27_NAME }}, ${{ env.UBUNTU_2404_OTP_28_NAME }}, deployex.sh"
+          bodyFile: "CHANGELOG.md"
