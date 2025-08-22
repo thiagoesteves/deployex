@@ -2,7 +2,7 @@
 
 > Who supervises the supervisor (of your application)?
 
-![Development](https://img.shields.io/badge/STATUS-Development%20v0.5.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
+![Development](https://img.shields.io/badge/STATUS-Development%20v0.6.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml) 
 
 DeployEx is a lightweight tool designed for managing deployments for Beam applications (Elixir, Gleam and Erlang) without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
