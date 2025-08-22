@@ -87,6 +87,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 |----------|-------------|-------------|-------------|
+| [__0.6.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0)  | -/- | __27.3.4.2__ | __28.0.2__ [2]|
 | [__0.5.2__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2)  | __26.2.5.12__ | __27.3.4__ | __28.0__ [2]|
 | [__0.5.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1)  | __26.2.5.12__ | __27.3.4__ | -/- |
 | [__0.5.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0)  | __26.2.5.12__ | __27.3.4__ | -/- |
@@ -99,7 +100,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 | [__0.3.1__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.1) | __26.2.5.6__ | -/- | -/- |
 | [__0.3.0__](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | __26.2.5.6__ | -/- | -/- |
 
- * __[1]__ - Binaries for `OTP-26` will be deprecated soon since new releases of `erlexec` won't support `OTP-26`
+ * __[1]__ - Binaries for `OTP-26` won't support new releases of `erlexec`
  * __[2]__ - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4) 
 
 ### Running the application
@@ -193,7 +194,7 @@ secrets_path: "deployex-myphoenixapp-prod-secrets" # Deployex: secret path to be
 aws_region: "sa-east-1"                            # Deployex: aws region (only for AWS)
 google_credentials: "/home/ubuntu/gcp-config.json" # Deployex: google credentials (only for GCP)
 version: "0.4.0-rc1"                               # Deployex: Version
-otp_version: 27                                    # Deployex: Otp version (It needs to match the monitored applications)
+otp_version: 28                                    # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                          # Deployex: Target OS server
 deploy_rollback_timeout_ms: 600000                 # Deployex (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back

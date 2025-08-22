@@ -148,8 +148,8 @@ If you need to update Deployex, follow these steps to ensure that the configurat
 ```bash
 vi deployex.yaml
 ...
-version: "0.4.0"
-otp_version: 27
+version: "0.6.0"
+otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
 ...

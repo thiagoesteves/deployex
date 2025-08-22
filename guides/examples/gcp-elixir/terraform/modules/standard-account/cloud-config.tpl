@@ -48,7 +48,7 @@ write_files:
       secrets_path: "deployex-myappname-${account_name}-secrets"
       google_credentials: "/home/ubuntu/gcp-config.json"
       version: "${deployex_version}"
-      otp_version: 27
+      otp_version: 28
       otp_tls_certificates: "/usr/local/share/ca-certificates"
       os_target: "ubuntu-24.04"
       deploy_rollback_timeout_ms: 600000

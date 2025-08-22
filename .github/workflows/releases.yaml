@@ -8,48 +8,10 @@ on:
 env:
   MIX_ENV: prod
   SHELL: /usr/bin/bash
-  UBUNTU_2404_OTP_26_NAME: deployex-ubuntu-24.04-otp-26.tar.gz
   UBUNTU_2404_OTP_27_NAME: deployex-ubuntu-24.04-otp-27.tar.gz
   UBUNTU_2404_OTP_28_NAME: deployex-ubuntu-24.04-otp-28.tar.gz
 
 jobs:
-  buildUbuntu2404Otp26:
-    if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install libcap-dev [recommended by erlexec]
-        run: sudo apt-get install libcap-dev -y
-
-      - name: Copy .tool-versions
-        run: cp devops/releases/otp-26/.tool-versions .
-
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          version-file: .tool-versions
-          version-type: strict
-
-      - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
-
-      - name: Assets Deploy
-        run: mix assets.deploy
-
-      - name: Compile and Generate a Release
-        run: mix release
-
-      - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_26_NAME }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
-          path: .
-
   buildUbuntu2404Otp27:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
@@ -154,12 +116,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download ${{ env.UBUNTU_2404_OTP_26_NAME }} artefact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.UBUNTU_2404_OTP_26_NAME }}
-          path: .
-
       - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
         uses: actions/download-artifact@v4
         with:
@@ -181,5 +137,5 @@ jobs:
       - name: Release the files
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "${{ env.UBUNTU_2404_OTP_26_NAME }}, ${{ env.UBUNTU_2404_OTP_27_NAME }}, ${{ env.UBUNTU_2404_OTP_28_NAME }}, deployex.sh"
+          artifacts: "${{ env.UBUNTU_2404_OTP_27_NAME }}, ${{ env.UBUNTU_2404_OTP_28_NAME }}, deployex.sh"
           bodyFile: "CHANGELOG.md"

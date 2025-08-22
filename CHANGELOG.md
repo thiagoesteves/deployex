@@ -1,26 +1,9 @@
-# CHANGELOG (0.5.x)
+# CHANGELOG (0.6.x)
 
-## 0.5.2 🚀 (2025-06-13)
+## 0.6.0 🚀 (2025-08-22)
 
-### Backwards incompatible changes for 0.5.1
- * None
-
-### Installer Actions
- * None
-
-### Bug fixes
- * None
-
-### Enhancements
- * [`ISSUE-143`](https://github.com/thiagoesteves/deployex/issues/143) Add support to collapsed menu to improve the user view
- * [`PULL-145`](https://github.com/thiagoesteves/deployex/pull/145) Updating Elixir version to 1.18.4
- * [`ISSUE-133`](https://github.com/thiagoesteves/deployex/issues/133) Modify Deployment to run a new instance for full deployments and only stop the current if deployment succeed
- * [`ISSUE-147`](https://github.com/thiagoesteves/deployex/issues/147) Update DeployEx to Phoenix 1.18.0-rc3
-
-## 0.5.1 🚀 (2025-06-03)
-
-### Backwards incompatible changes for 0.5.0
- * This version requires to modify the monitored applications release file `rel/env.sh.eex` to not export `RELEASE_NODE`
+### Backwards incompatible changes for 0.5.2
+ * Projects using `OTP-26` version won't be supported since it doesn't support new `erlexec` versions (~2.2). If `OTP-26` is required, it is recommended to fork the repo and downgrade the `erlexec` to (2.0.7)
 
 ### Installer Actions
  * None
@@ -29,34 +12,21 @@
  * None
 
 ### Enhancements
- * [`ISSUE-138`](https://github.com/thiagoesteves/deployex/issues/138) Deprecate RELEASE_NODE_SUFFIX in favor of RELEASE_NODE=sname
- * [`ISSUE-109`](https://github.com/thiagoesteves/deployex/issues/109) Add support for different application
- * [`PULL-142`](https://github.com/thiagoesteves/deployex/pull/142) Modify code to capture logs for migrations
-
-## 0.5.0 🚀 (2025-05-27)
-
-### Backwards incompatible changes for 0.4.2
- * This version has a major change from instance to node/sname, this will require to prune existing version data.
-
-### Installer Actions
- * Run `./depoloyex.sh --install deployex.yaml` to prune existing version data
-
-### Bug fixes
- * None
-
-### Enhancements
- * [`ISSUE-64`](https://github.com/thiagoesteves/deployex/issues/64) Modify Deployex to use node/sname instead instance
+ * [`ISSUE-151`](https://github.com/thiagoesteves/deployex/issues/151) Update DeployEx to use new `erlexec` versions and decommission releases for `OTP-26`
 
 # Host Binaries Available
 
 This release includes binaries for the following Ubuntu versions:
 
- * Ubuntu 24.04 with OTP 26 - [deployex-ubuntu-24.04-otp-26.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-26/.tool-versions)
  * Ubuntu 24.04 with OTP 27 - [deployex-ubuntu-24.04-otp-27.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-27/.tool-versions)
+ * Ubuntu 24.04 with OTP 28 - [deployex-ubuntu-24.04-otp-28.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-28/.tool-versions)
 
  You can use these pre-built binaries, or you can build your own if preferred.
 
 # Previous Releases
+ * [0.5.2 🚀 (2025-06-13)](https://github.com/thiagoesteves/deployex/blob/0.5.2/CHANGELOG.md)
+ * [0.5.1 🚀 (2025-06-03)](https://github.com/thiagoesteves/deployex/blob/0.5.1/CHANGELOG.md)
+ * [0.5.0 🚀 (2025-05-27)](https://github.com/thiagoesteves/deployex/blob/0.5.0/CHANGELOG.md)
  * [0.4.2 🚀 (2025-05-13)](https://github.com/thiagoesteves/deployex/blob/0.4.2/CHANGELOG.md)
  * [0.4.1 🚀 (2025-04-25)](https://github.com/thiagoesteves/deployex/blob/0.4.1/CHANGELOG.md)
  * [0.4.0 🚀 (2025-04-23)](https://github.com/thiagoesteves/deployex/blob/0.4.0/CHANGELOG.md)
