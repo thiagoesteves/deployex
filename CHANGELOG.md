@@ -1,5 +1,19 @@
 # CHANGELOG (0.6.x)
 
+## 0.6.1 🚀 (2025-08-29)
+
+### Backwards incompatible changes for 0.5.2
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Update Observer Web version to 0.1.11
+
 ## 0.6.0 🚀 (2025-08-22)
 
 ### Backwards incompatible changes for 0.5.2
