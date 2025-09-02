@@ -42,7 +42,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Rolled-back monitored app versions are ghosted, preventing their redeployment.
 - Ensures all nodes remain connected to the OTP distribution, including DeployEx itself.
 - Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and DeployEx.
-- Provides the ability to run pre-commans prior deployments for Database migrations or any other eval command.
+- Provides the ability to run pre-commands prior deployments for Database migrations or any other eval command.
 - Provides a friendly UI that only authenticated users can access.
 - Allows setting a previously configured version in the UI, enabling DeployEx to enforce deployment of a specific version.
 - Supports individual application restarts via the UI, including DeployEx itself.
@@ -89,6 +89,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [:soon: **0.6.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.2) | -/-                                                     |                                                            |                                                            |
 | [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
 | [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
 | [**0.5.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2) | **26.2.5.12**                                                  | **27.3.4**                                                 | **28.0** [2]                                               |

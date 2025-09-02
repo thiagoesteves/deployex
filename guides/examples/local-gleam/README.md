@@ -55,7 +55,7 @@ echo "{\"version\":\"0.1.0\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /t
 ```
 
 > [!NOTE]
-> Gleam doesn't have a release command (yet). For DeployEx to operate properly, we need a tarbal that contains the erlang-shipment
+> Gleam doesn't have a release command (yet). For DeployEx to operate properly, we need a tarball that contains the erlang-shipment
 > with the respective version. There is an example in [cochito](https://github.com/chouzar/cochito/blob/main/.github/workflows/release.yml)
 
 ## 4. Running DeployEx and deploy the app

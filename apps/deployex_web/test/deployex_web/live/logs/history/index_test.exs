@@ -16,7 +16,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     :create_history_logs
   ]
 
-  test "GET /applications check buttom", %{conn: conn} do
+  test "GET /applications check button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)

@@ -301,7 +301,7 @@ defmodule DeployexWeb.Components.AppCard do
     "bg-gray-400"
   end
 
-  defp restart_buttom(assigns) do
+  defp restart_button(assigns) do
     ~H"""
     <.link id={Helper.normalize_id("app-restart-#{@sname}")} patch={@restart_path}>
       <button
@@ -341,16 +341,16 @@ defmodule DeployexWeb.Components.AppCard do
     <%= cond do %>
       <% @status == :running and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-green-400 to-green-600"]}>
-          <.restart_buttom sname={@sname} restart_path={@restart_path} />
+          <.restart_button sname={@sname} restart_path={@restart_path} />
           {@version} [running]
         </div>
       <% @status == :pre_commands -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-100 to-yellow-600"]}>
-          <.restart_buttom sname={@sname} restart_path={@restart_path} /> [pre-commands]
+          <.restart_button sname={@sname} restart_path={@restart_path} /> [pre-commands]
         </div>
       <% @status == :starting and @version != nil -> %>
         <div class={[@class, "bg-gradient-to-t from-yellow-400 to-yellow-600"]}>
-          <.restart_buttom sname={@sname} restart_path={@restart_path} />
+          <.restart_button sname={@sname} restart_path={@restart_path} />
           {@version} [starting]
         </div>
       <% true -> %>

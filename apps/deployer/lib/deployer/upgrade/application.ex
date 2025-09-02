@@ -16,7 +16,7 @@ defmodule Deployer.Upgrade.Application do
   3. A sequence of commands is executed by this module:
        a. Unpack a release using release_handler:unpack_release
        b. Create a relup file using systools:make_relup
-       c. Check Intall release using release_handler:check_install_release
+       c. Check Install release using release_handler:check_install_release
          i. Request via RPC to run  ConfigProvider and Runtime and populate sys.config (Only ELixir)
        d. Install the release using release_handler:install_release
        e. Make the release permanent using release_handler:make_permanent
@@ -28,7 +28,7 @@ defmodule Deployer.Upgrade.Application do
   4. ATTENTION:
      The sys.config file contains all application configurations and is not loaded during a
      hot upgrade. For Elixir applications, Config Provider and Runtime are codes that executes
-     when the applicaiton is starting and are required for fetching information.
+     when the application is starting and are required for fetching information.
      To address this, several steps are included in this module to load the new
      version of sys.config and utilize the RPC channel to execute runtime.exs and the config
      provider. It's important to note that these actions occur within the current version,

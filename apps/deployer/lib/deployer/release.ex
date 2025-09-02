@@ -95,7 +95,7 @@ defmodule Deployer.Release do
           "Download and unpack error: #{inspect(reason)} current_sname: #{current_sname} new_sname: #{new_sname}"
         )
 
-        {:error, :donwload_process_error}
+        {:error, :download_process_error}
     end
   after
     Briefly.cleanup()

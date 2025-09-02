@@ -1,8 +1,22 @@
 # CHANGELOG (0.6.x)
 
+## :soon: 0.6.2 ()
+
+### Backwards incompatible changes for 0.6.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-153`](https://github.com/thiagoesteves/deployex/pull/153) Prettify README and fixing typos
+
 ## 0.6.1 🚀 (2025-08-29)
 
-### Backwards incompatible changes for 0.5.2
+### Backwards incompatible changes for 0.6.0
  * None
 
 ### Installer Actions

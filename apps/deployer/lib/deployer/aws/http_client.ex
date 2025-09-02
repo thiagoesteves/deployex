@@ -1,6 +1,6 @@
 defmodule Deployer.Aws.ExAwsHttpClient do
   @moduledoc """
-  Http Cient beahviour implementation using Finch
+  Http Client behaviour implementation using Finch
   """
   @behaviour ExAws.Request.HttpClient
 

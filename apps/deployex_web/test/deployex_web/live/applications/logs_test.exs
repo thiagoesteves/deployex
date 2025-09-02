@@ -172,7 +172,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
-  test "Error accessing deployex logs [this logs are available ony in production]", %{conn: conn} do
+  test "Error accessing deployex logs [this logs are available only in production]", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
