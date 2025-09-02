@@ -192,34 +192,34 @@ DeployEx application typically requires a few environment variables to be define
 Once DeployEx runs, it fetches the configuration from the YAML file described in the path `DEPLOYEX_CONFIG_YAML_PATH`. The YAML file configuration contains the following fields:
 
 ```yaml
-account_name: "prod" # Deployex: Cloud/Environment Account name
-hostname: "deployex.myphoenixapp.com" # Deployex: hostname
-port: 5001 # Deployex: port
-release_adapter: "s3" # Deployex: release adapter type s3 or gcp-storage
-release_bucket: "myphoenixapp-prod-distribution" # Deployex: release distribution bucket name
-secrets_adapter: "aws" # Deployex: release adapter type aws or gcp
-secrets_path: "deployex-myphoenixapp-prod-secrets" # Deployex: secret path to be retrieved from
-aws_region: "sa-east-1" # Deployex: aws region (only for AWS)
-google_credentials: "/home/ubuntu/gcp-config.json" # Deployex: google credentials (only for GCP)
-version: "0.4.0-rc1" # Deployex: Version
-otp_version: 28 # Deployex: Otp version (It needs to match the monitored applications)
+account_name: "prod"                                     # Deployex: Cloud/Environment Account name
+hostname: "deployex.myphoenixapp.com"                    # Deployex: hostname
+port: 5001                                               # Deployex: port
+release_adapter: "s3"                                    # Deployex: release adapter type s3 or gcp-storage
+release_bucket: "myphoenixapp-prod-distribution"         # Deployex: release distribution bucket name
+secrets_adapter: "aws"                                   # Deployex: release adapter type aws or gcp
+secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
+aws_region: "sa-east-1"                                  # Deployex: aws region (only for AWS)
+google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
+version: "0.4.0-rc1"                                     # Deployex: Version
+otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
-os_target: "ubuntu-24.04" # Deployex: Target OS server
-deploy_rollback_timeout_ms: 600000 # Deployex (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
-deploy_schedule_interval_ms: 5000 # Deployex (optional, default: 5000): Periodic checking for new deployments
-metrics_retention_time_ms: 3600000 # Deployex (optional, default: 3600000): Retention time for metrics
-logs_retention_time_ms: 3600000 # Deployex (optional, default: 3600000): Retention time for logs
-monitoring: # Deployex (optional, default: values described in memory): Monitoring features
+os_target: "ubuntu-24.04"                                # Deployex: Target OS server
+deploy_rollback_timeout_ms: 600000                       # Deployex (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+deploy_schedule_interval_ms: 5000                        # Deployex (optional, default: 5000): Periodic checking for new deployments
+metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
+logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
+monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features
   - type: "memory"
-    enable_restart: true # Deployex (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-    warning_threshold_percent: 75 # Deployex (default: 75): Issue a warning if memory usage exceeds this percent
-    restart_threshold_percent: 95 # Deployex (default: 95): Restart app if memory usage exceeds this percent
+    enable_restart: true           # Deployex (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+    warning_threshold_percent: 75  # Deployex (default: 75): Issue a warning if memory usage exceeds this percent
+    restart_threshold_percent: 95  # Deployex (default: 95): Restart app if memory usage exceeds this percent
 applications:
   - name: "myphoenixapp" # Application: Monitored app name (Elixir app name format)
-    language: "elixir" # Application: App language (elixir, erlang or gleam)
-    initial_port: 4000 # Application: The initial port for starting the monitored app
-    replicas: 2 # Application: Number of replicas
-    env: # Application (optional): Environment variables
+    language: "elixir"   # Application: App language (elixir, erlang or gleam)
+    initial_port: 4000   # Application: The initial port for starting the monitored app
+    replicas: 2          # Application: Number of replicas
+    env:                 # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
       - key: MYPHOENIXAPP_PHX_SERVER
@@ -234,9 +234,9 @@ applications:
         value: "myphoenixapp-prod-secrets"
       - key: AWS_REGION
         value: "sa-east-1"
-    monitoring: # Application (optional, default: values described in atom, process and port): Monitoring features
+    monitoring:                       # Application (optional, default: values described in atom, process and port): Monitoring features
       - type: "atom"
-        enable_restart: true # Application (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
+        enable_restart: true          # Application (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
         warning_threshold_percent: 75 # Application (default: 75): Issue a warning if memory usage exceeds this percent
         restart_threshold_percent: 90 # Application (default: 90): Restart app if memory usage exceeds this percent
       - type: "process"
