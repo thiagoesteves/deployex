@@ -209,8 +209,8 @@ defmodule DeployexWeb.Components.NavMenu do
 
   @impl true
   def handle_event(
-        "collpase-click",
-        %{"collpased" => "true"},
+        "collapse-click",
+        %{"collapsed" => "true"},
         %{assigns: %{ui_settings: ui_settings}} = socket
       ) do
     updated_options = %{ui_settings | nav_menu_collapsed: false}
@@ -221,8 +221,8 @@ defmodule DeployexWeb.Components.NavMenu do
   end
 
   def handle_event(
-        "collpase-click",
-        %{"collpased" => "false"},
+        "collapse-click",
+        %{"collapsed" => "false"},
         %{assigns: %{ui_settings: ui_settings}} = socket
       ) do
     updated_options = %{ui_settings | nav_menu_collapsed: true}
@@ -240,8 +240,8 @@ defmodule DeployexWeb.Components.NavMenu do
     ~H"""
     <button
       id="toggle-nav-menu-button"
-      phx-click="collpase-click"
-      phx-value-collpased={to_string(@collapsed)}
+      phx-click="collapse-click"
+      phx-value-collapsed={to_string(@collapsed)}
       phx-target={@target}
       class="ml-1 p-2 rounded-lg hover:bg-gray-400"
     >

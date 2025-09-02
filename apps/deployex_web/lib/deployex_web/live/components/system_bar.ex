@@ -130,7 +130,7 @@ defmodule DeployexWeb.Components.SystemBar do
         "windows.png"
 
       true ->
-        "unknow.png"
+        "unknown.png"
     end
   end
 end

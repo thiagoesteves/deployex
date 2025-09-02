@@ -15,7 +15,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     :log_in_default_user
   ]
 
-  test "GET /applications check buttom", %{conn: conn} do
+  test "GET /applications check button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)
