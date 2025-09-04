@@ -71,8 +71,8 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 Your application is now better protected from crashes caused by excessive memory usage, port/atom exhaustion, or too many processes.
 
-🧠 Curious why monitoring memory is essential?  
-Check out this must-watch video:  
+🧠 Curious why monitoring memory is essential?
+Check out this must-watch video:
 ▶️ [Battling Memory Leaks: Tales from the Trenches at WhatsApp](https://youtu.be/NCgsTBeQbc8)
 
 ## ⚠️ [Next steps](https://github.com/thiagoesteves/deployex/issues)
@@ -291,14 +291,45 @@ Your application will likely require database commands, such as migrations. Depl
 
 ### 🔐 Secrets Requirements
 
-DeployEx uses Secret Manager (AWS or GCP) to fetch its secrets via the config provider. The following environment variable configuration is expected for Secret Manager:
+DeployEx supports multiple secret management backends for secure configuration:
+
+#### HashiCorp Vault
+
+DeployEx can integrate with HashiCorp Vault for centralized secret management:
+
+```bash
+# Environment variables
+export VAULTX_URL="https://vault.example.com:8200"
+export VAULTX_TOKEN="hvs.xxxxx"
+export VAULTX_MOUNT_PATH="secret"  # optional, defaults to "secret"
+```
+
+YAML configuration:
+
+```yaml
+secrets_adapter: "vault"
+secrets_path: "deployex/prod/secrets"
+vault_mount_path: "secret"  # optional
+```
+
+#### AWS Secrets Manager
+
+```bash
+DEPLOYEX_SECRETS_ADAPTER=aws
+DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
+```
+
+#### GCP Secret Manager
 
 ```bash
 DEPLOYEX_SECRETS_ADAPTER=gcp
 DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
 ```
 
+#### Required Secret Values
+
 Within the secrets, the following key-value pairs are required:
+
 | ENV NAME | EXAMPLE | DESCRIPTION |
 |----------|-------------|------|
 | **DEPLOYEX_SECRET_KEY_BASE** | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
