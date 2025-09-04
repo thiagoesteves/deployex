@@ -38,6 +38,8 @@ defmodule Foundation.MixProject do
       {:ex_aws, "~> 2.1"},
       {:goth, "~> 1.4"},
       {:yaml_elixir, "~> 2.0"},
+      # Vault integration (optional for backward compatibility)
+      {:vaultx, "~> 0.7", optional: true},
       # Static Analysis
       {:mox, "~> 1.0", only: :test}
     ]
