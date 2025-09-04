@@ -2,7 +2,6 @@ defmodule DeployexWeb.HistoryLive do
   use DeployexWeb, :live_view
 
   alias Deployer.Monitor
-  alias DeployexWeb.Components.Attention
   alias DeployexWeb.Components.MultiSelect
   alias DeployexWeb.Helper
   alias Sentinel.Logs
