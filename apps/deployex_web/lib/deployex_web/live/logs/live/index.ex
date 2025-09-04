@@ -21,54 +21,72 @@ defmodule DeployexWeb.LogsLive do
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
-      <div class="min-h-screen bg-white">
-        <div class="flex">
-          <MultiSelect.content
-            id="logs-live-multi-select"
-            selected_text="Selected logs"
-            selected={[
-              %{name: "services", keys: @node_info.selected_services},
-              %{name: "logs", keys: @node_info.selected_logs}
-            ]}
-            unselected={[
-              %{
-                name: "services",
-                keys: @unselected_services,
-                unselected_highlight: @services_unselected_highlight
-              },
-              %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
-            ]}
-            show_options={@show_log_options}
-          />
-          <button
-            id="logs-live-multi-select-reset"
-            phx-click="logs-live-reset"
-            class="phx-submit-loading:opacity-75 rounded-lg bg-cyan-500 transform active:scale-75 transition-transform hover:bg-cyan-900 mb-1 py-2 px-3 mt-2 mr-2 text-sm font-semibold leading-6 text-white active:text-white/80"
-          >
-            RESET
-          </button>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
+      <div class="min-h-screen bg-base-300">
+        <!-- Header -->
+        <div class="bg-base-100 border-b border-base-200 shadow-sm">
+          <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-bold text-base-content">Live Logs</h1>
+                <p class="text-base-content/60 mt-1">Real-time application logs monitoring</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <button
+                  id="logs-live-multi-select-reset"
+                  phx-click="logs-live-reset"
+                  class="btn btn-error btn-sm"
+                  phx-disable-with="Resetting..."
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    >
+                    </path>
+                  </svg>
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="p-2">
-          <div class="bg-white w-full shadow-lg rounded">
-            <.table_logs id="logs-live-table" rows={@streams.log_messages}>
-              <:col :let={{_id, log_message}} label="SERVICE">
-                <div class="flex">
-                  <span
-                    class="w-[5px] rounded ml-1 mr-1"
-                    style={"background-color: #{log_message.color};"}
-                  >
-                  </span>
-                  <span>{log_message.service}</span>
-                </div>
-              </:col>
-              <:col :let={{_id, log_message}} label="TYPE">
-                {log_message.type}
-              </:col>
-              <:col :let={{_id, log_message}} label="CONTENT">
-                {log_message.content}
-              </:col>
-            </.table_logs>
+        
+    <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-6 py-6">
+          <!-- Filters Card -->
+          <div class="card bg-base-100 shadow-sm mb-6">
+            <div class="card-body p-6">
+              <h2 class="card-title text-lg mb-4">Log Filters</h2>
+              <MultiSelect.content
+                id="logs-live-multi-select"
+                selected_text="Selected logs"
+                selected={[
+                  %{name: "services", keys: @node_info.selected_services},
+                  %{name: "logs", keys: @node_info.selected_logs}
+                ]}
+                unselected={[
+                  %{
+                    name: "services",
+                    keys: @unselected_services,
+                    unselected_highlight: @services_unselected_highlight
+                  },
+                  %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
+                ]}
+                show_options={@show_log_options}
+              />
+            </div>
+          </div>
+          
+    <!-- Logs Display Card -->
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-0">
+              <div class="overflow-x-auto">
+                <.modern_logs_table id="logs-live-table" rows={@streams.log_messages} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -85,6 +103,7 @@ defmodule DeployexWeb.LogsLive do
      socket
      |> assign(:node_info, update_node_info())
      |> assign(:show_log_options, false)
+     |> assign(:current_path, "/logs/live")
      |> stream(:log_messages, [])}
   end
 
@@ -94,6 +113,7 @@ defmodule DeployexWeb.LogsLive do
      socket
      |> assign(:node_info, node_info_new())
      |> assign(:show_log_options, false)
+     |> assign(:current_path, "/logs/live")
      |> stream(:log_messages, [])}
   end
 
@@ -178,8 +198,26 @@ defmodule DeployexWeb.LogsLive do
     {:noreply, socket |> assign(:show_log_options, show_log_options)}
   end
 
-  def handle_event("logs-live-reset", _value, socket) do
-    {:noreply, stream(socket, :log_messages, [], reset: true)}
+  def handle_event(
+        "logs-live-reset",
+        _value,
+        %{assigns: %{node_info: current_node_info}} = socket
+      ) do
+    # Unsubscribe from all current log subscriptions
+    for service <- current_node_info.selected_services,
+        log <- current_node_info.selected_logs do
+      Logs.unsubscribe_for_new_logs(service, log)
+    end
+
+    # Reset log messages and filters
+    node_info = update_node_info([], [])
+
+    {:noreply,
+     socket
+     |> assign(:node_info, node_info)
+     |> assign(:show_log_options, false)
+     |> stream(:log_messages, [], reset: true)
+     |> put_flash(:info, "Logs and filters have been reset successfully")}
   end
 
   @impl true
