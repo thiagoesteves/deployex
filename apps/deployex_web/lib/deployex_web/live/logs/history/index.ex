@@ -25,71 +25,180 @@ defmodule DeployexWeb.HistoryLive do
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
-      <div class="min-h-screen bg-white">
-        <Attention.content
-          id="logs-history-attention"
-          title="Configuration"
-          class="border-orange-400 text-orange-500 rounded-r-xl w-full"
-          message={@attention_msg}
-        >
-          <:inner_form>
-            <.form
-              for={@form}
-              id="logs-history-update-form"
-              class="flex ml-2 mr-2 text-xs rounded-r-xl text-center text-black whitespace-nowrap gap-5"
-              phx-change="form-update"
-            >
-              <.input
-                field={@form[:start_time]}
-                type="select"
-                label="Start Time"
-                options={["1m", "5m", "15m", "30m", "1h"]}
-              />
-            </.form>
-          </:inner_form>
-        </Attention.content>
-
-        <div class="bg-white">
-          <div class="flex">
-            <MultiSelect.content
-              id="logs-history-multi-select"
-              selected_text="Selected logs"
-              selected={[
-                %{name: "services", keys: @node_info.selected_services},
-                %{name: "logs", keys: @node_info.selected_logs}
-              ]}
-              unselected={[
-                %{
-                  name: "services",
-                  keys: @unselected_services,
-                  unselected_highlight: @services_unselected_highlight
-                },
-                %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
-              ]}
-              show_options={@show_log_options}
-            />
-          </div>
-          <div class="p-2">
-            <div class="bg-white w-full shadow-lg rounded">
-              <.table_logs id="logs-history-table" rows={@log_messages}>
-                <:col :let={log_message} label="SERVICE">
-                  <div class="flex">
-                    <span
-                      class="w-[5px] rounded ml-1 mr-1"
-                      style={"background-color: #{log_message.color};"}
-                    >
-                    </span>
-                    <span>{log_message.service}</span>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
+      <div class="min-h-screen bg-base-300">
+        <!-- Header -->
+        <div class="bg-base-100 border-b border-base-200 shadow-sm">
+          <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-bold text-base-content">History Logs</h1>
+                <p class="text-base-content/60 mt-1">Browse historical application logs</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <!-- Time Range Selector -->
+                <div class="dropdown dropdown-end">
+                  <div tabindex="0" role="button" class="btn btn-outline btn-sm gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      >
+                      </path>
+                    </svg>
+                    Time Range: {@form.params["start_time"] || "5m"}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"
+                      >
+                      </path>
+                    </svg>
                   </div>
-                </:col>
-                <:col :let={log_message} label="TYPE">
-                  {log_message.type}
-                </:col>
-                <:col :let={log_message} label="CONTENT">
-                  {log_message.content}
-                </:col>
-              </.table_logs>
+                  <ul
+                    tabindex="0"
+                    class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow-lg border border-base-200"
+                  >
+                    <.form
+                      for={@form}
+                      id="logs-history-update-form"
+                      phx-change="form-update"
+                      class="contents"
+                    >
+                      <li :for={option <- ["1m", "5m", "15m", "30m", "1h"]}>
+                        <label class="label cursor-pointer justify-start gap-3">
+                          <input
+                            type="radio"
+                            name="start_time"
+                            value={option}
+                            checked={@form.params["start_time"] == option}
+                            class="radio radio-primary radio-sm"
+                          />
+                          <span class="label-text">{option}</span>
+                        </label>
+                      </li>
+                    </.form>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+    <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-6 py-6">
+          <!-- Filters Card -->
+          <div class="card bg-base-100 shadow-sm mb-6">
+            <div class="card-body p-6">
+              <h2 class="card-title text-lg mb-4">Log Filters</h2>
+              <MultiSelect.content
+                id="logs-history-multi-select"
+                selected_text="Selected logs"
+                selected={[
+                  %{name: "services", keys: @node_info.selected_services},
+                  %{name: "logs", keys: @node_info.selected_logs}
+                ]}
+                unselected={[
+                  %{
+                    name: "services",
+                    keys: @unselected_services,
+                    unselected_highlight: @services_unselected_highlight
+                  },
+                  %{name: "logs", keys: @unselected_logs, unselected_highlight: []}
+                ]}
+                show_options={@show_log_options}
+              />
+            </div>
+          </div>
+          
+    <!-- Statistics Card -->
+          <div :if={length(@log_messages) > 0} class="stats shadow mb-6">
+            <div class="stat">
+              <div class="stat-figure text-primary">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  >
+                  </path>
+                </svg>
+              </div>
+              <div class="stat-title">Total Logs</div>
+              <div class="stat-value text-primary">{length(@log_messages)}</div>
+              <div class="stat-desc">Historical log entries</div>
+            </div>
+
+            <div class="stat">
+              <div class="stat-figure text-secondary">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  >
+                  </path>
+                </svg>
+              </div>
+              <div class="stat-title">Services</div>
+              <div class="stat-value text-secondary">{length(@node_info.selected_services)}</div>
+              <div class="stat-desc">Active services</div>
+            </div>
+
+            <div class="stat">
+              <div class="stat-figure text-accent">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
+              </div>
+              <div class="stat-title">Time Range</div>
+              <div class="stat-value text-accent">{@form.params["start_time"] || "5m"}</div>
+              <div class="stat-desc">Looking back</div>
+            </div>
+          </div>
+          
+    <!-- Logs Display Card -->
+          <div class="card bg-base-100 shadow-sm">
+            <div class="card-body p-0">
+              <div :if={length(@log_messages) == 0} class="p-12 text-center">
+                <div class="flex flex-col items-center gap-4">
+                  <svg
+                    class="w-16 h-16 text-base-content/30"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    >
+                    </path>
+                  </svg>
+                  <div>
+                    <h3 class="text-lg font-semibold text-base-content/70">No logs found</h3>
+                    <p class="text-base-content/50 mt-1">
+                      Try selecting different services or extending the time range
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div :if={length(@log_messages) > 0} class="overflow-x-auto">
+                <.modern_history_logs_table id="logs-history-table" rows={@log_messages} />
+              </div>
             </div>
           </div>
         </div>
@@ -105,7 +214,8 @@ defmodule DeployexWeb.HistoryLive do
      |> assign(:node_info, update_node_info())
      |> assign(form: to_form(default_form_options()))
      |> assign(:log_messages, [])
-     |> assign(:show_log_options, false)}
+     |> assign(:show_log_options, false)
+     |> assign(:current_path, "/logs/history")}
   end
 
   @impl true
@@ -115,7 +225,8 @@ defmodule DeployexWeb.HistoryLive do
      |> assign(:node_info, node_info_new())
      |> assign(form: to_form(default_form_options()))
      |> assign(:log_messages, [])
-     |> assign(:show_log_options, false)}
+     |> assign(:show_log_options, false)
+     |> assign(:current_path, "/logs/history")}
   end
 
   @impl true
