@@ -4,9 +4,14 @@ defmodule DeployexWeb.DocsLive do
   use DeployexWeb, :live_view
 
   @impl true
+  def mount(_params, _session, socket) do
+    {:ok, assign(socket, :current_path, "/applications/deployex/docs")}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
       <div>
         <iframe
           src={~p"/docs/index.html"}
