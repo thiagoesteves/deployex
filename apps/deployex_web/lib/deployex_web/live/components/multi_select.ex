@@ -138,21 +138,4 @@ defmodule DeployexWeb.Components.MultiSelect do
   defp category_color("services"), do: "bg-primary"
   defp category_color("logs"), do: "bg-secondary"
   defp category_color(_), do: "bg-accent"
-
-  # Legacy functions for backward compatibility
-  defp border_item_color("services"), do: "border-teal-300"
-  defp border_item_color("logs"), do: "border-yellow-400"
-  defp border_item_color(_), do: "border-gray-300"
-
-  defp text_item_color("services"), do: "text-teal-700"
-  defp text_item_color("logs"), do: "text-yellow-700"
-  defp text_item_color(_), do: "text-teal-700"
-
-  defp unselected_highlight_color(key, unselected_highlight) do
-    if key in unselected_highlight do
-      "text-gray-700 bg-green-100 borde border-green-300"
-    else
-      "text-gray-700 bg-gray-100 borde border-gray-300"
-    end
-  end
 end
