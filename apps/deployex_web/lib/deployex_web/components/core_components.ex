@@ -50,41 +50,38 @@ defmodule DeployexWeb.CoreComponents do
       phx-mounted={@show && show_modal(@id)}
       phx-remove={hide_modal(@id)}
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
-      class="relative z-50 hidden"
+      class="modal modal-open"
     >
-      <div id={"#{@id}-bg"} class="bg-zinc-50/90 fixed inset-0 transition-opacity" aria-hidden="true" />
+      <div class="modal-backdrop bg-base-content/20 backdrop-blur-sm" aria-hidden="true"></div>
       <div
-        class="fixed inset-0 overflow-y-auto"
+        class="modal-box relative max-w-none w-full bg-base-100 border border-base-200 shadow-lg"
+        style={"max-width: #{String.replace(@max_size, "max-w-", "")}"}
         aria-labelledby={"#{@id}-title"}
         aria-describedby={"#{@id}-description"}
         role="dialog"
         aria-modal="true"
         tabindex="0"
       >
-        <div class="flex min-h-full items-center justify-center">
-          <div class={["w-full", "#{@max_size}", "p-4 sm:p-6 lg:py-8"]}>
-            <.focus_wrap
-              id={"#{@id}-container"}
-              phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
-              phx-key="escape"
-              class="shadow-zinc-700/10 ring-zinc-700/10 relative hidden rounded-2xl bg-white p-14 shadow-lg ring-1 transition"
+        <.focus_wrap
+          id={"#{@id}-container"}
+          phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+          phx-key="escape"
+          class="w-full"
+        >
+          <div class="absolute top-4 right-4 z-10">
+            <button
+              phx-click={JS.exec("data-cancel", to: "##{@id}")}
+              type="button"
+              class="btn btn-sm btn-circle btn-ghost hover:bg-base-200"
+              aria-label={gettext("close")}
             >
-              <div class="absolute top-6 right-5">
-                <button
-                  phx-click={JS.exec("data-cancel", to: "##{@id}")}
-                  type="button"
-                  class="-m-3 flex-none p-3 opacity-20 hover:opacity-40"
-                  aria-label={gettext("close")}
-                >
-                  <.icon name="hero-x-mark-solid" class="h-5 w-5 bg-black" />
-                </button>
-              </div>
-              <div id={"#{@id}-content"}>
-                {render_slot(@inner_block)}
-              </div>
-            </.focus_wrap>
+              <.icon name="hero-x-mark-solid" class="h-4 w-4" />
+            </button>
           </div>
-        </div>
+          <div id={"#{@id}-content"} class="pt-6">
+            {render_slot(@inner_block)}
+          </div>
+        </.focus_wrap>
       </div>
     </div>
     """
@@ -121,7 +118,11 @@ defmodule DeployexWeb.CoreComponents do
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       class="relative z-50 hidden"
     >
-      <div id={"#{@id}-bg"} class="bg-zinc-50/90 fixed inset-0 transition-opacity" aria-hidden="true" />
+      <div
+        id={"#{@id}-bg"}
+        class="bg-base-content/20 backdrop-blur-sm fixed inset-0 transition-opacity"
+        aria-hidden="true"
+      />
       <div
         class="fixed inset-0 overflow-y-auto"
         aria-labelledby={"#{@id}-title"}
@@ -136,19 +137,19 @@ defmodule DeployexWeb.CoreComponents do
               id={"#{@id}-container"}
               phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
               phx-key="escape"
-              class="shadow-zinc-700/10 ring-zinc-700/10 relative hidden rounded-2xl bg-gray-200 p-14 shadow-lg ring-1 transition"
+              class="relative hidden rounded-xl bg-base-100 border border-base-200 shadow-lg transition"
             >
-              <div class="absolute top-6 right-5">
+              <div class="absolute top-4 right-4 z-10">
                 <button
                   phx-click={JS.exec("data-cancel", to: "##{@id}")}
                   type="button"
-                  class="-m-3 flex-none p-3 opacity-20 hover:opacity-40"
+                  class="btn btn-sm btn-circle btn-ghost hover:bg-base-200"
                   aria-label={gettext("close")}
                 >
-                  <.icon name="hero-x-mark-solid" class="h-5 w-5" />
+                  <.icon name="hero-x-mark-solid" class="h-4 w-4" />
                 </button>
               </div>
-              <div id={"#{@id}-content"}>
+              <div id={"#{@id}-content"} class="p-6">
                 {render_slot(@inner_block)}
               </div>
             </.focus_wrap>
@@ -550,6 +551,217 @@ defmodule DeployexWeb.CoreComponents do
   end
 
   @doc ~S"""
+  Renders a modern history logs table with DaisyUI styling and timestamp.
+  """
+  attr :id, :string, required: true
+  attr :rows, :list, required: true
+
+  def modern_history_logs_table(assigns) do
+    ~H"""
+    <div class="max-h-[600px] overflow-y-auto" id={"#{@id}-container"}>
+      <table class="table table-zebra table-pin-rows">
+        <thead>
+          <tr class="bg-base-200">
+            <th class="w-40">
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-4 h-4 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
+                Timestamp
+              </div>
+            </th>
+            <th class="w-32">
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-4 h-4 text-secondary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  >
+                  </path>
+                </svg>
+                Service
+              </div>
+            </th>
+            <th class="w-24">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                  >
+                  </path>
+                </svg>
+                Type
+              </div>
+            </th>
+            <th>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  >
+                  </path>
+                </svg>
+                Content
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={log_message <- @rows} class="hover:bg-base-200/50 transition-colors duration-150">
+            <td class="font-mono text-xs text-base-content/70">
+              <div class="flex flex-col">
+                <span>{format_timestamp(log_message.timestamp)}</span>
+                <span class="text-xs text-base-content/50">
+                  {format_time_only(log_message.timestamp)}
+                </span>
+              </div>
+            </td>
+            <td class="font-mono text-sm">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
+                </div>
+                <span class="badge badge-outline badge-sm">{log_message.service}</span>
+              </div>
+            </td>
+            <td>
+              <div class="badge badge-neutral badge-sm">{log_message.type}</div>
+            </td>
+            <td class="font-mono text-sm text-base-content/90 max-w-0 truncate">
+              {log_message.content}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    """
+  end
+
+  @doc ~S"""
+  Renders a modern logs table with DaisyUI styling.
+  """
+  attr :id, :string, required: true
+  attr :rows, :list, required: true
+  attr :row_id, :any, default: nil, doc: "the function for generating the row id"
+
+  def modern_logs_table(assigns) do
+    assigns =
+      with %{rows: %Phoenix.LiveView.LiveStream{}} <- assigns do
+        assign(assigns, row_id: assigns.row_id || fn {id, _item} -> id end)
+      end
+
+    ~H"""
+    <div class="h-[600px] overflow-y-auto" id={"#{@id}-container"} phx-hook="ScrollBottom">
+      <table class="table table-zebra table-pin-rows">
+        <thead>
+          <tr class="bg-base-200">
+            <th class="w-32">
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-4 h-4 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  >
+                  </path>
+                </svg>
+                Service
+              </div>
+            </th>
+            <th class="w-24">
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-4 h-4 text-secondary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                  >
+                  </path>
+                </svg>
+                Type
+              </div>
+            </th>
+            <th>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  >
+                  </path>
+                </svg>
+                Content
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody
+          id={"#{@id}-tbody"}
+          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
+        >
+          <tr
+            :for={row <- @rows}
+            id={@row_id && @row_id.(row)}
+            class="hover:bg-base-200/50 transition-colors duration-150"
+          >
+            <td class="font-mono text-sm">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full" style={"background-color: #{elem(row, 1).color};"}>
+                </div>
+                <span class="badge badge-outline badge-sm">{elem(row, 1).service}</span>
+              </div>
+            </td>
+            <td>
+              <div class="badge badge-neutral badge-sm">{elem(row, 1).type}</div>
+            </td>
+            <td class="font-mono text-sm text-base-content/90 max-w-0 truncate">
+              {elem(row, 1).content}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    """
+  end
+
+  @doc ~S"""
   Renders a table with generic log styling.
 
   ## Examples
@@ -775,6 +987,23 @@ defmodule DeployexWeb.CoreComponents do
     |> JS.remove_class("overflow-hidden", to: "body")
     |> JS.pop_focus()
   end
+
+  # Helper functions for timestamp formatting
+  defp format_timestamp(timestamp) when is_integer(timestamp) do
+    timestamp
+    |> DateTime.from_unix!(:microsecond)
+    |> Calendar.strftime("%m-%d %H:%M")
+  end
+
+  defp format_timestamp(_), do: "N/A"
+
+  defp format_time_only(timestamp) when is_integer(timestamp) do
+    timestamp
+    |> DateTime.from_unix!(:microsecond)
+    |> Calendar.strftime("%H:%M:%S")
+  end
+
+  defp format_time_only(_), do: "N/A"
 
   @doc """
   Translates an error message using gettext.
