@@ -39,77 +39,81 @@ defmodule DeployexWeb.Components.SystemBar do
       end
 
     ~H"""
-    <div class="items-center bg-white">
-      <div
-        id="live-memory-bar"
-        class="flex p-1 border-l-8 border-blue-400 rounded bg-gray-300 text-blue-500"
-        role="alert"
-      >
-        <div class="flex items-center py-2">
-          <img
-            src="/images/erlang-otp.png"
-            alt=""
-            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
-          />
-          <span class="sr-only">Elixir</span>
-          <h3 class="text-sm font-medium text-nowrap ">OTP-{System.otp_release()}</h3>
+    <div class="bg-base-100 shadow-sm">
+      <div id="live-memory-bar" class="navbar h-16 px-8" role="banner">
+        <div class="navbar-start">
+          <div class="flex items-center gap-8">
+            <!-- Tech Stack -->
+            <div class="flex items-center gap-6">
+              <div class="flex items-center gap-3">
+                <img src="/images/erlang-otp.png" alt="OTP" class="w-8 h-8" />
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-base-content">OTP</span>
+                  <span class="text-xs text-base-content/60">{System.otp_release()}</span>
+                </div>
+              </div>
 
-          <img
-            src="/images/elixir.png"
-            alt=""
-            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
-          />
-          <span class="sr-only">Elixir</span>
-          <h3 class="text-sm font-medium text-nowrap ">v{Application.spec(:elixir, :vsn)}</h3>
+              <div class="flex items-center gap-3">
+                <img src="/images/elixir.png" alt="Elixir" class="w-8 h-8" />
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-base-content">Elixir</span>
+                  <span class="text-xs text-base-content/60">v{Application.spec(:elixir, :vsn)}</span>
+                </div>
+              </div>
 
-          <img
-            src="/images/phoenix.png"
-            alt=""
-            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
-          />
-
-          <span class="sr-only">Phoenix</span>
-          <h3 class="text-sm font-medium text-nowrap ">v{Application.spec(:phoenix, :vsn)}</h3>
-
-          <img
-            src={"/images/#{host_system_image(@system)}"}
-            alt=""
-            style="width: 24px; height: 24px; margin-left: 10px; margin-right: 5px"
-          />
-          <span class="sr-only">Info</span>
-          <h3 class="text-sm font-medium text-nowrap ">{@system} - {@description}</h3>
+              <div class="flex items-center gap-3">
+                <img src="/images/phoenix.png" alt="Phoenix" class="w-8 h-8" />
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-base-content">Phoenix</span>
+                  <span class="text-xs text-base-content/60">
+                    v{Application.spec(:phoenix, :vsn)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+    <!-- System Info -->
+            <div class="divider divider-horizontal mx-4"></div>
+            <div class="flex items-center gap-3">
+              <img src={"/images/#{host_system_image(@system)}"} alt="System" class="w-8 h-8" />
+              <div class="flex flex-col">
+                <span class="text-sm font-semibold text-base-content">{@system}</span>
+                <span class="text-xs text-base-content/60">{@description}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="ml-10 grid grid-cols-6  w-full items-center">
-          <div class="text-center text-black text-xs font-bold">MEMORY</div>
-
-          <div>
-            <div class="rounded-full border border-blue-500 p-1 bg-gradient-to-tr from-indigo-600 to-green-600 p-0.5">
-              <div
-                class="flex h-6 items-center justify-center rounded-full bg-blue-300 text-xs leading-none"
-                style={["width: #{@memory_used}%;", "height: 85%;"]}
-              >
-                <span class="p-1 text-black font-bold text-nowrap">{@memory_used}%</span>
+        <div class="navbar-end">
+          <div class="flex items-center gap-8">
+            <!-- Memory Usage -->
+            <div class="flex items-center gap-3">
+              <div class="flex flex-col items-end">
+                <span class="text-sm font-semibold text-base-content">Memory</span>
+                <span class="text-xs text-base-content/60">{@memory_max}G Total</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <progress class="progress progress-info w-20 h-2" value={@memory_used} max="100">
+                </progress>
+                <span class="text-sm font-bold text-info min-w-[3rem] text-right">
+                  {@memory_used}%
+                </span>
+              </div>
+            </div>
+            
+    <!-- CPU Usage -->
+            <div class="flex items-center gap-3">
+              <div class="flex flex-col items-end">
+                <span class="text-sm font-semibold text-base-content">CPU</span>
+                <span class="text-xs text-base-content/60">{@cpus_max}% Max</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <progress class="progress progress-warning w-20 h-2" value={@cpus_used} max="100">
+                </progress>
+                <span class="text-sm font-bold text-warning min-w-[3rem] text-right">{@cpu}%</span>
               </div>
             </div>
           </div>
-
-          <div class="ml-3 text-xs text-black font-bold">{@memory_max}G</div>
-
-          <div class="text-center text-black text-xs  font-bold">CPU</div>
-
-          <div>
-            <div class="rounded-full border border-blue-500 p-1 bg-gradient-to-tr from-indigo-600 to-green-600 p-0.5">
-              <div
-                class="flex h-6 items-center justify-center rounded-full bg-blue-300 text-xs leading-none"
-                style={["width: #{@cpus_used}%;", "height: 85%;"]}
-              >
-                <span class="p-1 text-black font-bold text-nowrap">{@cpu} %</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="ml-3 text-xs text-black font-bold">{@cpus_max}%</div>
         </div>
       </div>
     </div>
