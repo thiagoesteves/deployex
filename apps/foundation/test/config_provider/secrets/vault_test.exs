@@ -59,6 +59,61 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
+  test "secrets/3 with custom vault_mount_path" do
+    with_mocks([
+      {Vaultx.Secrets.KV.V2, [],
+       [
+         read: fn "deployex/prod/secrets", [mount_path: "custom-kv", cache: false] ->
+           {:ok,
+            %{
+              data: %{
+                "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+                  "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+                "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+                "DEPLOYEX_SECRET_KEY_BASE" =>
+                  "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+              }
+            }}
+         end
+       ]}
+    ]) do
+      System.put_env("VAULTX_URL", "https://vault.test:8200")
+      System.put_env("VAULTX_TOKEN", "test-token")
+
+      assert [
+               {:foundation,
+                [
+                  {Manager,
+                   [adapter: Vault, path: "deployex/prod/secrets", vault_mount_path: "custom-kv"]},
+                  {:env, "prod"},
+                  {Foundation.Accounts,
+                   [
+                     admin_hashed_password:
+                       "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq"
+                   ]}
+                ]},
+               {:deployex_web,
+                [
+                  {DeployexWeb.Endpoint,
+                   [
+                     secret_key_base:
+                       "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+                   ]}
+                ]}
+             ] =
+               Manager.load(
+                 [
+                   foundation: [
+                     {Manager,
+                      adapter: Vault, path: "deployex/prod/secrets", vault_mount_path: "custom-kv"},
+                     {:env, "prod"}
+                   ]
+                 ],
+                 []
+               )
+    end
+  end
+
   test "secrets/3 with connection error" do
     with_mocks([
       {Vaultx.Secrets.KV.V2, [],

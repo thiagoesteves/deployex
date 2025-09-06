@@ -57,6 +57,37 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
              )
   end
 
+  test "load/2 with adapter-specific configuration options" do
+    SecretsMock
+    |> stub(:secrets, fn _config, _path, options ->
+      # Verify that adapter-specific options are passed correctly
+      assert Keyword.get(options, :vault_mount_path) == "custom-kv"
+      assert Keyword.get(options, :custom_option) == "test-value"
+
+      %{
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+        "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+        "DEPLOYEX_SECRET_KEY_BASE" =>
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+      }
+    end)
+
+    Manager.load(
+      [
+        foundation: [
+          {Manager,
+           adapter: SecretsMock,
+           path: "any-env-path",
+           vault_mount_path: "custom-kv",
+           custom_option: "test-value"},
+          {:env, "prod"}
+        ]
+      ],
+      []
+    )
+  end
+
   test "load/2 with non-local config and set cookie" do
     SecretsMock
     |> stub(:secrets, fn _config, _path, _options ->
