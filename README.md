@@ -295,36 +295,61 @@ DeployEx supports multiple secret management backends for secure configuration:
 
 #### HashiCorp Vault
 
-DeployEx can integrate with HashiCorp Vault for centralized secret management:
+DeployEx can integrate with [HashiCorp Vault](https://developer.hashicorp.com/vault) for centralized secret management:
 
-```bash
-# Environment variables
-export VAULTX_URL="https://vault.example.com:8200"
-export VAULTX_TOKEN="hvs.xxxxx"
-export VAULTX_MOUNT_PATH="secret"  # optional, defaults to "secret"
-```
+- Environment variables:
 
-YAML configuration:
+  ```bash
+  # VAULTX variables for HashiCorp Vault client
+  export VAULTX_URL="https://vault.example.com:8200"
+  export VAULTX_TOKEN="hvs.xxxxx"
+  # optional, defaults to "secret"
+  export VAULTX_MOUNT_PATH="secret"
 
-```yaml
-secrets_adapter: "vault"
-secrets_path: "deployex/prod/secrets"
-vault_mount_path: "secret"  # optional
-```
+  export DEPLOYEX_SECRETS_ADAPTER=vault
+  export DEPLOYEX_SECRETS_PATH=deployex/prod/secrets
+  ```
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "vault"
+  secrets_path: "deployex/prod/secrets"
+  # optional
+  vault_mount_path: "secret"
+  ```
 
 #### AWS Secrets Manager
 
-```bash
-DEPLOYEX_SECRETS_ADAPTER=aws
-DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
-```
+- Environment variables:
+
+  ```bash
+  export DEPLOYEX_SECRETS_ADAPTER=aws
+  export DEPLOYEX_SECRETS_PATH=deployex-prod-secrets
+  ```
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "aws"
+  secrets_path: "deployex-prod-secrets"
+  ```
 
 #### GCP Secret Manager
 
-```bash
-DEPLOYEX_SECRETS_ADAPTER=gcp
-DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
-```
+- Environment variables:
+
+  ```bash
+  export DEPLOYEX_SECRETS_ADAPTER=gcp
+  export DEPLOYEX_SECRETS_PATH=deployex-prod-secrets
+  ```
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "gcp"
+  secrets_path: "deployex-prod-secrets"
+  ```
 
 #### Required Secret Values
 
