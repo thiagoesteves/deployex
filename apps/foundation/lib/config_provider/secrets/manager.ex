@@ -29,15 +29,16 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     Logger.info("Running Config Provider for Secrets")
     env = Keyword.get(config, :foundation) |> Keyword.get(:env)
 
-    secrets_adapter =
+    # Get all secrets manager configuration
+    secrets_manager_config =
       Keyword.get(config, :foundation)
-      |> Keyword.get(Foundation.ConfigProvider.Secrets.Manager)
-      |> Keyword.get(:adapter)
+      |> Keyword.get(Foundation.ConfigProvider.Secrets.Manager, [])
 
-    secrets_path =
-      Keyword.get(config, :foundation)
-      |> Keyword.get(Foundation.ConfigProvider.Secrets.Manager)
-      |> Keyword.get(:path)
+    secrets_adapter = Keyword.get(secrets_manager_config, :adapter)
+    secrets_path = Keyword.get(secrets_manager_config, :path)
+
+    # Build adapter options from configuration
+    adapter_opts = build_adapter_opts(secrets_manager_config, opts)
 
     if env == "local" do
       Logger.info("  - No secrets retrieved, local environment")
@@ -45,7 +46,7 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     else
       Logger.info("  - Trying to retrieve secrets: #{secrets_adapter} - #{secrets_path}")
 
-      secrets = secrets_adapter.secrets(config, secrets_path, opts)
+      secrets = secrets_adapter.secrets(config, secrets_path, adapter_opts)
 
       admin_hashed_password =
         keyword(:admin_hashed_password, secrets["DEPLOYEX_ADMIN_HASHED_PASSWORD"])
@@ -74,5 +75,23 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
 
   defp keyword(key_name, value) do
     Keyword.new([{key_name, value}])
+  end
+
+  # Build adapter-specific options from configuration.
+  #
+  # This function extracts adapter-specific configuration options and merges them
+  # with the base opts parameter. This ensures that configuration from YAML files
+  # and environment variables are properly passed to the secrets adapters.
+  defp build_adapter_opts(secrets_manager_config, base_opts) do
+    # Extract adapter-specific options from configuration
+    adapter_specific_opts =
+      secrets_manager_config
+      # Remove non-adapter options
+      |> Keyword.drop([:adapter, :path])
+      # Remove nil values
+      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
+
+    # Merge with base opts, giving priority to configuration
+    Keyword.merge(base_opts, adapter_specific_opts)
   end
 end
