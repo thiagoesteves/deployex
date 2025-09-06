@@ -65,7 +65,7 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
   end
 
   defp ensure_vaultx_available! do
-    unless Code.ensure_loaded?(Vaultx.Secrets.KV.V2) do
+    if not Code.ensure_loaded?(Vaultx.Secrets.KV.V2) do
       raise """
       Vaultx dependency is required for Vault secrets adapter.
 
