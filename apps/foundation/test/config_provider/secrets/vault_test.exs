@@ -139,4 +139,94 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
       end
     end
   end
+
+  test "secrets/3 fails when VAULTX_URL is not defined" do
+    # Ensure environment variables are not set
+    System.delete_env("VAULTX_URL")
+    System.put_env("VAULTX_TOKEN", "test-token")
+
+    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: Vault, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+    end
+  end
+
+  test "secrets/3 fails when VAULTX_TOKEN is not defined" do
+    # Ensure environment variables are not set
+    System.put_env("VAULTX_URL", "https://vault.test:8200")
+    System.delete_env("VAULTX_TOKEN")
+
+    assert_raise RuntimeError, ~r/VAULTX_TOKEN environment variable is required/, fn ->
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: Vault, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+    end
+  end
+
+  test "secrets/3 fails when both VAULTX_URL and VAULTX_TOKEN are not defined" do
+    # Ensure environment variables are not set
+    System.delete_env("VAULTX_URL")
+    System.delete_env("VAULTX_TOKEN")
+
+    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: Vault, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+    end
+  end
+
+  test "secrets/3 fails when VAULTX_URL is empty string" do
+    # Set environment variables to empty strings
+    System.put_env("VAULTX_URL", "")
+    System.put_env("VAULTX_TOKEN", "test-token")
+
+    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: Vault, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+    end
+  end
+
+  test "secrets/3 fails when VAULTX_TOKEN is empty string" do
+    # Set environment variables to empty strings
+    System.put_env("VAULTX_URL", "https://vault.test:8200")
+    System.put_env("VAULTX_TOKEN", "")
+
+    assert_raise RuntimeError, ~r/VAULTX_TOKEN environment variable is required/, fn ->
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: Vault, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+    end
+  end
 end
