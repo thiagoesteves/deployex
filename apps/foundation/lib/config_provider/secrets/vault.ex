@@ -120,23 +120,13 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
   end
 
   defp validate_vaultx_config do
-    try do
-      url = System.get_env("VAULTX_URL")
-      token = System.get_env("VAULTX_TOKEN")
+    url = System.get_env("VAULTX_URL", "")
+    token = System.get_env("VAULTX_TOKEN", "")
 
-      cond do
-        is_nil(url) or url == "" ->
-          {:error, "VAULTX_URL environment variable is required"}
-
-        is_nil(token) or token == "" ->
-          {:error, "VAULTX_TOKEN environment variable is required"}
-
-        true ->
-          :ok
-      end
-    rescue
-      error ->
-        {:error, "Vaultx configuration error: #{inspect(error)}"}
+    case {url, token} do
+      {"", _any} -> {:error, "VAULTX_URL environment variable is required"}
+      {_any, ""} -> {:error, "VAULTX_TOKEN environment variable is required"}
+      _any -> :ok
     end
   end
 end
