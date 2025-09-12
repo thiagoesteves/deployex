@@ -241,6 +241,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
         yaml_secrets_adapter = data["secrets_adapter"]
         secrets_path = data["secrets_path"]
         vault_mount_path = data["vault_mount_path"]
+        vault_url = data["vault_url"]
 
         secrets_adapter =
           case yaml_secrets_adapter do
@@ -265,8 +266,10 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
         # Add vault-specific options if using vault adapter
         secrets_opts =
-          if yaml_secrets_adapter == "vault" and vault_mount_path do
-            Keyword.put(secrets_opts, :vault_mount_path, vault_mount_path)
+          if yaml_secrets_adapter == "vault" do
+            secrets_opts
+            |> maybe_put_vault_option(:vault_mount_path, vault_mount_path)
+            |> maybe_put_vault_option(:vault_url, vault_url)
           else
             secrets_opts
           end
@@ -302,4 +305,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
       {name, atomized_map}
     end)
   end
+
+  defp maybe_put_vault_option(secrets_opts, _key, nil), do: secrets_opts
+  defp maybe_put_vault_option(secrets_opts, key, value), do: Keyword.put(secrets_opts, key, value)
 end

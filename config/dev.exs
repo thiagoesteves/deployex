@@ -95,3 +95,9 @@ config :foundation,
 config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,
   bucket: "/tmp/deployex/bucket"
+
+# Configure secrets manager with environment variables for development
+config :foundation, Foundation.ConfigProvider.Secrets.Manager,
+  vault_url: System.get_env("VAULTX_URL"),
+  vault_token: System.get_env("VAULTX_TOKEN"),
+  vault_mount_path: System.get_env("VAULTX_MOUNT_PATH")
