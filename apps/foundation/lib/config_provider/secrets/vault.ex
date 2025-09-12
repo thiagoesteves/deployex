@@ -7,17 +7,29 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
 
   ## Configuration
 
-  Environment variables:
-  - VAULTX_URL: Vault server URL (required)
-  - VAULTX_TOKEN: Vault authentication token (required)
-  - VAULTX_NAMESPACE: Vault namespace (optional, Enterprise only)
-  - VAULTX_MOUNT_PATH: KV mount path (optional, default: "secret")
+  All configuration values must come from the config system, not environment variables.
+  Environment variables are only used in runtime.exs and dev.exs to inject values into config.
 
   ## YAML Configuration Example:
 
       secrets_adapter: "vault"
-      secrets_path: "deployex/prod/config"
-      vault_mount_path: "secret"  # optional
+      secrets_path: "deployex/prod/secrets"
+      vault_mount_path: "secret"  # optional, defaults to "secret"
+      vault_url: "https://vault.example.com:8200"
+
+  ## Runtime Configuration
+
+  In config/runtime.exs (for production):
+      config :foundation, Foundation.ConfigProvider.Secrets.Manager,
+        vault_url: System.get_env("VAULTX_URL"),
+        vault_token: System.get_env("VAULTX_TOKEN"),
+        vault_mount_path: System.get_env("VAULTX_MOUNT_PATH")
+
+  In config/dev.exs (for development):
+      config :foundation, Foundation.ConfigProvider.Secrets.Manager,
+        vault_url: System.get_env("VAULTX_URL"),
+        vault_token: System.get_env("VAULTX_TOKEN"),
+        vault_mount_path: System.get_env("VAULTX_MOUNT_PATH")
 
   ## Required Dependencies
 
@@ -51,16 +63,22 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
 
     Logger.info("Retrieving secrets from Vault: #{secret_path}")
 
-    vault_opts = build_vault_options(config, opts)
+    with :ok <- configure_vaultx(config, opts) do
+      vault_opts = build_vault_options(config, opts)
 
-    case fetch_vault_secrets(secret_path, vault_opts) do
-      {:ok, secrets} ->
-        Logger.info("Successfully retrieved #{map_size(secrets)} secrets from Vault")
-        secrets
+      case fetch_vault_secrets(secret_path, vault_opts) do
+        {:ok, secrets} ->
+          Logger.info("Successfully retrieved #{map_size(secrets)} secrets from Vault")
+          secrets
 
+        {:error, reason} ->
+          Logger.error("Failed to retrieve secrets from Vault: #{inspect(reason)}")
+          raise "Vault secret retrieval failed: #{inspect(reason)}"
+      end
+    else
       {:error, reason} ->
-        Logger.error("Failed to retrieve secrets from Vault: #{inspect(reason)}")
-        raise "Vault secret retrieval failed: #{inspect(reason)}"
+        Logger.error("Failed to configure Vault: #{inspect(reason)}")
+        raise "Vault configuration failed: #{inspect(reason)}"
     end
   end
 
@@ -77,8 +95,8 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
     end
   end
 
-  defp build_vault_options(_config, opts) do
-    mount_path = get_mount_path(opts)
+  defp build_vault_options(config, opts) do
+    mount_path = get_mount_path(config, opts)
 
     [
       mount_path: mount_path,
@@ -87,46 +105,60 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
     ]
   end
 
-  defp get_mount_path(opts) do
-    Keyword.get(opts, :vault_mount_path) ||
-      System.get_env("VAULTX_MOUNT_PATH") ||
+  defp get_mount_path(config, _opts) do
+    Keyword.get(config, Foundation.ConfigProvider.Secrets.Manager)
+    |> Keyword.get(:vault_mount_path) ||
       "secret"
   end
 
   defp fetch_vault_secrets(secret_path, vault_opts) do
-    case validate_vaultx_config() do
-      :ok ->
-        case Vaultx.Secrets.KV.V2.read(secret_path, vault_opts) do
-          {:ok, %{data: data}} when is_map(data) ->
-            {:ok, data}
+    case Vaultx.Secrets.KV.V2.read(secret_path, vault_opts) do
+      {:ok, %{data: data}} when is_map(data) ->
+        {:ok, data}
 
-          {:ok, response} ->
-            Logger.warning("Unexpected Vault response format: #{inspect(response)}")
-            {:error, :invalid_response_format}
+      {:ok, response} ->
+        Logger.warning("Unexpected Vault response format: #{inspect(response)}")
+        {:error, :invalid_response_format}
 
-          {:error, %Vaultx.Base.Error{type: :not_found}} ->
-            {:error, :secret_not_found}
+      {:error, %Vaultx.Base.Error{type: :not_found}} ->
+        {:error, :secret_not_found}
 
-          {:error, %Vaultx.Base.Error{} = error} ->
-            {:error, error}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
+      {:error, %Vaultx.Base.Error{} = error} ->
+        {:error, error}
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp validate_vaultx_config do
-    url = System.get_env("VAULTX_URL", "")
-    token = System.get_env("VAULTX_TOKEN", "")
+  defp configure_vaultx(config, _opts) do
+    vault_url =
+      Keyword.get(config, Foundation.ConfigProvider.Secrets.Manager) |> Keyword.get(:vault_url)
 
-    case {url, token} do
-      {"", _any} -> {:error, "VAULTX_URL environment variable is required"}
-      {_any, ""} -> {:error, "VAULTX_TOKEN environment variable is required"}
-      _any -> :ok
+    vault_token =
+      Keyword.get(config, Foundation.ConfigProvider.Secrets.Manager) |> Keyword.get(:vault_token)
+
+    case {vault_url, vault_token} do
+      {nil, _any} ->
+        {:error, "vault_url is required in configuration"}
+
+      {"", _any} ->
+        {:error, "vault_url is required in configuration"}
+
+      {_any, nil} ->
+        {:error, "vault_token is required in configuration"}
+
+      {_any, ""} ->
+        {:error, "vault_token is required in configuration"}
+
+      {url, token} ->
+        vaultx_config = %{
+          url: url,
+          token: token
+        }
+
+        Application.put_env(:vaultx, :config, vaultx_config)
+        :ok
     end
   end
 end

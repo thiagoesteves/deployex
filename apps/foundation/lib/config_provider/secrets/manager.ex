@@ -46,7 +46,11 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     else
       Logger.info("  - Trying to retrieve secrets: #{secrets_adapter} - #{secrets_path}")
 
-      secrets = secrets_adapter.secrets(config, secrets_path, adapter_opts)
+      # Add secrets manager config to the config for adapters to access
+      adapter_config =
+        Keyword.put(config, Foundation.ConfigProvider.Secrets.Manager, secrets_manager_config)
+
+      secrets = secrets_adapter.secrets(adapter_config, secrets_path, adapter_opts)
 
       admin_hashed_password =
         keyword(:admin_hashed_password, secrets["DEPLOYEX_ADMIN_HASHED_PASSWORD"])
