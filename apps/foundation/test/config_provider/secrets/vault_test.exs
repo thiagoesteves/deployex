@@ -24,13 +24,16 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
          end
        ]}
     ]) do
-      System.put_env("VAULTX_URL", "https://vault.test:8200")
-      System.put_env("VAULTX_TOKEN", "test-token")
-
       assert [
                {:foundation,
                 [
-                  {Manager, [adapter: Vault, path: "any-env-path"]},
+                  {Manager,
+                   [
+                     adapter: Vault,
+                     path: "any-env-path",
+                     vault_url: "https://vault.test:8200",
+                     vault_token: "test-token"
+                   ]},
                   {:env, "prod"},
                   {Foundation.Accounts,
                    [
@@ -50,7 +53,13 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
                Manager.load(
                  [
                    foundation: [
-                     {Manager, adapter: Vault, path: "any-env-path"},
+                     {Manager,
+                      [
+                        adapter: Vault,
+                        path: "any-env-path",
+                        vault_url: "https://vault.test:8200",
+                        vault_token: "test-token"
+                      ]},
                      {:env, "prod"}
                    ]
                  ],
@@ -77,14 +86,17 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
          end
        ]}
     ]) do
-      System.put_env("VAULTX_URL", "https://vault.test:8200")
-      System.put_env("VAULTX_TOKEN", "test-token")
-
       assert [
                {:foundation,
                 [
                   {Manager,
-                   [adapter: Vault, path: "deployex/prod/secrets", vault_mount_path: "custom-kv"]},
+                   [
+                     adapter: Vault,
+                     path: "deployex/prod/secrets",
+                     vault_mount_path: "custom-kv",
+                     vault_url: "https://vault.test:8200",
+                     vault_token: "test-token"
+                   ]},
                   {:env, "prod"},
                   {Foundation.Accounts,
                    [
@@ -105,7 +117,13 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
                  [
                    foundation: [
                      {Manager,
-                      adapter: Vault, path: "deployex/prod/secrets", vault_mount_path: "custom-kv"},
+                      [
+                        adapter: Vault,
+                        path: "deployex/prod/secrets",
+                        vault_mount_path: "custom-kv",
+                        vault_url: "https://vault.test:8200",
+                        vault_token: "test-token"
+                      ]},
                      {:env, "prod"}
                    ]
                  ],
@@ -123,14 +141,17 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
          end
        ]}
     ]) do
-      System.put_env("VAULTX_URL", "https://vault.test:8200")
-      System.put_env("VAULTX_TOKEN", "test-token")
-
       assert_raise RuntimeError, fn ->
         Manager.load(
           [
             foundation: [
-              {Manager, adapter: Vault, path: "any-env-path"},
+              {Manager,
+               [
+                 adapter: Vault,
+                 path: "any-env-path",
+                 vault_url: "https://vault.test:8200",
+                 vault_token: "test-token"
+               ]},
               {:env, "prod"}
             ]
           ],
@@ -140,16 +161,12 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
-  test "secrets/3 fails when VAULTX_URL is not defined" do
-    # Ensure environment variables are not set
-    System.delete_env("VAULTX_URL")
-    System.put_env("VAULTX_TOKEN", "test-token")
-
-    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+  test "secrets/3 fails when vault_url is not defined" do
+    assert_raise RuntimeError, ~r/vault_url is required in configuration/, fn ->
       Manager.load(
         [
           foundation: [
-            {Manager, adapter: Vault, path: "any-env-path"},
+            {Manager, [adapter: Vault, path: "any-env-path", vault_token: "test-token"]},
             {:env, "prod"}
           ]
         ],
@@ -158,16 +175,13 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
-  test "secrets/3 fails when VAULTX_TOKEN is not defined" do
-    # Ensure environment variables are not set
-    System.put_env("VAULTX_URL", "https://vault.test:8200")
-    System.delete_env("VAULTX_TOKEN")
-
-    assert_raise RuntimeError, ~r/VAULTX_TOKEN environment variable is required/, fn ->
+  test "secrets/3 fails when vault_token is not defined" do
+    assert_raise RuntimeError, ~r/vault_token is required in configuration/, fn ->
       Manager.load(
         [
           foundation: [
-            {Manager, adapter: Vault, path: "any-env-path"},
+            {Manager,
+             [adapter: Vault, path: "any-env-path", vault_url: "https://vault.test:8200"]},
             {:env, "prod"}
           ]
         ],
@@ -176,16 +190,12 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
-  test "secrets/3 fails when both VAULTX_URL and VAULTX_TOKEN are not defined" do
-    # Ensure environment variables are not set
-    System.delete_env("VAULTX_URL")
-    System.delete_env("VAULTX_TOKEN")
-
-    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+  test "secrets/3 fails when both vault_url and vault_token are not defined" do
+    assert_raise RuntimeError, ~r/vault_url is required in configuration/, fn ->
       Manager.load(
         [
           foundation: [
-            {Manager, adapter: Vault, path: "any-env-path"},
+            {Manager, [adapter: Vault, path: "any-env-path"]},
             {:env, "prod"}
           ]
         ],
@@ -194,16 +204,13 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
-  test "secrets/3 fails when VAULTX_URL is empty string" do
-    # Set environment variables to empty strings
-    System.put_env("VAULTX_URL", "")
-    System.put_env("VAULTX_TOKEN", "test-token")
-
-    assert_raise RuntimeError, ~r/VAULTX_URL environment variable is required/, fn ->
+  test "secrets/3 fails when vault_url is empty string" do
+    assert_raise RuntimeError, ~r/vault_url is required in configuration/, fn ->
       Manager.load(
         [
           foundation: [
-            {Manager, adapter: Vault, path: "any-env-path"},
+            {Manager,
+             [adapter: Vault, path: "any-env-path", vault_url: "", vault_token: "test-token"]},
             {:env, "prod"}
           ]
         ],
@@ -212,16 +219,18 @@ defmodule Foundation.ConfigProvider.Secrets.VaultTest do
     end
   end
 
-  test "secrets/3 fails when VAULTX_TOKEN is empty string" do
-    # Set environment variables to empty strings
-    System.put_env("VAULTX_URL", "https://vault.test:8200")
-    System.put_env("VAULTX_TOKEN", "")
-
-    assert_raise RuntimeError, ~r/VAULTX_TOKEN environment variable is required/, fn ->
+  test "secrets/3 fails when vault_token is empty string" do
+    assert_raise RuntimeError, ~r/vault_token is required in configuration/, fn ->
       Manager.load(
         [
           foundation: [
-            {Manager, adapter: Vault, path: "any-env-path"},
+            {Manager,
+             [
+               adapter: Vault,
+               path: "any-env-path",
+               vault_url: "https://vault.test:8200",
+               vault_token: ""
+             ]},
             {:env, "prod"}
           ]
         ],
