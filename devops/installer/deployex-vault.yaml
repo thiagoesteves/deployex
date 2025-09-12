@@ -13,6 +13,7 @@ release_bucket: "myapp-prod-distribution"
 secrets_adapter: "vault"
 secrets_path: "deployex/prod/secrets"
 vault_mount_path: "secret" # optional, defaults to "secret"
+vault_url: "https://vault.example.com:8200"
 
 # DeployEx version and runtime
 version: "0.6.2"
