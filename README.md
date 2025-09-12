@@ -297,27 +297,28 @@ DeployEx supports multiple secret management backends for secure configuration:
 
 DeployEx can integrate with [HashiCorp Vault](https://developer.hashicorp.com/vault) for centralized secret management:
 
-- Environment variables:
-
-  ```bash
-  # VAULTX variables for HashiCorp Vault client
-  export VAULTX_URL="https://vault.example.com:8200"
-  export VAULTX_TOKEN="hvs.xxxxx"
-  # optional, defaults to "secret"
-  export VAULTX_MOUNT_PATH="secret"
-
-  export DEPLOYEX_SECRETS_ADAPTER=vault
-  export DEPLOYEX_SECRETS_PATH=deployex/prod/secrets
-  ```
-
 - YAML configuration:
 
   ```yaml
   secrets_adapter: "vault"
   secrets_path: "deployex/prod/secrets"
-  # optional
+  vault_url: "https://vault.example.com:8200"
+  # optional, defaults to "secret"
   vault_mount_path: "secret"
   ```
+
+- Environment variables (for production deployment):
+
+  Set these environment variables to configure Vault access:
+
+  ```bash
+  export VAULTX_URL="https://vault.example.com:8200"
+  export VAULTX_TOKEN="hvs.xxxxx"
+  # optional, defaults to "secret"
+  export VAULTX_MOUNT_PATH="secret"
+  ```
+
+  These environment variables are automatically injected into the configuration system via `config/runtime.exs` for production and `config/dev.exs` for development.
 
 #### AWS Secrets Manager
 
