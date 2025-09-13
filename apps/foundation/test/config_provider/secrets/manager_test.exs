@@ -57,12 +57,16 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
              )
   end
 
-  test "load/2 with adapter-specific configuration options" do
+  test "load/2 with adapter-specific configuration in config" do
     SecretsMock
-    |> stub(:secrets, fn _config, _path, options ->
-      # Verify that adapter-specific options are passed correctly
-      assert Keyword.get(options, :vault_mount_path) == "custom-kv"
-      assert Keyword.get(options, :custom_option) == "test-value"
+    |> stub(:secrets, fn config, _path, options ->
+      # Verify that opts is always empty (from init/1)
+      assert options == []
+
+      # Verify that adapter-specific config is available in config parameter
+      secrets_config = Keyword.get(config, Foundation.ConfigProvider.Secrets.Manager)
+      assert Keyword.get(secrets_config, :vault_mount_path) == "custom-kv"
+      assert Keyword.get(secrets_config, :custom_option) == "test-value"
 
       %{
         "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>

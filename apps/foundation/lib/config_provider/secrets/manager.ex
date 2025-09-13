@@ -38,8 +38,8 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     secrets_adapter = Keyword.get(secrets_manager_config, :adapter)
     secrets_path = Keyword.get(secrets_manager_config, :path)
 
-    # Build adapter options from configuration
-    adapter_opts = build_adapter_opts(secrets_manager_config, opts)
+    # Pass opts directly to adapter (opts is always [] from init/1)
+    adapter_opts = opts
 
     if env == "local" do
       Logger.info("  - No secrets retrieved, local environment")
@@ -82,14 +82,5 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     Keyword.new([{key_name, value}])
   end
 
-  # Build adapter-specific options from configuration.
-  # Extract adapter-specific configuration options and merge them with base opts.
-  defp build_adapter_opts(secrets_manager_config, base_opts) do
-    adapter_specific_opts =
-      secrets_manager_config
-      |> Keyword.drop([:adapter, :path])
-      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
 
-    Keyword.merge(base_opts, adapter_specific_opts)
-  end
 end
