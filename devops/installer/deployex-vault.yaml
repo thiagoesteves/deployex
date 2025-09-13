@@ -34,10 +34,10 @@ applications:
         value: "ecto://postgres:postgres@localhost/myphoenixapp_prod"
 # Required Environment Variables for Vault Integration:
 #
-# VAULTX_URL="https://vault.example.com:8200"
 # VAULTX_TOKEN="hvs.your-vault-token"
-# VAULTX_MOUNT_PATH="secret"  # optional
 # VAULTX_NAMESPACE="myapp"    # optional, Enterprise only
+#
+# Note: vault_url and vault_mount_path are configured via YAML above
 #
 # Required Vault Secrets at path "deployex/prod/secrets":
 # - DEPLOYEX_SECRET_KEY_BASE
