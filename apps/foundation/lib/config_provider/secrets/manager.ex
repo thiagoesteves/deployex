@@ -93,8 +93,12 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
       secrets_manager_config
       # Remove non-adapter options
       |> Keyword.drop([:adapter, :path])
-      # Remove nil values
-      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
+      # Remove nil values, but keep vault-related fields even if nil
+      |> Enum.filter(fn
+        {:vault_url, _} -> true
+        {:vault_mount_path, _} -> true
+        {_key, value} -> not is_nil(value)
+      end)
 
     # Merge with base opts, giving priority to configuration
     Keyword.merge(base_opts, adapter_specific_opts)
