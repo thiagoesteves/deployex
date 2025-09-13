@@ -21,9 +21,7 @@ defmodule Foundation.ConfigProvider.Secrets.Vault do
 
   In config/runtime.exs (for production):
       config :foundation, Foundation.ConfigProvider.Secrets.Manager,
-        vault_url: System.get_env("VAULTX_URL"),
-        vault_token: System.get_env("VAULTX_TOKEN"),
-        vault_mount_path: System.get_env("VAULTX_MOUNT_PATH")
+        vault_token: System.get_env("VAULTX_TOKEN")
 
   In config/dev.exs (for development):
       config :foundation, Foundation.ConfigProvider.Secrets.Manager,

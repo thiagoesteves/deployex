@@ -2,7 +2,8 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
   @moduledoc """
   https://hexdocs.pm/elixir/main/Config.Provider.html
 
-  Fetch secrets from AWS Secrets Manager, then load those secrets into configs.
+  Fetch secrets from various secret management systems (AWS Secrets Manager,
+  HashiCorp Vault, GCP Secret Manager), then load those secrets into configs.
 
   Similar examples:
     - https://github.com/Adzz/gcp_secret_provider/blob/master/lib/gcp_secret_provider.ex
@@ -22,7 +23,7 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     - config is the current config
     - opts is just the return value of init/1.
 
-  Calls out to AWS Secrets Manager, parses the JSON response, sets configs to parsed response.
+  Calls out to the configured secrets adapter, parses the response, sets configs to parsed response.
   """
   @impl Config.Provider
   def load(config, opts) do
