@@ -38,9 +38,6 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     secrets_adapter = Keyword.get(secrets_manager_config, :adapter)
     secrets_path = Keyword.get(secrets_manager_config, :path)
 
-    # Pass opts directly to adapter (opts is always [] from init/1)
-    adapter_opts = opts
-
     if env == "local" do
       Logger.info("  - No secrets retrieved, local environment")
       config
@@ -51,7 +48,7 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
       adapter_config =
         Keyword.put(config, Foundation.ConfigProvider.Secrets.Manager, secrets_manager_config)
 
-      secrets = secrets_adapter.secrets(adapter_config, secrets_path, adapter_opts)
+      secrets = secrets_adapter.secrets(adapter_config, secrets_path, opts)
 
       admin_hashed_password =
         keyword(:admin_hashed_password, secrets["DEPLOYEX_ADMIN_HASHED_PASSWORD"])
