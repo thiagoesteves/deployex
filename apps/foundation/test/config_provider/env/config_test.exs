@@ -79,7 +79,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
-                     path: "deployex-myapp-prod-secrets"
+                     path: "deployex-myapp-prod-secrets",
+                     vault_mount_path: nil,
+                     vault_url: nil
                    ]}
                 ]}
              ] =
@@ -232,7 +234,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
-                     path: "deployex-myapp-prod-secrets"
+                     path: "deployex-myapp-prod-secrets",
+                     vault_mount_path: nil,
+                     vault_url: nil
                    ]}
                 ]}
              ] =
@@ -422,7 +426,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
-                     path: "deployex-myapp-prod-secrets"
+                     path: "deployex-myapp-prod-secrets",
+                     vault_mount_path: nil,
+                     vault_url: nil
                    ]}
                 ]}
              ] =
@@ -521,7 +527,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
-                     path: "deployex-myapp-prod-secrets"
+                     path: "deployex-myapp-prod-secrets",
+                     vault_mount_path: nil,
+                     vault_url: nil
                    ]}
                 ]}
              ] =
@@ -625,7 +633,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
-                     path: "deployex-myapp-prod-secrets"
+                     path: "deployex-myapp-prod-secrets",
+                     vault_mount_path: nil,
+                     vault_url: nil
                    ]}
                 ]}
              ] =
