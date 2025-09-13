@@ -309,16 +309,18 @@ DeployEx can integrate with [HashiCorp Vault](https://developer.hashicorp.com/va
 
 - Environment variables (for production deployment):
 
-  Set these environment variables to configure Vault access:
+  Set this environment variable to configure Vault token:
 
   ```bash
-  export VAULTX_URL="https://vault.example.com:8200"
   export VAULTX_TOKEN="hvs.xxxxx"
-  # optional, defaults to "secret"
-  export VAULTX_MOUNT_PATH="secret"
   ```
 
-  These environment variables are automatically injected into the configuration system via `config/runtime.exs` for production and `config/dev.exs` for development.
+  The vault URL and mount path are configured via YAML file. For development, you can also set:
+
+  ```bash
+  export VAULTX_URL="http://localhost:8200"
+  export VAULTX_MOUNT_PATH="secret"  # optional
+  ```
 
 #### AWS Secrets Manager
 
