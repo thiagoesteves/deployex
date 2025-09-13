@@ -261,18 +261,10 @@ defmodule Foundation.ConfigProvider.Env.Config do
         # Build secrets manager options
         secrets_opts = [
           {:adapter, secrets_adapter},
-          {:path, secrets_path}
+          {:path, secrets_path},
+          {:vault_mount_path, vault_mount_path},
+          {:vault_url, vault_url}
         ]
-
-        # Add vault-specific options if using vault adapter
-        secrets_opts =
-          if yaml_secrets_adapter == "vault" do
-            secrets_opts
-            |> maybe_put_vault_option(:vault_mount_path, vault_mount_path)
-            |> maybe_put_vault_option(:vault_url, vault_url)
-          else
-            secrets_opts
-          end
 
         updated_config =
           Config.Reader.merge(updated_config,
@@ -306,6 +298,5 @@ defmodule Foundation.ConfigProvider.Env.Config do
     end)
   end
 
-  defp maybe_put_vault_option(secrets_opts, _key, nil), do: secrets_opts
-  defp maybe_put_vault_option(secrets_opts, key, value), do: Keyword.put(secrets_opts, key, value)
+
 end
