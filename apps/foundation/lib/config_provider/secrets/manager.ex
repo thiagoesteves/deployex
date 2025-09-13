@@ -83,24 +83,13 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
   end
 
   # Build adapter-specific options from configuration.
-  #
-  # This function extracts adapter-specific configuration options and merges them
-  # with the base opts parameter. This ensures that configuration from YAML files
-  # and environment variables are properly passed to the secrets adapters.
+  # Extract adapter-specific configuration options and merge them with base opts.
   defp build_adapter_opts(secrets_manager_config, base_opts) do
-    # Extract adapter-specific options from configuration
     adapter_specific_opts =
       secrets_manager_config
-      # Remove non-adapter options
       |> Keyword.drop([:adapter, :path])
-      # Remove nil values, but keep vault-related fields even if nil
-      |> Enum.filter(fn
-        {:vault_url, _} -> true
-        {:vault_mount_path, _} -> true
-        {_key, value} -> not is_nil(value)
-      end)
+      |> Enum.filter(fn {_key, value} -> not is_nil(value) end)
 
-    # Merge with base opts, giving priority to configuration
     Keyword.merge(base_opts, adapter_specific_opts)
   end
 end
