@@ -19,10 +19,9 @@ import Config
 
 if config_env() == :prod do
   # Configure secrets manager with environment variables
+  # Only vault_token comes from env vars, vault_url and vault_mount_path come from YAML
   config :foundation, Foundation.ConfigProvider.Secrets.Manager,
-    vault_url: System.get_env("VAULTX_URL"),
-    vault_token: System.get_env("VAULTX_TOKEN"),
-    vault_mount_path: System.get_env("VAULTX_MOUNT_PATH")
+    vault_token: System.get_env("VAULTX_TOKEN")
 
   # ## SSL Support
   #
