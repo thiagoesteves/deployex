@@ -7,6 +7,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Logs
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
+  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
@@ -22,9 +23,9 @@ defmodule DeployexWeb.ApplicationsLive do
         <SystemBar.content info={@host_info} />
         
     <!-- Main Content -->
-        <div class="p-6">
+        <div class="p-3">
           <!-- Breadcrumb -->
-          <div class="breadcrumbs text-sm mb-6">
+          <div class="breadcrumbs text-sm mb-3">
             <ul>
               <li><a class="text-base-content/60">Home</a></li>
               <li class="text-base-content font-medium">Applications</li>
@@ -336,7 +337,7 @@ defmodule DeployexWeb.ApplicationsLive do
   @impl true
   def handle_info({:update_system_info, host_info}, socket) do
     # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = DeployexWeb.Cache.UiSettings.get()
+    ui_settings = UiSettings.get()
 
     {:noreply,
      socket
@@ -350,7 +351,7 @@ defmodule DeployexWeb.ApplicationsLive do
       )
       when source_node == node do
     # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = DeployexWeb.Cache.UiSettings.get()
+    ui_settings = UiSettings.get()
 
     {:noreply,
      socket
@@ -362,7 +363,7 @@ defmodule DeployexWeb.ApplicationsLive do
     # NOTE: In future implementations, this will pattern match against other nodes
     #       to enable DeployEx to present its data.
     # Still sync ui_settings to ensure consistency
-    ui_settings = DeployexWeb.Cache.UiSettings.get()
+    ui_settings = UiSettings.get()
     {:noreply, assign(socket, :ui_settings, ui_settings)}
   end
 

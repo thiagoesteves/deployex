@@ -110,6 +110,37 @@ topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+window.addEventListener("phx:copy_to_clipboard", event => {
+  if ("clipboard" in navigator) {
+    const text = event.detail.text;
+    navigator.clipboard.writeText(text);
+  } else {
+    alert("Sorry, your browser does not support clipboard copy.");
+  }
+
+  const defaultMessage = document.getElementById("c2c-default-message-" + event.detail.id);
+  if (defaultMessage) {
+    defaultMessage.setAttribute("hidden", "");
+  }
+
+  const successMessage = document.getElementById("c2c-success-message-" + event.detail.id);
+  if (successMessage) {
+    successMessage.removeAttribute("hidden");
+  }
+
+  setTimeout(() => {
+    const successMessage = document.getElementById("c2c-success-message-" + event.detail.id);
+    if (successMessage) {
+      successMessage.setAttribute("hidden", "");
+    }
+
+    const defaultMessage = document.getElementById("c2c-default-message-" + event.detail.id);
+    if (defaultMessage) {
+      defaultMessage.removeAttribute("hidden");
+    }
+  }, 1000);
+});
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

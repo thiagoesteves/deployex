@@ -3,6 +3,7 @@ defmodule DeployexWeb.Components.AppCard do
   use DeployexWeb, :html
 
   use Phoenix.Component
+  alias DeployexWeb.Components.CopyToClipboard
   alias DeployexWeb.Helper
 
   # NOTE: This structure is derived from the Deployer.Status structure
@@ -72,7 +73,10 @@ defmodule DeployexWeb.Components.AppCard do
                   </svg>
                   <div class="text-xs font-medium text-base-content/60">Node</div>
                 </div>
-                <div class="text-sm font-mono text-base-content/90 truncate">{@node}</div>
+                <div class="flex text-sm font-mono text-base-content/90 truncate gap-2">
+                  <CopyToClipboard.content id={"c2c-node-messages-#{@sname}"} message={@node} />
+                  {@node}
+                </div>
               </div>
 
               <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
@@ -93,7 +97,10 @@ defmodule DeployexWeb.Components.AppCard do
                   </svg>
                   <div class="text-xs font-medium text-base-content/60">Port</div>
                 </div>
-                <div class="text-sm font-mono text-base-content/90">{@port}</div>
+                <div class="flex text-sm font-mono text-base-content/90 gap-2">
+                  <CopyToClipboard.content id={"c2c-port-messages-#{@sname}"} message={@port} />
+                  {@port}
+                </div>
               </div>
             </div>
 
@@ -145,7 +152,7 @@ defmodule DeployexWeb.Components.AppCard do
 
               <div
                 :if={not @supervisor}
-                class="bg-base-50/50 border border-base-200/30 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
+                class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
               >
                 <div class="flex items-center gap-2 mb-2">
                   <svg
@@ -189,7 +196,7 @@ defmodule DeployexWeb.Components.AppCard do
 
             <div
               :if={@supervisor == false}
-              class="bg-base-50/50 border border-base-200/30 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
+              class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
             >
               <div class="flex items-center gap-2 mb-2">
                 <svg
@@ -616,6 +623,42 @@ defmodule DeployexWeb.Components.AppCard do
               />
             </div>
             
+    <!-- History Section -->
+            <div class="bg-base-200 border border-base-300 rounded-lg p-4">
+              <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    >
+                    </path>
+                  </svg>
+                  <span class="text-sm font-medium text-base-content">Version History</span>
+                </div>
+                <button
+                  id={Helper.normalize_id("app-versions-#{app}")}
+                  phx-click="app-versions-click"
+                  phx-value-name={app}
+                  type="button"
+                  class="w-full bg-info/10 hover:bg-info/20 border border-info/20 hover:border-info/30 rounded-lg px-4 py-2 text-sm font-medium text-info transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    >
+                    </path>
+                  </svg>
+                  View Versions
+                </button>
+              </div>
+            </div>
+            
     <!-- Last Ghosted Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
               <%= if @metadata[app].last_ghosted_version && @metadata[app].last_ghosted_version != "-/-" do %>
@@ -667,42 +710,6 @@ defmodule DeployexWeb.Components.AppCard do
                   </div>
                 </div>
               <% end %>
-            </div>
-            
-    <!-- History Section -->
-            <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    >
-                    </path>
-                  </svg>
-                  <span class="text-sm font-medium text-base-content">Version History</span>
-                </div>
-                <button
-                  id={Helper.normalize_id("app-versions-#{app}")}
-                  phx-click="app-versions-click"
-                  phx-value-name={app}
-                  type="button"
-                  class="w-full bg-info/10 hover:bg-info/20 border border-info/20 hover:border-info/30 rounded-lg px-4 py-2 text-sm font-medium text-info transition-all duration-200 flex items-center justify-center gap-2"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    >
-                    </path>
-                  </svg>
-                  View Versions
-                </button>
-              </div>
             </div>
           </div>
         </div>

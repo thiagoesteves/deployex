@@ -96,7 +96,7 @@ defmodule DeployexWeb.Components.NavMenu do
               <.flat_nav_item
                 item={item}
                 collapsed={@ui_settings.nav_menu_collapsed}
-                active={is_active_route(item.path, @current_path || "/")}
+                active={active_route?(item.path, @current_path || "/")}
               />
             <% end %>
           </div>
@@ -321,7 +321,7 @@ defmodule DeployexWeb.Components.NavMenu do
     end
   end
 
-  defp is_active_route(item_path, current_path) do
+  defp active_route?(item_path, current_path) do
     # Normalize paths by removing trailing slashes
     normalized_item_path = String.trim_trailing(item_path, "/")
     normalized_current_path = String.trim_trailing(current_path || "/", "/")

@@ -3,6 +3,7 @@ defmodule DeployexWeb.ObserverLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.SystemBar
 
   @impl true
@@ -217,7 +218,7 @@ defmodule DeployexWeb.ObserverLive do
   @impl true
   def handle_info({:update_system_info, host_info}, socket) do
     # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = DeployexWeb.Cache.UiSettings.get()
+    ui_settings = UiSettings.get()
 
     {:noreply,
      socket
