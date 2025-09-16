@@ -991,7 +991,7 @@ defmodule DeployexWeb.CoreComponents do
   # Helper functions for timestamp formatting
   defp format_timestamp(timestamp) when is_integer(timestamp) do
     timestamp
-    |> DateTime.from_unix!(:microsecond)
+    |> DateTime.from_unix!(:millisecond)
     |> Calendar.strftime("%m-%d %H:%M")
   end
 
@@ -999,7 +999,7 @@ defmodule DeployexWeb.CoreComponents do
 
   defp format_time_only(timestamp) when is_integer(timestamp) do
     timestamp
-    |> DateTime.from_unix!(:microsecond)
+    |> DateTime.from_unix!(:millisecond)
     |> Calendar.strftime("%H:%M:%S")
   end
 
