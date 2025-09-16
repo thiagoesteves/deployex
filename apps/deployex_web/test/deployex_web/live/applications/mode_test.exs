@@ -80,7 +80,7 @@ defmodule DeployexWeb.Applications.ModeTest do
              "select-mode" => "1.0.1",
              "name" => "myelixir"
            }) =~
-             "Are you sure you want to set to 1.0.1?"
+             "Change mode to <span class=\"inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary\">1.0.1</span>?"
 
     assert index_live |> element("#cancel-button-mode", "Cancel") |> render_click()
 
@@ -128,9 +128,10 @@ defmodule DeployexWeb.Applications.ModeTest do
     assert render_change(index_live, "app-mode-select", %{
              "select-mode" => expected_manual_version,
              "name" => "myelixir"
-           }) =~ "Are you sure you want to set to 1.0.1?"
+           }) =~
+             "Change mode to <span class=\"inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary\">1.0.1</span>?"
 
-    assert index_live |> element("#confirm-button-mode", "Confirm") |> render_click()
+    assert index_live |> element("#confirm-button-mode", "Change Mode") |> render_click()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
@@ -177,9 +178,10 @@ defmodule DeployexWeb.Applications.ModeTest do
     assert render_change(index_live, "app-mode-select", %{
              "select-mode" => "automatic",
              "name" => "myelixir"
-           }) =~ "Are you sure you want to set to automatic?"
+           }) =~
+             "Change mode to <span class=\"inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary\">automatic</span>?"
 
-    assert index_live |> element("#confirm-button-mode", "Confirm") |> render_click()
+    assert index_live |> element("#confirm-button-mode", "Change Mode") |> render_click()
 
     assert_receive {:handle_ref_event, ^ref}, 1_000
 

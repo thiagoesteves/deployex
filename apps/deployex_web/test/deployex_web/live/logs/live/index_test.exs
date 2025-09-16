@@ -309,7 +309,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert render(index_live) =~ message
 
     index_live
-    |> element("#logs-live-multi-select-reset", "RESET")
+    |> element("#logs-live-multi-select-clear", "Clear Logs")
     |> render_click()
 
     refute render(index_live) =~ message

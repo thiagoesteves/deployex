@@ -14,13 +14,10 @@ defmodule DeployexWeb.HistoryLive do
     unselected_logs =
       assigns.node_info.logs_keys -- assigns.node_info.selected_logs
 
-    attention_msg = ""
-
     assigns =
       assigns
       |> assign(unselected_services: unselected_services)
       |> assign(unselected_logs: unselected_logs)
-      |> assign(attention_msg: attention_msg)
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
