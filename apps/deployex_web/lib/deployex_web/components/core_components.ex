@@ -644,7 +644,7 @@ defmodule DeployexWeb.CoreComponents do
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
                 </div>
-                <span class="badge badge-outline badge-sm">{log_message.service}</span>
+                <span class="badge badge-neutral truncate">{log_message.service}</span>
               </div>
             </td>
             <td>
@@ -745,7 +745,7 @@ defmodule DeployexWeb.CoreComponents do
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{elem(row, 1).color};"}>
                 </div>
-                <span class="badge badge-outline badge-sm">{elem(row, 1).service}</span>
+                <span class="badge badge-neutral truncate">{elem(row, 1).service}</span>
               </div>
             </td>
             <td>

@@ -42,7 +42,7 @@ defmodule DeployexWeb.ObserverLive do
         </div>
         
     <!-- Main Content -->
-        <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="max-w-8xl mx-auto px-3 py-3">
           <!-- Observer Card -->
           <div class="card bg-base-100 shadow-lg border border-base-200">
             <div class="card-body p-0">

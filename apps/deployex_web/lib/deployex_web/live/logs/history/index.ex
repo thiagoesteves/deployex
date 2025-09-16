@@ -28,7 +28,7 @@ defmodule DeployexWeb.HistoryLive do
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
         <div class="bg-base-100 border-b border-base-200 shadow-sm">
-          <div class="max-w-7xl mx-auto px-6 py-6">
+          <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
               <div>
                 <h1 class="text-3xl font-bold text-base-content">History Logs</h1>
@@ -89,7 +89,7 @@ defmodule DeployexWeb.HistoryLive do
         </div>
         
     <!-- Main Content -->
-        <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="max-w-8xl mx-auto px-3 py-3">
           <!-- Filters Card -->
           <div class="card bg-base-100 shadow-sm mb-6">
             <div class="card-body p-6">
