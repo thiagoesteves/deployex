@@ -87,8 +87,7 @@ defmodule DeployexWeb.HistoryLive do
             </div>
           </div>
         </div>
-        
-    <!-- Main Content -->
+        <!-- Main Content -->
         <div class="max-w-8xl mx-auto px-3 py-3">
           <!-- Filters Card -->
           <div class="card bg-base-100 shadow-sm mb-6">
@@ -113,8 +112,7 @@ defmodule DeployexWeb.HistoryLive do
               />
             </div>
           </div>
-          
-    <!-- Statistics Card -->
+          <!-- Statistics Card -->
           <div :if={length(@log_messages) > 0} class="stats shadow mb-6">
             <div class="stat">
               <div class="stat-figure text-primary">
@@ -167,8 +165,7 @@ defmodule DeployexWeb.HistoryLive do
               <div class="stat-desc">Looking back</div>
             </div>
           </div>
-          
-    <!-- Logs Display Card -->
+          <!-- Logs Display Card -->
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body p-0">
               <div :if={length(@log_messages) == 0} class="p-12 text-center">

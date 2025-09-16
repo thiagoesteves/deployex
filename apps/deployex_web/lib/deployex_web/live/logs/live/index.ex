@@ -33,10 +33,10 @@ defmodule DeployexWeb.LogsLive do
               </div>
               <div class="flex items-center gap-4">
                 <button
-                  id="logs-live-multi-select-reset"
-                  phx-click="logs-live-reset"
+                  id="logs-live-multi-select-clear"
+                  phx-click="logs-live-clear"
                   class="btn btn-error btn-sm"
-                  phx-disable-with="Resetting..."
+                  phx-disable-with="Clearing..."
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -47,14 +47,13 @@ defmodule DeployexWeb.LogsLive do
                     >
                     </path>
                   </svg>
-                  Reset
+                  Clear Logs
                 </button>
               </div>
             </div>
           </div>
         </div>
-        
-    <!-- Main Content -->
+        <!-- Main Content -->
         <div class="max-w-8xl mx-auto px-3 py-3">
           <!-- Filters Card -->
           <div class="card bg-base-100 shadow-sm mb-6">
@@ -79,8 +78,7 @@ defmodule DeployexWeb.LogsLive do
               />
             </div>
           </div>
-          
-    <!-- Logs Display Card -->
+          <!-- Logs Display Card -->
           <div class="card bg-base-100 shadow-sm">
             <div class="card-body p-0">
               <div class="overflow-x-auto">
@@ -198,26 +196,11 @@ defmodule DeployexWeb.LogsLive do
     {:noreply, socket |> assign(:show_log_options, show_log_options)}
   end
 
-  def handle_event(
-        "logs-live-reset",
-        _value,
-        %{assigns: %{node_info: current_node_info}} = socket
-      ) do
-    # Unsubscribe from all current log subscriptions
-    for service <- current_node_info.selected_services,
-        log <- current_node_info.selected_logs do
-      Logs.unsubscribe_for_new_logs(service, log)
-    end
-
-    # Reset log messages and filters
-    node_info = update_node_info([], [])
-
+  def handle_event("logs-live-clear", _value, socket) do
     {:noreply,
      socket
-     |> assign(:node_info, node_info)
-     |> assign(:show_log_options, false)
      |> stream(:log_messages, [], reset: true)
-     |> put_flash(:info, "Logs and filters have been reset successfully")}
+     |> put_flash(:info, "Logs cleared successfully")}
   end
 
   @impl true
