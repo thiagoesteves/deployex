@@ -96,7 +96,18 @@ const hooks = {
       const theme = document.documentElement.getAttribute('data-theme');
       this.el.setAttribute('data-current-theme', theme);
     }
-  }
+  },
+
+  // Clear Flash message automatically after 3,5 seconds
+  AutoDismissFlash: {
+    mounted() {
+      setTimeout(() => {
+        this.el.style.transition = "opacity 0.5s";
+        this.el.style.opacity = "0";
+        setTimeout(() => this.el.remove(), 500);
+      }, 3500);
+    },
+  },
 };
 
 const liveSocket = new LiveSocket("/live", Socket, {
