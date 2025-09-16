@@ -104,7 +104,7 @@ defmodule DeployexWeb.Components.MultiSelect do
                     id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
                     class={[
                       "btn btn-sm gap-2",
-                      if(key in item.unselected_highlight, do: "btn-success", else: "btn-ghost")
+                      if(key in item.unselected_highlight, do: "btn-success", else: "btn-neutral")
                     ]}
                     phx-click="multi-select-add-item"
                     phx-value-key={key}
@@ -132,10 +132,10 @@ defmodule DeployexWeb.Components.MultiSelect do
   end
 
   defp badge_color("services"), do: "badge-primary"
-  defp badge_color("logs"), do: "badge-secondary"
+  defp badge_color("logs"), do: "badge-neutral"
   defp badge_color(_), do: "badge-accent"
 
   defp category_color("services"), do: "bg-primary"
-  defp category_color("logs"), do: "bg-secondary"
+  defp category_color("logs"), do: "bg-neutral"
   defp category_color(_), do: "bg-accent"
 end

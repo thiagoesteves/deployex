@@ -476,10 +476,10 @@ defmodule DeployexWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", @class]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8 text-zinc-800">
+        <h1 class="text-lg font-semibold leading-8">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="mt-2 text-sm leading-6 text-zinc-600">
+        <p :if={@subtitle != []} class="mt-2 text-sm leading-6 opacity-80">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -641,7 +641,7 @@ defmodule DeployexWeb.CoreComponents do
                 </span>
               </div>
             </td>
-            <td class="font-mono text-sm">
+            <td class="font-mono text-xs">
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
                 </div>
@@ -649,9 +649,9 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td>
-              <div class="badge badge-neutral badge-sm">{log_message.type}</div>
+              <div class="font-mono text-xs badge badge-neutral">{log_message.type}</div>
             </td>
-            <td class="font-mono text-sm text-base-content/90 max-w-0 truncate">
+            <td class="font-mono text-xs text-base-content/90 max-w-0 truncate">
               {log_message.content}
             </td>
           </tr>
@@ -742,7 +742,7 @@ defmodule DeployexWeb.CoreComponents do
             id={@row_id && @row_id.(row)}
             class="hover:bg-base-200/50 transition-colors duration-150"
           >
-            <td class="font-mono text-sm">
+            <td class="font-mono text-xs">
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{elem(row, 1).color};"}>
                 </div>
@@ -750,9 +750,9 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td>
-              <div class="badge badge-blue-300 badge-sm">{elem(row, 1).type}</div>
+              <div class="font-mono text-xs badge badge-neutral">{elem(row, 1).type}</div>
             </td>
-            <td class="font-mono text-sm text-base-content/90 max-w-0 truncate">
+            <td class="font-mono text-xs text-base-content/90 max-w-0 truncate">
               {elem(row, 1).content}
             </td>
           </tr>
