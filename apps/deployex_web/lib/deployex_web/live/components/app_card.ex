@@ -435,13 +435,13 @@ defmodule DeployexWeb.Components.AppCard do
     ~H"""
     <%= if @deployment == :full_deployment do %>
       <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-primary rounded-full"></div>
-        <span class="text-sm font-medium text-primary">Full Deployment</span>
+        <div class="w-2 h-2 bg-blue-400 rounded-full"></div>
+        <span class="text-sm font-medium text-blue-400">Full Deployment</span>
       </div>
     <% else %>
       <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-secondary rounded-full"></div>
-        <span class="text-sm font-medium text-secondary">Hot Upgrade</span>
+        <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+        <span class="text-sm font-medium text-red-400">Hot Upgrade</span>
       </div>
     <% end %>
     """

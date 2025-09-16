@@ -750,7 +750,7 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td>
-              <div class="badge badge-neutral badge-sm">{elem(row, 1).type}</div>
+              <div class="badge badge-blue-300 badge-sm">{elem(row, 1).type}</div>
             </td>
             <td class="font-mono text-sm text-base-content/90 max-w-0 truncate">
               {elem(row, 1).content}
