@@ -23,64 +23,94 @@ import "phoenix_html"
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
+
 import { Terminal } from "./xterm/xterm"
-import * as echarts from "./echarts/echarts.min"
 
-let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
-let hooks = {}
-hooks.Terminal = {
-  mounted() {
-    let cols = this.el.dataset.cols ?? 100;
-    let rows = this.el.dataset.rows ?? 24;
+const hooks = {
+  Terminal: {
+    mounted() {
+      const cols = this.el.dataset.cols ?? 100;
+      const rows = this.el.dataset.rows ?? 24;
 
-    let term = new Terminal({
-      fontSize: 14,
-      cols: cols,
-      rows: rows,
-      cursorBlink: true,
-      fontFamily: 'Monospace'
-    });
-    term.open(this.el.querySelector(".xtermjs_container"));
-    term.onKey(key => {
-      this.pushEventTo(this.el, "key", key);
-    });
+      const term = new Terminal({
+        fontSize: 14,
+        cols: cols,
+        rows: rows,
+        cursorBlink: true,
+        fontFamily: 'Monospace'
+      });
+      term.open(this.el.querySelector(".xtermjs_container"));
+      term.onKey(key => {
+        this.pushEventTo(this.el, "key", key);
+      });
 
-    term.attachCustomKeyEventHandler(event => {
-      // From: https://stackoverflow.com/questions/2903991/how-to-detect-ctrlv-ctrlc-using-javascript
-      // Ctrl+V or Cmd+V pressed?
-      if ((event.ctrlKey || event.metaKey) && event.keyCode == 86) {
-        navigator.clipboard.readText()
-          .then(text => {
-            this.pushEventTo(this.el, "key", { key: text });
-          })
-        return false;
-      }
-      return true;
-    });
+      term.attachCustomKeyEventHandler(event => {
+        // From: https://stackoverflow.com/questions/2903991/how-to-detect-ctrlv-ctrlc-using-javascript
+        // Ctrl+V or Cmd+V pressed?
+        if ((event.ctrlKey || event.metaKey) && event.keyCode == 86) {
+          navigator.clipboard.readText()
+            .then(text => {
+              this.pushEventTo(this.el, "key", { key: text });
+            })
+          return false;
+        }
+        return true;
+      });
 
-    this.handleEvent("print-" + this.el.id, e => {
-      term.write(e.data);
-    });
-  }
-};
-
-hooks.ScrollBottom = {
-  mounted() {
-    this.el.scrollTo(0, this.el.scrollHeight);
-  },
-
-  updated() {
-    const pixelsBelowBottom =
-      this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop;
-
-    if (pixelsBelowBottom < this.el.clientHeight * 0.3) {
-      this.el.scrollTo(0, this.el.scrollHeight);
+      this.handleEvent("print-" + this.el.id, e => {
+        term.write(e.data);
+      });
     }
   },
+
+  ScrollBottom: {
+    mounted() {
+      this.el.scrollTo(0, this.el.scrollHeight);
+    },
+
+    updated() {
+      const pixelsBelowBottom =
+        this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop;
+
+      if (pixelsBelowBottom < this.el.clientHeight * 0.3) {
+        this.el.scrollTo(0, this.el.scrollHeight);
+      }
+    },
+  },
+
+  // Theme management is handled in root.html.heex
+  // This hook can be used for theme-aware components if needed
+  ThemeAware: {
+    mounted() {
+      this.updateTheme();
+
+      // Listen for theme changes
+      window.addEventListener('phx:set-theme', () => {
+        setTimeout(() => this.updateTheme(), 10);
+      });
+    },
+
+    updateTheme() {
+      const theme = document.documentElement.getAttribute('data-theme');
+      this.el.setAttribute('data-current-theme', theme);
+    }
+  },
+
+  // Clear Flash message automatically after 3,5 seconds
+  AutoDismissFlash: {
+    mounted() {
+      setTimeout(() => {
+        this.el.style.transition = "opacity 0.5s";
+        this.el.style.opacity = "0";
+        setTimeout(() => this.el.remove(), 500);
+      }, 3500);
+    },
+  },
 };
 
-let liveSocket = new LiveSocket("/live", Socket, {
+const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
   hooks
@@ -90,6 +120,37 @@ let liveSocket = new LiveSocket("/live", Socket, {
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+
+window.addEventListener("phx:copy_to_clipboard", event => {
+  if ("clipboard" in navigator) {
+    const text = event.detail.text;
+    navigator.clipboard.writeText(text);
+  } else {
+    alert("Sorry, your browser does not support clipboard copy.");
+  }
+
+  const defaultMessage = document.getElementById("c2c-default-message-" + event.detail.id);
+  if (defaultMessage) {
+    defaultMessage.setAttribute("hidden", "");
+  }
+
+  const successMessage = document.getElementById("c2c-success-message-" + event.detail.id);
+  if (successMessage) {
+    successMessage.removeAttribute("hidden");
+  }
+
+  setTimeout(() => {
+    const successMessage = document.getElementById("c2c-success-message-" + event.detail.id);
+    if (successMessage) {
+      successMessage.setAttribute("hidden", "");
+    }
+
+    const defaultMessage = document.getElementById("c2c-default-message-" + event.detail.id);
+    if (defaultMessage) {
+      defaultMessage.removeAttribute("hidden");
+    }
+  }, 1000);
+});
 
 // connect if there are any LiveViews on the page
 liveSocket.connect()
@@ -118,7 +179,7 @@ if (process.env.NODE_ENV === "development") {
     //   * click with "d" key pressed to open at function component definition location
     let keyDown
     window.addEventListener("keydown", e => keyDown = e.key)
-    window.addEventListener("keyup", e => keyDown = null)
+    window.addEventListener("keyup", () => keyDown = null)
     window.addEventListener("click", e => {
       if (keyDown === "c") {
         e.preventDefault()
@@ -134,5 +195,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-
-

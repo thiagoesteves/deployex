@@ -23,12 +23,12 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "Listing Applications"
     assert html =~ "1.2.3"
     assert html =~ "4.5.6"
-    assert html =~ "CONNECTED"
-    assert html =~ "SUPPORTED"
-    assert html =~ "FULL"
+    assert html =~ "Connected"
+    assert html =~ "Supported"
+    assert html =~ "Full Deployment"
     assert html =~ "short time"
     assert html =~ "long time"
-    assert html =~ "1.2.3 [running]"
+    assert html =~ "Running"
   end
 
   test "GET /applications deployment: hot-upgrade", %{conn: conn} do
@@ -42,7 +42,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Listing Applications"
-    assert html =~ "FULL"
+    assert html =~ "Full Deployment"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -55,7 +55,7 @@ defmodule DeployexWeb.Applications.IndexTest do
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
-    assert render(view) =~ "HOT UPGRADE"
+    assert render(view) =~ "Hot Upgrade"
   end
 
   test "GET /applications restarts (crash and force)", %{conn: conn} do
@@ -71,10 +71,10 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "Listing Applications"
 
     assert html =~
-             "Crash Restart</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
+             "Crash Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-neutral rounded-full\"></div><span class=\"text-sm font-medium text-neutral\">0"
 
     assert html =~
-             "Force Restart</span><span class=\"bg-gray-100 text-white-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-white border border-gray-500\">\n      0"
+             "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-neutral rounded-full\"></div><span class=\"text-sm font-medium text-neutral\">0"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -88,10 +88,10 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     assert render(view) =~
-             "Crash Restart</span><span class=\"bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse\">\n      1"
+             "Crash Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-error rounded-full animate-pulse\"></div><span class=\"text-sm font-semibold text-error\">1"
 
     assert render(view) =~
-             "Force Restart</span><span class=\"bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-red-400 border border-red-500 animate-pulse\">\n      1"
+             "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-error rounded-full animate-pulse\"></div><span class=\"text-sm font-semibold text-error\">1"
   end
 
   test "GET /applications OTP not connected", %{conn: conn} do
@@ -105,8 +105,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Listing Applications"
-    assert html =~ "CONNECTED"
-    refute html =~ "NOT CONNECTED"
+    assert html =~ "Connected"
+    refute html =~ "Disconnected"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -119,7 +119,7 @@ defmodule DeployexWeb.Applications.IndexTest do
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
-    assert render(view) =~ "NOT CONNECTED"
+    assert render(view) =~ "Disconnected"
   end
 
   test "GET /applications TLS not supported", %{conn: conn} do
@@ -133,8 +133,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Listing Applications"
-    assert html =~ "SUPPORTED"
-    refute html =~ "NOT SUPPORTED"
+    assert html =~ "Supported"
+    refute html =~ "Not Supported"
 
     new_state = [
       FixtureStatus.deployex(%{tls: :not_supported}),
@@ -147,7 +147,7 @@ defmodule DeployexWeb.Applications.IndexTest do
       {:monitoring_app_updated, Node.self(), new_state}
     )
 
-    assert render(view) =~ "NOT SUPPORTED"
+    assert render(view) =~ "Not Supported"
   end
 
   test "GET /applications application states", %{conn: conn} do
@@ -167,8 +167,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Listing Applications"
-    assert html =~ "version not set"
-    assert html =~ "bg-gray-400"
+    assert html =~ "Version not set"
+    assert html =~ "bg-base-200/50 border-b border-base-200"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -182,8 +182,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     html = render(view)
-    assert html =~ "1.0.0 [starting]"
-    assert html =~ "bg-gray-400"
+    assert html =~ "Starting"
+    assert html =~ "bg-warning/10 border-b border-warning/20"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -197,8 +197,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     html = render(view)
-    assert html =~ "[pre-commands]"
-    assert html =~ "bg-gray-400"
+    assert html =~ "Pre-commands"
+    assert html =~ "bg-warning/10 border-b border-warning/20"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -212,8 +212,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     html = render(view)
-    assert html =~ "1.0.0 [running]"
-    assert html =~ "bg-gradient-to-r from-cyan-200 to-yellow-100"
+    assert html =~ "Running"
+    assert html =~ "bg-success/10 border-b border-success/20"
   end
 
   test "GET /applications with no updates when receiving from other nodes", %{conn: conn} do
@@ -233,8 +233,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Listing Applications"
-    assert html =~ "version not set"
-    assert html =~ "bg-gray-400"
+    assert html =~ "Version not set"
+    assert html =~ "bg-base-200/50 border-b border-base-200"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -248,6 +248,6 @@ defmodule DeployexWeb.Applications.IndexTest do
     )
 
     html = render(view)
-    refute html =~ "1.0.0 [starting]"
+    refute html =~ "Starting"
   end
 end

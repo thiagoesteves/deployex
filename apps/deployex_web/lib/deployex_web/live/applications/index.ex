@@ -7,6 +7,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Logs
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
+  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
@@ -17,11 +18,22 @@ defmodule DeployexWeb.ApplicationsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
-      <div class="min-h-screen bg-gray-700">
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
+      <div class="min-h-screen bg-base-300">
         <SystemBar.content info={@host_info} />
-        <div class="p-5">
-          <div class="grid grid-cols-3 gap-5 items-start text-black">
+        
+    <!-- Main Content -->
+        <div class="p-3">
+          <!-- Breadcrumb -->
+          <div class="breadcrumbs text-sm mb-3">
+            <ul>
+              <li><a class="text-base-content/60">Home</a></li>
+              <li class="text-base-content font-medium">Applications</li>
+            </ul>
+          </div>
+          
+    <!-- Applications Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <%= for app <- @monitoring_apps_data do %>
               <DeployexWeb.Components.AppCard.content
                 supervisor={app.supervisor}
@@ -102,21 +114,69 @@ defmodule DeployexWeb.ApplicationsLive do
     <%= if @live_action in [:restart] do %>
       <Confirm.content id={"app-restart-modal-#{@selected_sname}"}>
         <:header :if={@selected_sname == "deployex"}>
-          <p class="text-red-500 text-center italic-text">Attention - All apps will be terminated</p>
+          Critical Action - All Apps Will Be Terminated
         </:header>
         <:header :if={@selected_sname != "deployex"}>
-          <p>Attention</p>
+          Restart Application
         </:header>
-        <p :if={@selected_sname == "deployex"}>
-          Are you sure you want to restart deployex?
-        </p>
-        <p :if={@selected_sname != "deployex"}>
-          Are you sure you want to restart sname {"#{@selected_sname}"}?
-        </p>
+
+        <div :if={@selected_sname == "deployex"} class="space-y-6">
+          <div class="bg-red-50 border border-red-200 rounded-2xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                <svg
+                  class="w-5 h-5 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01"
+                  >
+                  </path>
+                </svg>
+              </div>
+              <h4 class="font-bold text-red-800">Critical Warning</h4>
+            </div>
+            <p class="text-red-700 text-sm leading-relaxed">
+              This will terminate all monitored applications and cannot be undone.
+            </p>
+          </div>
+          <p class="text-base-content/90 leading-relaxed">
+            Are you sure you want to restart <span class="font-semibold text-red-600">deployex</span>?
+            All running applications will be affected.
+          </p>
+        </div>
+
+        <div :if={@selected_sname != "deployex"} class="space-y-4">
+          <p class="text-base-content/90 leading-relaxed">
+            Are you sure you want to restart <span class="font-semibold text-primary">{"#{@selected_sname}"}</span>?
+          </p>
+          <div class="text-base-content/60 leading-relaxed">
+            The application will be stopped and restarted automatically.
+          </div>
+        </div>
+
         <:footer>
           <Confirm.cancel_button id={@selected_sname}>Cancel</Confirm.cancel_button>
-          <Confirm.confirm_button event="restart" id={@selected_sname} value={@selected_sname}>
-            Confirm
+          <Confirm.danger_button
+            :if={@selected_sname == "deployex"}
+            event="restart"
+            id={@selected_sname}
+            value={@selected_sname}
+          >
+            Terminate All Apps
+          </Confirm.danger_button>
+          <Confirm.confirm_button
+            :if={@selected_sname != "deployex"}
+            event="restart"
+            id={@selected_sname}
+            value={@selected_sname}
+          >
+            Restart App
           </Confirm.confirm_button>
         </:footer>
       </Confirm.content>
@@ -124,20 +184,53 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <%= if @mode_confirmation do %>
       <Confirm.content id="app-set-mode-modal-deployex">
-        <:header>Attention</:header>
-        <p>
-          Are you sure you want to set to {"#{@mode_confirmation.mode_or_version}"}?
-        </p>
+        <:header>Change Application Mode</:header>
+
+        <div class="space-y-6">
+          <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg
+                  class="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
+              </div>
+              <div>
+                <h4 class="font-bold text-blue-800">Configuration Change</h4>
+                <p class="text-blue-700 text-sm">
+                  Application: <span class="font-semibold">{@mode_confirmation.name}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-base-content/90 leading-relaxed">
+            Change mode to <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary">{"#{@mode_confirmation.mode_or_version}"}</span>?
+          </p>
+
+          <div class="text-base-content/60 leading-relaxed">
+            This will update the application's deployment configuration.
+          </div>
+        </div>
+
         <:footer>
-          <Confirm.cancel_button id="mode">
-            Cancel
-          </Confirm.cancel_button>
+          <Confirm.cancel_button id="mode">Cancel</Confirm.cancel_button>
           <Confirm.confirm_button
             event="set-mode"
             id="mode"
             value={@mode_confirmation.mode_or_version}
           >
-            Confirm
+            Change Mode
           </Confirm.confirm_button>
         </:footer>
       </Confirm.content>
@@ -165,6 +258,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
+      |> assign(:current_path, "/applications")
 
     {:ok, socket}
   end
@@ -180,7 +274,8 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:selected_sname, nil)
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
-     |> assign(:mode_confirmation, nil)}
+     |> assign(:mode_confirmation, nil)
+     |> assign(:current_path, "/applications")}
   end
 
   @impl true
@@ -241,7 +336,13 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def handle_info({:update_system_info, host_info}, socket) do
-    {:noreply, assign(socket, :host_info, host_info)}
+    # Sync ui_settings from cache to ensure NavMenu has latest state
+    ui_settings = UiSettings.get()
+
+    {:noreply,
+     socket
+     |> assign(:host_info, host_info)
+     |> assign(:ui_settings, ui_settings)}
   end
 
   def handle_info(
@@ -249,13 +350,21 @@ defmodule DeployexWeb.ApplicationsLive do
         %{assigns: %{node: node}} = socket
       )
       when source_node == node do
-    {:noreply, assign(socket, :monitoring_apps_data, monitoring_apps_data)}
+    # Sync ui_settings from cache to ensure NavMenu has latest state
+    ui_settings = UiSettings.get()
+
+    {:noreply,
+     socket
+     |> assign(:monitoring_apps_data, monitoring_apps_data)
+     |> assign(:ui_settings, ui_settings)}
   end
 
   def handle_info({:monitoring_app_updated, _source_node, _monitoring_apps_data}, socket) do
     # NOTE: In future implementations, this will pattern match against other nodes
     #       to enable DeployEx to present its data.
-    {:noreply, socket}
+    # Still sync ui_settings to ensure consistency
+    ui_settings = UiSettings.get()
+    {:noreply, assign(socket, :ui_settings, ui_settings)}
   end
 
   def handle_info({:terminal_update, %{metadata: metadata, status: :closed}}, socket)

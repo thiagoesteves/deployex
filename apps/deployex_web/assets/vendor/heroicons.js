@@ -2,7 +2,7 @@ const plugin = require("tailwindcss/plugin")
 const fs = require("fs")
 const path = require("path")
 
-module.exports = plugin(function({matchComponents, theme}) {
+module.exports = plugin(function ({ matchComponents, theme }) {
   let iconsDir = path.join(__dirname, "../../../../deps/heroicons/optimized")
   let values = {}
   let icons = [
@@ -14,11 +14,11 @@ module.exports = plugin(function({matchComponents, theme}) {
   icons.forEach(([suffix, dir]) => {
     fs.readdirSync(path.join(iconsDir, dir)).forEach(file => {
       let name = path.basename(file, ".svg") + suffix
-      values[name] = {name, fullPath: path.join(iconsDir, dir, file)}
+      values[name] = { name, fullPath: path.join(iconsDir, dir, file) }
     })
   })
   matchComponents({
-    "hero": ({name, fullPath}) => {
+    "hero": ({ name, fullPath }) => {
       let content = fs.readFileSync(fullPath).toString().replace(/\r?\n|\r/g, "")
       content = encodeURIComponent(content)
       let size = theme("spacing.6")
@@ -39,5 +39,5 @@ module.exports = plugin(function({matchComponents, theme}) {
         "height": size
       }
     }
-  }, {values})
+  }, { values })
 })

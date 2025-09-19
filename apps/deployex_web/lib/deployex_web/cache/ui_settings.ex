@@ -12,5 +12,6 @@ defmodule DeployexWeb.Cache.UiSettings do
   defstruct nav_menu_collapsed: true
 
   def get, do: Cache.get(@key) || %__MODULE__{}
+
   def set(%__MODULE__{} = data), do: Cache.set(@key, data)
 end

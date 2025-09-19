@@ -23,7 +23,7 @@ defmodule DeployexWeb.TerminalLive do
       |> assign(terminal_rows: @terminal_rows)
 
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings}>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
       <div class="flex min-h-screen bg-gray-700">
         <div :if={@id}>
           <div
@@ -70,7 +70,7 @@ defmodule DeployexWeb.TerminalLive do
       |> assign(:terminal_process, nil)
       |> assign(:id, id)
 
-    {:ok, socket}
+    {:ok, assign(socket, :current_path, "/terminal")}
   end
 
   @impl true
@@ -78,7 +78,8 @@ defmodule DeployexWeb.TerminalLive do
     {:ok,
      socket
      |> assign(:terminal_process, nil)
-     |> assign(:id, nil)}
+     |> assign(:id, nil)
+     |> assign(:current_path, "/terminal")}
   end
 
   @impl true

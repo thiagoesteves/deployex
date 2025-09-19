@@ -34,6 +34,65 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
       >
         <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>
+
+      <%= cond do %>
+        <% @app_lang == "elixir" -> %>
+          <.iex_shortcuts />
+        <% @app_lang in ["erlang", "gleam"] -> %>
+          <.erl_shortcuts />
+        <% true -> %>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp iex_shortcuts(assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <span class="text-xs">⚡ IEx Interactive Shortcuts</span>
+      <div class="flex items-center grid grid-cols-4 gap-1 mb-3">
+        <.shortcut command="#iex:break" description="back to prompt" />
+        <.shortcut command="ESCAPE + o" description="multi-line cmd with editor" />
+        <.shortcut command="c filename.exs" description="compile" />
+        <.shortcut command="r Module" description="reload" />
+        <.shortcut command="h Module.method" description="help" />
+        <.shortcut command="i var" description="display info type" />
+        <.shortcut command="recompile" description="recompile and load" />
+        <.shortcut command="CTRL+G" description="User switch command" />
+        <.shortcut command="v[n]" description="session history" />
+        <.shortcut command="break!(MyModule.my_func/1)" description="Sets a breakpoint" />
+      </div>
+    </div>
+    """
+  end
+
+  defp erl_shortcuts(assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <span class="text-xs">⚡ Erl Interactive Shortcuts</span>
+      <div class="flex items-center grid grid-cols-4 gap-1 mb-3">
+        <.shortcut command="CTRL+G" description="User switch command" />
+        <.shortcut command="c(filename.erl)." description="compile" />
+        <.shortcut command="h(Module)." description="help" />
+        <.shortcut command="b()." description="Prints the current variable bindings" />
+        <.shortcut command="f()." description="Clears all variable bindings" />
+        <.shortcut command="f(X)." description="Removes the binding of variable X" />
+        <.shortcut command="rl()." description="Prints all record definitions" />
+        <.shortcut command="q()." description="Quits the Erlang shell" />
+        <.shortcut command="e(N)." description="Re-evaluates expr from history" />
+        <.shortcut command="v(N)." description="Retrieves the value from history" />
+      </div>
+    </div>
+    """
+  end
+
+  defp shortcut(assigns) do
+    ~H"""
+    <div class="bg-base-200 border border-base-300 rounded-lg p-1 hover:bg-base-100/30 transition-colors">
+      <div class="flex justify-between gap-2">
+        <div class="text-xs font-bold text-primary truncate">{@command}</div>
+        <div class="text-xs font-medium text-accent truncate">{@description}</div>
+      </div>
     </div>
     """
   end
@@ -43,6 +102,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
     socket =
       socket
       |> assign(:bin_path, "")
+      |> assign(:app_lang, "")
 
     {:ok, socket}
   end
@@ -165,6 +225,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
       socket
       |> assign(:bin_path, bin_path)
+      |> assign(:app_lang, app_lang)
     else
       socket
       |> assign(:bin_path, "Binary not found")
