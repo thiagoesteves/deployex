@@ -18,6 +18,13 @@ import Config
 # script that automatically sets the env var above.
 
 if config_env() == :prod do
+  # Configure secrets manager with environment variables
+  # Only vault_token comes from env vars, vault_url and vault_mount_path come from YAML
+  config :vaultx,
+    config: %{
+      token: System.get_env("VAULTX_TOKEN")
+    }
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

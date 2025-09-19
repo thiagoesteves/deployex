@@ -33,7 +33,7 @@ config :foundation,
   monitored_app_log_path: "/var/log",
   applications: nil
 
-# NOTE: The default username/pass is admin/admin and in order to generate
+# NOTE: The default username/pass is admin/deployex and in order to generate
 #       the hashed password, it is required to use:
 #       > Bcrypt.hash_pwd_salt("deployex")
 config :foundation, Foundation.Accounts,
