@@ -4,10 +4,6 @@ defmodule Foundation.ConfigProvider.Secrets.Gcp do
   """
   @behaviour Foundation.ConfigProvider.Secrets.Adapter
 
-  require Logger
-
-  # alias ExAws.Operation.JSON
-
   @doc """
   secrets/3.
 

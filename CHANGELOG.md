@@ -13,6 +13,7 @@
 
 ### Enhancements
  * [`PULL-153`](https://github.com/thiagoesteves/deployex/pull/153) Prettify README and fixing typos
+ * [`PR-154`](https://github.com/thiagoesteves/deployex/pull/154) Add HashiCorp Vault integration for secrets management
 
 ## 0.6.1 🚀 (2025-08-29)
 

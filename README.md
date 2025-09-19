@@ -71,8 +71,8 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 Your application is now better protected from crashes caused by excessive memory usage, port/atom exhaustion, or too many processes.
 
-🧠 Curious why monitoring memory is essential?  
-Check out this must-watch video:  
+🧠 Curious why monitoring memory is essential?
+Check out this must-watch video:
 ▶️ [Battling Memory Leaks: Tales from the Trenches at WhatsApp](https://youtu.be/NCgsTBeQbc8)
 
 ## ⚠️ [Next steps](https://github.com/thiagoesteves/deployex/issues)
@@ -291,14 +291,73 @@ Your application will likely require database commands, such as migrations. Depl
 
 ### 🔐 Secrets Requirements
 
-DeployEx uses Secret Manager (AWS or GCP) to fetch its secrets via the config provider. The following environment variable configuration is expected for Secret Manager:
+DeployEx supports multiple secret management backends for secure configuration:
 
-```bash
-DEPLOYEX_SECRETS_ADAPTER=gcp
-DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
-```
+#### HashiCorp Vault
+
+DeployEx can integrate with [HashiCorp Vault](https://developer.hashicorp.com/vault) for centralized secret management:
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "vault"
+  secrets_path: "deployex/prod/secrets"
+  vault_url: "https://vault.example.com:8200"
+  # optional, defaults to "secret"
+  vault_mount_path: "secret"
+  ```
+
+- Environment variables (for production deployment):
+
+  Set this environment variable to configure Vault token:
+
+  ```bash
+  export VAULTX_TOKEN="hvs.xxxxx"
+  ```
+
+  The vault URL and mount path are configured via YAML file. For development, you can also set:
+
+  ```bash
+  export VAULTX_URL="http://localhost:8200"
+  export VAULTX_MOUNT_PATH="secret"  # optional
+  ```
+
+#### AWS Secrets Manager
+
+- Environment variables:
+
+  ```bash
+  export DEPLOYEX_SECRETS_ADAPTER=aws
+  export DEPLOYEX_SECRETS_PATH=deployex-prod-secrets
+  ```
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "aws"
+  secrets_path: "deployex-prod-secrets"
+  ```
+
+#### GCP Secret Manager
+
+- Environment variables:
+
+  ```bash
+  export DEPLOYEX_SECRETS_ADAPTER=gcp
+  export DEPLOYEX_SECRETS_PATH=deployex-prod-secrets
+  ```
+
+- YAML configuration:
+
+  ```yaml
+  secrets_adapter: "gcp"
+  secrets_path: "deployex-prod-secrets"
+  ```
+
+#### Required Secret Values
 
 Within the secrets, the following key-value pairs are required:
+
 | ENV NAME | EXAMPLE | DESCRIPTION |
 |----------|-------------|------|
 | **DEPLOYEX_SECRET_KEY_BASE** | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |

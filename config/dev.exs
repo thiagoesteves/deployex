@@ -95,3 +95,11 @@ config :foundation,
 config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,
   bucket: "/tmp/deployex/bucket"
+
+# Configure secrets manager with environment variables for development
+config :vaultx,
+  config: %{
+    url: System.get_env("VAULTX_URL"),
+    token: System.get_env("VAULTX_TOKEN")
+  },
+  mount_path: System.get_env("VAULTX_MOUNT_PATH")

@@ -240,6 +240,8 @@ defmodule Foundation.ConfigProvider.Env.Config do
         # Secrets Config
         yaml_secrets_adapter = data["secrets_adapter"]
         secrets_path = data["secrets_path"]
+        vault_mount_path = data["vault_mount_path"]
+        vault_url = data["vault_url"]
 
         secrets_adapter =
           case yaml_secrets_adapter do
@@ -249,20 +251,37 @@ defmodule Foundation.ConfigProvider.Env.Config do
             "aws" ->
               Foundation.ConfigProvider.Secrets.Aws
 
+            "vault" ->
+              Foundation.ConfigProvider.Secrets.Vault
+
             adapter ->
               raise "Secret #{adapter} not supported"
           end
 
+        # Build secrets manager options
+        secrets_opts = [
+          {:adapter, secrets_adapter},
+          {:path, secrets_path}
+        ]
+
         updated_config =
           Config.Reader.merge(updated_config,
             foundation: [
-              {Foundation.ConfigProvider.Secrets.Manager,
-               [
-                 {:adapter, secrets_adapter},
-                 {:path, secrets_path}
-               ]}
+              {Foundation.ConfigProvider.Secrets.Manager, secrets_opts}
             ]
           )
+
+        updated_config =
+          if yaml_secrets_adapter == "vault" do
+            Config.Reader.merge(updated_config,
+              vaultx: [
+                {:config, %{url: vault_url}},
+                {:mount_path, vault_mount_path}
+              ]
+            )
+          else
+            updated_config
+          end
 
         # NOTE: Merge original config with the constructed config from yaml file
         Config.Reader.merge(config, updated_config)
