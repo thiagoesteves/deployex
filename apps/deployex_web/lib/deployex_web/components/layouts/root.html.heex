@@ -13,8 +13,38 @@
     </script>
     <script>
       (() => {
-        // Set fixed autumn theme
-        document.documentElement.setAttribute("data-theme", "autumn");
+        const setTheme = (theme) => {
+          if (theme === "system") {
+            localStorage.removeItem("phx:theme");
+            document.documentElement.removeAttribute("data-theme");
+          } else if (theme) {
+            localStorage.setItem("phx:theme", theme);
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        };
+
+        // Always restore theme on page load
+        const savedTheme = localStorage.getItem("phx:theme");
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else {
+          // No saved theme, use system default
+          setTheme("system");
+        }
+
+        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+
+        window.addEventListener("phx:set-theme", (e) => {
+          setTheme(e.detail.theme);
+        });
+
+        // Listen for system theme changes when using system theme
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          if (!localStorage.getItem('phx:theme')) {
+            // Using system theme, update accordingly
+            document.documentElement.removeAttribute("data-theme");
+          }
+        });
       })();
     </script>
   </head>

@@ -19,163 +19,123 @@ defmodule DeployexWeb.Components.MultiSelect do
 
   def content(assigns) do
     ~H"""
-    <div class="w-full m flex flex-col items-center mx-auto">
-      <div class="w-full px-2">
-        <div class="flex flex-col items-center relative">
-          <div class="w-full  ">
-            <div class="my-2 p-1 flex border border-gray-300 bg-white rounded ">
-              <div class="flex flex-auto flex-wrap">
-                <div class="flex text-ms font-normal items-center p-2 py-1 bg-gray-200  rounded border-gray-200 ">
-                  {@selected_text}
-                </div>
+    <div class="w-full">
+      <!-- Selected Items Display -->
+      <div class="flex flex-wrap gap-2 mb-4">
+        <div class="badge badge-neutral badge-lg">{@selected_text}</div>
 
-                <%= for item <- @selected do %>
-                  <%= for key <- item.keys do %>
-                    <div class={[
-                      "flex justify-center items-center m-1 font-medium py-1 px-2 bg-white rounded-full border",
-                      border_item_color(item.name)
-                    ]}>
-                      <div class={[
-                        "text-xs font-normal leading-none max-w-full flex-initial",
-                        text_item_color(item.name)
-                      ]}>
-                        {"#{item.name}:#{key}"}
-                      </div>
-                      <button
-                        id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-remove-item")}
-                        class="flex flex-auto flex-row-reverse"
-                        phx-click="multi-select-remove-item"
-                        phx-value-key={key}
-                        phx-value-item={item.name}
-                      >
-                        <div>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="100%"
-                            height="100%"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
-                          >
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  <% end %>
-                <% end %>
-                <div class="flex-1">
-                  <input
-                    placeholder=""
-                    phx-click="toggle-options"
-                    class="bg-transparent p-1 px-2 appearance-none outline-none h-full w-full text-gray-800"
-                  />
-                </div>
-              </div>
-              <div class="text-gray-300 w-8 py-1 pl-2 pr-1 border-l flex items-center border-gray-200 ">
-                <button
-                  id={Helper.normalize_id("#{@id}-toggle-options")}
-                  class="cursor-pointer w-6 h-6 text-gray-600 outline-none focus:outline-none"
-                  phx-click="toggle-options"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="100%"
-                    height="100%"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="2"
+        <%= for item <- @selected do %>
+          <%= for key <- item.keys do %>
+            <div class={["badge badge-lg gap-2", badge_color(item.name)]}>
+              <span class="text-xs font-medium">{"#{item.name}:#{key}"}</span>
+              <button
+                id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-remove-item")}
+                class="btn btn-ghost btn-xs btn-circle"
+                phx-click="multi-select-remove-item"
+                phx-value-key={key}
+                phx-value-item={item.name}
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    class="feather feather-chevron-up w-4 h-4"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
                   >
-                    <polyline :if={!@show_options} points="18 15 12 9 6 15"></polyline>
-                    <polyline :if={@show_options} points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
+                  </path>
+                </svg>
+              </button>
             </div>
+          <% end %>
+        <% end %>
+      </div>
+      
+    <!-- Toggle Button -->
+      <div class="flex justify-center mb-4">
+        <button
+          id={Helper.normalize_id("#{@id}-toggle-options")}
+          class="btn btn-outline btn-sm"
+          phx-click="toggle-options"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              :if={!@show_options}
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            >
+            </path>
+            <path
+              :if={@show_options}
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 15l7-7 7 7"
+            >
+            </path>
+          </svg>
+          {if @show_options, do: "Hide Options", else: "Show Options"}
+        </button>
+      </div>
+      
+    <!-- Available Options -->
+      <div :if={@show_options} class="collapse collapse-open bg-base-200 rounded-lg">
+        <div
+          class="collapse-content p-4"
+          phx-mounted={
+            JS.transition(
+              {"first:ease-in duration-300", "first:opacity-0 first:scale-95",
+               "first:opacity-100 first:scale-100"},
+              time: 300
+            )
+          }
+        >
+          <%= for item <- @unselected do %>
+            <div class="mb-6 last:mb-0">
+              <h3 class="text-sm font-semibold text-base-content mb-3 flex items-center gap-2">
+                <div class={["w-3 h-3 rounded-full", category_color(item.name)]}></div>
+                {String.capitalize(item.name)}
+              </h3>
 
-            <div :if={@show_options} class="relative shadow bg-white z-40 lef-0 rounded max-h-select">
-              <div phx-mounted={
-                JS.transition(
-                  {"first:ease-in duration-300", "first:opacity-0 first:p-0 first:h-0",
-                   "first:opacity-100"},
-                  time: 300
-                )
-              }>
-                <%= for item <- @unselected do %>
-                  <div class="w-full flex-wrap">
-                    <div class="flex items-start p-2">
-                      <div class="text-xs font-bold text-black">{item.name}:</div>
-                    </div>
-
-                    <div class="flex flex-wrap">
-                      <%= for key <- item.keys do %>
-                        <button
-                          id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
-                          class={[
-                            "flex justify-center items-center m-1 font-medium px-2 rounded-full",
-                            unselected_highlight_color(key, item.unselected_highlight)
-                          ]}
-                          phx-click="multi-select-add-item"
-                          phx-value-key={key}
-                          phx-value-item={item.name}
-                        >
-                          <div class="text-xs font-normal leading-none max-w-full flex-initial">
-                            {key}
-                          </div>
-                          <div class="flex flex-auto flex-row-reverse">
-                            <div>
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="100%"
-                                height="100%"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="feather feather-x cursor-pointer hover:text-teal-400 rounded-full w-4 h-4 ml-2"
-                              >
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                            </div>
-                          </div>
-                        </button>
-                      <% end %>
-                    </div>
-                  </div>
+              <div class="flex flex-wrap gap-2">
+                <%= for key <- item.keys do %>
+                  <button
+                    id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
+                    class={[
+                      "btn btn-sm gap-2",
+                      if(key in item.unselected_highlight, do: "btn-success", else: "btn-neutral")
+                    ]}
+                    phx-click="multi-select-add-item"
+                    phx-value-key={key}
+                    phx-value-item={item.name}
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      >
+                      </path>
+                    </svg>
+                    {key}
+                  </button>
                 <% end %>
               </div>
             </div>
-          </div>
+          <% end %>
         </div>
       </div>
     </div>
     """
   end
 
-  defp border_item_color("services"), do: "border-teal-300"
-  defp border_item_color("logs"), do: "border-yellow-400"
-  defp border_item_color(_), do: "border-gray-300"
+  defp badge_color("services"), do: "badge-primary"
+  defp badge_color("logs"), do: "badge-neutral"
+  defp badge_color(_), do: "badge-accent"
 
-  defp text_item_color("services"), do: "text-teal-700"
-  defp text_item_color("logs"), do: "text-yellow-700"
-  defp text_item_color(_), do: "text-teal-700"
-
-  defp unselected_highlight_color(key, unselected_highlight) do
-    if key in unselected_highlight do
-      "text-gray-700 bg-green-100 borde border-green-300"
-    else
-      "text-gray-700 bg-gray-100 borde border-gray-300"
-    end
-  end
+  defp category_color("services"), do: "bg-primary"
+  defp category_color("logs"), do: "bg-neutral"
+  defp category_color(_), do: "bg-accent"
 end

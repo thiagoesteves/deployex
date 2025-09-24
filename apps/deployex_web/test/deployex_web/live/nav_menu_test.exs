@@ -29,24 +29,34 @@ defmodule DeployexWeb.NavMenuTest do
     assert html =~ "History Logs"
     assert html =~ "Observer Web"
     assert html =~ "Host Terminal"
-    assert html =~ "Docs"
+    assert html =~ "Documentation"
 
+    assert html =~ "style=\"width: 16rem;\""
+    refute html =~ "style=\"width: 5rem;\""
+
+    # Test collapse functionality - in collapsed state, text labels are hidden
     html = index_live |> element("#toggle-nav-menu-button") |> render_click()
 
-    refute html =~ "Applications"
-    refute html =~ "Live Logs"
-    refute html =~ "History Logs"
-    refute html =~ "Observer Web"
-    refute html =~ "Host Terminal"
-    refute html =~ "Docs"
+    # In collapsed state, navigation items should still be present but text labels hidden
+    assert html =~ "aria-label=\"Applications\""
+    assert html =~ "aria-label=\"Live Logs\""
+    assert html =~ "aria-label=\"Documentation\""
 
+    # Check the width of the nav menu column
+    refute html =~ "style=\"width: 16rem;\""
+    assert html =~ "style=\"width: 5rem;\""
+
+    # Test expand functionality - text labels should be visible again
     html = index_live |> element("#toggle-nav-menu-button") |> render_click()
+
+    assert html =~ "style=\"width: 16rem;\""
+    refute html =~ "style=\"width: 5rem;\""
 
     assert html =~ "Applications"
     assert html =~ "Live Logs"
     assert html =~ "History Logs"
     assert html =~ "Observer Web"
     assert html =~ "Host Terminal"
-    assert html =~ "Docs"
+    assert html =~ "Documentation"
   end
 end

@@ -22,7 +22,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-test-app-abc123") |> render_click() =~
-             "Are you sure you want to restart sname test_app-abc123?"
+             "Are you sure you want to restart <span class=\"font-semibold text-primary\">test_app-abc123</span>?\n      </p><div class=\"text-base-content/60 leading-relaxed\">\n        The application will be stopped and restarted automatically."
 
     assert index_live |> element("#cancel-button-test-app-abc123", "Cancel") |> render_click()
 
@@ -41,9 +41,11 @@ defmodule DeployexWeb.Applications.RestartTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-test-app-abc123") |> render_click() =~
-             "Are you sure you want to restart sname test_app-abc123?"
+             "Are you sure you want to restart <span class=\"font-semibold text-primary\">test_app-abc123</span>?\n      </p><div class=\"text-base-content/60 leading-relaxed\">\n        The application will be stopped and restarted automatically."
 
-    assert index_live |> element("#confirm-button-test-app-abc123", "Confirm") |> render_click()
+    assert index_live
+           |> element("#confirm-button-test-app-abc123", "Restart App")
+           |> render_click()
 
     refute has_element?(index_live, "#cancel-button-test-app-abc123")
   end
@@ -57,7 +59,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-deployex") |> render_click() =~
-             "Are you sure you want to restart deployex?"
+             "Are you sure you want to restart <span class=\"font-semibold text-red-600\">deployex</span>?\n        All running applications will be affected."
 
     assert index_live |> element("#cancel-button-deployex", "Cancel") |> render_click()
 
@@ -76,10 +78,12 @@ defmodule DeployexWeb.Applications.RestartTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-restart-deployex") |> render_click() =~
-             "Are you sure you want to restart deployex?"
+             "Are you sure you want to restart <span class=\"font-semibold text-red-600\">deployex</span>?\n        All running applications will be affected."
 
     assert capture_log(fn ->
-             assert index_live |> element("#confirm-button-deployex", "Confirm") |> render_click()
+             assert index_live
+                    |> element("#danger-button-deployex", "Terminate All Apps")
+                    |> render_click()
            end) =~ "Deployex was requested to terminate, see you soon!!!"
 
     refute has_element?(index_live, "#cancel-button-deployex")
