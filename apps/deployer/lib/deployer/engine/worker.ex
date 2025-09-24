@@ -29,8 +29,8 @@ defmodule Deployer.Engine.Worker do
           name: String.t(),
           language: String.t(),
           env: list(),
-          initial_port: non_neg_integer(),
-          available_port: non_neg_integer() | nil,
+          replica_ports: list(),
+          available_ports: list(),
           ghosted_version_list: list(),
           deployments: map(),
           deployment_to_terminate: map(),
@@ -43,8 +43,8 @@ defmodule Deployer.Engine.Worker do
             name: "",
             language: "",
             env: [],
-            initial_port: 0,
-            available_port: nil,
+            replica_ports: [],
+            available_ports: [],
             ghosted_version_list: [],
             deployments: %{},
             deployment_to_terminate: nil,
@@ -65,7 +65,7 @@ defmodule Deployer.Engine.Worker do
   def init(
         %__MODULE__{
           name: name,
-          initial_port: initial_port,
+          replica_ports: replica_ports,
           replicas: replicas,
           schedule_interval: schedule_interval
         } = state
@@ -101,16 +101,20 @@ defmodule Deployer.Engine.Worker do
 
     snames = check_installled_apps.(Status.list_installed_apps(name))
 
+    build_ports_by_index = fn index ->
+      Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
+    end
+
     deployments =
       1..replicas
       |> Enum.with_index(fn instance, index ->
-        {instance, initial_port + index, Enum.at(snames, index)}
+        {instance, build_ports_by_index.(index), Enum.at(snames, index)}
       end)
-      |> Enum.reduce(%{}, fn {instance, port, sname}, acc ->
-        Map.put(acc, instance, %Engine.Deployment{sname: sname, port: port})
+      |> Enum.reduce(%{}, fn {instance, ports, sname}, acc ->
+        Map.put(acc, instance, %Engine.Deployment{sname: sname, ports: ports})
       end)
 
-    {:ok, %{state | deployments: deployments, available_port: initial_port + replicas}}
+    {:ok, %{state | deployments: deployments, available_ports: build_ports_by_index.(replicas)}}
   end
 
   @impl true
@@ -146,10 +150,10 @@ defmodule Deployer.Engine.Worker do
     state =
       if instance == state.current and sname == current_deployment.sname do
         sname = current_deployment.sname
-        port = current_deployment.port
+        ports = current_deployment.ports
 
         Logger.warning(
-          "The instance: #{instance} sname: #{sname} port: #{port} is not stable, ghosting version"
+          "The instance: #{instance} sname: #{sname} ports: #{inspect(ports)} is not stable, ghosting version"
         )
 
         Monitor.stop_service(name, sname)
@@ -169,7 +173,7 @@ defmodule Deployer.Engine.Worker do
           | deployments: deployments,
             deployment_to_terminate: nil,
             ghosted_version_list: new_list,
-            available_port: port
+            available_ports: ports
         }
       else
         # Ignore because the expiration is not for the current deployment
@@ -193,14 +197,14 @@ defmodule Deployer.Engine.Worker do
         new_instance =
           if state.current == state.replicas, do: 1, else: state.current + 1
 
-        available_port =
+        available_ports =
           if deployment_to_terminate do
             Logger.info(" # Terminating previous node: #{deployment_to_terminate.sname}")
             Monitor.stop_service(state.name, deployment_to_terminate.sname)
             Catalog.cleanup(deployment_to_terminate.sname)
-            deployment_to_terminate.port
+            deployment_to_terminate.ports
           else
-            state.available_port
+            state.available_ports
           end
 
         Logger.info(" # Moving to the next instance: #{new_instance}")
@@ -209,7 +213,7 @@ defmodule Deployer.Engine.Worker do
           state
           | current: new_instance,
             deployment_to_terminate: nil,
-            available_port: available_port
+            available_ports: available_ports
         }
       else
         Logger.warning(
@@ -255,7 +259,7 @@ defmodule Deployer.Engine.Worker do
 
   defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do
     sname = state.deployments[current].sname
-    port = state.deployments[current].port
+    ports = state.deployments[current].ports
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
@@ -264,11 +268,11 @@ defmodule Deployer.Engine.Worker do
           name: name,
           sname: sname,
           language: language,
-          port: port,
+          ports: ports,
           env: env
         })
 
-      set_timeout_to_rollback(state, sname, port)
+      set_timeout_to_rollback(state, sname, ports)
     else
       state
     end
@@ -334,7 +338,7 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
-  defp set_timeout_to_rollback(%{deployments: deployments} = state, sname, port) do
+  defp set_timeout_to_rollback(%{deployments: deployments} = state, sname, ports) do
     current_deployment = state.deployments[state.current]
 
     timer_ref =
@@ -350,25 +354,26 @@ defmodule Deployer.Engine.Worker do
         current_deployment
         | timer_ref: timer_ref,
           sname: sname,
-          port: port
+          ports: ports
       })
 
     %{state | deployments: deployments}
   end
 
+  # NOTE: Receiving a new deployment while the previous one is still in progress
   defp full_deployment(
          %{
            name: name,
-           available_port: nil,
            deployments: deployments,
            deployment_to_terminate: deployment_to_terminate
          } =
            state,
          new_sname,
          release
-       ) do
+       )
+       when deployment_to_terminate != nil do
     sname = state.deployments[state.current].sname
-    port = state.deployments[state.current].port
+    ports = state.deployments[state.current].ports
 
     Logger.info(" # Terminating node: #{sname} before receiving running state")
 
@@ -382,7 +387,7 @@ defmodule Deployer.Engine.Worker do
       state
       | deployments: deployments,
         deployment_to_terminate: nil,
-        available_port: port
+        available_ports: ports
     }
 
     full_deployment(state, new_sname, release)
@@ -394,7 +399,7 @@ defmodule Deployer.Engine.Worker do
            language: language,
            name: name,
            env: env,
-           available_port: available_port
+           available_ports: available_ports
          } = state,
          new_sname,
          release
@@ -413,15 +418,15 @@ defmodule Deployer.Engine.Worker do
           name: name,
           sname: new_sname,
           language: language,
-          port: available_port,
+          ports: available_ports,
           env: env
         })
     end)
 
     state
-    |> set_timeout_to_rollback(new_sname, available_port)
+    |> set_timeout_to_rollback(new_sname, available_ports)
     |> Map.put(:deployment_to_terminate, deployment_to_terminate)
-    |> Map.put(:available_port, nil)
+    |> Map.put(:available_ports, [])
   end
 
   defp hot_upgrade(

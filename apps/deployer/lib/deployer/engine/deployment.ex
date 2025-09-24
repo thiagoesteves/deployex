@@ -6,7 +6,7 @@ defmodule Deployer.Engine.Deployment do
           state: :init | :active,
           timer_ref: reference() | nil,
           sname: String.t() | nil,
-          port: non_neg_integer()
+          ports: list()
         }
 
   @derive Jason.Encoder
@@ -14,5 +14,5 @@ defmodule Deployer.Engine.Deployment do
   defstruct state: :init,
             timer_ref: nil,
             sname: nil,
-            port: 0
+            ports: []
 end

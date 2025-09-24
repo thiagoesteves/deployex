@@ -10,7 +10,7 @@ defmodule DeployexWeb.Components.AppCard do
   attr :supervisor, :boolean, required: true
   attr :status, :atom, required: true
   attr :node, :string, required: true
-  attr :port, :integer, required: true
+  attr :ports, :list, required: true
   attr :sname, :integer, required: true
   attr :language, :string, required: true
   attr :crash_restart_count, :integer, required: true
@@ -51,8 +51,7 @@ defmodule DeployexWeb.Components.AppCard do
               <div class="badge badge-neutral badge-lg">Application</div>
             </div>
           </div>
-          
-    <!-- App Details Grid -->
+          <!-- App Details Grid -->
           <div class="space-y-4">
             <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
               <div class="flex items-center gap-2 mb-2">
@@ -77,32 +76,36 @@ defmodule DeployexWeb.Components.AppCard do
                 {@node}
               </div>
             </div>
+            <div
+              :if={@ports != []}
+              class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <svg
+                  class="w-3 h-3 text-base-content/60"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                  >
+                  </path>
+                </svg>
+                <div class="text-xs font-medium text-base-content/60">Ports</div>
+              </div>
+              <div class="flex text-sm font-mono text-base-content/90 gap-2">
+                <%!-- <CopyToClipboard.content id={"c2c-port-messages-#{@sname}"} message={@port} /> --%>
+                <%= for port <- @ports do %>
+                  {"#{port.key}|#{port.base}"}
+                <% end %>
+              </div>
+            </div>
 
             <div class="grid grid-cols-3 gap-3">
-              <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
-                <div class="flex items-center gap-2 mb-2">
-                  <svg
-                    class="w-3 h-3 text-base-content/60"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
-                    >
-                    </path>
-                  </svg>
-                  <div class="text-xs font-medium text-base-content/60">Port</div>
-                </div>
-                <div class="flex text-sm font-mono text-base-content/90 gap-2">
-                  <CopyToClipboard.content id={"c2c-port-messages-#{@sname}"} message={@port} />
-                  {@port}
-                </div>
-              </div>
-
               <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
                 <div class="flex items-center gap-2 mb-2">
                   <svg
@@ -171,8 +174,7 @@ defmodule DeployexWeb.Components.AppCard do
                 </div>
                 <.restarts restarts={@crash_restart_count} />
               </div>
-            </div>
-            <div class="grid grid-cols-3 gap-3">
+
               <div
                 :if={@last_deployment}
                 class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"

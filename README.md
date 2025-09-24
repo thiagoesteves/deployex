@@ -218,8 +218,10 @@ monitoring:                        # Deployex (optional, default: values describ
 applications:
   - name: "myphoenixapp" # Application: Monitored app name (Elixir app name format)
     language: "elixir"   # Application: App language (elixir, erlang or gleam)
-    initial_port: 4000   # Application: The initial port for starting the monitored app
     replicas: 2          # Application: Number of replicas
+    replica_ports:       # Application: (optional) Each instance receives a different port in the range (base + replicas)
+      - key: PORT
+        base: 4000
     env:                 # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
@@ -250,7 +252,9 @@ applications:
         restart_threshold_percent: 90
   - name: "myapp"
     language: "elixir"
-    initial_port: 4040
+    replica_ports:
+      - key: PORT
+        base: 4040
     replicas: 2
     env:
       - key: MYAPP_PHX_HOST

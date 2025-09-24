@@ -13,6 +13,8 @@
 
 ### Enhancements
  * [`PULL-153`](https://github.com/thiagoesteves/deployex/pull/153) Prettify README and fixing typos
+ * [`PULL-159`](https://github.com/thiagoesteves/deployex/pull/159) Amaru Integration
+ * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding multiple dynamic ports for application deployment based on the number of replicas
 
 ## 0.6.1 🚀 (2025-08-29)
 

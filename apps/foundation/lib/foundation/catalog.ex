@@ -57,7 +57,7 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.applications == [ %{env: ["SECRET=value", "PHX_SERVER=true"], initial_port: 4444, language: "elixir", name: "myelixir", replicas: 3}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "myerlang", replicas: 3, language: "erlang", initial_port: 5555}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "mygleam", replicas: 3, language: "gleam", initial_port: 6666} ]
+    ...> assert Catalog.applications == [ %{env: ["SECRET=value", "PHX_SERVER=true"], language: "elixir", name: "myelixir", replicas: 3, replica_ports: [%{base: 4444, key: "PORT"}]}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "myerlang", replicas: 3, replica_ports: [%{base: 5555, key: "PORT"}], language: "erlang"}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "mygleam", replicas: 3, replica_ports: [%{base: 6666, key: "PORT"}], language: "gleam"} ]
   """
   @impl true
   @spec applications() :: list()

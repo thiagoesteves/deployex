@@ -21,8 +21,10 @@ monitoring:
 applications:
   - name: "myphoenixapp"
     language: "elixir"
-    initial_port: 4000
     replicas: 3
+    replica_ports:
+      - key: PORT
+        base: 4000
     env:
       - key: MYPHOENIXAPP_PHX_SERVER
         value: true
@@ -43,8 +45,10 @@ applications:
         restart_threshold_percent: 90
   - name: "myumbrella"
     language: "erlang"
-    initial_port: 4050
     replicas: 2
+    replica_ports:
+      - key: PORT
+        base: 4050
     env:
       - key: MYUMBRELLA_PHX_SERVER
         value: true

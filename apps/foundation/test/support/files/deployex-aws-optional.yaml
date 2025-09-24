@@ -16,6 +16,8 @@ os_target: "ubuntu-20.04"
 applications:
   - name: "myphoenixapp"
     language: "elixir"
-    initial_port: 4000
     replicas: 3
+    replica_ports:
+      - key: PORT
+        base: 4000
 # optional - env:

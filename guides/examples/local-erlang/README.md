@@ -195,7 +195,7 @@ config :foundation,
       name: "myerlangapp",
       replicas: 2,
       language: "erlang",
-      initial_port: 4000,
+      replica_ports: [%{key: "PORT", base: 4000}],
       env: []
     }
   ]

@@ -22,8 +22,10 @@ monitoring:
 applications:
   - name: "myapp"
     language: "elixir"
-    initial_port: 4000
     replicas: 3
+    replica_ports:
+      - key: PORT
+        base: 4000
     env:
       - key: MYAPP_PHX_HOST
         value: "example.com"

@@ -6,7 +6,7 @@ defmodule Deployer.Monitor.Service do
           name: String.t() | nil,
           sname: String.t() | nil,
           language: String.t() | nil,
-          port: non_neg_integer(),
+          ports: list(),
           env: list(),
           timeout_app_ready: non_neg_integer(),
           retry_delay_pre_commands: non_neg_integer()
@@ -17,7 +17,7 @@ defmodule Deployer.Monitor.Service do
   defstruct name: nil,
             sname: nil,
             language: nil,
-            port: 0,
+            ports: [],
             env: [],
             timeout_app_ready: :timer.seconds(30),
             retry_delay_pre_commands: :timer.seconds(1)

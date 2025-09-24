@@ -48,6 +48,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
           data["applications"]
           |> Enum.map(fn application ->
             app_config_monitoring = application["monitoring"]
+            app_config_replica_ports = application["replica_ports"] || []
 
             # credo:disable-for-lines:3
             monitoring =
@@ -57,11 +58,16 @@ defmodule Foundation.ConfigProvider.Env.Config do
                 []
               end
 
+            replica_ports =
+              Enum.map(app_config_replica_ports, fn %{"key" => key, "base" => base} ->
+                %{key: key, base: base}
+              end)
+
             %{
               name: application["name"],
               replicas: application["replicas"],
               language: application["language"],
-              initial_port: application["initial_port"],
+              replica_ports: replica_ports,
               env: read_application_env.(application["env"]),
               monitoring: monitoring
             }

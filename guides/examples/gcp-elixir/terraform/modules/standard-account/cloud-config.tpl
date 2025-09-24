@@ -63,8 +63,10 @@ write_files:
       applications:
         - name: "myappname"
           language: "elixir"
-          initial_port: 4000
-          replicas: "${replicas}"
+          replicas: ${replicas}
+          replica_ports:
+            - key: PORT
+              base: 4000
           env:
             - key: MYAPPNAME_PHX_HOST
               value: "${hostname}"

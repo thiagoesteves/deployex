@@ -55,8 +55,10 @@ write_files:
       applications:
         - name: "myappname"
           language: "erlang"
-          initial_port: 4000
           replicas: ${replicas}
+          replica_ports:
+            - key: PORT
+              base: 4000
           env:
             - key: MYAPPNAME_PHX_HOST
               value: "${hostname}"

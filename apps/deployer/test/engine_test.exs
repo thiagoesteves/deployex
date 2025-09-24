@@ -1046,9 +1046,7 @@ defmodule Deployer.EngineTest do
       |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
 
       Deployer.MonitorMock
-      |> expect(:start_service, 1, fn _service ->
-        {:ok, self()}
-      end)
+      |> expect(:start_service, 1, fn _service -> {:ok, self()} end)
       |> expect(:stop_service, fn _name, _sname ->
         send(pid, {:handle_ref_event, ref})
         :ok
@@ -1074,7 +1072,8 @@ defmodule Deployer.EngineTest do
                             timeout_rollback: 50,
                             schedule_interval: 200,
                             name: name,
-                            language: language
+                            language: language,
+                            replica_ports: [%{key: "PORT1", base: 1}]
                           })
 
                  assert_receive {:handle_ref_event, ^ref}, 1_000
@@ -1084,7 +1083,7 @@ defmodule Deployer.EngineTest do
                  assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
                  assert state.current == 1
                end
-             end) =~ "port: 1 is not stable, ghosting version"
+             end) =~ "ports: [%{base: 2, key: \"PORT1\"}] is not stable, ghosting version"
     end
   end
 end
