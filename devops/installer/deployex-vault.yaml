@@ -1,0 +1,51 @@
+# DeployEx Configuration with HashiCorp Vault Integration
+# This example shows how to configure DeployEx to use HashiCorp Vault for secret management
+
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+
+# Release configuration
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+
+# Vault secrets configuration
+secrets_adapter: "vault"
+secrets_path: "deployex/prod/secrets"
+vault_mount_path: "secret" # optional, defaults to "secret"
+vault_url: "https://vault.example.com:8200"
+
+# DeployEx version and runtime
+version: "0.6.2"
+otp_version: 28
+
+# Applications to monitor and deploy
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+    initial_port: 4000
+    replicas: 3
+    env:
+      - key: MYPHOENIXAPP_PHX_HOST
+        value: "example.com"
+      - key: MYPHOENIXAPP_PHX_SERVER
+        value: true
+      - key: MYPHOENIXAPP_DATABASE_URL
+        value: "ecto://postgres:postgres@localhost/myphoenixapp_prod"
+# Required Environment Variables for Vault Integration:
+#
+# VAULTX_TOKEN="hvs.your-vault-token"
+# VAULTX_NAMESPACE="myapp"    # optional, Enterprise only
+#
+# Note: vault_url and vault_mount_path are configured via YAML above
+#
+# Required Vault Secrets at path "deployex/prod/secrets":
+# - DEPLOYEX_SECRET_KEY_BASE
+# - DEPLOYEX_ERLANG_COOKIE
+# - DEPLOYEX_ADMIN_HASHED_PASSWORD
+#
+# Example Vault commands to set up secrets:
+# vault kv put secret/deployex/prod/secrets \
+#   DEPLOYEX_SECRET_KEY_BASE="your-64-char-secret-key" \
+#   DEPLOYEX_ERLANG_COOKIE="your-erlang-cookie" \
+#   DEPLOYEX_ADMIN_HASHED_PASSWORD="your-bcrypt-hashed-password"
