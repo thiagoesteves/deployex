@@ -56,7 +56,7 @@ write_files:
         - name: "myappname"
           language: "gleam"
           initial_port: 4000
-          replicas: "${replicas}"
+          replicas: ${replicas}
           env:
             - key: MYAPPNAME_PHX_HOST
               value: "${hostname}"
