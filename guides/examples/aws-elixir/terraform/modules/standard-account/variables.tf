@@ -14,7 +14,7 @@ variable "deployex_dns" {
 }
 
 variable "replicas" {
-  type     = string
+  type     = number
   nullable = false
 }
 

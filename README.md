@@ -89,7 +89,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [:soon: **0.6.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.2) | -/-                                                     |                                                            |                                                            |
+| [:soon: **0.7.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.0) | -/-                                                     | **27.3.4.3**                                               | **28.1** [2]                                               |
 | [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
 | [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
 | [**0.5.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2) | **26.2.5.12**                                                  | **27.3.4**                                                 | **28.0** [2]                                               |
@@ -305,7 +305,7 @@ Within the secrets, the following key-value pairs are required:
 | **DEPLOYEX_ERLANG_COOKIE** | my-cookie | erlang cookie |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
 
-## 🏠 Running DeployEx locally
+## 🏠 Running DeployEx locally and required changes in your application for mTLS, hotupgrade and metrics
 
 - [Elixir Application - No Ecto](guides/examples/local-elixir/README.md)
 - [Elixir Application - With Ecto](guides/examples/local-elixir-ecto/README.md)

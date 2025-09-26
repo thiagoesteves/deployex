@@ -98,9 +98,9 @@ DEPLOYEX_SYSTEMD_FILE="
 }
 
 update_deployex() {
-  local VERSION="$1"
-  local OS_TARGET="$2"
-  local OTP_VERSION="$3"
+  local VERSION=$1
+  local OS_TARGET=$2
+  local OTP_VERSION=$3
     echo ""
     echo "#           Updating Deployex              #"
     cd /tmp
@@ -124,16 +124,16 @@ update_deployex() {
     systemctl enable --now ${DEPLOYEX_SERVICE_NAME}
 }
 
-while [[ "$#" -gt 0 ]]; do
+while [[ $# -gt 0 ]]; do
     case $1 in
         --install)
-            operation="install"
-            config_file="$2"
+            operation=install
+            config_file=$2
             shift
             ;;
         --update)
-            operation="update"
-            config_file="$2"
+            operation=update
+            config_file=$2
             shift
             ;;
         --help)
@@ -148,39 +148,39 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Ensure operation is set and config_file is provided
-if [[ -z "$operation" || -z "$config_file" ]]; then
+if [[ -z $operation || -z $config_file ]]; then
     usage
 fi
 
 # Validate config file existence
-if [ ! -f "$config_file" ]; then
+if [ ! -f $config_file ]; then
     echo "Config file '$config_file' not found."
     exit 1
 fi
 
-version=$(yq '.version' "$config_file")
-otp_version=$(yq '.otp_version' "$config_file")
-otp_tls_certificates=$(yq '.otp_tls_certificates' "$config_file")
-os_target=$(yq '.os_target' "$config_file")
-app_name=$(yq '.applications[0].name' "$config_file")
+version=$(yq '.version' $config_file | tr -d '"')
+otp_version=$(yq '.otp_version' $config_file | tr -d '"')
+otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
+os_target=$(yq '.os_target' $config_file | tr -d '"')
+app_name=$(yq '.applications[0].name' $config_file | tr -d '"')
 
 # Check if all required parameters are provided based on the operation
-if [ "$operation" == "install" ]; then
-    if [[ -z "$version" || 
-          -z "$otp_version" ||
-          -z "$otp_tls_certificates" ||
-          -z "$app_name" ||
-          -z "$os_target" ]]; then
+if [ $operation == install ]; then
+    if [[ -z $version || 
+          -z $otp_version ||
+          -z $otp_tls_certificates ||
+          -z $app_name ||
+          -z $os_target ]]; then
         usage
     fi
     remove_deployex
-    install_deployex "$config_file" "$otp_tls_certificates" "$app_name"
-    update_deployex "$version" "$os_target" "$otp_version"
-elif [ "$operation" == "update" ]; then
-    if [[ -z "$version" || -z "$os_target" || -z "$otp_version" ]]; then
+    install_deployex $config_file $otp_tls_certificates $app_name
+    update_deployex $version $os_target $otp_version
+elif [ $operation == update ]; then
+    if [[ -z $version || -z $os_target || -z $otp_version ]]; then
         usage
     fi
-    update_deployex "$version" "$os_target" "$otp_version"
+    update_deployex $version $os_target $otp_version
 else
     usage
 fi
