@@ -305,7 +305,9 @@ Within the secrets, the following key-value pairs are required:
 | **DEPLOYEX_ERLANG_COOKIE** | my-cookie | erlang cookie |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
 
-## 🏠 Running DeployEx locally and required changes in your application for mTLS, hotupgrade and metrics
+## 🏠 Local Development & Application Setup
+
+Learn how to run DeployEx locally and configure your application for mTLS, hot upgrades, and metrics:
 
 - [Elixir Application - No Ecto](guides/examples/local-elixir/README.md)
 - [Elixir Application - With Ecto](guides/examples/local-elixir-ecto/README.md)
