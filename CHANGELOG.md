@@ -1,6 +1,6 @@
 # CHANGELOG (0.6.x)
 
-## :soon: 0.6.2 ()
+## :soon: 0.7.0 ()
 
 ### Backwards incompatible changes for 0.6.1
  * None
