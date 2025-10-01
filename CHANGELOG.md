@@ -3,7 +3,23 @@
 ## :soon: 0.7.0 ()
 
 ### Backwards incompatible changes for 0.6.1
- * None
+
+#### Configuration Update Required: Replica Port Definition
+
+The `initial_port` field has been replaced with a simpler `replica_ports` configuration to support dynamic port assignment for replicas.
+
+**Before (0.6.0 and earlier):**
+```yaml
+applications:
+    initial_port: 4000
+```
+**After (0.7.0):**
+```yaml
+applications:
+    replica_ports:
+      - key: PORT
+        base: 4000
+```
 
 ### Installer Actions
  * None
