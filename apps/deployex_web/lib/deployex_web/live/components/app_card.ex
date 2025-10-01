@@ -97,10 +97,16 @@ defmodule DeployexWeb.Components.AppCard do
                 </svg>
                 <div class="text-xs font-medium text-base-content/60">Ports</div>
               </div>
-              <div class="flex text-sm font-mono text-base-content/90 gap-2">
-                <%!-- <CopyToClipboard.content id={"c2c-port-messages-#{@sname}"} message={@port} /> --%>
+              <div class="flex flex-wrap gap-2">
                 <%= for port <- @ports do %>
-                  {"#{port.key}|#{port.base}"}
+                  <div class="inline-flex items-center bg-base-100 border border-base-300 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                    <span class="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 border-r border-base-300">
+                      {port.key}
+                    </span>
+                    <span class="px-3 py-1.5 text-xs font-mono font-medium text-base-content bg-secondary/10">
+                      {port.base}
+                    </span>
+                  </div>
                 <% end %>
               </div>
             </div>
