@@ -21,6 +21,16 @@ defmodule DeployexWeb.Router do
     plug :fetch_current_ui_settings
   end
 
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  # health check
+  scope "/", DeployexWeb do
+    pipe_through :api
+    get "/health", HealthController, :health
+  end
+
   ## Authentication routes
 
   scope "/", DeployexWeb do
