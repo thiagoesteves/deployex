@@ -15,7 +15,8 @@ defmodule Deployer.Application do
         Deployer.Monitor.Supervisor,
         Deployer.Engine.Supervisor,
         {Finch, name: Deployer.Finch},
-        {Finch, name: ExAws.Request.Finch}
+        {Finch, name: ExAws.Request.Finch},
+        Deployer.Github
       ] ++ application_servers() ++ gcp_app_credentials()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
