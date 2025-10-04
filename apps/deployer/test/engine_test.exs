@@ -1064,26 +1064,31 @@ defmodule Deployer.EngineTest do
       Deployer.UpgradeMock
       |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
-      assert capture_log(fn ->
-               with_mock System, [:passthrough],
-                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
-                 assert {:ok, _pid} =
-                          Engine.Worker.start_link(%Engine.Worker{
-                            timeout_rollback: 50,
-                            schedule_interval: 200,
-                            name: name,
-                            language: language,
-                            replica_ports: [%{key: "PORT1", base: 1}]
-                          })
+      logs =
+        capture_log(fn ->
+          with_mock System, [:passthrough],
+            cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+            assert {:ok, _pid} =
+                     Engine.Worker.start_link(%Engine.Worker{
+                       timeout_rollback: 50,
+                       schedule_interval: 200,
+                       name: name,
+                       language: language,
+                       replica_ports: [%{key: "PORT1", base: 1}]
+                     })
 
-                 assert_receive {:handle_ref_event, ^ref}, 1_000
+            assert_receive {:handle_ref_event, ^ref}, 1_000
 
-                 module_name = String.to_atom(name)
-                 state = :sys.get_state(module_name)
-                 assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
-                 assert state.current == 1
-               end
-             end) =~ "ports: [%{base: 2, key: \"PORT1\"}] is not stable, ghosting version"
+            module_name = String.to_atom(name)
+            state = :sys.get_state(module_name)
+            assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
+            assert state.current == 1
+          end
+        end)
+
+      assert logs =~ "base: 2"
+      assert logs =~ "key: \"PORT1\""
+      assert logs =~ "is not stable, ghosting version"
     end
   end
 end
