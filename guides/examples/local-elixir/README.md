@@ -147,7 +147,7 @@ config :foundation,
       name: "myphoenixapp",
       replicas: 2,
       language: "elixir",
-      initial_port: 4000,
+      replica_ports: [%{key: "PORT", base: 4000}],
       env: []
     }
   ]

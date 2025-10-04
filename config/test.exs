@@ -11,21 +11,21 @@ config :foundation,
       name: "myelixir",
       replicas: 3,
       language: "elixir",
-      initial_port: 4444,
+      replica_ports: [%{key: "PORT", base: 4444}],
       env: ["SECRET=value", "PHX_SERVER=true"]
     },
     %{
       name: "myerlang",
       replicas: 3,
       language: "erlang",
-      initial_port: 5555,
+      replica_ports: [%{key: "PORT", base: 5555}],
       env: ["SECRET=value", "PHX_SERVER=true"]
     },
     %{
       name: "mygleam",
       replicas: 3,
       language: "gleam",
-      initial_port: 6666,
+      replica_ports: [%{key: "PORT", base: 6666}],
       env: ["SECRET=value", "PHX_SERVER=true"]
     }
   ]

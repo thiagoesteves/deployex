@@ -43,7 +43,7 @@ defmodule Deployer.Monitor.Application do
        retry_delay_pre_commands: service.retry_delay_pre_commands,
        name: service.name,
        sname: service.sname,
-       port: service.port,
+       ports: service.ports,
        language: language,
        env: service.env
      })}
@@ -291,32 +291,42 @@ defmodule Deployer.Monitor.Application do
   defp run_app_bin(state, executable_path, command)
 
   defp run_app_bin(
-         %{sname: sname, language: "elixir", port: port, env: env},
+         %{sname: sname, language: "elixir", ports: ports, env: env},
          executable_path,
          command
        ) do
     path = Common.remove_deployex_from_path()
-    app_env = compose_app_env(env)
+    app_env = build_export_command(env)
+
+    ports_env =
+      ports
+      |> ports_to_env()
+      |> build_export_command()
 
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
+    #{ports_env}
     export PATH=#{path}
     export RELEASE_NODE=#{sname}
-    export PORT=#{port}
     #{executable_path} #{command}
     """
   end
 
   defp run_app_bin(
-         %{sname: sname, language: "erlang", port: port, env: env},
+         %{sname: sname, language: "erlang", ports: ports, env: env},
          executable_path,
          "start"
        ) do
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
-    app_env = compose_app_env(env)
+    app_env = build_export_command(env)
+
+    ports_env =
+      ports
+      |> ports_to_env()
+      |> build_export_command()
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -329,25 +339,30 @@ defmodule Deployer.Monitor.Application do
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
+    #{ports_env}
     export PATH=#{path}
     export RELX_REPLACE_OS_VARS=true
     export RELEASE_NODE=#{sname}
     export RELEASE_COOKIE=#{cookie}
     export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
-    export PORT=#{port}
     #{executable_path} foreground
     """
   end
 
   defp run_app_bin(
-         %{sname: sname, language: "gleam", port: port, env: env},
+         %{sname: sname, language: "gleam", ports: ports, env: env},
          executable_path,
          "start"
        ) do
     %{name: name} = Catalog.node_info(sname)
     path = Common.remove_deployex_from_path()
     cookie = Common.cookie()
-    app_env = compose_app_env(env)
+    app_env = build_export_command(env)
+
+    ports_env =
+      ports
+      |> ports_to_env()
+      |> build_export_command()
 
     ssl_options =
       if Common.check_mtls() == :supported do
@@ -360,8 +375,8 @@ defmodule Deployer.Monitor.Application do
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
+    #{ports_env}
     export PATH=#{path}
-    export PORT=#{port}
     PACKAGE=#{name}
     BASE=#{executable_path}
     erl \
@@ -382,9 +397,11 @@ defmodule Deployer.Monitor.Application do
     "echo \"#{msg}\""
   end
 
-  defp compose_app_env([]), do: ""
+  defp ports_to_env(ports), do: Enum.map(ports, fn port -> "#{port.key}=#{port.base}" end)
 
-  defp compose_app_env(env_list) do
+  defp build_export_command([]), do: ""
+
+  defp build_export_command(env_list) do
     Enum.reduce(env_list, "export ", fn env, acc ->
       acc <> "#{env} "
     end)

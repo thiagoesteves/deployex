@@ -65,7 +65,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 3,
                        language: "elixir",
-                       initial_port: 4000
+                       replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
                        env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
@@ -73,7 +73,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
-                       initial_port: 4050
+                       replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
@@ -97,7 +97,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                           monitoring: [],
                           replicas: 3,
                           language: "not-set",
-                          initial_port: 1000
+                          replica_ports: [%{base: 1000, key: "PORT"}]
                         }
                       ]}
                    ],
@@ -218,7 +218,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        ],
                        replicas: 3,
                        language: "elixir",
-                       initial_port: 4000
+                       replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
                        env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
@@ -226,7 +226,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
-                       initial_port: 4050
+                       replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
@@ -392,7 +392,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        ],
                        replicas: 3,
                        language: "elixir",
-                       initial_port: 4000
+                       replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
                        env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
@@ -416,7 +416,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        ],
                        replicas: 2,
                        language: "erlang",
-                       initial_port: 4050
+                       replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
@@ -507,7 +507,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 3,
                        language: "elixir",
-                       initial_port: 4000
+                       replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
                        env: ["MYUMBRELLA_PHX_SERVER=false", "MYUMBRELLA_PHX_SERVER2=false"],
@@ -515,7 +515,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
-                       initial_port: 4050
+                       replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
@@ -619,7 +619,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 3,
                        language: "elixir",
-                       initial_port: 4000
+                       replica_ports: [%{base: 4000, key: "PORT"}]
                      }
                    ]},
                   {Foundation.ConfigProvider.Secrets.Manager,

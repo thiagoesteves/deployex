@@ -44,7 +44,7 @@ defmodule DeployexWeb.ApplicationsLive do
                 crash_restart_count={app.crash_restart_count}
                 force_restart_count={app.force_restart_count}
                 name={app.name}
-                port={app.port}
+                ports={app.ports}
                 version={app.version}
                 uptime={app.uptime}
                 otp={app.otp}

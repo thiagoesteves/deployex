@@ -3,7 +3,23 @@
 ## :soon: 0.7.0 ()
 
 ### Backwards incompatible changes for 0.6.1
- * None
+
+#### Configuration Update Required: Replica Port Definition
+
+The `initial_port` field has been replaced with a simpler `replica_ports` configuration to support dynamic port assignment for replicas.
+
+**Before (0.6.0 and earlier):**
+```yaml
+applications:
+    initial_port: 4000
+```
+**After (0.7.0):**
+```yaml
+applications:
+    replica_ports:
+      - key: PORT
+        base: 4000
+```
 
 ### Installer Actions
  * None
@@ -13,6 +29,8 @@
 
 ### Enhancements
  * [`PULL-153`](https://github.com/thiagoesteves/deployex/pull/153) Prettify README and fixing typos
+ * [`PULL-159`](https://github.com/thiagoesteves/deployex/pull/159) Amaru Integration
+ * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding multiple dynamic ports for application deployment based on the number of replicas
 
 ## 0.6.1 🚀 (2025-08-29)
 

@@ -16,7 +16,6 @@ logs_retention_time_ms: 3600000
 applications:
   - name: "myphoenixapp"
     language: "elixir"
-    initial_port: 4000
     replicas: 3
     env:
       - key: MYPHOENIXAPP_PHX_SERVER
@@ -25,8 +24,10 @@ applications:
         value: false
   - name: "myumbrella"
     language: "erlang"
-    initial_port: 4050
     replicas: 2
+    replica_ports:
+      - key: PORT
+        base: 4050
     env:
       - key: MYUMBRELLA_PHX_SERVER
         value: false

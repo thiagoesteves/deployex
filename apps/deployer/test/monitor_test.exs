@@ -37,13 +37,13 @@ defmodule Deployer.MonitorTest do
       gleam_sname: gleam_sname,
       erlang_name: erlang_name,
       erlang_sname: erlang_sname,
-      port: 1000
+      ports: [%{key: "PORT", base: 1000}]
     }
   end
 
   describe "Initialization tests" do
     @tag :capture_log
-    test "init/1", %{elixir_name: name, elixir_sname: sname, port: port} do
+    test "init/1", %{elixir_name: name, elixir_sname: sname, ports: ports} do
       test_event_ref = make_ref()
       test_pid_process = self()
 
@@ -58,7 +58,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port
+                 ports: ports
                })
 
       assert Process.alive?(pid)
@@ -78,7 +78,7 @@ defmodule Deployer.MonitorTest do
     test "Stop a monitor that is not running", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -94,7 +94,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port
+                 ports: ports
                })
 
       assert Process.alive?(pid)
@@ -110,7 +110,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no executable path - elixir", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -134,7 +134,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: "elixir",
-                          port: port,
+                          ports: ports,
                           retry_delay_pre_commands: 10
                         })
 
@@ -150,7 +150,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no executable path - gleam", %{
       gleam_name: name,
       gleam_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -174,7 +174,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: "gleam",
-                          port: port,
+                          ports: ports,
                           retry_delay_pre_commands: 10
                         })
 
@@ -190,7 +190,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no executable path - erlang", %{
       erlang_name: name,
       erlang_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -214,7 +214,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: "erlang",
-                          port: port,
+                          ports: ports,
                           retry_delay_pre_commands: 10
                         })
 
@@ -231,7 +231,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no pre_commands - elixir", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -258,7 +258,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -277,7 +277,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no pre_commands - gleam", %{
       gleam_sname: sname,
       gleam_name: name,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -305,7 +305,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: language,
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -320,7 +320,7 @@ defmodule Deployer.MonitorTest do
     test "Running application - no pre_commands - erlang", %{
       erlang_sname: sname,
       erlang_name: name,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -348,7 +348,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: language,
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -363,7 +363,7 @@ defmodule Deployer.MonitorTest do
     test "Running application with pre_commands - elixir", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -392,7 +392,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -404,7 +404,7 @@ defmodule Deployer.MonitorTest do
     test "Running application with pre_commands not supported - gleam", %{
       gleam_name: name,
       gleam_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -436,7 +436,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: language,
-                          port: port,
+                          ports: ports,
                           timeout_app_ready: 10
                         })
 
@@ -450,7 +450,7 @@ defmodule Deployer.MonitorTest do
     test "Running application with pre_commands not supported - erlang", %{
       erlang_name: name,
       erlang_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -481,7 +481,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: language,
-                          port: port,
+                          ports: ports,
                           timeout_app_ready: 10
                         })
 
@@ -496,7 +496,7 @@ defmodule Deployer.MonitorTest do
     test "Error trying to run the application with pre-commands failing - elixir", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -528,7 +528,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port
+                 ports: ports
                })
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
@@ -540,7 +540,7 @@ defmodule Deployer.MonitorTest do
     test "Check the application doesn't change to running with invalid ref", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -565,7 +565,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port
+                 ports: ports
                })
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
@@ -581,7 +581,7 @@ defmodule Deployer.MonitorTest do
     test "Running pre_commands while application is running - elixir", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -614,7 +614,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -631,7 +631,7 @@ defmodule Deployer.MonitorTest do
     test "Restart Application if EXIT message is received", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -661,7 +661,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -683,7 +683,7 @@ defmodule Deployer.MonitorTest do
     test "Don't restart Application if EXIT message is not valid", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -710,7 +710,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -730,7 +730,7 @@ defmodule Deployer.MonitorTest do
     test "Force Restart the Application with pre-commands", %{
       elixir_name: name,
       elixir_sname: sname,
-      port: port
+      ports: ports
     } do
       test_event_ref = make_ref()
       test_pid_process = self()
@@ -760,7 +760,7 @@ defmodule Deployer.MonitorTest do
                           name: name,
                           sname: sname,
                           language: "elixir",
-                          port: port,
+                          ports: ports,
                           timeout_app_ready: 10
                         })
 
@@ -774,7 +774,7 @@ defmodule Deployer.MonitorTest do
              end) =~ "Restart requested for sname: #{sname}"
     end
 
-    test "Ignore cleanup beam command", %{elixir_name: name, elixir_sname: sname, port: port} do
+    test "Ignore cleanup beam command", %{elixir_name: name, elixir_sname: sname, ports: ports} do
       test_event_ref = make_ref()
       test_pid_process = self()
       os_pid = 123_456
@@ -804,7 +804,7 @@ defmodule Deployer.MonitorTest do
                  name: name,
                  sname: sname,
                  language: "elixir",
-                 port: port,
+                 ports: ports,
                  timeout_app_ready: 10
                })
 
@@ -819,7 +819,7 @@ defmodule Deployer.MonitorTest do
   test "Adapter function test", %{
     elixir_name: name,
     elixir_sname: sname,
-    port: port
+    ports: ports
   } do
     Deployer.MonitorMock
     |> expect(:start_service, fn _service -> {:ok, self()} end)
@@ -833,7 +833,7 @@ defmodule Deployer.MonitorTest do
                name: name,
                sname: sname,
                language: "elixir",
-               port: port
+               ports: ports
              })
 
     assert :ok = Deployer.Monitor.stop_service(name, sname)
@@ -846,7 +846,7 @@ defmodule Deployer.MonitorTest do
   test "Do not change state when an invalid :check_running msg is received", %{
     elixir_name: name,
     elixir_sname: sname,
-    port: port
+    ports: ports
   } do
     test_event_ref = make_ref()
     test_pid_process = self()
@@ -876,7 +876,7 @@ defmodule Deployer.MonitorTest do
                name: name,
                sname: sname,
                language: "elixir",
-               port: port,
+               ports: ports,
                timeout_app_ready: 10
              })
 

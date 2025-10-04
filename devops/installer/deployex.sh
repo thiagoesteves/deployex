@@ -106,7 +106,9 @@ update_deployex() {
     cd /tmp
     echo "# Download the deployex version: ${VERSION} #"
     rm -f deployex-ubuntu-*.tar.gz
-    wget https://github.com/thiagoesteves/deployex/releases/download/${VERSION}/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+     #wget https://github.com/thiagoesteves/deployex/releases/download/${VERSION}/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+    wget https://deployex-testing-storage.s3.sa-east-1.amazonaws.com/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+
     if [ $? != 0 ]; then
             echo "Error while trying to download the version: ${VERSION}"
             exit
