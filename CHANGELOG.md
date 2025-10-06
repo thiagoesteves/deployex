@@ -32,6 +32,7 @@ applications:
  * [`PULL-159`](https://github.com/thiagoesteves/deployex/pull/159) Amaru Integration
  * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding multiple dynamic ports for application deployment based on the number of replicas
  * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding health check path
+ * [`PULL-161`](https://github.com/thiagoesteves/deployex/pull/161) Adding new Feature to verify latest versions on Github for DeployEx
 
 ## 0.6.1 🚀 (2025-08-29)
 

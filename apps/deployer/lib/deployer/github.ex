@@ -23,7 +23,7 @@ defmodule Deployer.Github do
             updated_at: nil,
             published_at: nil
 
-  @update_github_interval :timer.minutes(5)
+  @update_github_interval :timer.hours(1)
   @deployex_latest_tag "https://api.github.com/repos/thiagoesteves/deployex/releases/latest"
 
   ### ==========================================================================
