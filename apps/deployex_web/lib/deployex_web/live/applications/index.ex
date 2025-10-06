@@ -21,8 +21,7 @@ defmodule DeployexWeb.ApplicationsLive do
     <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
       <div class="min-h-screen bg-base-300">
         <SystemBar.content info={@host_info} />
-        
-    <!-- Main Content -->
+        <!-- Main Content -->
         <div class="p-3">
           <!-- Breadcrumb -->
           <div class="breadcrumbs text-sm mb-3">
@@ -31,8 +30,7 @@ defmodule DeployexWeb.ApplicationsLive do
               <li class="text-base-content font-medium">Applications</li>
             </ul>
           </div>
-          
-    <!-- Applications Grid -->
+          <!-- Applications Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             <%= for app <- @monitoring_apps_data do %>
               <DeployexWeb.Components.AppCard.content
@@ -52,6 +50,7 @@ defmodule DeployexWeb.ApplicationsLive do
                 last_deployment={app.last_deployment}
                 restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
                 metadata={app.metadata}
+                latest_release={app.latest_release}
               />
             <% end %>
           </div>

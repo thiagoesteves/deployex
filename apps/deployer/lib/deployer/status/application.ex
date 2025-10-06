@@ -8,6 +8,7 @@ defmodule Deployer.Status.Application do
 
   @behaviour Deployer.Status.Adapter
 
+  alias Deployer.Github
   alias Deployer.Monitor
   alias Deployer.Status
   alias Foundation.Catalog
@@ -191,6 +192,7 @@ defmodule Deployer.Status.Application do
     end
 
     uptime = Common.uptime_to_string(Application.get_env(:foundation, :booted_at))
+    {:ok, deployex_latest_release} = Github.latest_release()
 
     metadata =
       Enum.reduce(Catalog.applications(), %{}, fn %{name: name}, acc ->
@@ -235,6 +237,7 @@ defmodule Deployer.Status.Application do
       supervisor: true,
       status: :running,
       uptime: uptime,
+      latest_release: deployex_latest_release,
       metadata: metadata
     }
   end

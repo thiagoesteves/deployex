@@ -3,6 +3,7 @@ defmodule DeployexWeb.Components.AppCard do
   use DeployexWeb, :html
 
   use Phoenix.Component
+  alias Deployer.Github
   alias DeployexWeb.Components.CopyToClipboard
   alias DeployexWeb.Helper
 
@@ -23,6 +24,7 @@ defmodule DeployexWeb.Components.AppCard do
   attr :last_deployment, :atom, required: true
   attr :restart_path, :string, required: true
   attr :metadata, :map, required: true
+  attr :latest_release, :map, required: true
 
   def content(assigns) do
     ~H"""
@@ -36,7 +38,13 @@ defmodule DeployexWeb.Components.AppCard do
           time: 300
         )
       }>
-        <.header_card status={@status} version={@version} sname={@sname} restart_path={@restart_path} />
+        <.header_card
+          status={@status}
+          version={@version}
+          sname={@sname}
+          restart_path={@restart_path}
+          latest_release={@latest_release}
+        />
 
         <div class="card-body p-8">
           <!-- App Header -->
@@ -246,8 +254,7 @@ defmodule DeployexWeb.Components.AppCard do
               </div>
             </div>
           </div>
-          
-    <!-- Action Buttons -->
+          <!-- Action Buttons -->
           <div class="pt-6 border-t border-base-200">
             <!-- Primary Actions Row -->
             <div class="flex gap-2 mb-3">
@@ -319,8 +326,7 @@ defmodule DeployexWeb.Components.AppCard do
                 <span class="font-medium">stderr</span>
               </button>
             </div>
-            
-    <!-- Secondary Actions Row -->
+            <!-- Secondary Actions Row -->
             <div :if={not @supervisor} class="flex">
               <button
                 id={Helper.normalize_id("app-versions-#{@sname}")}
@@ -560,6 +566,7 @@ defmodule DeployexWeb.Components.AppCard do
             <span class="text-sm font-semibold text-success">Running</span>
           </div>
           <span class="font-mono text-sm font-medium text-success">{@version}</span>
+          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :pre_commands -> %>
@@ -568,6 +575,7 @@ defmodule DeployexWeb.Components.AppCard do
             <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
             <span class="text-sm font-semibold text-warning">Pre-commands</span>
           </div>
+          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :starting and @version != nil -> %>
@@ -577,6 +585,7 @@ defmodule DeployexWeb.Components.AppCard do
             <span class="text-sm font-semibold text-warning">Starting</span>
           </div>
           <span class="font-mono text-sm font-medium text-warning">{@version}</span>
+          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% true -> %>
@@ -617,8 +626,7 @@ defmodule DeployexWeb.Components.AppCard do
               <span class="text-sm text-success font-medium">Running</span>
             </div>
           </div>
-          
-    <!-- Configuration Grid -->
+          <!-- Configuration Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Mode Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
@@ -629,8 +637,7 @@ defmodule DeployexWeb.Components.AppCard do
                 versions={@metadata[app].versions}
               />
             </div>
-            
-    <!-- History Section -->
+            <!-- History Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
               <div class="space-y-3">
                 <div class="flex items-center gap-2">
@@ -665,8 +672,7 @@ defmodule DeployexWeb.Components.AppCard do
                 </button>
               </div>
             </div>
-            
-    <!-- Last Ghosted Section -->
+            <!-- Last Ghosted Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
               <%= if @metadata[app].last_ghosted_version && @metadata[app].last_ghosted_version != "-/-" do %>
                 <div class="space-y-3">
@@ -721,6 +727,48 @@ defmodule DeployexWeb.Components.AppCard do
           </div>
         </div>
       <% end %>
+    </div>
+    """
+  end
+
+  defp version_indicator(assigns) do
+    %Github{tag_name: tag_name, prerelease: prerelease} = assigns.latest_release
+    current_version = assigns.version
+
+    show_indicator =
+      assigns.sname == "deployex" and
+        tag_name != nil and
+        tag_name != current_version and
+        prerelease == false
+
+    assigns =
+      assigns
+      |> assign(:show_indicator, show_indicator)
+      |> assign(:new_release, tag_name)
+
+    ~H"""
+    <div :if={@show_indicator} class="inline-flex">
+      <div
+        class="text-success hover:scale-105 transition-all duration-200 flex-1 tooltip before:whitespace-pre-wrap"
+        data-tip={"New version available #{@new_release}! \n Click to view releases"}
+      >
+        <a
+          href="https://github.com/thiagoesteves/deployex/releases"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center justify-center w-5 h-5 bg-info/20 border border-info/40 rounded-full hover:bg-info/30 hover:scale-110 transition-all duration-200 cursor-pointer"
+        >
+          <svg class="w-3 h-3 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+            >
+            </path>
+          </svg>
+        </a>
+      </div>
     </div>
     """
   end

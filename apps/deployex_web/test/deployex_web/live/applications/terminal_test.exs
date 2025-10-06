@@ -326,7 +326,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     FixtureFiles.create_bin_files(sname)
 
-    with_mock Foundation.Common, cookie: fn -> :nocookie end do
+    with_mock Foundation.Common, [:passthrough], cookie: fn -> :nocookie end do
       {:ok, index_live, _html} = live(conn, ~p"/applications")
 
       assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
