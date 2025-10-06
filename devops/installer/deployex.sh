@@ -102,8 +102,10 @@ update_deployex() {
   local OS_TARGET=$2
   local OTP_VERSION=$3
   local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
+  local CHECKSUM_FILE="checksum.txt"
   local BASE_RELEASE="https://github.com/thiagoesteves/deployex/releases/download/${VERSION}"
-  local CHECKSUM_FILE="${BASE_RELEASE}/checksum.txt"
+  # Enable for test releases
+  # local BASE_RELEASE="https://deployex-testing-storage.s3.sa-east-1.amazonaws.com"
 
     echo ""
     echo "#           Updating Deployex              #"
@@ -111,8 +113,8 @@ update_deployex() {
     echo "# Download the deployex version: ${VERSION} #"
     rm -f deployex-ubuntu-*.tar.gz
     echo "#           Donwloading files               #"
-    wget ${CHECKSUM_FILE}
-    wget ${FILENAME}
+    wget ${BASE_RELEASE}/${CHECKSUM_FILE}
+    wget ${BASE_RELEASE}/${FILENAME}
 
     if [ $? != 0 ]; then
             echo "Error while trying to download the version: ${VERSION}"
@@ -121,7 +123,7 @@ update_deployex() {
     
     echo "# Verify checksum                          #"
     # Extract the expected checksum for this specific file
-    EXPECTED_CHECKSUM=$(cat checksum.txt | grep "${FILENAME}"  | awk '{print $1}')
+    EXPECTED_CHECKSUM=$(cat ${CHECKSUM_FILE} | grep "${FILENAME}"  | awk '{print $1}')
   
     if [ -z "$EXPECTED_CHECKSUM" ]; then
       echo "Error: No checksum found for ${FILENAME}"
