@@ -101,18 +101,46 @@ update_deployex() {
   local VERSION=$1
   local OS_TARGET=$2
   local OTP_VERSION=$3
+  local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
+  local CHECKSUM_FILE="checksum.txt"
+  local BASE_RELEASE="https://github.com/thiagoesteves/deployex/releases/download/${VERSION}"
+  # Enable for test releases
+  # local BASE_RELEASE="https://deployex-testing-storage.s3.sa-east-1.amazonaws.com"
+
     echo ""
     echo "#           Updating Deployex              #"
     cd /tmp
     echo "# Download the deployex version: ${VERSION} #"
     rm -f deployex-ubuntu-*.tar.gz
-     #wget https://github.com/thiagoesteves/deployex/releases/download/${VERSION}/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
-    wget https://deployex-testing-storage.s3.sa-east-1.amazonaws.com/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+    echo "#           Donwloading files               #"
+    wget ${BASE_RELEASE}/${CHECKSUM_FILE}
+    wget ${BASE_RELEASE}/${FILENAME}
 
     if [ $? != 0 ]; then
             echo "Error while trying to download the version: ${VERSION}"
             exit
     fi
+    
+    echo "# Verify checksum                          #"
+    # Extract the expected checksum for this specific file
+    EXPECTED_CHECKSUM=$(cat ${CHECKSUM_FILE} | grep "${FILENAME}"  | awk '{print $1}')
+  
+    if [ -z "$EXPECTED_CHECKSUM" ]; then
+      echo "Error: No checksum found for ${FILENAME}"
+      exit 1
+    fi
+  
+    # Calculate actual checksum
+    ACTUAL_CHECKSUM=$(sha256sum "${FILENAME}" | awk '{print $1}')
+    
+    if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
+      echo "Error: Checksum verification failed!"
+      echo "Expected: $EXPECTED_CHECKSUM"
+      echo "Got:      $ACTUAL_CHECKSUM"
+      exit 1
+    fi
+  
+    echo "# Checksum verified successfully           #"
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean and create a new directory         #"

@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,13 +49,21 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          path: .
+          path: ${{ env.UBUNTU_2404_OTP_27_NAME }}
+
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_27_NAME }} | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
 
   buildUbuntu2404Otp28:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -84,33 +94,60 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          path: .
+          path: ${{ env.UBUNTU_2404_OTP_28_NAME }}
+
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_28_NAME }} | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
 
   copyInstaller:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Move installer to root
-        run: mv devops/installer/deployex.sh deployex.sh
 
       - uses: actions/upload-artifact@v4
         with:
           name: deployex.sh
-          path: .
+          path: devops/installer/deployex.sh
+
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum devops/installer/deployex.sh | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+  checksum:
+    if: github.event.base_ref != 'refs/heads/main'
+    name: Calculate and save checksum file
+    needs: [buildUbuntu2404Otp27, buildUbuntu2404Otp28, copyInstaller]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Create checksums file
+        run: |
+          cat << EOF > checksum.txt
+          ${{ needs.buildUbuntu2404Otp27.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          ${{ needs.buildUbuntu2404Otp28.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_28_NAME }}
+          ${{ needs.copyInstaller.outputs.sha }}  deployex.sh
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: checksum.txt
+          path: checksum.txt
 
   upload_aws:
     if: github.event.base_ref != 'refs/heads/main'
     name: Upload files to AWS environment
-    needs:
-      [
-        buildUbuntu2404Otp27,
-        buildUbuntu2404Otp28,
-        copyInstaller,
-      ]
+    needs: checksum
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -119,7 +156,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          path: .
 
       - name: Upload ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
         uses: prewk/s3-cp-action@v2
@@ -134,7 +170,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          path: .
 
       - name: Upload ${{ env.UBUNTU_2404_OTP_28_NAME }} artefact
         uses: prewk/s3-cp-action@v2
@@ -149,7 +184,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: deployex.sh
-          path: .
 
       - name: Upload installer artefact
         uses: prewk/s3-cp-action@v2
@@ -157,5 +191,19 @@ jobs:
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws_region: "sa-east-1"
-          source: "deployex.sh"
+          source: deployex.sh
+          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+
+      - name: Download checksum artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: checksum.txt
+
+      - name: Upload checksum artefact
+        uses: prewk/s3-cp-action@v2
+        with:
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws_region: "sa-east-1"
+          source: checksum.txt
           dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
