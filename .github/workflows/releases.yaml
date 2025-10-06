@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,16 +46,24 @@ jobs:
       - name: Rename Artifact
         run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_27_NAME }}
 
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_27_NAME }} | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          path: .
+          path: ${{ env.UBUNTU_2404_OTP_27_NAME }}
 
   buildUbuntu2404Otp28:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -81,36 +91,42 @@ jobs:
       - name: Rename Artifact
         run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_28_NAME }}
 
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_28_NAME }} | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          path: .
+          path: ${{ env.UBUNTU_2404_OTP_28_NAME }}
 
   copyInstaller:
     if: github.event.base_ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Move installer to root
-        run: mv devops/installer/deployex.sh deployex.sh
+      - name: Calculate checksum
+        id: checksum
+        run: |
+          SHA=$(sha256sum devops/installer/deployex.sh | awk '{print $1}')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:
           name: deployex.sh
-          path: .
+          path: devops/installer/deployex.sh
 
   createRelease:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
-    needs:
-      [
-        buildUbuntu2404Otp27,
-        buildUbuntu2404Otp28,
-        copyInstaller,
-      ]
+    needs: [buildUbuntu2404Otp27, buildUbuntu2404Otp28, copyInstaller]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -119,22 +135,27 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          path: .
 
       - name: Download ${{ env.UBUNTU_2404_OTP_28_NAME }} artefact
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          path: .
 
       - name: Download installer artefact
         uses: actions/download-artifact@v4
         with:
           name: deployex.sh
-          path: .
+
+      - name: Create checksums file
+        run: |
+          cat << EOF > checksum.txt
+          ${{ needs.buildUbuntu2404Otp27.outputs.checksum }}  ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          ${{ needs.buildUbuntu2404Otp28.outputs.checksum }}  ${{ env.UBUNTU_2404_OTP_28_NAME }}
+          ${{ needs.copyInstaller.outputs.checksum }}  deployex.sh
+          EOF
 
       - name: Release the files
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "${{ env.UBUNTU_2404_OTP_27_NAME }}, ${{ env.UBUNTU_2404_OTP_28_NAME }}, deployex.sh"
+          artifacts: "${{ env.UBUNTU_2404_OTP_27_NAME }}, ${{ env.UBUNTU_2404_OTP_28_NAME }}, deployex.sh, checksum.txt"
           bodyFile: "CHANGELOG.md"
