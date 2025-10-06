@@ -749,7 +749,7 @@ defmodule DeployexWeb.Components.AppCard do
     ~H"""
     <div :if={@show_indicator} class="inline-flex">
       <div
-        class="text-success hover:scale-105 transition-all duration-200 flex-1 tooltip before:whitespace-pre-wrap"
+        class="btn btn-sm btn-circle bg-info/10 border-info/20 text-info hover:bg-info/20 hover:border-success/30 hover:scale-110 transition-all duration-200 flex-1 tooltip before:whitespace-pre-wrap"
         data-tip={"New version available #{@new_release}! \n Click to view releases"}
       >
         <a
