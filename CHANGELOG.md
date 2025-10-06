@@ -22,7 +22,7 @@ applications:
 ```
 
 ### Installer Actions
- * None
+ * (Only for debian hosts) Update `deployex.sh` script. wget https://github.com/thiagoesteves/deployex/releases/download/0.7.0/deployex.sh
 
 ### Bug fixes
  * None
