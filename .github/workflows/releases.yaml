@@ -123,10 +123,26 @@ jobs:
           name: deployex.sh
           path: devops/installer/deployex.sh
 
+  copyChangelog:
+    if: github.event.base_ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.checksum.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CHANGELOG.md
+          path: CHANGELOG.md
+
   createRelease:
     if: github.event.base_ref == 'refs/heads/main'
     name: Publish artifacts to the release
-    needs: [buildUbuntu2404Otp27, buildUbuntu2404Otp28, copyInstaller]
+    needs:
+      [buildUbuntu2404Otp27, buildUbuntu2404Otp28, copyInstaller, copyChangelog]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -146,12 +162,17 @@ jobs:
         with:
           name: deployex.sh
 
+      - name: Download chnagelog artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: CHANGELOG.md
+
       - name: Create checksums file
         run: |
           cat << EOF > checksum.txt
-          ${{ needs.buildUbuntu2404Otp27.outputs.checksum }}  ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          ${{ needs.buildUbuntu2404Otp28.outputs.checksum }}  ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          ${{ needs.copyInstaller.outputs.checksum }}  deployex.sh
+          ${{ needs.buildUbuntu2404Otp27.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          ${{ needs.buildUbuntu2404Otp28.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_28_NAME }}
+          ${{ needs.copyInstaller.outputs.sha }}  deployex.sh
           EOF
 
       - name: Release the files

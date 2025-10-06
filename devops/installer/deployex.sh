@@ -1,23 +1,40 @@
 #!/bin/bash
 
+# Default values
+DEFAULT_CONFIG_FILE="deployex.yaml"
+DEFAULT_DIST_URL="https://github.com/thiagoesteves/deployex/releases/download"
+
 # Function to display usage information
 usage() {
     echo "Usage:"
-    echo "  $0 --install <config_file>"
-    echo "  $0 --update <config_file>"
+    echo "  $0 --install [config_file] [--dist <base_url>]"
+    echo "  $0 --update [config_file] [--dist <base_url>]"
     echo "  $0 --help"
     echo
     echo "Options:"
-    echo "  --install <config_file>   Install an application using a JSON config file"
-    echo "  --update <config_file>    Update ONLY the deployex application using a JSON config file"
+    echo "  --install [config_file]   Install an application using a config file"
+    echo "                            (default: ${DEFAULT_CONFIG_FILE})"
+    echo "  --update [config_file]    Update ONLY the deployex application using a config file"
+    echo "                            (default: ${DEFAULT_CONFIG_FILE})"
+    echo "  --dist <base_url>         Base URL for downloading releases"
+    echo "                            (default: ${DEFAULT_DIST_URL})"
     echo "  --help                    Print help"
     echo
     echo "Examples:"
-    echo "  Install an application:"
-    echo "    $0 --install deployex.yaml"
+    echo "  Install an application with default config name (deployex.yaml):"
+    echo "    $0 --install"
     echo
-    echo "  Update an application:"
-    echo "    $0 --update deployex.yaml"
+    echo "  Install an application with custom config:"
+    echo "    $0 --install /home/root/deployex.yaml"
+    echo
+    echo "  Update an application with defaults"
+    echo "    $0 --update"
+    echo
+    echo "  Update an application with custom distribution URL:"
+    echo "    $0 --update --dist https://deployex-testing-storage.s3.sa-east-1.amazonaws.com"
+    echo
+    echo "  Update with custom config and distribution:"
+    echo "    $0 --update my-config.yaml --dist https://example.com/releases"
     echo
     exit 1
 }
@@ -98,26 +115,23 @@ DEPLOYEX_SYSTEMD_FILE="
 }
 
 update_deployex() {
-  local VERSION=$1
-  local OS_TARGET=$2
-  local OTP_VERSION=$3
+  local OS_TARGET=$1
+  local OTP_VERSION=$2
+  local BASE_RELEASE=$3
   local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
   local CHECKSUM_FILE="checksum.txt"
-  local BASE_RELEASE="https://github.com/thiagoesteves/deployex/releases/download/${VERSION}"
-  # Enable for test releases
-  # local BASE_RELEASE="https://deployex-testing-storage.s3.sa-east-1.amazonaws.com"
 
     echo ""
     echo "#           Updating Deployex              #"
     cd /tmp
-    echo "# Download the deployex version: ${VERSION} #"
+    echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}"
     rm -f deployex-ubuntu-*.tar.gz
-    echo "#           Donwloading files               #"
+    echo "#           Downloading files              #"
     wget ${BASE_RELEASE}/${CHECKSUM_FILE}
     wget ${BASE_RELEASE}/${FILENAME}
 
     if [ $? != 0 ]; then
-            echo "Error while trying to download the version: ${VERSION}"
+            echo "Error while trying to download from: ${BASE_RELEASE}"
             exit
     fi
     
@@ -154,17 +168,43 @@ update_deployex() {
     systemctl enable --now ${DEPLOYEX_SERVICE_NAME}
 }
 
+# Initialize variables
+operation=""
+config_file=""
+dist_url=${DEFAULT_DIST_URL}
+
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --install)
             operation=install
-            config_file=$2
             shift
+            # Check if next argument exists and is not another flag
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                config_file="$1"
+                shift
+            else
+                config_file=${DEFAULT_CONFIG_FILE}
+            fi
             ;;
         --update)
             operation=update
-            config_file=$2
             shift
+            # Check if next argument exists and is not another flag
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                config_file="$1"
+                shift
+            else
+                config_file=${DEFAULT_CONFIG_FILE}
+            fi
+            ;;
+        --dist)
+            if [[ -z "$2" || "$2" =~ ^-- ]]; then
+                echo "Error: --dist requires a URL argument"
+                usage
+            fi
+            dist_url="$2"
+            shift 2
             ;;
         --help)
             usage
@@ -174,12 +214,16 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
     esac
-    shift
 done
 
-# Ensure operation is set and config_file is provided
-if [[ -z $operation || -z $config_file ]]; then
+# Ensure operation is set
+if [[ -z $operation ]]; then
     usage
+fi
+
+# Use default config file if not provided
+if [[ -z $config_file ]]; then
+    config_file=${DEFAULT_CONFIG_FILE}
 fi
 
 # Validate config file existence
@@ -194,6 +238,12 @@ otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
 os_target=$(yq '.os_target' $config_file | tr -d '"')
 app_name=$(yq '.applications[0].name' $config_file | tr -d '"')
 
+if [ $dist_url != $DEFAULT_DIST_URL ]; then
+    base_release=${dist_url}
+else
+    base_release=${dist_url}/${version}
+fi
+
 # Check if all required parameters are provided based on the operation
 if [ $operation == install ]; then
     if [[ -z $version || 
@@ -201,16 +251,18 @@ if [ $operation == install ]; then
           -z $otp_tls_certificates ||
           -z $app_name ||
           -z $os_target ]]; then
+        echo "Error: Missing required parameters in config file"
         usage
     fi
     remove_deployex
     install_deployex $config_file $otp_tls_certificates $app_name
-    update_deployex $version $os_target $otp_version
+    update_deployex $os_target $otp_version $base_release
 elif [ $operation == update ]; then
     if [[ -z $version || -z $os_target || -z $otp_version ]]; then
+        echo "Error: Missing required parameters in config file"
         usage
     fi
-    update_deployex $version $os_target $otp_version
+    update_deployex $os_target $otp_version $base_release
 else
     usage
 fi

@@ -1,12 +1,12 @@
-# CHANGELOG (0.6.x)
+# CHANGELOG (0.7.0)
 
-## :soon: 0.7.0 ()
+## 0.7.0 🚀 (2025-10-07)
 
 ### Backwards incompatible changes for 0.6.1
 
 #### Configuration Update Required: Replica Port Definition
 
-The `initial_port` field has been replaced with a simpler `replica_ports` configuration to support dynamic port assignment for replicas.
+The `initial_port` field has been replaced with a `replica_ports` configuration to support dynamic port assignment for replicas.
 
 **Before (0.6.0 and earlier):**
 ```yaml
@@ -22,7 +22,8 @@ applications:
 ```
 
 ### Installer Actions
- * (Only for debian hosts) Update `deployex.sh` script. wget https://github.com/thiagoesteves/deployex/releases/download/0.7.0/deployex.sh
+ * (Only for debian hosts) Update `deployex.sh` script via:
+   `wget https://github.com/thiagoesteves/deployex/releases/download/0.7.0/deployex.sh`
 
 ### Bug fixes
  * None
@@ -33,34 +34,7 @@ applications:
  * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding multiple dynamic ports for application deployment based on the number of replicas
  * [`PULL-160`](https://github.com/thiagoesteves/deployex/pull/160) Adding health check path
  * [`PULL-161`](https://github.com/thiagoesteves/deployex/pull/161) Adding new Feature to verify latest versions on Github for DeployEx
-
-## 0.6.1 🚀 (2025-08-29)
-
-### Backwards incompatible changes for 0.6.0
- * None
-
-### Installer Actions
- * None
-
-### Bug fixes
- * None
-
-### Enhancements
- * Update Observer Web version to 0.1.11
-
-## 0.6.0 🚀 (2025-08-22)
-
-### Backwards incompatible changes for 0.5.2
- * Projects using `OTP-26` version won't be supported since it doesn't support new `erlexec` versions (~2.2). If `OTP-26` is required, it is recommended to fork the repo and downgrade the `erlexec` to (2.0.7)
-
-### Installer Actions
- * None
-
-### Bug fixes
- * None
-
-### Enhancements
- * [`ISSUE-151`](https://github.com/thiagoesteves/deployex/issues/151) Update DeployEx to use new `erlexec` versions and decommission releases for `OTP-26`
+ * [`PULL-161`](https://github.com/thiagoesteves/deployex/pull/162) Adding Checksum for released files
 
 # Host Binaries Available
 
@@ -72,6 +46,8 @@ This release includes binaries for the following Ubuntu versions:
  You can use these pre-built binaries, or you can build your own if preferred.
 
 # Previous Releases
+ * [0.6.1 🚀 (2025-08-29)](https://github.com/thiagoesteves/deployex/blob/0.6.1/CHANGELOG.md)
+ * [0.6.0 🚀 (2025-08-22)](https://github.com/thiagoesteves/deployex/blob/0.6.0/CHANGELOG.md)
  * [0.5.2 🚀 (2025-06-13)](https://github.com/thiagoesteves/deployex/blob/0.5.2/CHANGELOG.md)
  * [0.5.1 🚀 (2025-06-03)](https://github.com/thiagoesteves/deployex/blob/0.5.1/CHANGELOG.md)
  * [0.5.0 🚀 (2025-05-27)](https://github.com/thiagoesteves/deployex/blob/0.5.0/CHANGELOG.md)
