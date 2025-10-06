@@ -163,8 +163,7 @@
 }
 
 .xterm .xterm-viewport {
-    /* On OS X this is required in order for the scroll bar to appear fully opaque */
-    background-color: #000;
+    scrollbar-color: #8d8b8b #f0f0f0 !important;
     overflow-y: scroll;
     cursor: default;
     position: absolute;
