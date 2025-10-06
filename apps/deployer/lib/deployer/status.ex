@@ -3,6 +3,7 @@ defmodule Deployer.Status do
   This module will provide status abstraction
   """
 
+  alias Deployer.Github
   alias Deployer.Release
   alias Foundation.Catalog
 
@@ -21,6 +22,7 @@ defmodule Deployer.Status do
           crash_restart_count: integer(),
           force_restart_count: integer(),
           uptime: String.t() | nil,
+          latest_release: Github.t(),
           metadata: map() | nil
         }
 
@@ -38,6 +40,7 @@ defmodule Deployer.Status do
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
+            latest_release: %Github{},
             metadata: nil
 
   @behaviour Deployer.Status.Adapter

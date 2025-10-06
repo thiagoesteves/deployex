@@ -2,7 +2,6 @@ defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
   alias Deployer.Deployex
-  alias Deployer.Github
   alias Deployer.Monitor
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Logs
@@ -51,7 +50,7 @@ defmodule DeployexWeb.ApplicationsLive do
                 last_deployment={app.last_deployment}
                 restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
                 metadata={app.metadata}
-                latest_release={@deployex_latest_release}
+                latest_release={app.latest_release}
               />
             <% end %>
           </div>
@@ -247,7 +246,6 @@ defmodule DeployexWeb.ApplicationsLive do
     Host.Memory.subscribe()
 
     {:ok, monitoring} = Deployer.Status.monitoring()
-    {:ok, deployex_latest_release} = Github.latest_release()
 
     socket =
       socket
@@ -259,7 +257,6 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
-      |> assign(:deployex_latest_release, deployex_latest_release)
       |> assign(:current_path, "/applications")
 
     {:ok, socket}
@@ -277,7 +274,6 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
-     |> assign(:deployex_latest_release, nil)
      |> assign(:current_path, "/applications")}
   end
 
