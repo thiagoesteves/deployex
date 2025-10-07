@@ -24,7 +24,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
 
     Phoenix.PubSub.broadcast(
       Host.PubSub,
-      "system_info_updated",
+      "deployex::system_info_updated",
       {:update_system_info,
        %Host.Memory{
          host: host,

@@ -9,7 +9,7 @@ defmodule Host.Memory.Server do
   alias Host.Commander
 
   @update_info_interval :timer.seconds(1)
-  @system_info_updated_topic "system_info_updated"
+  @system_info_updated_topic "deployex::system_info_updated"
 
   ### ==========================================================================
   ### GenServer Callbacks

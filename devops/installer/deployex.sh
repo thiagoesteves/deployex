@@ -126,6 +126,7 @@ update_deployex() {
     cd /tmp
     echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}"
     rm -f deployex-ubuntu-*.tar.gz
+    rm -f ${CHECKSUM_FILE}
     echo "#           Downloading files              #"
     wget ${BASE_RELEASE}/${CHECKSUM_FILE}
     wget ${BASE_RELEASE}/${FILENAME}

@@ -304,7 +304,7 @@ defmodule Sentinel.Logs.Server do
   end
 
   # NOTE: PubSub topics
-  defp logs_topic(sname, type), do: "logs::#{sname}::#{type}"
+  defp logs_topic(sname, type), do: "deployex::logs::#{sname}::#{type}"
 
   defp notify_new_log_data(reporter, log_type, data) do
     Phoenix.PubSub.broadcast(

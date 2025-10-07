@@ -15,7 +15,7 @@ defmodule Deployer.Status.Application do
   alias Foundation.Common
 
   @update_apps_interval :timer.seconds(1)
-  @apps_data_updated_topic "monitoring_app_updated"
+  @apps_data_updated_topic "deployex::monitoring_app_updated"
 
   @manual_version_max_list 10
 

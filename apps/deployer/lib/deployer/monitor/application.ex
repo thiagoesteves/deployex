@@ -15,7 +15,7 @@ defmodule Deployer.Monitor.Application do
   @behaviour Monitor.Adapter
 
   @monitor_table "monitor-table"
-  @new_deploy_topic "new-deploy-topic"
+  @new_deploy_topic "deployex::new_deploy"
 
   ### ==========================================================================
   ### Callback functions
