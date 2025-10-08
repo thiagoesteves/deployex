@@ -3,6 +3,7 @@
 #
 # Original code from https://github.com/rlipscombe/elixir-certs/blob/main/certs.exs)
 
+# NOTE: This script ONLY works with OTP-27
 Mix.install([
   {:x509, "~> 0.8.8"}
 ])
