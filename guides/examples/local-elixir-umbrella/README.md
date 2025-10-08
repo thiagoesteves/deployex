@@ -88,18 +88,11 @@ Also, make sure you have added the `runtime_tools` to the release so DeployEx ca
   end
 ```
 
-Open the `config/prod.exs` and replace the static manifest for a live reload
+Open the `config/prod.exs` and comment out the static manifest
 
 ```elixir
 # before starting your production server.
 # config :app_web, AppWebWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
-config :app_web, AppWebWeb.Endpoint,
-  live_reload: [
-    patterns: [
-      ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"priv/gettext/.*(po)$"
-    ]
-  ]
 ```
 
 ## 5. Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
@@ -230,8 +223,8 @@ No appups, nothing to move to the release
 2. Now, *__keep DeployEx running in another terminal__* and copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myumbrella
-cp _build/prod/${app_name}-0.1.1.tar.gz /tmp/deployex/bucket/dist/${app_name}
-echo "{\"version\":\"0.1.1\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.2.5.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.2.5\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 3. You should then see the following messages in the DeployEx terminal while updating the app:
@@ -290,8 +283,8 @@ Release myumbrella-0.1.2 already exists. Overwrite? [Yn] Y
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myumbrella
-cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/deployex/bucket/dist/${app_name}
-echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.2.6.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.2.6\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 You can then check that DeployEx had executed a hot upgrade in the application:

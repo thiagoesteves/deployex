@@ -75,19 +75,11 @@ Also, make sure you have added the `runtime_tools` to the release so DeployEx ca
   end
 ```
 
-Open the `config/prod.exs` and replace the static manifest for a live reload
+Open the `config/prod.exs` and comment out the static manifest
 
 ```elixir
 #config :myphoenixapp, MyphoenixappWeb.Endpoint,
 #  cache_static_manifest: "priv/static/cache_manifest.json"
-# Since the application is using the Hot upgrade, the manifest cannot be static
-config :myphoenixapp, MyphoenixappWeb.Endpoint,
-live_reload: [
-  patterns: [
-    ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-    ~r"priv/gettext/.*(po)$"
-  ]
-]
 ```
 
 ## 5. Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
