@@ -226,11 +226,7 @@ iex --sname deployex --cookie cookie -S mix phx.server
 iex(deployex@hostname)1>
 ```
 
-You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should look like this:
-
-![No mTLS Dashboard Erlang](../../static/deployex_monitoring_app_erlang_no_tls.png)
-
-You can also click in the stdout log button of `myerlangapp` to check the following message is being printed:
+You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should show mTLS `Not Supported`. You can also click in the stdout log button of `myerlangapp` to check the following message is being printed:
 
 ![Stdout button Erlang](../../static/deployex_monitoring_app_erlang_stdout.png)
 ![Logs Erlang](../../static/deployex_monitoring_app_erlang_logs.png)
@@ -377,6 +373,4 @@ EOF
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
-After implementing these changes, create and publish a new version, `0.1.3`, for `myerlangapp`. Then, run DeployEx using the command from item 4. After deployment, you should see the following dashboard:
-
-![mTLS Dashboard Erlang](../../static/deployex_monitoring_app_erlang_tls.png)
+After implementing these changes, create and publish a new version, `0.1.3`, for `myerlangapp`. Then, run DeployEx using the command from item 4. After deployment, you should see in the dashboard that mTLS is `Supported` and both instances are `Connected`.

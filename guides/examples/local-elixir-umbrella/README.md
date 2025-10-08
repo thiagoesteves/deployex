@@ -308,10 +308,7 @@ You can then check that DeployEx had executed a hot upgrade in the application:
 ...
 ```
 
-you can check that the version and the deployment status has changed in the dashboard:
-
-![No mTLS Dashboard](../../static/deployex_monitoring_app_hot_upgrade.png)
-
+you can check that the version and the deployment status has changed in the dashboard to `Hot Upgrade`.
 
 ## 9. 🔑 Enhancing OTP Distribution Security with mTLS
 
@@ -376,9 +373,7 @@ export ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.
 ELIXIR_ERL_OPTIONS="-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf -setcookie cookie" iex --sname deployex -S mix phx.server
 ```
 
-After making these changes, create and publish a new version `0.1.3` for `myumbrella` and run the DeployEx with the command from item 5. After the deployment, you should see the following dashboard:
-
-![mTLS Dashboard](../../static/deployex_monitoring_app_tls.png)
+After making these changes, create and publish a new version `0.1.3` for `myumbrella` and run the DeployEx with the command from item 5. After deployment, you should see in the dashboard that mTLS is `Supported` and both instances are `Connected`.
 
 > [!ATTENTION]
 > Ensure that the cookie is properly set
