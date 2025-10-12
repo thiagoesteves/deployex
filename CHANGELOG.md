@@ -1,5 +1,20 @@
 # CHANGELOG (0.7.0)
 
+## 0.7.1 ()
+
+### Backwards incompatible changes for 0.7.0
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-163`](https://github.com/thiagoesteves/deployex/pull/163) Updating Observer Web to 0.1.12
+
+
 ## 0.7.0 🚀 (2025-10-07)
 
 ### Backwards incompatible changes for 0.6.1
