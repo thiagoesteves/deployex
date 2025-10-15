@@ -23,9 +23,16 @@ defmodule DeployexWeb.MixProject do
   #
   # Type `mix help compile.app` for more information.
   def application do
+    env_specific_applications =
+      if Mix.env() == :dev do
+        [:wx, :observer]
+      else
+        []
+      end
+
     [
       mod: {DeployexWeb.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools | env_specific_applications]
     ]
   end
 

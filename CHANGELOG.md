@@ -1,5 +1,20 @@
 # CHANGELOG (0.7.0)
 
+## 0.7.1 ()
+
+### Backwards incompatible changes for 0.7.0
+ * None
+
+### Installer Actions
+ * (Only if you run DeployEx for multiple applications) Update `deployex.sh` script via:
+   `wget https://github.com/thiagoesteves/deployex/releases/download/0.7.1/deployex.sh`
+
+### Bug fixes
+ * [`PULL-164`](https://github.com/thiagoesteves/deployex/pull/164) Updating installer to give log permissions to multiple apps
+
+### Enhancements
+ * None
+
 ## 0.7.0 🚀 (2025-10-07)
 
 ### Backwards incompatible changes for 0.6.1
