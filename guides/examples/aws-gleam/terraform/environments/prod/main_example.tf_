@@ -12,5 +12,5 @@ module "standard_account" {
   replicas          = "3"
   ec2_instance_type = "t2.medium"
   deployex_dns      = "deployex.myappname.com"
-  deployex_version  = "0.7.0"
+  deployex_version  = "0.7.1"
 }

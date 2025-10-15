@@ -1,6 +1,6 @@
-# CHANGELOG (0.7.0)
+# CHANGELOG (0.7.X)
 
-## 0.7.1 ()
+## 0.7.1 🚀 (2025-10-15)
 
 ### Backwards incompatible changes for 0.7.0
  * None
@@ -13,7 +13,7 @@
  * [`PULL-164`](https://github.com/thiagoesteves/deployex/pull/164) Updating installer to give log permissions to multiple apps
 
 ### Enhancements
- * None
+ * [`PULL-165`](https://github.com/thiagoesteves/deployex/pull/165) Adding plug to avoid health check logging
 
 ## 0.7.0 🚀 (2025-10-07)
 
