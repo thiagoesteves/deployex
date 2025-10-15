@@ -66,7 +66,6 @@ remove_deployex() {
 install_deployex() {
     local yaml_file=$(realpath "${1}")
     local otp_tls_certificates="${2}"
-    local app_name="${3}"
 
 DEPLOYEX_SYSTEMD_FILE="
   [Unit]
@@ -107,8 +106,18 @@ DEPLOYEX_SYSTEMD_FILE="
     touch ${DEPLOYEX_LOG_PATH}/deployex-stdout.log
     touch ${DEPLOYEX_LOG_PATH}/deployex-stderr.log
 
-    mkdir /var/log/${app_name}/
-    chown deployex:deployex /var/log/${app_name}/
+    # Create log directories for all applications
+    echo "# Creating log directories for applications #"
+    local app_count=$(yq '.applications | length' "$yaml_file")
+    
+    for ((i=0; i<app_count; i++)); do
+        local app_name=$(yq ".applications[$i].name" "$yaml_file" | tr -d '"')
+        if [ -n "$app_name" ]; then
+            echo "  - Creating log directory for: $app_name"
+            mkdir -p /var/log/${app_name}/
+            chown deployex:deployex /var/log/${app_name}/
+        fi
+    done
 
     printf "%s\n" "${DEPLOYEX_SYSTEMD_FILE}" > ${DEPLOYEX_SYSTEMD_PATH}
     echo "#    Deployex installed with success       #"
@@ -237,7 +246,6 @@ version=$(yq '.version' $config_file | tr -d '"')
 otp_version=$(yq '.otp_version' $config_file | tr -d '"')
 otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
 os_target=$(yq '.os_target' $config_file | tr -d '"')
-app_name=$(yq '.applications[0].name' $config_file | tr -d '"')
 
 if [ $dist_url != $DEFAULT_DIST_URL ]; then
     base_release=${dist_url}
@@ -250,13 +258,12 @@ if [ $operation == install ]; then
     if [[ -z $version || 
           -z $otp_version ||
           -z $otp_tls_certificates ||
-          -z $app_name ||
           -z $os_target ]]; then
         echo "Error: Missing required parameters in config file"
         usage
     fi
     remove_deployex
-    install_deployex $config_file $otp_tls_certificates $app_name
+    install_deployex $config_file $otp_tls_certificates
     update_deployex $os_target $otp_version $base_release
 elif [ $operation == update ]; then
     if [[ -z $version || -z $os_target || -z $otp_version ]]; then
