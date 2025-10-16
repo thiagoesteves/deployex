@@ -1,6 +1,6 @@
 # CHANGELOG (0.7.X)
 
-## 0.7.2 ()
+## 0.7.2 🚀 (2025-10-16)
 
 ### Backwards incompatible changes for 0.7.1
  * None
