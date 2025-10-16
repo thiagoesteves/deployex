@@ -1,5 +1,19 @@
 # CHANGELOG (0.7.X)
 
+## 0.7.2 ()
+
+### Backwards incompatible changes for 0.7.1
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-166`](https://github.com/thiagoesteves/deployex/pull/166) Changed remote vm args
+
 ## 0.7.1 🚀 (2025-10-15)
 
 ### Backwards incompatible changes for 0.7.0
