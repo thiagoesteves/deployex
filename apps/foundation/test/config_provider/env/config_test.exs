@@ -34,11 +34,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:observer_web,
                 [
-                  {ObserverWeb.Telemetry,
-                   [
-                     mode: :observer,
-                     data_retention_period: 3_600_000
-                   ]}
+                  mode: :observer,
+                  data_retention_period: 3_600_000
                 ]},
                {:sentinel,
                 [
@@ -109,9 +106,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                       ]}
                    ],
                    ex_aws: [region: "not-set"],
-                   observer_web: [
-                     {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 0]}
-                   ]
+                   observer_web: [mode: :observer, data_retention_period: 0]
                  ],
                  []
                )
@@ -132,13 +127,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      http: [port: 5001]
                    ]}
                 ]},
-               {:observer_web,
-                [
-                  {ObserverWeb.Telemetry,
-                   [
-                     data_retention_period: 3_600_000
-                   ]}
-                ]},
+               {:observer_web, [data_retention_period: 3_600_000]},
                {:sentinel,
                 [
                   {
@@ -289,13 +278,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      http: [port: 5001]
                    ]}
                 ]},
-               {:observer_web,
-                [
-                  {ObserverWeb.Telemetry,
-                   [
-                     data_retention_period: 3_600_000
-                   ]}
-                ]},
+               {:observer_web, [data_retention_period: 3_600_000]},
                {:sentinel,
                 [
                   {
@@ -479,8 +462,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
                    ]}
                 ]},
-               {:observer_web,
-                [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 3_600_000]}]},
+               {:observer_web, [mode: :observer, data_retention_period: 3_600_000]},
                {:sentinel,
                 [
                   {Sentinel.Logs, [data_retention_period: 3_600_000]}
@@ -540,9 +522,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                       ]}
                    ],
                    ex_aws: [region: "not-set"],
-                   observer_web: [
-                     {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 0]}
-                   ]
+                   observer_web: [mode: :observer, data_retention_period: 0]
                  ],
                  []
                )
@@ -567,9 +547,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            ]}
         ],
         ex_aws: [region: "not-set"],
-        observer_web: [
-          {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 0]}
-        ]
+        observer_web: [mode: :observer, data_retention_period: 0]
       ]
 
       assert_raise RuntimeError, fn ->
@@ -587,8 +565,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 [
                   {Sentinel.Logs, [data_retention_period: 3_600_000]}
                 ]},
-               {:observer_web,
-                [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 1000]}]},
+               {:observer_web, [mode: :observer, data_retention_period: 1000]},
                {:ex_aws, [region: "sa-east-1"]},
                {:deployex_web,
                 [
@@ -634,9 +611,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    sentinel: [
                      {Sentinel.Logs, [data_retention_period: 3_600_000]}
                    ],
-                   observer_web: [
-                     {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 1000]}
-                   ],
+                   observer_web: [mode: :observer, data_retention_period: 1000],
                    deployer: [
                      {Deployer.Engine,
                       [
@@ -668,9 +643,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            ]}
         ],
         ex_aws: [region: "not-set"],
-        observer_web: [
-          {ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 0]}
-        ]
+        observer_web: [mode: :observer, data_retention_period: 0]
       ]
 
       assert_raise RuntimeError, fn ->
@@ -699,7 +672,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
             ]}
          ]},
         {:ex_aws, [region: "not-set"]},
-        {:observer_web, [{ObserverWeb.Telemetry, [mode: :observer, data_retention_period: 0]}]}
+        {:observer_web, [mode: :observer, data_retention_period: 0]}
       ]
 
       assert capture_log(fn ->

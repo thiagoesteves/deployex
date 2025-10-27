@@ -149,9 +149,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
         updated_config =
           if metrics_retention_time_ms do
             Config.Reader.merge(updated_config,
-              observer_web: [
-                {ObserverWeb.Telemetry, [{:data_retention_period, metrics_retention_time_ms}]}
-              ]
+              observer_web: [{:data_retention_period, metrics_retention_time_ms}]
             )
           else
             updated_config

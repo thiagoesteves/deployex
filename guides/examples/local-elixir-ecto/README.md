@@ -90,14 +90,14 @@ Add [Observer Web](https://github.com/thiagoesteves/observer_web)
 ```elixir
 def deps do
   [
-    {:observer_web, "~> 0.1.0"}
+    {:observer_web, "~> 0.2.0"}
   ]
 end
 ```
 
 Open the `config/config.exs` and add the following configuration
 ```elixir
-config :observer_web, ObserverWeb.Telemetry,
+config :observer_web,
   mode: :broadcast
 ```
 

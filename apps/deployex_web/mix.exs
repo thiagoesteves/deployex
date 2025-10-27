@@ -64,7 +64,7 @@ defmodule DeployexWeb.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
-      {:observer_web, "~> 0.1.0"},
+      {:observer_web, "~> 0.2.0"},
       # Static Analysis
       {:mox, "~> 1.0", only: :test},
       {:mock, "~> 0.3.0", only: :test},

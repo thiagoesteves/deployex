@@ -30,7 +30,7 @@ defmodule Sentinel.MixProject do
   defp deps do
     [
       {:phoenix_pubsub, "~> 2.0"},
-      {:observer_web, "~> 0.1.0"},
+      {:observer_web, "~> 0.2.0"},
       # Static Analysis
       {:mox, "~> 1.0", only: :test},
       # Application dependencies

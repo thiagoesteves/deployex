@@ -1,5 +1,19 @@
 # CHANGELOG (0.7.X)
 
+## 0.7.3 🚀 (:soon:)
+
+### Backwards incompatible changes for 0.7.2
+ * It is required to also update `observer_web` versions in all monitored apps for compatibility
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-163`](https://github.com/thiagoesteves/deployex/pull/163) Updating Observer Web to 0.2.0
+
 ## 0.7.2 🚀 (2025-10-16)
 
 ### Backwards incompatible changes for 0.7.1

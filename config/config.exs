@@ -152,7 +152,7 @@ config :sentinel, Sentinel.Watchdog,
   ]
 
 # Configure Observer Web retention time
-config :observer_web, ObserverWeb.Telemetry,
+config :observer_web,
   data_retention_period: :timer.minutes(60),
   mode: :observer
 
