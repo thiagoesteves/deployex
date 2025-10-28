@@ -1,6 +1,6 @@
 # CHANGELOG (0.7.X)
 
-## 0.7.3 🚀 (:soon:)
+## 0.7.3 🚀 (2025-10-28)
 
 ### Backwards incompatible changes for 0.7.2
  * It is required to also update `observer_web` versions in all monitored apps for compatibility
