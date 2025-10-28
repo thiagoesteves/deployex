@@ -64,7 +64,7 @@ defmodule Foundation.Yaml do
     ]
 
     @type t :: %__MODULE__{
-            name: String.t(),
+            name: atom(),
             language: String.t(),
             replicas: non_neg_integer(),
             replica_ports: [Foundation.Yaml.Ports.t()],
@@ -282,7 +282,7 @@ defmodule Foundation.Yaml do
   @spec parse_application(map()) :: Foundation.Yaml.Application.t()
   defp parse_application(data) do
     %Foundation.Yaml.Application{
-      name: data["name"],
+      name: data["name"] |> String.to_atom(),
       language: data["language"],
       replicas: data["replicas"],
       replica_ports: parse_ports(data["replica_ports"]),

@@ -15,6 +15,7 @@ defmodule Foundation.YamlTest do
   release_bucket: "myapp-prod-distribution"
   secrets_adapter: "gcp"
   secrets_path: "deployex-myapp-prod-secrets"
+  aws_region: "sa-east-1"
   google_credentials: "/home/ubuntu/gcp-config.json"
   version: "0.7.3"
   otp_version: 28
@@ -56,6 +57,31 @@ defmodule Foundation.YamlTest do
           enable_restart: true
           warning_threshold_percent: 75
           restart_threshold_percent: 90
+  """
+
+  @sample_yaml_content_no_app """
+  account_name: "prod"
+  hostname: "deployex.example.com"
+  port: 5001
+  release_adapter: "gcp-storage"
+  release_bucket: "myapp-prod-distribution"
+  secrets_adapter: "gcp"
+  secrets_path: "deployex-myapp-prod-secrets"
+  aws_region: "sa-east-1"
+  google_credentials: "/home/ubuntu/gcp-config.json"
+  version: "0.7.3"
+  otp_version: 28
+  otp_tls_certificates: "/usr/local/share/ca-certificates"
+  os_target: "ubuntu-24.04"
+  deploy_rollback_timeout_ms: 600000
+  deploy_schedule_interval_ms: 5000
+  metrics_retention_time_ms: 3600000
+  logs_retention_time_ms: 3600000
+  monitoring:
+    - type: "memory"
+      enable_restart: true
+      warning_threshold_percent: 75
+      restart_threshold_percent: 85
   """
 
   describe "load/0" do
@@ -133,7 +159,7 @@ defmodule Foundation.YamlTest do
 
       [app] = config.applications
       assert %Application{} = app
-      assert app.name == "myapp"
+      assert app.name == :myapp
       assert app.language == "elixir"
       assert app.replicas == 3
     end
@@ -203,6 +229,57 @@ defmodule Foundation.YamlTest do
       assert {:error, _reason} = Yaml.load()
 
       File.rm(invalid_yaml_path)
+    end
+  end
+
+  describe "load/0 with no application defined" do
+    setup do
+      # Create a temporary YAML file for testing
+      temp_dir = System.tmp_dir!()
+
+      yaml_path =
+        Path.join(temp_dir, "test_deployex_config_#{:erlang.unique_integer([:positive])}.yaml")
+
+      File.write!(yaml_path, @sample_yaml_content_no_app)
+
+      # Set the environment variable
+      original_env = System.get_env("DEPLOYEX_CONFIG_YAML_PATH")
+      System.put_env("DEPLOYEX_CONFIG_YAML_PATH", yaml_path)
+
+      on_exit(fn ->
+        File.rm(yaml_path)
+
+        if original_env do
+          System.put_env("DEPLOYEX_CONFIG_YAML_PATH", original_env)
+        else
+          System.delete_env("DEPLOYEX_CONFIG_YAML_PATH")
+        end
+      end)
+
+      {:ok, yaml_path: yaml_path}
+    end
+
+    test "successfully loads with no app configured" do
+      {:ok, config} = Yaml.load()
+
+      assert %Yaml{} = config
+      assert config.account_name == "prod"
+      assert config.hostname == "deployex.example.com"
+      assert config.port == 5001
+      assert config.release_adapter == "gcp-storage"
+      assert config.release_bucket == "myapp-prod-distribution"
+      assert config.secrets_adapter == "gcp"
+      assert config.secrets_path == "deployex-myapp-prod-secrets"
+      assert config.google_credentials == "/home/ubuntu/gcp-config.json"
+      assert config.version == "0.7.3"
+      assert config.otp_version == 28
+      assert config.otp_tls_certificates == "/usr/local/share/ca-certificates"
+      assert config.os_target == "ubuntu-24.04"
+      assert config.deploy_rollback_timeout_ms == 600_000
+      assert config.deploy_schedule_interval_ms == 5000
+      assert config.metrics_retention_time_ms == 3_600_000
+      assert config.logs_retention_time_ms == 3_600_000
+      assert config.applications == []
     end
   end
 
