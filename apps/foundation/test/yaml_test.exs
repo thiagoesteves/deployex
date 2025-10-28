@@ -3,7 +3,6 @@ defmodule Foundation.YamlTest do
 
   alias Foundation.Yaml
   alias Foundation.Yaml.Application
-  alias Foundation.Yaml.KV
   alias Foundation.Yaml.Monitoring
   alias Foundation.Yaml.Ports
 
@@ -182,12 +181,11 @@ defmodule Foundation.YamlTest do
       [app] = config.applications
       assert length(app.env) == 3
 
-      env_map = Map.new(app.env, fn %KV{key: k, value: v} -> {k, v} end)
-
-      assert env_map["MYAPP_PHX_HOST"] == "example.com"
-      # boolean converted to string
-      assert env_map["MYAPP_PHX_SERVER"] == "true"
-      assert env_map["MYAPP_OTP_TLS_CERT_PATH"] == "/usr/local/share/ca-certificates"
+      assert [
+               "MYAPP_PHX_HOST=example.com",
+               "MYAPP_PHX_SERVER=true",
+               "MYAPP_OTP_TLS_CERT_PATH=/usr/local/share/ca-certificates"
+             ] = app.env
     end
 
     test "parses application monitoring configuration" do
@@ -403,12 +401,13 @@ defmodule Foundation.YamlTest do
       {:ok, config} = Yaml.load()
 
       [app] = config.applications
-      env_map = Map.new(app.env, fn %KV{key: k, value: v} -> {k, v} end)
 
-      assert env_map["STRING_VALUE"] == "string"
-      assert env_map["BOOLEAN_TRUE"] == "true"
-      assert env_map["BOOLEAN_FALSE"] == "false"
-      assert env_map["NUMBER_VALUE"] == "123"
+      assert [
+               "STRING_VALUE=string",
+               "BOOLEAN_TRUE=true",
+               "BOOLEAN_FALSE=false",
+               "NUMBER_VALUE=123"
+             ] = app.env
 
       File.rm(yaml_path)
     end
@@ -434,13 +433,6 @@ defmodule Foundation.YamlTest do
 
       assert port.key == "PORT"
       assert port.base == 4000
-    end
-
-    test "KV struct has correct fields" do
-      kv = %KV{key: "TEST_KEY", value: "test_value"}
-
-      assert kv.key == "TEST_KEY"
-      assert kv.value == "test_value"
     end
 
     test "Application struct has correct fields" do

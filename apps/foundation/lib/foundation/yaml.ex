@@ -40,17 +40,6 @@ defmodule Foundation.Yaml do
           }
   end
 
-  defmodule KV do
-    @moduledoc false
-
-    defstruct [:key, :value]
-
-    @type t :: %__MODULE__{
-            key: String.t(),
-            value: non_neg_integer()
-          }
-  end
-
   defmodule Application do
     @moduledoc false
 
@@ -68,7 +57,7 @@ defmodule Foundation.Yaml do
             language: String.t(),
             replicas: non_neg_integer(),
             replica_ports: [Foundation.Yaml.Ports.t()],
-            env: [Foundation.Yaml.KV.t()],
+            env: [String.t()],
             monitoring: [Foundation.Yaml.Monitoring.t()]
           }
   end
@@ -303,21 +292,12 @@ defmodule Foundation.Yaml do
     end)
   end
 
-  @spec parse_env(list(map()) | nil) :: [KV.t()]
+  @spec parse_env(list(map()) | nil) :: [String.t()]
   defp parse_env(nil), do: []
 
   defp parse_env(env_list) do
-    Enum.map(env_list, fn env ->
-      %KV{
-        key: env["key"],
-        value: normalize_value(env["value"])
-      }
+    Enum.map(env_list, fn %{"key" => key, "value" => value} ->
+      "#{key}=#{value}"
     end)
   end
-
-  # Helper to convert values to strings for consistency
-  @spec normalize_value(any()) :: String.t()
-  defp normalize_value(value) when is_binary(value), do: value
-  defp normalize_value(value) when is_boolean(value), do: to_string(value)
-  defp normalize_value(value), do: to_string(value)
 end
