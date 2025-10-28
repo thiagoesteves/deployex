@@ -92,7 +92,8 @@ defmodule Foundation.Yaml do
     :metrics_retention_time_ms,
     :logs_retention_time_ms,
     :monitoring,
-    :applications
+    :applications,
+    :config_checksum
   ]
 
   @type t :: %__MODULE__{
@@ -114,7 +115,11 @@ defmodule Foundation.Yaml do
           metrics_retention_time_ms: non_neg_integer(),
           logs_retention_time_ms: non_neg_integer(),
           monitoring: [Foundation.Yaml.Monitoring.t()],
-          applications: [Foundation.Yaml.Application.t()]
+          applications: [Foundation.Yaml.Application.t()],
+          # Checksum of the YAML configuration file content.
+          # Used internally to detect configuration changes and trigger dynamic reloads.
+          # This value is computed from the file contents, not the file metadata.
+          config_checksum: String.t() | nil
         }
 
   ### ==========================================================================
@@ -128,34 +133,47 @@ defmodule Foundation.Yaml do
   `DEPLOYEX_CONFIG_YAML_PATH` environment variable and parses it into 
   a structured `Foundation.Yaml` struct with all nested configurations.
 
+  When an existing configuration is provided, the function first checks if 
+  the file has changed by comparing checksums. If unchanged, returns the 
+  existing configuration without reparsing.
+
   The configuration file path is read from an environment variable rather 
   than application config to ensure it can be loaded during the config 
   provider phase, before the application configuration is fully available.
 
+  ## Parameters
+
+    * `existing_config` - Optional. Previously loaded configuration to check against.
+
   ## Returns
 
     * `{:ok, %Foundation.Yaml{}}` - Successfully loaded and parsed configuration
+    * `{:ok, :unchanged}` - Configuration file hasn't changed (when existing_config provided)
     * `{:error, reason}` - Failed to read or parse the YAML file
 
   ## Examples
 
+      # Initial load
       iex> System.put_env("DEPLOYEX_CONFIG_YAML_PATH", "/path/to/config.yaml")
       iex> Foundation.Yaml.load()
-      {:ok, %Foundation.Yaml{
-        account_name: "prod",
-        hostname: "deployex.example.com",
-        port: 5001,
-        applications: [%Foundation.Yaml.Application{name: "myapp", ...}],
-        ...
-      }}
+      {:ok, %Foundation.Yaml{account_name: "prod", config_checksum: "abc123...", ...}}
+
+      # Reload with checksum check
+      iex> {:ok, config} = Foundation.Yaml.load()
+      iex> Foundation.Yaml.load(config)
+      {:ok, :unchanged}
+
+      # After file changes
+      iex> Foundation.Yaml.load(config)
+      {:ok, %Foundation.Yaml{account_name: "prod", config_checksum: "def456...", ...}}
 
   ## Environment Variables
 
     * `DEPLOYEX_CONFIG_YAML_PATH` - Required. Full path to the Deployex YAML configuration file.
 
   """
-  @spec load() :: {:ok, t()} | {:error, any()}
-  def load do
+  @spec load(t() | nil) :: {:ok, t()} | {:ok, :unchanged} | {:error, any()}
+  def load(existing_config \\ nil) do
     # NOTE: The configuration path is read from an environment variable instead of
     # application config because this function must be callable during the config
     # provider initialization phase, before Application.get_env/2 is available.
@@ -165,14 +183,14 @@ defmodule Foundation.Yaml do
 
     {:ok, _} = Elixir.Application.ensure_all_started(:yaml_elixir)
 
-    case YamlElixir.read_from_file(yaml_path) do
-      {:ok, data} ->
-        config = parse(data)
-        {:ok, config}
-
+    with {:ok, content} <- File.read(yaml_path),
+         needs_reload? <- new_config?(existing_config, content),
+         {:ok, config} <- maybe_parse(needs_reload?, content) do
+      {:ok, config}
+    else
       {:error, reason} ->
         Logger.error(
-          "Error while trying to read and decoded at #{yaml_path} reason: #{inspect(reason)}"
+          "Error while trying to read and decode at #{yaml_path} reason: #{inspect(reason)}"
         )
 
         {:error, reason}
@@ -182,8 +200,38 @@ defmodule Foundation.Yaml do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  @spec parse(map()) :: t()
-  defp parse(data) do
+  @spec new_config?(t() | nil, binary()) :: boolean()
+  defp new_config?(nil, _content), do: true
+
+  defp new_config?(%__MODULE__{config_checksum: old_checksum}, content) do
+    new_checksum = compute_checksum(content)
+
+    if old_checksum == new_checksum, do: false, else: true
+  end
+
+  @spec maybe_parse(boolean(), binary()) :: {:ok, t() | :unchanged} | {:error, any()}
+  defp maybe_parse(false, _content), do: {:ok, :unchanged}
+
+  defp maybe_parse(true, content) do
+    checksum = compute_checksum(content)
+
+    case YamlElixir.read_from_string(content) do
+      {:ok, data} ->
+        config = parse(data, checksum)
+        {:ok, config}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @spec compute_checksum(binary()) :: String.t()
+  defp compute_checksum(content) do
+    :crypto.hash(:sha256, content) |> Base.encode16(case: :lower)
+  end
+
+  @spec parse(map(), String.t()) :: t()
+  defp parse(data, checksum) do
     %__MODULE__{
       account_name: data["account_name"],
       hostname: data["hostname"],
@@ -202,7 +250,8 @@ defmodule Foundation.Yaml do
       metrics_retention_time_ms: data["metrics_retention_time_ms"],
       logs_retention_time_ms: data["logs_retention_time_ms"],
       monitoring: parse_monitoring_list(data["monitoring"]),
-      applications: parse_applications(data["applications"])
+      applications: parse_applications(data["applications"]),
+      config_checksum: checksum
     }
   end
 

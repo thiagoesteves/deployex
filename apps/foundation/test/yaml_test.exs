@@ -107,6 +107,12 @@ defmodule Foundation.YamlTest do
       assert config.logs_retention_time_ms == 3_600_000
     end
 
+    test "successfully loads if the checksum is different or nil" do
+      {:ok, config} = Yaml.load()
+      {:ok, :unchanged} = Yaml.load(config)
+      {:ok, ^config} = Yaml.load(%{config | config_checksum: "fsdfsdf"})
+    end
+
     test "parses global monitoring configuration" do
       {:ok, config} = Yaml.load()
 
