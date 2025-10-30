@@ -15,14 +15,12 @@ defmodule Foundation.Yaml do
     @moduledoc false
 
     defstruct [
-      :type,
       :enable_restart,
       :warning_threshold_percent,
       :restart_threshold_percent
     ]
 
     @type t :: %__MODULE__{
-            type: String.t(),
             enable_restart: boolean(),
             warning_threshold_percent: non_neg_integer(),
             restart_threshold_percent: non_neg_integer()
@@ -89,9 +87,9 @@ defmodule Foundation.Yaml do
           account_name: String.t(),
           hostname: String.t(),
           port: non_neg_integer(),
-          release_adapter: String.t(),
+          release_adapter: atom(),
           release_bucket: String.t(),
-          secrets_adapter: String.t(),
+          secrets_adapter: atom(),
           secrets_path: String.t() | nil,
           google_credentials: String.t() | nil,
           aws_region: String.t() | nil,
@@ -225,7 +223,7 @@ defmodule Foundation.Yaml do
       account_name: data["account_name"],
       hostname: data["hostname"],
       port: data["port"],
-      release_adapter: data["release_adapter"],
+      release_adapter: release_adapter(data["release_adapter"]),
       release_bucket: data["release_bucket"],
       secrets_adapter: data["secrets_adapter"],
       secrets_path: data["secrets_path"],
@@ -244,6 +242,16 @@ defmodule Foundation.Yaml do
     }
   end
 
+  @spec secrets_adapter(String.t() | nil) :: atom()
+  defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
+  defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp
+  defp secrets_adapter(adapter), do: raise("Secret #{adapter} not supported")
+
+  @spec release_adapter(String.t() | nil) :: atom()
+  defp release_adapter("s3"), do: Deployer.Release.S3
+  defp release_adapter("gcp-storage"), do: Deployer.Release.GcpStorage
+  defp release_adapter(adapter), do: raise("Release #{adapter} not supported")
+
   @spec parse_monitoring_list(list(map()) | nil) :: [Foundation.Yaml.Monitoring.t()]
   defp parse_monitoring_list(nil), do: []
 
@@ -253,12 +261,12 @@ defmodule Foundation.Yaml do
 
   @spec parse_monitoring(map()) :: Foundation.Yaml.Monitoring.t()
   defp parse_monitoring(data) do
-    %Foundation.Yaml.Monitoring{
-      type: data["type"],
-      enable_restart: data["enable_restart"],
-      warning_threshold_percent: data["warning_threshold_percent"],
-      restart_threshold_percent: data["restart_threshold_percent"]
-    }
+    {data["type"] |> String.to_atom(),
+     %Foundation.Yaml.Monitoring{
+       enable_restart: data["enable_restart"],
+       warning_threshold_percent: data["warning_threshold_percent"],
+       restart_threshold_percent: data["restart_threshold_percent"]
+     }}
   end
 
   @spec parse_applications(list(map()) | nil) :: [Foundation.Yaml.Application.t()]
@@ -271,7 +279,7 @@ defmodule Foundation.Yaml do
   @spec parse_application(map()) :: Foundation.Yaml.Application.t()
   defp parse_application(data) do
     %Foundation.Yaml.Application{
-      name: data["name"] |> String.to_atom(),
+      name: data["name"],
       language: data["language"],
       replicas: data["replicas"],
       replica_ports: parse_ports(data["replica_ports"]),

@@ -32,7 +32,8 @@ config :foundation,
   log_path: "/var/log/deployex",
   monitored_app_log_path: "/var/log",
   applications: nil,
-  healthcheck_logging: false
+  healthcheck_logging: false,
+  config_checksum: nil
 
 # NOTE: The default username/pass is admin/deployex and in order to generate
 #       the hashed password, it is required to use:

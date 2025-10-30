@@ -7,6 +7,8 @@ defmodule Foundation.ConfigProvider.Env.Config do
   """
   @behaviour Config.Provider
 
+  alias Foundation.Yaml
+
   require Logger
 
   @impl Config.Provider
@@ -72,6 +74,10 @@ defmodule Foundation.ConfigProvider.Env.Config do
               monitoring: monitoring
             }
           end)
+
+        IO.inspect(applications)
+        {:ok, resp} = Yaml.load()
+        IO.inspect(resp.applications)
 
         updated_config = [
           foundation: [
@@ -214,6 +220,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
+        IO.inspect(resp)
         # Release Config
         yaml_release_adapter = data["release_adapter"]
         release_bucket = data["release_bucket"]
