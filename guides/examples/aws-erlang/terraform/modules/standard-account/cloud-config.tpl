@@ -89,7 +89,8 @@ write_files:
     content: |
       {
         "agent": {
-          "run_as_user": "root"
+          "run_as_user": "root",
+          "metrics_collection_interval": 60
         },
         "logs": {
           "logs_collected": {
@@ -100,32 +101,42 @@ write_files:
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-deployex-stdout-log",
                     "timezone": "UTC",
-                    "timestamp_format": "%H: %M: %S%Y%b%-d"
+                    "timestamp_format": "%H: %M: %S%Y%b%-d",
+                    "retention_in_days": 7,
+                    "encoding": "utf-8"
                 },
                 {
                     "file_path": "/var/log/deployex/deployex-stderr.log",
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-deployex-stderr-log",
                     "timezone": "UTC",
-                    "timestamp_format": "%H: %M: %S%Y%b%-d"
+                    "timestamp_format": "%H: %M: %S%Y%b%-d",
+                    "retention_in_days": 7,
+                    "encoding": "utf-8"
                 },
                 {
                     "file_path": "/var/log/myappname/myappname-*-stdout.log",
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-myappname-stdout-log",
                     "timezone": "UTC",
-                    "timestamp_format": "%H: %M: %S%Y%b%-d"
+                    "timestamp_format": "%H: %M: %S%Y%b%-d",
+                    "retention_in_days": 7,
+                    "encoding": "utf-8"
                 },
                 {
                     "file_path": "/var/log/myappname/myappname-*-stderr.log",
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-myappname-stderr-log",
                     "timezone": "UTC",
-                    "timestamp_format": "%H: %M: %S%Y%b%-d"
+                    "timestamp_format": "%H: %M: %S%Y%b%-d",
+                    "retention_in_days": 7,
+                    "encoding": "utf-8"
                 }
               ]
             }
-          }
+          },
+          "log_stream_name": "{instance_id}",
+          "force_flush_interval": 15
         }
       }
   - path: /etc/nginx/sites-available/default
