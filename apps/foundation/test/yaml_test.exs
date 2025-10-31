@@ -16,7 +16,7 @@ defmodule Foundation.YamlTest do
   secrets_path: "deployex-myapp-prod-secrets"
   aws_region: "sa-east-1"
   google_credentials: "/home/ubuntu/gcp-config.json"
-  version: "0.7.3"
+  version: "0.7.4"
   otp_version: 28
   otp_tls_certificates: "/usr/local/share/ca-certificates"
   os_target: "ubuntu-24.04"
@@ -68,7 +68,7 @@ defmodule Foundation.YamlTest do
   secrets_path: "deployex-myapp-prod-secrets"
   aws_region: "sa-east-1"
   google_credentials: "/home/ubuntu/gcp-config.json"
-  version: "0.7.3"
+  version: "0.7.4"
   otp_version: 28
   otp_tls_certificates: "/usr/local/share/ca-certificates"
   os_target: "ubuntu-24.04"
@@ -122,7 +122,7 @@ defmodule Foundation.YamlTest do
       assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
       assert config.secrets_path == "deployex-myapp-prod-secrets"
       assert config.google_credentials == "/home/ubuntu/gcp-config.json"
-      assert config.version == "0.7.3"
+      assert config.version == "0.7.4"
       assert config.otp_version == 28
       assert config.otp_tls_certificates == "/usr/local/share/ca-certificates"
       assert config.os_target == "ubuntu-24.04"
@@ -268,7 +268,7 @@ defmodule Foundation.YamlTest do
       assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
       assert config.secrets_path == "deployex-myapp-prod-secrets"
       assert config.google_credentials == "/home/ubuntu/gcp-config.json"
-      assert config.version == "0.7.3"
+      assert config.version == "0.7.4"
       assert config.otp_version == 28
       assert config.otp_tls_certificates == "/usr/local/share/ca-certificates"
       assert config.os_target == "ubuntu-24.04"
