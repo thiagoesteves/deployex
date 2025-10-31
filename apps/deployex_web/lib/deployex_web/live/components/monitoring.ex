@@ -14,34 +14,26 @@ defmodule DeployexWeb.Components.Monitoring do
     <div
       :if={has_monitoring_enabled?(@monitoring)}
       id={Helper.normalize_id("button-#{@id}-monitoring")}
-      class="col-span-2 mt-6"
     >
-      <div phx-mounted={
-        JS.transition(
-          {"first:ease-in duration-300", "first:opacity-0 first:p-0 first:h-0", "first:opacity-100"},
-          time: 300
-        )
-      }>
-        <!-- Monitoring Header -->
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-8 h-8 bg-info/10 border border-info/20 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              >
-              </path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-base-content">Resource Monitoring</h3>
-          <div class="flex-1"></div>
-          <div class="badge badge-info badge-sm">Active</div>
+      <!-- Monitoring Header -->
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-8 h-8 bg-info/10 border border-info/20 rounded-lg flex items-center justify-center">
+          <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            >
+            </path>
+          </svg>
         </div>
-
-        <.monitoring_grid monitoring={@monitoring} />
+        <h3 class="text-lg font-semibold text-base-content">Resource Monitoring</h3>
+        <div class="flex-1"></div>
+        <div class="badge badge-info badge-sm">Active</div>
       </div>
+
+      <.monitoring_grid monitoring={@monitoring} />
     </div>
     """
   end
@@ -59,7 +51,7 @@ defmodule DeployexWeb.Components.Monitoring do
 
     ~H"""
     <%= if @enabled_monitoring == [] do %>
-      <div class="bg-base-100 border border-base-300 rounded-xl p-6 shadow-sm">
+      <div class="bg-base-100 border border-base-300 rounded-xl  shadow-sm">
         <div class="flex items-center justify-center gap-3 py-8">
           <div class="w-12 h-12 bg-base-200 border border-base-300 rounded-lg flex items-center justify-center">
             <svg
@@ -84,7 +76,8 @@ defmodule DeployexWeb.Components.Monitoring do
         </div>
       </div>
     <% else %>
-      <div class="grid grid-row-1 lg:grid-row-2 xl:grid-row-4 gap-4">
+      <% cols = length(@enabled_monitoring) %>
+      <div class={["grid gap-4", "grid-cols-#{cols}"]}>
         <%= for {resource_name, config} <- @enabled_monitoring do %>
           <.monitoring_card resource_name={resource_name} config={config} />
         <% end %>
@@ -151,8 +144,7 @@ defmodule DeployexWeb.Components.Monitoring do
               {@current_usage}%
             </span>
           </div>
-          
-    <!-- Visual Progress Bar with Threshold Markers -->
+          <!-- Visual Progress Bar with Threshold Markers -->
           <div class="relative">
             <!-- Background bar -->
             <div class="w-full bg-base-300 rounded-full h-8 relative overflow-visible">
@@ -165,8 +157,7 @@ defmodule DeployexWeb.Components.Monitoring do
                   {@config.warning_threshold_percent}%
                 </div>
               </div>
-              
-    <!-- Restart threshold marker -->
+              <!-- Restart threshold marker -->
               <div
                 class="absolute top-0 bottom-0 w-0.5 bg-error z-10"
                 style={"left: #{@config.restart_threshold_percent}%"}
@@ -175,8 +166,7 @@ defmodule DeployexWeb.Components.Monitoring do
                   {@config.restart_threshold_percent}%
                 </div>
               </div>
-              
-    <!-- Current usage fill -->
+              <!-- Current usage fill -->
               <div
                 class={"rounded-full h-8 transition-all duration-500 flex items-center justify-end pr-2 bg-#{@status_color}"}
                 style={"width: #{@current_usage}%"}

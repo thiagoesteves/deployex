@@ -42,83 +42,86 @@ defmodule DeployexWeb.Components.ApplicationCard do
           latest_release={@application.latest_release}
         />
 
-        <div class="card-body p-8">
+        <div class="card-body p-8 grid grid-cols-2 gap-6">
           <!-- App Header -->
-          <div class="flex items-center gap-6 mb-8">
-            <div class="avatar">
-              <div class="w-20 h-20 rounded-3xl bg-base-200/30 flex items-center justify-center">
-                <img src={"/images/#{@application.language}.ico"} alt="" class="w-12 h-12" />
+          <div class="gap-6">
+            <div class="flex items-center gap-6 mb-8">
+              <div class="avatar">
+                <div class="w-20 h-20 rounded-3xl bg-base-200/30 flex items-center justify-center">
+                  <img src={"/images/#{@application.language}.ico"} alt="" class="w-12 h-12" />
+                </div>
+              </div>
+              <div class="flex-1">
+                <h1 class="text-3xl font-bold text-base-content mb-2">{@application.name}</h1>
+                <div class="badge badge-neutral badge-lg">Application</div>
               </div>
             </div>
-            <div class="flex-1">
-              <h1 class="text-3xl font-bold text-base-content mb-2">{@application.name}</h1>
-              <div class="badge badge-neutral badge-lg">Application</div>
+            <!-- App Details Grid -->
+            <div class="space-y-4">
+              <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <svg
+                    class="w-3 h-3 text-base-content/60"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"
+                    >
+                    </path>
+                  </svg>
+                  <div class="text-xs font-medium text-base-content/60">Node</div>
+                </div>
+                <div class="flex text-sm font-mono text-base-content/90 truncate gap-2">
+                  <CopyToClipboard.content
+                    id={"c2c-node-messages-#{@application.sname}"}
+                    message={@application.node}
+                  />
+                  {@application.node}
+                </div>
+              </div>
+              <div
+                :if={@application.ports != []}
+                class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
+              >
+                <div class="flex items-center gap-2 mb-2">
+                  <svg
+                    class="w-3 h-3 text-base-content/60"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                    >
+                    </path>
+                  </svg>
+                  <div class="text-xs font-medium text-base-content/60">Ports</div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <%= for port <- @application.ports do %>
+                    <div class="inline-flex items-center bg-base-100 border border-base-300 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                      <span class="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 border-r border-base-300">
+                        {port.key}
+                      </span>
+                      <span class="px-3 py-1.5 text-xs font-mono font-medium text-base-content bg-secondary/10">
+                        {port.base}
+                      </span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
             </div>
           </div>
-          <!-- App Details Grid -->
-          <div class="space-y-4">
-            <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
-              <div class="flex items-center gap-2 mb-2">
-                <svg
-                  class="w-3 h-3 text-base-content/60"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"
-                  >
-                  </path>
-                </svg>
-                <div class="text-xs font-medium text-base-content/60">Node</div>
-              </div>
-              <div class="flex text-sm font-mono text-base-content/90 truncate gap-2">
-                <CopyToClipboard.content
-                  id={"c2c-node-messages-#{@application.sname}"}
-                  message={@application.node}
-                />
-                {@application.node}
-              </div>
-            </div>
-            <div
-              :if={@application.ports != []}
-              class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
-            >
-              <div class="flex items-center gap-2 mb-2">
-                <svg
-                  class="w-3 h-3 text-base-content/60"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
-                  >
-                  </path>
-                </svg>
-                <div class="text-xs font-medium text-base-content/60">Ports</div>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <%= for port <- @application.ports do %>
-                  <div class="inline-flex items-center bg-base-100 border border-base-300 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
-                    <span class="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 border-r border-base-300">
-                      {port.key}
-                    </span>
-                    <span class="px-3 py-1.5 text-xs font-mono font-medium text-base-content bg-secondary/10">
-                      {port.base}
-                    </span>
-                  </div>
-                <% end %>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-3">
+          <div>
+            <div class="grid grid-cols-3 grid-rows-2 gap-3 mb-6">
               <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
                 <div class="flex items-center gap-2 mb-2">
                   <svg
@@ -200,7 +203,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
                 </div>
                 <div class="text-sm font-semibold text-success">{@application.uptime}</div>
               </div>
-
               <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
                 <div class="flex items-center gap-2 mb-2">
                   <svg
@@ -222,104 +224,107 @@ defmodule DeployexWeb.Components.ApplicationCard do
                 <.restarts restarts={@application.force_restart_count} />
               </div>
             </div>
+            
+    <!-- Action Buttons -->
+            <div class="pt-6 border-t border-base-200">
+              <!-- Primary Actions Row -->
+              <div class="flex gap-2 mb-3">
+                <button
+                  id={Helper.normalize_id("app-log-stdout-#{@application.sname}")}
+                  phx-click="app-log-click"
+                  phx-value-node={@application.node}
+                  phx-value-name={@application.name}
+                  phx-value-sname={@application.sname}
+                  phx-value-std="stdout"
+                  type="button"
+                  class="btn btn-sm bg-success/10 text-success border-success/20 hover:bg-success/20 hover:border-success/30 hover:scale-105 transition-all duration-200 flex-1 tooltip"
+                  data-tip="View standard output logs"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    >
+                    </path>
+                  </svg>
+                  <span class="font-medium">stdout</span>
+                </button>
+
+                <button
+                  id={Helper.normalize_id("app-terminal-#{@application.sname}")}
+                  phx-click="app-terminal-click"
+                  phx-value-node={@application.node}
+                  phx-value-name={@application.name}
+                  phx-value-sname={@application.sname}
+                  phx-value-std="terminal"
+                  type="button"
+                  class="btn btn-sm bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:border-primary/30 hover:scale-105 transition-all duration-200 tooltip"
+                  data-tip="Open interactive terminal"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    >
+                    </path>
+                  </svg>
+                </button>
+
+                <button
+                  id={Helper.normalize_id("app-log-stderr-#{@application.sname}")}
+                  phx-click="app-log-click"
+                  phx-value-node={@application.node}
+                  phx-value-name={@application.name}
+                  phx-value-sname={@application.sname}
+                  phx-value-std="stderr"
+                  type="button"
+                  class="btn btn-sm bg-error/10 text-error border-error/20 hover:bg-error/20 hover:border-error/30 hover:scale-105 transition-all duration-200 flex-1 tooltip"
+                  data-tip="View error logs"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    >
+                    </path>
+                  </svg>
+                  <span class="font-medium">stderr</span>
+                </button>
+              </div>
+              <!-- Secondary Actions Row -->
+              <div class="flex">
+                <button
+                  id={Helper.normalize_id("app-versions-#{@application.sname}")}
+                  phx-click="app-versions-click"
+                  phx-value-name={@application.name}
+                  phx-value-sname={@application.sname}
+                  type="button"
+                  class="btn btn-sm bg-info/10 text-info border-info/20 hover:bg-info/20 hover:border-info/30 hover:scale-105 transition-all duration-200 w-full tooltip"
+                  data-tip="Manage application versions"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 4v10a2 2 0 002 2h6a2 2 0 002-2V8M7 8h10M9 12h6m-6 4h6"
+                    >
+                    </path>
+                  </svg>
+                  <span class="font-medium">Versions</span>
+                </button>
+              </div>
+            </div>
           </div>
           <!-- Monitoring View -->
-          <Monitoring.content monitoring={@monitoring} id={@application.sname} />
-          <!-- Action Buttons -->
-          <div class="pt-6 border-t border-base-200">
-            <!-- Primary Actions Row -->
-            <div class="flex gap-2 mb-3">
-              <button
-                id={Helper.normalize_id("app-log-stdout-#{@application.sname}")}
-                phx-click="app-log-click"
-                phx-value-node={@application.node}
-                phx-value-name={@application.name}
-                phx-value-sname={@application.sname}
-                phx-value-std="stdout"
-                type="button"
-                class="btn btn-sm bg-success/10 text-success border-success/20 hover:bg-success/20 hover:border-success/30 hover:scale-105 transition-all duration-200 flex-1 tooltip"
-                data-tip="View standard output logs"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-                <span class="font-medium">stdout</span>
-              </button>
-
-              <button
-                id={Helper.normalize_id("app-terminal-#{@application.sname}")}
-                phx-click="app-terminal-click"
-                phx-value-node={@application.node}
-                phx-value-name={@application.name}
-                phx-value-sname={@application.sname}
-                phx-value-std="terminal"
-                type="button"
-                class="btn btn-sm bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:border-primary/30 hover:scale-105 transition-all duration-200 tooltip"
-                data-tip="Open interactive terminal"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  >
-                  </path>
-                </svg>
-              </button>
-
-              <button
-                id={Helper.normalize_id("app-log-stderr-#{@application.sname}")}
-                phx-click="app-log-click"
-                phx-value-node={@application.node}
-                phx-value-name={@application.name}
-                phx-value-sname={@application.sname}
-                phx-value-std="stderr"
-                type="button"
-                class="btn btn-sm bg-error/10 text-error border-error/20 hover:bg-error/20 hover:border-error/30 hover:scale-105 transition-all duration-200 flex-1 tooltip"
-                data-tip="View error logs"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-                <span class="font-medium">stderr</span>
-              </button>
-            </div>
-            <!-- Secondary Actions Row -->
-            <div class="flex">
-              <button
-                id={Helper.normalize_id("app-versions-#{@application.sname}")}
-                phx-click="app-versions-click"
-                phx-value-name={@application.name}
-                phx-value-sname={@application.sname}
-                type="button"
-                class="btn btn-sm bg-info/10 text-info border-info/20 hover:bg-info/20 hover:border-info/30 hover:scale-105 transition-all duration-200 w-full tooltip"
-                data-tip="Manage application versions"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 4v10a2 2 0 002 2h6a2 2 0 002-2V8M7 8h10M9 12h6m-6 4h6"
-                  >
-                  </path>
-                </svg>
-                <span class="font-medium">Versions</span>
-              </button>
-            </div>
+          <div class="col-span-full">
+            <Monitoring.content monitoring={@monitoring} id={@application.sname} />
           </div>
         </div>
       </div>
