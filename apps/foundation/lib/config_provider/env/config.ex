@@ -26,86 +26,32 @@ defmodule Foundation.ConfigProvider.Env.Config do
   @impl Config.Provider
   # credo:disable-for-lines:1
   def load(config, _opts) do
-    yaml_path = System.get_env("DEPLOYEX_CONFIG_YAML_PATH")
+    Logger.info("[Config Provider] Loading configuration from Yaml file")
 
-    Logger.info("Reading deployex configuration file at: #{yaml_path}")
-
-    {:ok, _} = Application.ensure_all_started(:yaml_elixir)
-
-    case YamlElixir.read_from_file(yaml_path) do
-      {:ok, data} ->
-        env = data["account_name"]
-
-        read_application_env = fn
-          [_ | _] = app_env ->
-            Enum.map(app_env, fn %{"key" => key, "value" => value} ->
-              "#{key}=#{value}"
-            end)
-
-          _not_set ->
-            []
-        end
-
-        applications =
-          data["applications"]
-          |> Enum.map(fn application ->
-            app_config_monitoring = application["monitoring"]
-            app_config_replica_ports = application["replica_ports"] || []
-
-            # credo:disable-for-lines:3
-            monitoring =
-              if app_config_monitoring do
-                parse_monitoring(app_config_monitoring)
-              else
-                []
-              end
-
-            replica_ports =
-              Enum.map(app_config_replica_ports, fn %{"key" => key, "base" => base} ->
-                %{key: key, base: base}
-              end)
-
-            %{
-              name: application["name"],
-              replicas: application["replicas"],
-              language: application["language"],
-              replica_ports: replica_ports,
-              env: read_application_env.(application["env"]),
-              monitoring: monitoring
-            }
-          end)
-
-        IO.inspect(applications)
-        {:ok, resp} = Yaml.load()
-        IO.inspect(resp.applications)
-
+    case Yaml.load() do
+      {:ok, yaml_config} ->
         updated_config = [
           foundation: [
-            {:env, env},
-            {:applications, applications}
+            {:env, yaml_config.account_name},
+            {:applications, yaml_config.applications},
+            {:config_checksum, yaml_config.config_checksum}
           ]
         ]
 
         # AWS Config
-        aws_region = data["aws_region"]
-
         updated_config =
-          if aws_region do
-            Keyword.merge(updated_config, ex_aws: [{:region, aws_region}])
+          if yaml_config.aws_region do
+            Keyword.merge(updated_config, ex_aws: [{:region, yaml_config.aws_region}])
           else
             updated_config
           end
 
         # System Config monitoring
-        system_config_monitoring = data["monitoring"]
-
         updated_config =
-          if system_config_monitoring do
-            parsed_list = parse_monitoring(system_config_monitoring)
-
+          if yaml_config.monitoring != [] do
             Config.Reader.merge(updated_config,
               sentinel: [
-                {Sentinel.Watchdog, [{:system_config, parsed_list}]}
+                {Sentinel.Watchdog, [{:system_config, yaml_config.monitoring}]}
               ]
             )
           else
@@ -114,7 +60,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
         # Application Config monitoring
         applications_config =
-          Enum.reduce(applications, [], fn application, acc ->
+          Enum.reduce(yaml_config.applications, [], fn application, acc ->
             # credo:disable-for-lines:1
             if application.monitoring != [] do
               acc ++ [{String.to_atom(application.name), application.monitoring}]
@@ -135,41 +81,34 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # Endpoint Config
-        hostname = data["hostname"]
-        port = data["port"]
-
         updated_config =
           Config.Reader.merge(updated_config,
             deployex_web: [
               {DeployexWeb.Endpoint,
                [
-                 url: [host: hostname],
-                 http: [port: port]
+                 url: [host: yaml_config.hostname],
+                 http: [port: yaml_config.port]
                ]}
             ]
           )
 
         # Telemetry Config
-        metrics_retention_time_ms = data["metrics_retention_time_ms"]
-
         updated_config =
-          if metrics_retention_time_ms do
+          if yaml_config.metrics_retention_time_ms do
             Config.Reader.merge(updated_config,
-              observer_web: [{:data_retention_period, metrics_retention_time_ms}]
+              observer_web: [{:data_retention_period, yaml_config.metrics_retention_time_ms}]
             )
           else
             updated_config
           end
 
-        logs_retention_time_ms = data["logs_retention_time_ms"]
-
         updated_config =
-          if logs_retention_time_ms do
+          if yaml_config.logs_retention_time_ms do
             Config.Reader.merge(updated_config,
               sentinel: [
                 {Sentinel.Logs,
                  [
-                   {:data_retention_period, logs_retention_time_ms}
+                   {:data_retention_period, yaml_config.logs_retention_time_ms}
                  ]}
               ]
             )
@@ -178,15 +117,13 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # Engine Config
-        deploy_rollback_timeout_ms = data["deploy_rollback_timeout_ms"]
-
         updated_config =
-          if deploy_rollback_timeout_ms do
+          if yaml_config.deploy_rollback_timeout_ms do
             Config.Reader.merge(updated_config,
               deployer: [
                 {Deployer.Engine,
                  [
-                   {:timeout_rollback, deploy_rollback_timeout_ms}
+                   {:timeout_rollback, yaml_config.deploy_rollback_timeout_ms}
                  ]}
               ]
             )
@@ -194,15 +131,13 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        deploy_schedule_interval_ms = data["deploy_schedule_interval_ms"]
-
         updated_config =
-          if deploy_schedule_interval_ms do
+          if yaml_config.deploy_schedule_interval_ms do
             Config.Reader.merge(updated_config,
               deployer: [
                 {Deployer.Engine,
                  [
-                   {:schedule_interval, deploy_schedule_interval_ms}
+                   {:schedule_interval, yaml_config.deploy_schedule_interval_ms}
                  ]}
               ]
             )
@@ -211,66 +146,35 @@ defmodule Foundation.ConfigProvider.Env.Config do
           end
 
         # GCP Config (Goth)
-        google_credentials = data["google_credentials"]
-
         updated_config =
-          if google_credentials do
-            Config.Reader.merge(updated_config, goth: [{:file_credentials, google_credentials}])
+          if yaml_config.google_credentials do
+            Config.Reader.merge(updated_config,
+              goth: [{:file_credentials, yaml_config.google_credentials}]
+            )
           else
             updated_config
           end
 
-        IO.inspect(resp)
         # Release Config
-        yaml_release_adapter = data["release_adapter"]
-        release_bucket = data["release_bucket"]
-
-        release_adapter =
-          case yaml_release_adapter do
-            "gcp-storage" ->
-              Deployer.Release.GcpStorage
-
-            "s3" ->
-              Deployer.Release.S3
-
-            adapter ->
-              raise "Release #{adapter} not supported"
-          end
-
         updated_config =
           Config.Reader.merge(updated_config,
             deployer: [
               {Deployer.Release,
                [
-                 {:adapter, release_adapter},
-                 {:bucket, release_bucket}
+                 {:adapter, yaml_config.release_adapter},
+                 {:bucket, yaml_config.release_bucket}
                ]}
             ]
           )
 
         # Secrets Config
-        yaml_secrets_adapter = data["secrets_adapter"]
-        secrets_path = data["secrets_path"]
-
-        secrets_adapter =
-          case yaml_secrets_adapter do
-            "gcp" ->
-              Foundation.ConfigProvider.Secrets.Gcp
-
-            "aws" ->
-              Foundation.ConfigProvider.Secrets.Aws
-
-            adapter ->
-              raise "Secret #{adapter} not supported"
-          end
-
         updated_config =
           Config.Reader.merge(updated_config,
             foundation: [
               {Foundation.ConfigProvider.Secrets.Manager,
                [
-                 {:adapter, secrets_adapter},
-                 {:path, secrets_path}
+                 {:adapter, yaml_config.secrets_adapter},
+                 {:path, yaml_config.secrets_path}
                ]}
             ]
           )
@@ -278,25 +182,12 @@ defmodule Foundation.ConfigProvider.Env.Config do
         # NOTE: Merge original config with the constructed config from yaml file
         Config.Reader.merge(config, updated_config)
 
-      {:error, _} ->
+      {:error, reason} ->
         Logger.warning(
-          "No file found or decoded at #{yaml_path}, default configuration will be applied"
+          "Error loading the YAML file, reason: #{inspect(reason)}, default configuration will be applied"
         )
 
         config
     end
-  end
-
-  defp parse_monitoring(list_to_be_parsed) do
-    Enum.map(list_to_be_parsed, fn map ->
-      name = String.to_atom(map["type"])
-
-      atomized_map =
-        map
-        |> Map.delete("type")
-        |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
-
-      {name, atomized_map}
-    end)
   end
 end

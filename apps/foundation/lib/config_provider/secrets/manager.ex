@@ -26,7 +26,7 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
   """
   @impl Config.Provider
   def load(config, opts) do
-    Logger.info("Running Config Provider for Secrets")
+    Logger.info("[Config Provider] Loading Secrets")
     env = Keyword.get(config, :foundation) |> Keyword.get(:env)
 
     secrets_adapter =

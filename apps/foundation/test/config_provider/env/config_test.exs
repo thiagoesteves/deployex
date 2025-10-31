@@ -6,13 +6,15 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   alias Foundation.ConfigProvider.Env.Config
 
-  @yaml_aws_path "./test/support/files/deployex-aws.yaml"
-  @yaml_aws_path_monitoring "./test/support/files/deployex-aws-monitoring.yaml"
-  @aws_monitoring_multiple_apps "./test/support/files/deployex-aws-monitoring-multiple-apps.yaml"
-  @yaml_aws_path_optional "./test/support/files/deployex-aws-optional.yaml"
-  @yaml_gcp_path "./test/support/files/deployex-gcp.yaml"
-  @yaml_gcp_release_error_path "./test/support/files/deployex-gcp-release-error.yaml"
-  @yaml_gcp_secrets_error_path "./test/support/files/deployex-gcp-secrets-error.yaml"
+  @file_paths "./test/support/files/"
+
+  @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
+  @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
+  @yaml_aws_monitoring_multiple_apps "#{@file_paths}/deployex-aws-monitoring-multiple-apps.yaml"
+  @yaml_aws_optional "#{@file_paths}/deployex-aws-optional.yaml"
+  @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
+  @yaml_gcp_release_error "#{@file_paths}/deployex-gcp-release-error.yaml"
+  @yaml_gcp_secrets_error "#{@file_paths}/deployex-gcp-secrets-error.yaml"
 
   test "init/1 with success" do
     assert Config.init(:any) == []
@@ -20,7 +22,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_path end]}
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -73,6 +75,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
+                  {:config_checksum,
+                   "00e77a90507d142dc2ccda070e1d5860a1a47b69a1e178318c8dafe0fe208a2a"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -96,7 +100,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                           language: "not-set",
                           replica_ports: [%{base: 1000, key: "PORT"}]
                         }
-                      ]}
+                      ]},
+                     {:config_checksum, nil}
                    ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
@@ -115,7 +120,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS - Monitoring for a single app" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_path_monitoring end]}
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -218,6 +223,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
+                  {:config_checksum,
+                   "a67eddebd4a9e00269cbe4d322e994289bb4e039210e6f61d759f918541f6b85"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -266,7 +273,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS - Monitoring for a multiple applications" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @aws_monitoring_multiple_apps end]}
+      {System, [],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring_multiple_apps end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -402,6 +410,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
+                  {:config_checksum,
+                   "e24863bf980b40262095c0b2a7c7500663f0702434072f8e4e5f5a111407e809"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -500,6 +510,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
+                  {:config_checksum,
+                   "a8424a9c39a86772229fb235c10fe2e11a154de521bbb483d46a641cccc0f716"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -512,7 +524,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    foundation: [
                      {Foundation.ConfigProvider.Secrets.Manager,
                       adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-                     {:env, "not-set"}
+                     {:env, "not-set"},
+                     {:config_checksum, nil}
                    ],
                    deployex_web: [
                      {DeployexWeb.Endpoint,
@@ -531,13 +544,14 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with error for invalid release" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_release_error_path end]}
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_release_error end]}
     ]) do
       config = [
         foundation: [
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-          {:env, "not-set"}
+          {:env, "not-set"},
+          {:config_checksum, nil}
         ],
         deployex_web: [
           {DeployexWeb.Endpoint,
@@ -558,7 +572,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 - Optional fields don't change if not passed in the YAML" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_path_optional end]}
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
     ]) do
       assert [
                {:sentinel,
@@ -599,6 +613,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        replica_ports: [%{base: 4000, key: "PORT"}]
                      }
                    ]},
+                  {:config_checksum,
+                   "f1d04d2f94b52f4564a7e93b926be090313799a0f8ae753d8e123a1f8f201de3"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -627,13 +643,14 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with error for invalid secrets" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_secrets_error_path end]}
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_secrets_error end]}
     ]) do
       config = [
         foundation: [
           {Foundation.ConfigProvider.Secrets.Manager,
            adapter: Foundation.ConfigProvider.Secrets.Aws, path: "any-env-path"},
-          {:env, "not-set"}
+          {:env, "not-set"},
+          {:config_checksum, nil}
         ],
         deployex_web: [
           {DeployexWeb.Endpoint,
@@ -661,7 +678,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
          [
            {Foundation.ConfigProvider.Secrets.Manager,
             adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
-           {:env, "not-set"}
+           {:env, "not-set"},
+           {:config_checksum, nil}
          ]},
         {:deployex_web,
          [
@@ -677,7 +695,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
       assert capture_log(fn ->
                assert config == Config.load(config, [])
-             end) =~ "No file found or decoded at ., default configuration will be applied"
+             end) =~
+               "Error loading the YAML file, reason: :eisdir, default configuration will be applied"
     end
   end
 end

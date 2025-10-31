@@ -117,9 +117,9 @@ defmodule Foundation.YamlTest do
       assert config.account_name == "prod"
       assert config.hostname == "deployex.example.com"
       assert config.port == 5001
-      assert config.release_adapter == "gcp-storage"
+      assert config.release_adapter == Deployer.Release.GcpStorage
       assert config.release_bucket == "myapp-prod-distribution"
-      assert config.secrets_adapter == "gcp"
+      assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
       assert config.secrets_path == "deployex-myapp-prod-secrets"
       assert config.google_credentials == "/home/ubuntu/gcp-config.json"
       assert config.version == "0.7.3"
@@ -143,9 +143,8 @@ defmodule Foundation.YamlTest do
 
       assert length(config.monitoring) == 1
 
-      [monitoring] = config.monitoring
+      [{:memory, monitoring}] = config.monitoring
       assert %Monitoring{} = monitoring
-      assert monitoring.type == "memory"
       assert monitoring.enable_restart == true
       assert monitoring.warning_threshold_percent == 75
       assert monitoring.restart_threshold_percent == 85
@@ -158,7 +157,7 @@ defmodule Foundation.YamlTest do
 
       [app] = config.applications
       assert %Application{} = app
-      assert app.name == :myapp
+      assert app.name == "myapp"
       assert app.language == "elixir"
       assert app.replicas == 3
     end
@@ -194,12 +193,12 @@ defmodule Foundation.YamlTest do
       [app] = config.applications
       assert length(app.monitoring) == 3
 
-      monitoring_types = Enum.map(app.monitoring, & &1.type)
-      assert "atom" in monitoring_types
-      assert "process" in monitoring_types
-      assert "port" in monitoring_types
+      monitoring_types = Enum.map(app.monitoring, fn {type, _monitoring} -> type end)
+      assert :atom in monitoring_types
+      assert :process in monitoring_types
+      assert :port in monitoring_types
 
-      Enum.each(app.monitoring, fn monitoring ->
+      Enum.each(app.monitoring, fn {_type, monitoring} ->
         assert %Monitoring{} = monitoring
         assert monitoring.enable_restart == true
         assert monitoring.warning_threshold_percent == 75
@@ -264,9 +263,9 @@ defmodule Foundation.YamlTest do
       assert config.account_name == "prod"
       assert config.hostname == "deployex.example.com"
       assert config.port == 5001
-      assert config.release_adapter == "gcp-storage"
+      assert config.release_adapter == Deployer.Release.GcpStorage
       assert config.release_bucket == "myapp-prod-distribution"
-      assert config.secrets_adapter == "gcp"
+      assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
       assert config.secrets_path == "deployex-myapp-prod-secrets"
       assert config.google_credentials == "/home/ubuntu/gcp-config.json"
       assert config.version == "0.7.3"
@@ -281,10 +280,62 @@ defmodule Foundation.YamlTest do
     end
   end
 
+  describe "secrets and release adapter cases" do
+    test "Secres/Release for AWS" do
+      yaml_without_monitoring = """
+      account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
+      hostname: "test.example.com"
+      port: 5000
+      applications: []
+      """
+
+      temp_dir = System.tmp_dir!()
+      yaml_path = Path.join(temp_dir, "minimal_#{:erlang.unique_integer([:positive])}.yaml")
+
+      File.write!(yaml_path, yaml_without_monitoring)
+      System.put_env("DEPLOYEX_CONFIG_YAML_PATH", yaml_path)
+
+      {:ok, config} = Yaml.load()
+
+      assert config.release_adapter == Deployer.Release.S3
+      assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Aws
+
+      File.rm(yaml_path)
+    end
+
+    test "Secres/Release for GCP" do
+      yaml_without_monitoring = """
+      account_name: "test"
+      release_adapter: "gcp-storage"
+      secrets_adapter: "gcp"
+      hostname: "test.example.com"
+      port: 5000
+      applications: []
+      """
+
+      temp_dir = System.tmp_dir!()
+      yaml_path = Path.join(temp_dir, "minimal_#{:erlang.unique_integer([:positive])}.yaml")
+
+      File.write!(yaml_path, yaml_without_monitoring)
+      System.put_env("DEPLOYEX_CONFIG_YAML_PATH", yaml_path)
+
+      {:ok, config} = Yaml.load()
+
+      assert config.release_adapter == Deployer.Release.GcpStorage
+      assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
+
+      File.rm(yaml_path)
+    end
+  end
+
   describe "parse/1 edge cases" do
     test "handles missing optional monitoring in global config" do
       yaml_without_monitoring = """
       account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
       hostname: "test.example.com"
       port: 5000
       applications: []
@@ -306,6 +357,8 @@ defmodule Foundation.YamlTest do
     test "handles application without monitoring" do
       yaml_content = """
       account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
       applications:
         - name: "simple-app"
           language: "elixir"
@@ -329,6 +382,8 @@ defmodule Foundation.YamlTest do
     test "handles application without env variables" do
       yaml_content = """
       account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
       applications:
         - name: "simple-app"
           language: "elixir"
@@ -352,6 +407,8 @@ defmodule Foundation.YamlTest do
     test "handles application without replica_ports" do
       yaml_content = """
       account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
       applications:
         - name: "simple-app"
           language: "elixir"
@@ -377,6 +434,8 @@ defmodule Foundation.YamlTest do
     test "converts different value types to strings" do
       yaml_with_various_types = """
       account_name: "test"
+      release_adapter: "s3"
+      secrets_adapter: "aws"
       applications:
         - name: "test-app"
           language: "elixir"
@@ -416,13 +475,11 @@ defmodule Foundation.YamlTest do
   describe "struct types" do
     test "Monitoring struct has correct fields" do
       monitoring = %Monitoring{
-        type: "memory",
         enable_restart: true,
         warning_threshold_percent: 75,
         restart_threshold_percent: 85
       }
 
-      assert monitoring.type == "memory"
       assert monitoring.enable_restart == true
       assert monitoring.warning_threshold_percent == 75
       assert monitoring.restart_threshold_percent == 85

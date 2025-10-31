@@ -56,7 +56,7 @@ defmodule Foundation.Yaml do
             replicas: non_neg_integer(),
             replica_ports: [Foundation.Yaml.Ports.t()],
             env: [String.t()],
-            monitoring: [Foundation.Yaml.Monitoring.t()]
+            monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}]
           }
   end
 
@@ -101,7 +101,7 @@ defmodule Foundation.Yaml do
           deploy_schedule_interval_ms: non_neg_integer(),
           metrics_retention_time_ms: non_neg_integer(),
           logs_retention_time_ms: non_neg_integer(),
-          monitoring: [Foundation.Yaml.Monitoring.t()],
+          monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}],
           applications: [Foundation.Yaml.Application.t()],
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
@@ -225,9 +225,10 @@ defmodule Foundation.Yaml do
       port: data["port"],
       release_adapter: release_adapter(data["release_adapter"]),
       release_bucket: data["release_bucket"],
-      secrets_adapter: data["secrets_adapter"],
+      secrets_adapter: secrets_adapter(data["secrets_adapter"]),
       secrets_path: data["secrets_path"],
       google_credentials: data["google_credentials"],
+      aws_region: data["aws_region"],
       version: data["version"],
       otp_version: data["otp_version"],
       otp_tls_certificates: data["otp_tls_certificates"],
@@ -259,7 +260,7 @@ defmodule Foundation.Yaml do
     Enum.map(monitoring_list, &parse_monitoring/1)
   end
 
-  @spec parse_monitoring(map()) :: Foundation.Yaml.Monitoring.t()
+  @spec parse_monitoring(map()) :: {atom(), Foundation.Yaml.Monitoring.t()}
   defp parse_monitoring(data) do
     {data["type"] |> String.to_atom(),
      %Foundation.Yaml.Monitoring{
