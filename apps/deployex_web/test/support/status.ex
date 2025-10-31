@@ -42,7 +42,7 @@ defmodule DeployexWeb.Fixture.Status do
     Map.put(current, :metadata, metadata)
   end
 
-  def deployex() do
+  def deployex do
     metadata_by_app() |> deployex()
   end
 
