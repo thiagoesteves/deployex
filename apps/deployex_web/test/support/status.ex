@@ -42,7 +42,11 @@ defmodule DeployexWeb.Fixture.Status do
     Map.put(current, :metadata, metadata)
   end
 
-  def deployex(attrs \\ %{}) do
+  def deployex() do
+    metadata_by_app() |> deployex()
+  end
+
+  def deployex(attrs) do
     deployex = %Status{
       name: "deployex",
       sname: "deployex",
@@ -78,6 +82,6 @@ defmodule DeployexWeb.Fixture.Status do
   end
 
   def list do
-    [metadata_by_app() |> deployex(), application()]
+    [deployex(), application()]
   end
 end
