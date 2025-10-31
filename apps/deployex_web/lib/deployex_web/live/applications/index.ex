@@ -9,6 +9,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
+  alias DeployexWeb.Components.Dashboard
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
   alias Host.Terminal.Server
@@ -30,30 +31,7 @@ defmodule DeployexWeb.ApplicationsLive do
               <li class="text-base-content font-medium">Applications</li>
             </ul>
           </div>
-          <!-- Applications Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            <%= for app <- @monitoring_apps_data do %>
-              <DeployexWeb.Components.AppCard.content
-                supervisor={app.supervisor}
-                status={app.status}
-                node={app.node}
-                sname={app.sname}
-                language={app.language}
-                crash_restart_count={app.crash_restart_count}
-                force_restart_count={app.force_restart_count}
-                name={app.name}
-                ports={app.ports}
-                version={app.version}
-                uptime={app.uptime}
-                otp={app.otp}
-                tls={app.tls}
-                last_deployment={app.last_deployment}
-                restart_path={~p"/applications/#{app.name}/#{app.sname}/restart"}
-                metadata={app.metadata}
-                latest_release={app.latest_release}
-              />
-            <% end %>
-          </div>
+          <Dashboard.content applications={@monitoring_apps_data} />
         </div>
       </div>
     </Layouts.app>
