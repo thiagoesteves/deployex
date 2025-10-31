@@ -27,6 +27,21 @@ defmodule DeployexWeb.Fixture.Status do
     |> Enum.map(&Map.merge(&1, attrs))
   end
 
+  def metadata_by_app(current \\ %{metadata: %{}}, app_name \\ "test_app", attrs \\ %{}) do
+    curr = Map.get(current, :metadata, %{})
+
+    default = %{
+      last_ghosted_version: nil,
+      mode: :automatic,
+      manual_version: nil,
+      versions: []
+    }
+
+    metadata = Map.put(curr, app_name, Map.merge(default, attrs))
+
+    Map.put(current, :metadata, metadata)
+  end
+
   def deployex(attrs \\ %{}) do
     deployex = %Status{
       name: "deployex",
@@ -47,7 +62,7 @@ defmodule DeployexWeb.Fixture.Status do
     default_suffix = "abc123"
 
     application = %Status{
-      name: "default_name",
+      name: "#{default_name}",
       sname: "#{default_name}-#{default_suffix}",
       version: "4.5.6",
       otp: :connected,
@@ -63,6 +78,6 @@ defmodule DeployexWeb.Fixture.Status do
   end
 
   def list do
-    [deployex(), application()]
+    [metadata_by_app() |> deployex(), application()]
   end
 end

@@ -22,13 +22,13 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     assert html =~ "Listing Applications"
     assert html =~ "1.2.3"
-    assert html =~ "4.5.6"
     assert html =~ "Connected"
     assert html =~ "Supported"
     assert html =~ "Full Deployment"
     assert html =~ "short time"
-    assert html =~ "long time"
     assert html =~ "Running"
+    assert html =~ "4.5.6"
+    assert html =~ "long time"
   end
 
   test "GET /applications deployment: hot-upgrade", %{conn: conn} do
@@ -45,7 +45,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "Full Deployment"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{last_deployment: "hot_upgrade"})
     ]
 
@@ -77,7 +77,7 @@ defmodule DeployexWeb.Applications.IndexTest do
              "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-neutral rounded-full\"></div><span class=\"text-sm font-medium text-neutral\">0"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{crash_restart_count: 1, force_restart_count: 1})
     ]
 
@@ -109,7 +109,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "Disconnected"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{otp: :not_connected})
     ]
 
@@ -137,7 +137,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "Not Supported"
 
     new_state = [
-      FixtureStatus.deployex(%{tls: :not_supported}),
+      %{tls: :not_supported} |> FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application()
     ]
 
@@ -157,7 +157,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
          FixtureStatus.application(%{status: :idle, version: nil})
        ]}
     end)
@@ -171,7 +171,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-base-200/50 border-b border-base-200"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{status: :starting, version: "1.0.0"})
     ]
 
@@ -186,7 +186,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-warning/10 border-b border-warning/20"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{status: :pre_commands, version: "1.0.0"})
     ]
 
@@ -201,7 +201,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-warning/10 border-b border-warning/20"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{status: :running, version: "1.0.0"})
     ]
 
@@ -223,7 +223,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
          FixtureStatus.application(%{status: :idle, version: nil})
        ]}
     end)
@@ -237,7 +237,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-base-200/50 border-b border-base-200"
 
     new_state = [
-      FixtureStatus.deployex(),
+      FixtureStatus.metadata_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application(%{status: :starting, version: "1.0.0"})
     ]
 

@@ -29,7 +29,7 @@ defmodule DeployexWeb.Applications.ModeTest do
              }
            }
          }),
-         FixtureStatus.application()
+         FixtureStatus.application(%{name: "myelixir"})
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -69,7 +69,7 @@ defmodule DeployexWeb.Applications.ModeTest do
              }
            }
          }),
-         FixtureStatus.application()
+         FixtureStatus.application(%{name: "myelixir"})
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -203,7 +203,7 @@ defmodule DeployexWeb.Applications.ModeTest do
              }
            }
          }),
-         FixtureStatus.application()
+         FixtureStatus.application(%{name: "myelixir"})
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)

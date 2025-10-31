@@ -93,7 +93,11 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn ^name, _options -> [sname_v1, sname_v2] end)
