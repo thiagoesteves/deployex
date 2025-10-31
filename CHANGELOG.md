@@ -1,5 +1,19 @@
 # CHANGELOG (0.7.X)
 
+## 0.7.4 (:soon:)
+
+### Backwards incompatible changes for 0.7.3
+ * None
+
+### Installer Actions
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`ISSUE-167`](https://github.com/thiagoesteves/deployex/issues/167) Modify Deployer app to re-load the yaml file for every deploy
+
 ## 0.7.3 🚀 (2025-10-28)
 
 ### Backwards incompatible changes for 0.7.2
