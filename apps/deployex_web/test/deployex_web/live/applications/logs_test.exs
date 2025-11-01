@@ -26,7 +26,11 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
@@ -62,7 +66,11 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
@@ -98,7 +106,11 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
@@ -140,7 +152,11 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)

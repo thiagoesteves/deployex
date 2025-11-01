@@ -137,7 +137,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "Not Supported"
 
     new_state = [
-      FixtureStatus.deployex(%{tls: :not_supported}),
+      %{tls: :not_supported} |> FixtureStatus.config_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application()
     ]
 
