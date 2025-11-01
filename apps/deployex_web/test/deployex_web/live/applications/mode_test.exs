@@ -20,7 +20,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :automatic,
@@ -60,7 +60,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :automatic,
@@ -100,7 +100,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :automatic,
@@ -147,7 +147,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :manual,
@@ -194,7 +194,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :manual,
@@ -219,7 +219,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :manual,
@@ -247,7 +247,7 @@ defmodule DeployexWeb.Applications.ModeTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :automatic,

@@ -61,7 +61,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -103,7 +103,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname, language: app_lang})
        ]}
     end)
@@ -145,7 +145,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname, language: app_lang})
        ]}
     end)
@@ -186,7 +186,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -225,7 +225,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -265,7 +265,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname})
        ]}
     end)
@@ -290,7 +290,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -337,7 +337,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)

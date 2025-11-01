@@ -27,8 +27,8 @@ defmodule DeployexWeb.Fixture.Status do
     |> Enum.map(&Map.merge(&1, attrs))
   end
 
-  def metadata_by_app(current \\ %{metadata: %{}}, app_name \\ "test_app", attrs \\ %{}) do
-    curr = Map.get(current, :metadata, %{})
+  def config_by_app(current \\ %{config: %{}}, app_name \\ "test_app", attrs \\ %{}) do
+    curr = Map.get(current, :config, %{})
 
     default = %{
       last_ghosted_version: nil,
@@ -37,13 +37,13 @@ defmodule DeployexWeb.Fixture.Status do
       versions: []
     }
 
-    metadata = Map.put(curr, app_name, Map.merge(default, attrs))
+    config = Map.put(curr, app_name, Map.merge(default, attrs))
 
-    Map.put(current, :metadata, metadata)
+    Map.put(current, :config, config)
   end
 
   def deployex do
-    metadata_by_app() |> deployex()
+    config_by_app() |> deployex()
   end
 
   def deployex(attrs) do
@@ -53,7 +53,6 @@ defmodule DeployexWeb.Fixture.Status do
       version: "1.2.3",
       otp: :connected,
       tls: :supported,
-      supervisor: true,
       status: :running,
       uptime: "short time"
     }
@@ -72,7 +71,6 @@ defmodule DeployexWeb.Fixture.Status do
       otp: :connected,
       tls: :supported,
       last_deployment: :full_deployment,
-      supervisor: false,
       status: :running,
       crash_restart_count: 0,
       uptime: "long time"

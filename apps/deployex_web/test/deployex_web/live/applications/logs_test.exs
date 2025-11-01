@@ -28,7 +28,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -68,7 +68,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -108,7 +108,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)
@@ -154,7 +154,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)

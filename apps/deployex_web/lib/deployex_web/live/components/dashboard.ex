@@ -45,11 +45,11 @@ defmodule DeployexWeb.Components.Dashboard do
       />
 
       <div
-        :if={@deployex != nil and @deployex.metadata}
+        :if={@deployex != nil and @deployex.config}
         id={Helper.normalize_id("button-deployex-config")}
       >
         <ApplicationDashboard.content
-          metadata={@deployex.metadata}
+          config={@deployex.config}
           monitored_apps={@monitored_apps}
           monitoring={@monitoring}
         />

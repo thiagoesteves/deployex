@@ -424,10 +424,10 @@ defmodule DeployexWeb.ApplicationsLive do
   def handle_event("app-mode-select", %{"select-mode" => mode_or_version, "name" => name}, socket) do
     # NOTE: this check is needed due to phoenix reconnect (replay form events)
     already_current? = fn name, mode_or_version ->
-      metadata = Enum.find(socket.assigns.monitoring_apps_data, &(&1.name == "deployex")).metadata
+      config = Enum.find(socket.assigns.monitoring_apps_data, &(&1.name == "deployex")).config
 
       current_mode_or_version =
-        case Map.get(metadata, name) do
+        case Map.get(config, name) do
           %{mode: :automatic} -> "automatic"
           %{manual_version: %{version: version}} -> version
         end

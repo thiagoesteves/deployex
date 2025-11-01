@@ -160,25 +160,22 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+             &(&1.name == "deployex" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myerlang" and not &1.supervisor and
-                 &1.version == "1.0.1" and &1.status == :idle)
+             &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myelixir" and not &1.supervisor and
-                 &1.version == "1.0.2" and &1.status == :idle)
+             &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :idle)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "mygleam" and not &1.supervisor and
-                 &1.version == "1.0.3" and &1.status == :idle)
+             &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :idle)
            )
   end
 
@@ -209,25 +206,25 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+             &(&1.name == "deployex" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myerlang" and not &1.supervisor and
-                 &1.version == "1.0.1" and &1.status == :running and &1.otp == :not_connected)
+             &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running and
+                 &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myelixir" and not &1.supervisor and
-                 &1.version == "1.0.2" and &1.status == :running and &1.otp == :not_connected)
+             &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running and
+                 &1.otp == :not_connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "mygleam" and not &1.supervisor and
-                 &1.version == "1.0.3" and &1.status == :running and &1.otp == :not_connected)
+             &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running and
+                 &1.otp == :not_connected)
            )
   end
 
@@ -258,25 +255,25 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+             &(&1.name == "deployex" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myerlang" and not &1.supervisor and
-                 &1.version == "1.0.1" and &1.status == :running and &1.otp == :connected)
+             &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running and
+                 &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myelixir" and not &1.supervisor and
-                 &1.version == "1.0.2" and &1.status == :running and &1.otp == :connected)
+             &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running and
+                 &1.otp == :connected)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "mygleam" and not &1.supervisor and
-                 &1.version == "1.0.3" and &1.status == :running and &1.otp == :connected)
+             &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running and
+                 &1.otp == :connected)
            )
   end
 
@@ -312,29 +309,26 @@ defmodule Deployer.Status.ApplicationTest do
              StatusApp.handle_info(:update_apps, %{monitoring: []})
 
     deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.metadata[name_1].last_ghosted_version == ghosted_version
+    assert deployex.config[name_1].last_ghosted_version == ghosted_version
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "deployex" and &1.supervisor and &1.status == :running)
+             &(&1.name == "deployex" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myelixir" and not &1.supervisor and
-                 &1.version == "1.0.2" and &1.status == :running)
+             &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "myerlang" and not &1.supervisor and
-                 &1.version == "1.0.1" and &1.status == :running)
+             &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running)
            )
 
     assert Enum.find(
              monitoring,
-             &(&1.name == "mygleam" and not &1.supervisor and
-                 &1.version == "1.0.3" and &1.status == :running)
+             &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running)
            )
   end
 
@@ -385,7 +379,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
     deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.metadata[name_1].mode == :manual
+    assert deployex.config[name_1].mode == :manual
 
     assert %{
              mode: :manual,
@@ -436,7 +430,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
     deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.metadata[name_1].mode == :manual
+    assert deployex.config[name_1].mode == :manual
 
     assert %{
              mode: :manual,
@@ -487,7 +481,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
     deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.metadata[name_1].mode == :manual
+    assert deployex.config[name_1].mode == :manual
     assert %{mode: :manual, manual_version: nil} = Catalog.config(name_1)
   end
 
@@ -530,7 +524,7 @@ defmodule Deployer.Status.ApplicationTest do
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
     deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.metadata[name_1].mode == :automatic
+    assert deployex.config[name_1].mode == :automatic
     assert %{mode: :automatic, manual_version: nil} = Catalog.config(name_1)
   end
 

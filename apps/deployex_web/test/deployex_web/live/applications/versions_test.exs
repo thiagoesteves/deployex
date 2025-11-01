@@ -38,7 +38,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
       {:ok,
        [
          FixtureStatus.deployex(%{
-           metadata: %{
+           config: %{
              "myelixir" => %{
                last_ghosted_version: nil,
                mode: :automatic,
@@ -95,7 +95,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.metadata_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{sname: sname, name: name})
        ]}
     end)

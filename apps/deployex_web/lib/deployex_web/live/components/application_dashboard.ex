@@ -6,12 +6,12 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
   alias DeployexWeb.Components.ApplicationCard
   alias DeployexWeb.Helper
 
-  attr :metadata, :map, required: true
+  attr :config, :map, required: true
   attr :monitored_apps, :list, required: true
   attr :monitoring, :list, required: true
 
   def content(assigns) do
-    current_config_apps = Map.keys(assigns.metadata)
+    current_config_apps = Map.keys(assigns.config)
 
     applications =
       Enum.reduce(assigns.monitored_apps, %{}, fn %{name: name, status: status} = monitored_app,
@@ -61,9 +61,9 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
               <.mode
                 name={app}
-                mode={@metadata[app].mode}
-                manual_version={@metadata[app].manual_version}
-                versions={@metadata[app].versions}
+                mode={@config[app].mode}
+                manual_version={@config[app].manual_version}
+                versions={@config[app].versions}
               />
             </div>
             <!-- History Section -->
@@ -103,7 +103,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             </div>
             <!-- Last Ghosted Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-              <%= if @metadata[app].last_ghosted_version && @metadata[app].last_ghosted_version != "-/-" do %>
+              <%= if @config[app].last_ghosted_version && @config[app].last_ghosted_version != "-/-" do %>
                 <div class="space-y-3">
                   <div class="flex items-center gap-2">
                     <svg
@@ -124,7 +124,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                   </div>
                   <div class="bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
                     <span class="text-sm font-mono text-warning-content">
-                      {@metadata[app].last_ghosted_version}
+                      {@config[app].last_ghosted_version}
                     </span>
                   </div>
                 </div>

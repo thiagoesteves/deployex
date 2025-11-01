@@ -194,7 +194,7 @@ defmodule Deployer.Status.Application do
     uptime = Common.uptime_to_string(Application.get_env(:foundation, :booted_at))
     {:ok, deployex_latest_release} = Github.latest_release()
 
-    metadata =
+    config =
       Enum.reduce(Catalog.applications(), %{}, fn %{name: name}, acc ->
         config = Catalog.config(name)
 
@@ -234,11 +234,10 @@ defmodule Deployer.Status.Application do
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),
-      supervisor: true,
       status: :running,
       uptime: uptime,
       latest_release: deployex_latest_release,
-      metadata: metadata
+      config: config
     }
   end
 
@@ -273,7 +272,6 @@ defmodule Deployer.Status.Application do
       otp: check_otp_monitored_app.(node, status),
       tls: Common.check_mtls(),
       last_deployment: current_version_map(sname).deployment,
-      supervisor: false,
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,

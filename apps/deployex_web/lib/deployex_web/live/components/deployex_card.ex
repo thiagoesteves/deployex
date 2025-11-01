@@ -143,10 +143,7 @@ defmodule DeployexWeb.Components.DeployexCard do
                 <.connected? status={@deployex.otp} />
               </div>
 
-              <div
-                :if={@deployex.supervisor}
-                class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
-              >
+              <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
                 <div class="flex items-center gap-2 mb-2">
                   <svg
                     class="w-3 h-3 text-base-content/60"
