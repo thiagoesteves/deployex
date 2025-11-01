@@ -60,13 +60,24 @@ defmodule DeployexWeb.Fixture.Status do
     Map.merge(deployex, attrs)
   end
 
-  def application(attrs \\ %{}) do
-    default_name = "test_app"
+  defp default_config do
+    %{
+      last_ghosted_version: nil,
+      mode: :automatic,
+      manual_version: nil,
+      versions: []
+    }
+  end
+
+  def application(attrs \\ %{}, config \\ default_config()) do
     default_suffix = "abc123"
+    name = Map.get(attrs, :name, "test_app")
+    language = Map.get(attrs, :language, "elixir")
+    children = Map.get(attrs, :children, [])
 
     application = %Status{
-      name: "#{default_name}",
-      sname: "#{default_name}-#{default_suffix}",
+      name: "#{name}",
+      sname: "#{name}-#{default_suffix}",
       version: "4.5.6",
       otp: :connected,
       tls: :supported,
@@ -76,7 +87,13 @@ defmodule DeployexWeb.Fixture.Status do
       uptime: "long time"
     }
 
-    Map.merge(application, attrs)
+    %Status{
+      name: name,
+      language: language,
+      status: :running,
+      config: config,
+      children: children ++ [Map.merge(application, attrs)]
+    }
   end
 
   def list do

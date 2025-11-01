@@ -35,20 +35,12 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
+      app_1 = FixtureStatus.application(%{sname: sname_1, name: name})
+
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :automatic,
-               manual_version: nil,
-               versions: []
-             }
-           }
-         }),
-         FixtureStatus.application(%{sname: sname_1, name: name}),
-         FixtureStatus.application(%{sname: sname_2, name: name})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname_2, name: name, children: app_1.children})
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)

@@ -163,18 +163,24 @@ defmodule Deployer.Status.ApplicationTest do
              &(&1.name == "deployex" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myerlang"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :idle)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :idle)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "mygleam"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :idle)
            )
   end
@@ -209,20 +215,26 @@ defmodule Deployer.Status.ApplicationTest do
              &(&1.name == "deployex" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myerlang"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running and
                  &1.otp == :not_connected)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running and
                  &1.otp == :not_connected)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "mygleam"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running and
                  &1.otp == :not_connected)
            )
@@ -258,20 +270,26 @@ defmodule Deployer.Status.ApplicationTest do
              &(&1.name == "deployex" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myerlang"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running and
                  &1.otp == :connected)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running and
                  &1.otp == :connected)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "mygleam"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running and
                  &1.otp == :connected)
            )
@@ -308,26 +326,32 @@ defmodule Deployer.Status.ApplicationTest do
     assert {:noreply, %{monitoring: monitoring}} =
              StatusApp.handle_info(:update_apps, %{monitoring: []})
 
-    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.config[name_1].last_ghosted_version == ghosted_version
+    parent_app = Enum.find(monitoring, &(&1.name == name_1))
+    assert parent_app.config.last_ghosted_version == ghosted_version
 
     assert Enum.find(
              monitoring,
              &(&1.name == "deployex" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myelixir" and &1.version == "1.0.2" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "myerlang"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "myerlang" and &1.version == "1.0.1" and &1.status == :running)
            )
 
+    parent_app = Enum.find(monitoring, &(&1.name == "mygleam"))
+
     assert Enum.find(
-             monitoring,
+             parent_app.children,
              &(&1.name == "mygleam" and &1.version == "1.0.3" and &1.status == :running)
            )
   end
@@ -378,8 +402,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
-    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.config[name_1].mode == :manual
+    parent_app = Enum.find(monitoring, &(&1.name == name_1))
+    assert parent_app.config.mode == :manual
 
     assert %{
              mode: :manual,
@@ -429,8 +453,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
-    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.config[name_1].mode == :manual
+    parent_app = Enum.find(monitoring, &(&1.name == name_1))
+    assert parent_app.config.mode == :manual
 
     assert %{
              mode: :manual,
@@ -480,8 +504,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
-    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.config[name_1].mode == :manual
+    parent_app = Enum.find(monitoring, &(&1.name == name_1))
+    assert parent_app.config.mode == :manual
     assert %{mode: :manual, manual_version: nil} = Catalog.config(name_1)
   end
 
@@ -523,8 +547,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
 
     assert {:ok, monitoring} = StatusApp.monitoring(module_name)
-    deployex = Enum.find(monitoring, &(&1.name == "deployex"))
-    assert deployex.config[name_1].mode == :automatic
+    parent_app = Enum.find(monitoring, &(&1.name == name_1))
+    assert parent_app.config.mode == :automatic
     assert %{mode: :automatic, manual_version: nil} = Catalog.config(name_1)
   end
 

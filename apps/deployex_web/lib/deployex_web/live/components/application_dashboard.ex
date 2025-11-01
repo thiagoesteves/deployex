@@ -11,42 +11,19 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
   attr :monitoring, :list, required: true
 
   def content(assigns) do
-    current_config_apps = Map.keys(assigns.config)
-
-    applications =
-      Enum.reduce(assigns.monitored_apps, %{}, fn %{name: name, status: status} = monitored_app,
-                                                  acc ->
-        current_apps = acc[name] || []
-
-        updated_list =
-          if status == :running,
-            do: [monitored_app] ++ current_apps,
-            else: current_apps ++ [monitored_app]
-
-        if name in current_config_apps do
-          Map.put(acc, name, updated_list)
-        else
-          acc
-        end
-      end)
-
-    assigns =
-      assigns
-      |> assign(applications: applications)
-
     ~H"""
     <div>
       <!-- Modern Header -->
-      <%= for {app, monitored_apps}  <- @applications do %>
+      <%= for %{name: name, children: children, config: config}  <- @monitored_apps do %>
         <div class="bg-base-100 border border-base-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 mt-6">
           <!-- App Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
-                <span class="text-lg font-mono font-bold text-primary">{String.first(app)}</span>
+                <span class="text-lg font-mono font-bold text-primary">{String.first(name)}</span>
               </div>
               <div>
-                <h4 class="text-lg font-semibold text-base-content">{app}</h4>
+                <h4 class="text-lg font-semibold text-base-content">{name}</h4>
                 <p class="text-sm text-base-content/70">Application Instance</p>
               </div>
             </div>
@@ -60,10 +37,10 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             <!-- Mode Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
               <.mode
-                name={app}
-                mode={@config[app].mode}
-                manual_version={@config[app].manual_version}
-                versions={@config[app].versions}
+                name={name}
+                mode={config.mode}
+                manual_version={config.manual_version}
+                versions={config.versions}
               />
             </div>
             <!-- History Section -->
@@ -82,9 +59,9 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                   <span class="text-sm font-medium text-base-content">Version History</span>
                 </div>
                 <button
-                  id={Helper.normalize_id("app-versions-#{app}")}
+                  id={Helper.normalize_id("app-versions-#{name}")}
                   phx-click="app-versions-click"
-                  phx-value-name={app}
+                  phx-value-name={name}
                   type="button"
                   class="w-full bg-info/10 hover:bg-info/20 border border-info/20 hover:border-info/30 rounded-lg px-4 py-2 text-sm font-medium text-info transition-all duration-200 flex items-center justify-center gap-2"
                 >
@@ -103,7 +80,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             </div>
             <!-- Last Ghosted Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-              <%= if @config[app].last_ghosted_version && @config[app].last_ghosted_version != "-/-" do %>
+              <%= if config.last_ghosted_version && config.last_ghosted_version != "-/-" do %>
                 <div class="space-y-3">
                   <div class="flex items-center gap-2">
                     <svg
@@ -124,7 +101,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                   </div>
                   <div class="bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
                     <span class="text-sm font-mono text-warning-content">
-                      {@config[app].last_ghosted_version}
+                      {config.last_ghosted_version}
                     </span>
                   </div>
                 </div>
@@ -156,7 +133,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
           </div>
 
           <div class="mt-3 bg-base-300 rounded-lg">
-            <%= for monitored_app <- monitored_apps do %>
+            <%= for monitored_app <- children do %>
               <div class="p-6 ">
                 <ApplicationCard.content
                   application={monitored_app}

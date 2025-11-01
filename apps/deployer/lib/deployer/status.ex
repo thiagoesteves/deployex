@@ -22,7 +22,9 @@ defmodule Deployer.Status do
           force_restart_count: integer(),
           uptime: String.t() | nil,
           latest_release: Github.t(),
-          config: map() | nil
+          config: map() | nil,
+          # Self-referential for nested apps
+          children: [t()]
         }
 
   defstruct name: nil,
@@ -39,7 +41,8 @@ defmodule Deployer.Status do
             force_restart_count: 0,
             uptime: nil,
             latest_release: %Github{},
-            config: nil
+            config: nil,
+            children: []
 
   @behaviour Deployer.Status.Adapter
 

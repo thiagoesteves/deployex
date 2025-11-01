@@ -19,17 +19,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :automatic,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..10, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application(%{name: "myelixir"})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :automatic,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..10, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -59,17 +55,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :automatic,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application(%{name: "myelixir"})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :automatic,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -99,17 +91,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :automatic,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application()
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :automatic,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -146,17 +134,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :manual,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application()
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :manual,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -193,17 +177,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :manual,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application(%{name: "myelixir"})
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :manual,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -218,17 +198,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :manual,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application()
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :manual,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
@@ -246,17 +222,13 @@ defmodule DeployexWeb.Applications.ModeTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(%{
-           config: %{
-             "myelixir" => %{
-               last_ghosted_version: nil,
-               mode: :automatic,
-               manual_version: FixtureStatus.version(%{version: "1.0.2"}),
-               versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
-             }
-           }
-         }),
-         FixtureStatus.application()
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{name: "myelixir"}, %{
+           last_ghosted_version: nil,
+           mode: :automatic,
+           manual_version: FixtureStatus.version(%{version: "1.0.2"}),
+           versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
+         })
        ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
