@@ -6,27 +6,53 @@ config :foundation,
   bin_dir: "/tmp/deployex/test/opt",
   bin_path: "/tmp/deployex/test/opt/deployex",
   monitored_app_log_path: "/tmp/deployex/test/varlog",
+  monitoring: [
+    memory: %{
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
+    }
+  ],
   applications: [
     %{
       name: "myelixir",
       replicas: 3,
       language: "elixir",
       replica_ports: [%{key: "PORT", base: 4444}],
-      env: ["SECRET=value", "PHX_SERVER=true"]
+      env: ["SECRET=value", "PHX_SERVER=true"],
+      monitoring: [
+        port: %{
+          enable_restart: true,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        },
+        process: %{
+          enable_restart: true,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        },
+        atom: %{
+          enable_restart: true,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        }
+      ]
     },
     %{
       name: "myerlang",
       replicas: 3,
       language: "erlang",
       replica_ports: [%{key: "PORT", base: 5555}],
-      env: ["SECRET=value", "PHX_SERVER=true"]
+      env: ["SECRET=value", "PHX_SERVER=true"],
+      monitoring: []
     },
     %{
       name: "mygleam",
       replicas: 3,
       language: "gleam",
       replica_ports: [%{key: "PORT", base: 6666}],
-      env: ["SECRET=value", "PHX_SERVER=true"]
+      env: ["SECRET=value", "PHX_SERVER=true"],
+      monitoring: []
     }
   ]
 
@@ -59,34 +85,6 @@ config :foundation, Foundation.Rpc, adapter: Foundation.RpcMock
 
 # Config Mock for Sentinel
 config :sentinel, Sentinel.Logs, adapter: Sentinel.LogsMock
-
-config :sentinel, Sentinel.Watchdog,
-  applications_config: [
-    default: %{
-      enable_restart: true,
-      warning_threshold_percent: 10,
-      restart_threshold_percent: 20
-    },
-    myelixir: [
-      port: %{
-        enable_restart: true,
-        warning_threshold_percent: 10,
-        restart_threshold_percent: 20
-      },
-      process: %{
-        enable_restart: true,
-        warning_threshold_percent: 10,
-        restart_threshold_percent: 20
-      }
-    ]
-  ],
-  system_config: [
-    memory: %{
-      enable_restart: true,
-      warning_threshold_percent: 10,
-      restart_threshold_percent: 20
-    }
-  ]
 
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false

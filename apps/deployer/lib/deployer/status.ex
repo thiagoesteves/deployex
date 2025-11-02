@@ -24,7 +24,9 @@ defmodule Deployer.Status do
           latest_release: Github.t(),
           config: map() | nil,
           # Self-referential for nested apps
-          children: [t()]
+          children: [t()],
+          # Monitoring capabilities
+          monitoring: []
         }
 
   defstruct name: nil,
@@ -42,7 +44,8 @@ defmodule Deployer.Status do
             uptime: nil,
             latest_release: %Github{},
             config: nil,
-            children: []
+            children: [],
+            monitoring: []
 
   @behaviour Deployer.Status.Adapter
 

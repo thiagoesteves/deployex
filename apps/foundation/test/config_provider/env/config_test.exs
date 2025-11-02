@@ -77,6 +77,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]},
                   {:config_checksum,
                    "00e77a90507d142dc2ccda070e1d5860a1a47b69a1e178318c8dafe0fe208a2a"},
+                  {:monitoring, []},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -135,44 +136,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:observer_web, [data_retention_period: 3_600_000]},
                {:sentinel,
                 [
-                  {
-                    Sentinel.Watchdog,
-                    [
-                      {:system_config,
-                       [
-                         memory: %{
-                           enable_restart: true,
-                           warning_threshold_percent: 75,
-                           restart_threshold_percent: 85
-                         }
-                       ]},
-                      {:applications_config,
-                       [
-                         default: %{
-                           enable_restart: true,
-                           warning_threshold_percent: 50,
-                           restart_threshold_percent: 70
-                         },
-                         myphoenixapp: [
-                           atom: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           },
-                           process: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           },
-                           port: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           }
-                         ]
-                       ]}
-                    ]
-                  },
                   {Sentinel.Logs, [data_retention_period: 3_600_000]}
                 ]},
                {:deployer,
@@ -225,49 +188,21 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]},
                   {:config_checksum,
                    "a67eddebd4a9e00269cbe4d322e994289bb4e039210e6f61d759f918541f6b85"},
+                  {:monitoring,
+                   [
+                     memory: %Foundation.Yaml.Monitoring{
+                       enable_restart: true,
+                       warning_threshold_percent: 75,
+                       restart_threshold_percent: 85
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
                      path: "deployex-myapp-prod-secrets"
                    ]}
                 ]}
-             ] =
-               Config.load(
-                 [
-                   sentinel: [
-                     {Sentinel.Watchdog,
-                      [
-                        applications_config: [
-                          default: %{
-                            enable_restart: true,
-                            warning_threshold_percent: 50,
-                            restart_threshold_percent: 70
-                          },
-                          myphoenixapp: [
-                            atom: %{
-                              enable_restart: false,
-                              warning_threshold_percent: 22,
-                              restart_threshold_percent: 33
-                            },
-                            port: %{
-                              enable_restart: false,
-                              warning_threshold_percent: 60,
-                              restart_threshold_percent: 98
-                            }
-                          ]
-                        ],
-                        system_config: [
-                          memory: %{
-                            enable_restart: false,
-                            warning_threshold_percent: 10,
-                            restart_threshold_percent: 20
-                          }
-                        ]
-                      ]}
-                   ]
-                 ],
-                 []
-               )
+             ] = Config.load([], [])
     end
   end
 
@@ -289,61 +224,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                {:observer_web, [data_retention_period: 3_600_000]},
                {:sentinel,
                 [
-                  {
-                    Sentinel.Watchdog,
-                    [
-                      {:system_config,
-                       [
-                         memory: %{
-                           enable_restart: true,
-                           warning_threshold_percent: 75,
-                           restart_threshold_percent: 85
-                         }
-                       ]},
-                      {:applications_config,
-                       [
-                         default: %{
-                           enable_restart: true,
-                           warning_threshold_percent: 50,
-                           restart_threshold_percent: 70
-                         },
-                         myphoenixapp: [
-                           atom: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           },
-                           process: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           },
-                           port: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 75,
-                             restart_threshold_percent: 90
-                           }
-                         ],
-                         myumbrella: [
-                           atom: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 40,
-                             restart_threshold_percent: 50
-                           },
-                           process: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 60,
-                             restart_threshold_percent: 70
-                           },
-                           port: %{
-                             enable_restart: true,
-                             warning_threshold_percent: 80,
-                             restart_threshold_percent: 90
-                           }
-                         ]
-                       ]}
-                    ]
-                  },
                   {Sentinel.Logs, [data_retention_period: 3_600_000]}
                 ]},
                {:deployer,
@@ -412,49 +292,21 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]},
                   {:config_checksum,
                    "e24863bf980b40262095c0b2a7c7500663f0702434072f8e4e5f5a111407e809"},
+                  {:monitoring,
+                   [
+                     memory: %Foundation.Yaml.Monitoring{
+                       enable_restart: true,
+                       warning_threshold_percent: 75,
+                       restart_threshold_percent: 85
+                     }
+                   ]},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
                      path: "deployex-myapp-prod-secrets"
                    ]}
                 ]}
-             ] =
-               Config.load(
-                 [
-                   sentinel: [
-                     {Sentinel.Watchdog,
-                      [
-                        applications_config: [
-                          default: %{
-                            enable_restart: true,
-                            warning_threshold_percent: 50,
-                            restart_threshold_percent: 70
-                          },
-                          myphoenixapp: [
-                            atom: %{
-                              enable_restart: false,
-                              warning_threshold_percent: 22,
-                              restart_threshold_percent: 33
-                            },
-                            port: %{
-                              enable_restart: false,
-                              warning_threshold_percent: 60,
-                              restart_threshold_percent: 98
-                            }
-                          ]
-                        ],
-                        system_config: [
-                          memory: %{
-                            enable_restart: false,
-                            warning_threshold_percent: 10,
-                            restart_threshold_percent: 20
-                          }
-                        ]
-                      ]}
-                   ]
-                 ],
-                 []
-               )
+             ] = Config.load([], [])
     end
   end
 
@@ -512,6 +364,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]},
                   {:config_checksum,
                    "a8424a9c39a86772229fb235c10fe2e11a154de521bbb483d46a641cccc0f716"},
+                  {:monitoring, []},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -615,6 +468,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]},
                   {:config_checksum,
                    "f1d04d2f94b52f4564a7e93b926be090313799a0f8ae753d8e123a1f8f201de3"},
+                  {:monitoring, []},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,

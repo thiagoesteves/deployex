@@ -8,19 +8,8 @@ defmodule DeployexWeb.Components.DeployexCard do
   alias DeployexWeb.Components.Monitoring
   alias DeployexWeb.Helper
 
-  # NOTE: This structure is derived from the Deployer.Status structure
   attr :deployex, :map, required: true
   attr :restart_path, :string, required: true
-
-  attr :monitoring, :list,
-    default: [
-      {:memory,
-       %{enable_restart: true, warning_threshold_percent: 80, restart_threshold_percent: 90}},
-      {:atom,
-       %{enable_restart: true, warning_threshold_percent: 50, restart_threshold_percent: 90}},
-      {:process,
-       %{enable_restart: true, warning_threshold_percent: 50, restart_threshold_percent: 90}}
-    ]
 
   def content(assigns) do
     ~H"""
@@ -280,13 +269,7 @@ defmodule DeployexWeb.Components.DeployexCard do
           </div>
           <!-- Monitoring View -->
           <div>
-            <Monitoring.content
-              monitoring={[
-                {:memory,
-                 %{enable_restart: true, warning_threshold_percent: 80, restart_threshold_percent: 90}}
-              ]}
-              id="deployex"
-            />
+            <Monitoring.content monitoring={@deployex.monitoring} id="deployex" />
           </div>
         </div>
       </div>

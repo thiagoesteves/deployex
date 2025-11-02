@@ -62,12 +62,13 @@ defmodule Deployer.Status.Application do
         Map.put(acc, name, current ++ [info])
       end)
 
+    # credo:disable-for-lines:10
     monitoring_apps =
-      # credo:disable-for-lines:8
       Enum.map(Catalog.applications(), fn %{
                                             name: name,
                                             replica_ports: replica_ports,
-                                            language: language
+                                            language: language,
+                                            monitoring: monitoring
                                           } ->
         children =
           Enum.reduce(deployed_monitored_apps[name] || [], [], fn app_info, acc ->
@@ -108,7 +109,8 @@ defmodule Deployer.Status.Application do
           language: language,
           status: :running,
           config: current_config,
-          children: children
+          children: children,
+          monitoring: monitoring
         }
       end)
 
@@ -255,7 +257,8 @@ defmodule Deployer.Status.Application do
       tls: Common.check_mtls(),
       status: :running,
       uptime: uptime,
-      latest_release: deployex_latest_release
+      latest_release: deployex_latest_release,
+      monitoring: Application.get_env(:foundation, :monitoring)
     }
   end
 

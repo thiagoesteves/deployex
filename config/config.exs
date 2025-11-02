@@ -31,7 +31,8 @@ config :foundation,
   base_path: "/var/lib/deployex",
   log_path: "/var/log/deployex",
   monitored_app_log_path: "/var/log",
-  applications: nil,
+  monitoring: [],
+  applications: [],
   healthcheck_logging: false,
   config_checksum: nil
 
@@ -134,23 +135,6 @@ config :goth, file_credentials: nil
 config :sentinel, Sentinel.Logs,
   adapter: Sentinel.Logs.Server,
   data_retention_period: :timer.minutes(60)
-
-# Configure Sentinel Watchdog configuration
-config :sentinel, Sentinel.Watchdog,
-  applications_config: [
-    default: %{
-      enable_restart: true,
-      warning_threshold_percent: 75,
-      restart_threshold_percent: 90
-    }
-  ],
-  system_config: [
-    memory: %{
-      enable_restart: true,
-      warning_threshold_percent: 75,
-      restart_threshold_percent: 95
-    }
-  ]
 
 # Configure Observer Web retention time
 config :observer_web,

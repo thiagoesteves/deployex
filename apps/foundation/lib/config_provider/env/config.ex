@@ -34,7 +34,8 @@ defmodule Foundation.ConfigProvider.Env.Config do
           foundation: [
             {:env, yaml_config.account_name},
             {:applications, yaml_config.applications},
-            {:config_checksum, yaml_config.config_checksum}
+            {:config_checksum, yaml_config.config_checksum},
+            {:monitoring, yaml_config.monitoring}
           ]
         ]
 
@@ -42,40 +43,6 @@ defmodule Foundation.ConfigProvider.Env.Config do
         updated_config =
           if yaml_config.aws_region do
             Keyword.merge(updated_config, ex_aws: [{:region, yaml_config.aws_region}])
-          else
-            updated_config
-          end
-
-        # System Config monitoring
-        updated_config =
-          if yaml_config.monitoring != [] do
-            Config.Reader.merge(updated_config,
-              sentinel: [
-                {Sentinel.Watchdog, [{:system_config, yaml_config.monitoring}]}
-              ]
-            )
-          else
-            updated_config
-          end
-
-        # Application Config monitoring
-        applications_config =
-          Enum.reduce(yaml_config.applications, [], fn application, acc ->
-            # credo:disable-for-lines:1
-            if application.monitoring != [] do
-              acc ++ [{String.to_atom(application.name), application.monitoring}]
-            else
-              acc
-            end
-          end)
-
-        updated_config =
-          if applications_config != [] do
-            Config.Reader.merge(updated_config,
-              sentinel: [
-                {Sentinel.Watchdog, [{:applications_config, applications_config}]}
-              ]
-            )
           else
             updated_config
           end

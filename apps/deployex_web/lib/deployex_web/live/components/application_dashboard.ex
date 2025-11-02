@@ -6,15 +6,13 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
   alias DeployexWeb.Components.ApplicationCard
   alias DeployexWeb.Helper
 
-  attr :config, :map, required: true
   attr :monitored_apps, :list, required: true
-  attr :monitoring, :list, required: true
 
   def content(assigns) do
     ~H"""
     <div>
       <!-- Modern Header -->
-      <%= for %{name: name, children: children, config: config}  <- @monitored_apps do %>
+      <%= for %{name: name, children: children, config: config, monitoring: monitoring}  <- @monitored_apps do %>
         <div class="bg-base-100 border border-base-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 mt-6">
           <!-- App Header -->
           <div class="flex items-center justify-between mb-6">
@@ -137,7 +135,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               <div class="p-6 ">
                 <ApplicationCard.content
                   application={monitored_app}
-                  monitoring={@monitoring}
+                  monitoring={monitoring}
                   restart_path={
                     ~p"/applications/#{monitored_app.name}/#{monitored_app.sname}/restart"
                   }
