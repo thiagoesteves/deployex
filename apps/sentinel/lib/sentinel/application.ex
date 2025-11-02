@@ -21,12 +21,11 @@ defmodule Sentinel.Application do
   end
 
   if_not_test do
-    defp logs_config, do: Application.fetch_env!(:sentinel, Sentinel.Logs)
-
     defp application_servers do
       [
         Sentinel.Watchdog,
-        {Sentinel.Logs.Server, logs_config()}
+        {Sentinel.Logs.Server,
+         data_retention_period: Application.fetch_env!(:foundation, :logs_retention_time_ms)}
       ]
     end
   else

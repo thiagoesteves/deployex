@@ -34,6 +34,9 @@ config :foundation,
   monitoring: [],
   applications: [],
   healthcheck_logging: false,
+  logs_retention_time_ms: :timer.hours(1),
+  deploy_rollback_timeout_ms: :timer.minutes(10),
+  deploy_schedule_interval_ms: :timer.seconds(5),
   config_checksum: nil
 
 # NOTE: The default username/pass is admin/deployex and in order to generate

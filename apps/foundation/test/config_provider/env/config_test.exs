@@ -39,17 +39,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   mode: :observer,
                   data_retention_period: 3_600_000
                 ]},
-               {:sentinel,
-                [
-                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                ]},
                {:deployer,
                 [
-                  {Deployer.Engine,
-                   [
-                     timeout_rollback: 600_000,
-                     schedule_interval: 5000
-                   ]},
                   {Deployer.Release,
                    [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
                 ]},
@@ -78,6 +69,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "00e77a90507d142dc2ccda070e1d5860a1a47b69a1e178318c8dafe0fe208a2a"},
                   {:monitoring, []},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:deploy_rollback_timeout_ms, 600_000},
+                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -134,17 +128,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]}
                 ]},
                {:observer_web, [data_retention_period: 3_600_000]},
-               {:sentinel,
-                [
-                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                ]},
                {:deployer,
                 [
-                  {Deployer.Engine,
-                   [
-                     timeout_rollback: 600_000,
-                     schedule_interval: 5000
-                   ]},
                   {Deployer.Release,
                    [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
                 ]},
@@ -196,6 +181,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        restart_threshold_percent: 85
                      }
                    ]},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:deploy_rollback_timeout_ms, 600_000},
+                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -222,17 +210,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]}
                 ]},
                {:observer_web, [data_retention_period: 3_600_000]},
-               {:sentinel,
-                [
-                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                ]},
                {:deployer,
                 [
-                  {Deployer.Engine,
-                   [
-                     timeout_rollback: 600_000,
-                     schedule_interval: 5000
-                   ]},
                   {Deployer.Release,
                    [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
                 ]},
@@ -300,6 +279,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        restart_threshold_percent: 85
                      }
                    ]},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:deploy_rollback_timeout_ms, 600_000},
+                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -325,18 +307,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]}
                 ]},
                {:observer_web, [mode: :observer, data_retention_period: 3_600_000]},
-               {:sentinel,
-                [
-                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                ]},
                {:goth, [file_credentials: "/home/ubuntu/gcp-config.json"]},
                {:deployer,
                 [
-                  {Deployer.Engine,
-                   [
-                     timeout_rollback: 600_000,
-                     schedule_interval: 5000
-                   ]},
                   {Deployer.Release,
                    [adapter: Deployer.Release.GcpStorage, bucket: "myapp-prod-distribution"]}
                 ]},
@@ -365,6 +338,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "a8424a9c39a86772229fb235c10fe2e11a154de521bbb483d46a641cccc0f716"},
                   {:monitoring, []},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:deploy_rollback_timeout_ms, 600_000},
+                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -428,10 +404,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
       {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
     ]) do
       assert [
-               {:sentinel,
-                [
-                  {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                ]},
                {:observer_web, [mode: :observer, data_retention_period: 1000]},
                {:ex_aws, [region: "sa-east-1"]},
                {:deployex_web,
@@ -444,16 +416,14 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:deployer,
                 [
-                  {Deployer.Engine,
-                   [
-                     timeout_rollback: 700_000,
-                     schedule_interval: 10_000
-                   ]},
                   {Deployer.Release,
                    [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
                 ]},
                {:foundation,
                 [
+                  {:logs_retention_time_ms, 0},
+                  {:deploy_rollback_timeout_ms, 0},
+                  {:deploy_schedule_interval_ms, 0},
                   {:env, "prod"},
                   {:applications,
                    [
@@ -478,16 +448,11 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
              ] =
                Config.load(
                  [
-                   sentinel: [
-                     {Sentinel.Logs, [data_retention_period: 3_600_000]}
-                   ],
                    observer_web: [mode: :observer, data_retention_period: 1000],
-                   deployer: [
-                     {Deployer.Engine,
-                      [
-                        timeout_rollback: 700_000,
-                        schedule_interval: 10_000
-                      ]}
+                   foundation: [
+                     logs_retention_time_ms: 0,
+                     deploy_rollback_timeout_ms: 0,
+                     deploy_schedule_interval_ms: 0
                    ]
                  ],
                  []
