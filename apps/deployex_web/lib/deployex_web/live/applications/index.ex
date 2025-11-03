@@ -339,6 +339,11 @@ defmodule DeployexWeb.ApplicationsLive do
     end
   end
 
+  # NOTE: Ignore any other metric value, like nil when the node is down
+  def handle_info({:metrics_new_data, _source_node, _metric_key, _value}, socket) do
+    {:noreply, socket}
+  end
+
   def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket) do
     # Sync ui_settings from cache to ensure NavMenu has latest state
     ui_settings = UiSettings.get()

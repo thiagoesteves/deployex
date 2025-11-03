@@ -44,7 +44,23 @@ config :foundation,
       language: "erlang",
       replica_ports: [%{key: "PORT", base: 5555}],
       env: ["SECRET=value", "PHX_SERVER=true"],
-      monitoring: []
+      monitoring: [
+        port: %{
+          enable_restart: false,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        },
+        process: %{
+          enable_restart: true,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        },
+        atom: %{
+          enable_restart: true,
+          warning_threshold_percent: 10,
+          restart_threshold_percent: 20
+        }
+      ]
     },
     %{
       name: "mygleam",

@@ -250,4 +250,51 @@ defmodule DeployexWeb.Applications.IndexTest do
     html = render(view)
     refute html =~ "Starting"
   end
+
+  test "GET /applications with monitoring enabled", %{conn: conn} do
+    topic = "test-topic"
+
+    Deployer.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{monitoring: add_metrics([:port, :process, :atom, :memory])})
+       ]}
+    end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "Listing Applications"
+    assert html =~ "Auto-restart enabled"
+
+    new_state = [
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{
+        monitoring: add_metrics([:port, :process, :atom, :memory], false)
+      })
+    ]
+
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
+
+    html = render(view)
+    assert html =~ "Auto-restart disabled"
+  end
+
+  defp add_metrics(metrics, enabled \\ true) do
+    Enum.map(metrics, fn metric ->
+      {metric,
+       %{
+         enable_restart: enabled,
+         warning_threshold_percent: 10,
+         restart_threshold_percent: 20
+       }}
+    end)
+  end
 end

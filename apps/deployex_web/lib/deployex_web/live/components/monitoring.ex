@@ -12,10 +12,7 @@ defmodule DeployexWeb.Components.Monitoring do
 
   def content(assigns) do
     ~H"""
-    <div
-      :if={has_monitoring_enabled?(@monitoring)}
-      id={Helper.normalize_id("button-#{@id}-monitoring")}
-    >
+    <div :if={@monitoring != []} id={Helper.normalize_id("button-#{@id}-monitoring")}>
       <!-- Monitoring Header -->
       <div class="flex items-center gap-3 mb-6">
         <div class="w-8 h-8 bg-info/10 border border-info/20 rounded-lg flex items-center justify-center">
@@ -39,19 +36,9 @@ defmodule DeployexWeb.Components.Monitoring do
     """
   end
 
-  # Helper function to check if monitoring section should be shown
-  defp has_monitoring_enabled?(monitoring) do
-    monitoring != [] and monitoring != nil
-  end
-
   defp monitoring_grid(assigns) do
-    enabled_monitoring =
-      Enum.filter(assigns.monitoring, fn {_name, config} -> config.enable_restart end)
-
-    assigns = assign(assigns, :enabled_monitoring, enabled_monitoring)
-
     ~H"""
-    <%= if @enabled_monitoring == [] do %>
+    <%= if @monitoring == [] do %>
       <div class="bg-base-100 border border-base-300 rounded-xl  shadow-sm">
         <div class="flex items-center justify-center gap-3 py-8">
           <div class="w-12 h-12 bg-base-200 border border-base-300 rounded-lg flex items-center justify-center">
@@ -77,9 +64,9 @@ defmodule DeployexWeb.Components.Monitoring do
         </div>
       </div>
     <% else %>
-      <% cols = length(@enabled_monitoring) %>
+      <% cols = length(@monitoring) %>
       <div class={["grid gap-4", "grid-cols-#{cols}"]}>
-        <%= for {resource_name, config} <- @enabled_monitoring do %>
+        <%= for {resource_name, config} <- @monitoring do %>
           <.monitoring_card resource_name={resource_name} config={config} metrics={@metrics} />
         <% end %>
       </div>
@@ -123,12 +110,14 @@ defmodule DeployexWeb.Components.Monitoring do
           </div>
           <div>
             <h4 class="text-base font-semibold text-base-content">{@resource_display}</h4>
-            <p class="text-xs text-base-content/60">Auto-restart enabled</p>
+            <p class="text-xs text-base-content/60">
+              {["Auto-restart ", enable_txt(@config.enable_restart)]}
+            </p>
           </div>
         </div>
         <!-- Status Badge -->
         <div class={"badge badge-#{@status_color} badge-sm gap-1"}>
-          <div class={"w-1.5 h-1.5 bg-#{@status_color}-content rounded-full animate-pulse"}></div>
+          <div class={"w-1.5 h-1.5 bg-#{@status_color} rounded-full animate-pulse"}></div>
           {@status_text}
         </div>
       </div>
@@ -137,7 +126,7 @@ defmodule DeployexWeb.Components.Monitoring do
       <div class="space-y-3">
         <div class="bg-base-200 border border-base-300 rounded-lg p-4">
           <!-- Current Usage Display -->
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-5">
             <span class="text-sm font-medium text-base-content">Current Usage</span>
             <span class={"text-lg font-bold font-mono text-#{@status_color}"}>
               {@current_usage}%
@@ -307,4 +296,7 @@ defmodule DeployexWeb.Components.Monitoring do
         |> String.replace("_", " ")
     end
   end
+
+  defp enable_txt(true), do: "enabled"
+  defp enable_txt(_false), do: "disabled"
 end

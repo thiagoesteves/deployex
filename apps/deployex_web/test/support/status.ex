@@ -74,6 +74,7 @@ defmodule DeployexWeb.Fixture.Status do
     name = Map.get(attrs, :name, "test_app")
     language = Map.get(attrs, :language, "elixir")
     children = Map.get(attrs, :children, [])
+    monitoring = Map.get(attrs, :monitoring, [])
 
     application = %Status{
       name: "#{name}",
@@ -92,6 +93,7 @@ defmodule DeployexWeb.Fixture.Status do
       language: language,
       status: :running,
       config: config,
+      monitoring: monitoring,
       children: children ++ [Map.merge(application, attrs)]
     }
   end
