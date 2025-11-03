@@ -9,6 +9,7 @@ defmodule DeployexWeb.Components.DeployexCard do
   alias DeployexWeb.Helper
 
   attr :deployex, :map, required: true
+  attr :metrics, :map, required: true
   attr :restart_path, :string, required: true
 
   def content(assigns) do
@@ -269,7 +270,11 @@ defmodule DeployexWeb.Components.DeployexCard do
           </div>
           <!-- Monitoring View -->
           <div>
-            <Monitoring.content monitoring={@deployex.monitoring} id="deployex" />
+            <Monitoring.content
+              monitoring={@deployex.monitoring}
+              id="deployex"
+              metrics={Map.get(@metrics, Node.self(), %{})}
+            />
           </div>
         </div>
       </div>

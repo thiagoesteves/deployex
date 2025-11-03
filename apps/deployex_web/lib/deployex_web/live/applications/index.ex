@@ -13,6 +13,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
   alias Host.Terminal.Server
+  alias ObserverWeb.Telemetry
 
   @deployex_terminate_delay 300
 
@@ -31,7 +32,7 @@ defmodule DeployexWeb.ApplicationsLive do
               <li class="text-base-content font-medium">Applications</li>
             </ul>
           </div>
-          <Dashboard.content applications={@monitoring_apps_data} />
+          <Dashboard.content applications={@monitoring_apps_data} metrics={@metrics} />
         </div>
       </div>
     </Layouts.app>
@@ -217,19 +218,22 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
-    # Subscribe tor eceive Application Status
+    # Subscribe to receive Application Status
     Status.subscribe()
 
     # Subscribe to receive System info
     Host.Memory.subscribe()
 
-    {:ok, monitoring} = Deployer.Status.monitoring()
+    {:ok, monitoring_apps_data} = Deployer.Status.monitoring()
+
+    metrics = updated_metrics(monitoring_apps_data)
 
     socket =
       socket
       |> assign(:node, Node.self())
       |> assign(:host_info, nil)
-      |> assign(:monitoring_apps_data, monitoring)
+      |> assign(:metrics, metrics)
+      |> assign(:monitoring_apps_data, monitoring_apps_data)
       |> assign(:selected_name, nil)
       |> assign(:selected_sname, nil)
       |> assign(:terminal_message, nil)
@@ -246,6 +250,7 @@ defmodule DeployexWeb.ApplicationsLive do
      socket
      |> assign(:node, Node.self())
      |> assign(:host_info, nil)
+     |> assign(:metrics, %{})
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_name, nil)
      |> assign(:selected_sname, nil)
@@ -312,26 +317,63 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_info({:update_system_info, host_info}, socket) do
+  def handle_info(
+        {:metrics_new_data, source_node, metric_key,
+         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
+        %{assigns: %{metrics: metrics}} = socket
+      ) do
+    if source_node in metrics.monitored_nodes do
+      current_percentage = trunc(count / limit * 100)
+
+      [_vm, metric, _total] = String.split(metric_key, ".")
+      metric = String.to_existing_atom(metric)
+
+      new_node_metrics =
+        metrics
+        |> Map.get(source_node, %{})
+        |> Map.put(metric, current_percentage)
+
+      {:noreply, assign(socket, :metrics, Map.put(metrics, source_node, new_node_metrics))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket) do
     # Sync ui_settings from cache to ensure NavMenu has latest state
     ui_settings = UiSettings.get()
+
+    memory_used =
+      trunc((host_info.memory_total - host_info.memory_free) / host_info.memory_total * 100)
+
+    node = Node.self()
+
+    new_node_metrics =
+      metrics
+      |> Map.get(node, %{})
+      |> Map.put(:memory, memory_used)
 
     {:noreply,
      socket
      |> assign(:host_info, host_info)
+     |> assign(:metrics, Map.put(metrics, node, new_node_metrics))
      |> assign(:ui_settings, ui_settings)}
   end
 
   def handle_info(
         {:monitoring_app_updated, source_node, monitoring_apps_data},
-        %{assigns: %{node: node}} = socket
+        %{assigns: %{node: node, metrics: metrics}} = socket
       )
       when source_node == node do
     # Sync ui_settings from cache to ensure NavMenu has latest state
     ui_settings = UiSettings.get()
 
+    # Update monitored metrics and subscribe to receive metrics if needed
+    metrics = updated_metrics(monitoring_apps_data, metrics)
+
     {:noreply,
      socket
+     |> assign(:metrics, metrics)
      |> assign(:monitoring_apps_data, monitoring_apps_data)
      |> assign(:ui_settings, ui_settings)}
   end
@@ -443,5 +485,30 @@ defmodule DeployexWeb.ApplicationsLive do
        |> assign(:mode_confirmation, %{name: name, mode_or_version: mode_or_version})
        |> push_patch(to: ~p"/applications")}
     end
+  end
+
+  defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do
+    subscribe_app_if_new = fn %{node: node, monitoring: monitoring}, monitored_nodes ->
+      if node not in current.monitored_nodes do
+        monitoring
+        |> Keyword.keys()
+        |> Enum.each(&Telemetry.subscribe_for_new_data(node, "vm.#{&1}.total"))
+      end
+
+      monitored_nodes ++ [node]
+    end
+
+    new_monitored_nodes =
+      Enum.reduce(monitoring_apps_data, [Node.self()], fn app, acc ->
+        case app.children do
+          [] ->
+            acc
+
+          children ->
+            Enum.reduce(children, acc, &subscribe_app_if_new.(&1, &2))
+        end
+      end)
+
+    %{current | monitored_nodes: new_monitored_nodes}
   end
 end

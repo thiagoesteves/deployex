@@ -7,6 +7,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
   alias DeployexWeb.Helper
 
   attr :monitored_apps, :list, required: true
+  attr :metrics, :map, required: true
 
   def content(assigns) do
     ~H"""
@@ -136,6 +137,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 <ApplicationCard.content
                   application={monitored_app}
                   monitoring={monitoring}
+                  metrics={@metrics}
                   restart_path={
                     ~p"/applications/#{monitored_app.name}/#{monitored_app.sname}/restart"
                   }

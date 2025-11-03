@@ -7,6 +7,7 @@ defmodule DeployexWeb.Components.Dashboard do
   alias DeployexWeb.Components.DeployexCard
 
   attr :applications, :list, required: true
+  attr :metrics, :map, required: true
 
   def content(assigns) do
     {deployex, monitored_apps} =
@@ -29,11 +30,12 @@ defmodule DeployexWeb.Components.Dashboard do
       <DeployexCard.content
         :if={@deployex}
         deployex={@deployex}
+        metrics={@metrics}
         restart_path={~p"/applications/deployex/deployex/restart"}
       />
 
       <div>
-        <ApplicationDashboard.content monitored_apps={@monitored_apps} />
+        <ApplicationDashboard.content monitored_apps={@monitored_apps} metrics={@metrics} />
       </div>
     </div>
     """

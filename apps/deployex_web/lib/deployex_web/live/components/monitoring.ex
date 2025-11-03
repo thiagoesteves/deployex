@@ -8,6 +8,7 @@ defmodule DeployexWeb.Components.Monitoring do
 
   attr :monitoring, :list, required: true
   attr :id, :string, required: true
+  attr :metrics, :map, default: %{}
 
   def content(assigns) do
     ~H"""
@@ -33,7 +34,7 @@ defmodule DeployexWeb.Components.Monitoring do
         <div class="badge badge-info badge-sm">Active</div>
       </div>
 
-      <.monitoring_grid monitoring={@monitoring} />
+      <.monitoring_grid monitoring={@monitoring} metrics={@metrics} />
     </div>
     """
   end
@@ -79,7 +80,7 @@ defmodule DeployexWeb.Components.Monitoring do
       <% cols = length(@enabled_monitoring) %>
       <div class={["grid gap-4", "grid-cols-#{cols}"]}>
         <%= for {resource_name, config} <- @enabled_monitoring do %>
-          <.monitoring_card resource_name={resource_name} config={config} />
+          <.monitoring_card resource_name={resource_name} config={config} metrics={@metrics} />
         <% end %>
       </div>
     <% end %>
@@ -87,9 +88,7 @@ defmodule DeployexWeb.Components.Monitoring do
   end
 
   defp monitoring_card(assigns) do
-    # For demonstration, using a placeholder current_usage
-    # In production, this would come from your monitoring system
-    current_usage = Map.get(assigns.config, :current_usage, 45)
+    current_usage = Map.get(assigns.metrics, assigns.resource_name, 0)
 
     # Determine status based on current usage
     status =

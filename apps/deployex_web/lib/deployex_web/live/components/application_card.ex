@@ -10,6 +10,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
 
   attr :application, :map, required: true
   attr :monitoring, :map, required: true
+  attr :metrics, :map, required: true
   attr :restart_path, :string, required: true
 
   def content(assigns) do
@@ -214,8 +215,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                 <.restarts restarts={@application.force_restart_count} />
               </div>
             </div>
-            
-    <!-- Action Buttons -->
+            <!-- Action Buttons -->
             <div class="pt-6 border-t border-base-200">
               <!-- Primary Actions Row -->
               <div class="flex gap-2 mb-3">
@@ -314,7 +314,11 @@ defmodule DeployexWeb.Components.ApplicationCard do
           </div>
           <!-- Monitoring View -->
           <div class="col-span-full">
-            <Monitoring.content monitoring={@monitoring} id={@application.sname} />
+            <Monitoring.content
+              monitoring={@monitoring}
+              id={@application.sname}
+              metrics={Map.get(@metrics, @application.node, %{})}
+            />
           </div>
         </div>
       </div>

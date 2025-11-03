@@ -72,7 +72,7 @@ defmodule Deployer.Status.Application do
                                           } ->
         children =
           Enum.reduce(deployed_monitored_apps[name] || [], [], fn app_info, acc ->
-            case update_monitored_app_name(app_info) do
+            case update_monitored_app_name(app_info, monitoring) do
               %{status: :running} = app_status ->
                 [app_status] ++ acc
 
@@ -262,7 +262,10 @@ defmodule Deployer.Status.Application do
     }
   end
 
-  defp update_monitored_app_name(%{name: name, sname: sname, language: language, node: node}) do
+  defp update_monitored_app_name(
+         %{name: name, sname: sname, language: language, node: node},
+         monitoring
+       ) do
     %{
       status: status,
       crash_restart_count: crash_restart_count,
@@ -295,7 +298,8 @@ defmodule Deployer.Status.Application do
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
-      language: language
+      language: language,
+      monitoring: monitoring
     }
   end
 end
