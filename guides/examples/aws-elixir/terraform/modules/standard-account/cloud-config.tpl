@@ -8,6 +8,7 @@
 packages:
  - unzip
  - nginx
+ - logrotate
 
 write_files:
   - path: /home/ubuntu/install-otp-certificates.sh
@@ -138,6 +139,33 @@ write_files:
           "log_stream_name": "{instance_id}",
           "force_flush_interval": 15
         }
+      }
+  - path: /etc/logrotate.d/deployex
+    owner: root:root
+    permissions: "0644"
+    content: |
+      /var/log/deployex/*.log {
+          maxsize 20M
+          missingok
+          rotate 7
+          compress
+          delaycompress
+          notifempty
+          copytruncate
+      }
+
+  - path: /etc/logrotate.d/myappname
+    owner: root:root
+    permissions: "0644"
+    content: |
+      /var/log/myappname/*.log {
+          maxsize 20M
+          missingok
+          rotate 7
+          compress
+          delaycompress
+          notifempty
+          copytruncate
       }
   - path: /etc/nginx/sites-available/default
     owner: root:root
