@@ -31,6 +31,9 @@ erl_crash.dump
 # Ignore .env files
 *.env
 
+# Ignore local .yaml files
+*.yaml
+
 # Ignore PLT files
 /priv/plts/*.plt
 /priv/plts/*.plt.hash

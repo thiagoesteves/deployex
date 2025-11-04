@@ -135,9 +135,7 @@ config :deployer, Deployer.Upgrade, adapter: Deployer.Upgrade.Application
 config :goth, file_credentials: nil
 
 # Configure Logs retention time
-config :sentinel, Sentinel.Logs,
-  adapter: Sentinel.Logs.Server,
-  data_retention_period: :timer.minutes(60)
+config :sentinel, Sentinel.Logs, adapter: Sentinel.Logs.Server
 
 # Configure Observer Web retention time
 config :observer_web,

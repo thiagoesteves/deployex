@@ -8,7 +8,9 @@ defmodule Foundation.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      Foundation.Catalog.Local
+      {Phoenix.PubSub, name: Foundation.PubSub},
+      Foundation.Catalog.Local,
+      Foundation.Config.Watcher
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

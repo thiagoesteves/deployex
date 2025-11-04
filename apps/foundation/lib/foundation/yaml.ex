@@ -166,21 +166,25 @@ defmodule Foundation.Yaml do
     # provider initialization phase, before Application.get_env/2 is available.
     yaml_path = System.get_env("DEPLOYEX_CONFIG_YAML_PATH")
 
-    Logger.info("Reading deployex configuration file at: #{yaml_path}")
+    if yaml_path do
+      Logger.info("Reading deployex configuration file at: #{yaml_path}")
 
-    {:ok, _} = Elixir.Application.ensure_all_started(:yaml_elixir)
+      {:ok, _} = Elixir.Application.ensure_all_started(:yaml_elixir)
 
-    with {:ok, content} <- File.read(yaml_path),
-         needs_reload? <- new_config?(existing_config, content),
-         {:ok, config} <- maybe_parse(needs_reload?, content) do
-      {:ok, config}
+      with {:ok, content} <- File.read(yaml_path),
+           needs_reload? <- new_config?(existing_config, content),
+           {:ok, config} <- maybe_parse(needs_reload?, content) do
+        {:ok, config}
+      else
+        {:error, reason} ->
+          Logger.error(
+            "Error while trying to read and decode at #{yaml_path} reason: #{inspect(reason)}"
+          )
+
+          {:error, reason}
+      end
     else
-      {:error, reason} ->
-        Logger.error(
-          "Error while trying to read and decode at #{yaml_path} reason: #{inspect(reason)}"
-        )
-
-        {:error, reason}
+      {:error, :not_found}
     end
   end
 

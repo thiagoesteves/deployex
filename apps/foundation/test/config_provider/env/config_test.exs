@@ -515,7 +515,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
       assert capture_log(fn ->
                assert config == Config.load(config, [])
              end) =~
-               "Error loading the YAML file, reason: :eisdir, default configuration will be applied"
+               "Error while trying to read and decode at . reason: :eisdir"
     end
   end
 end
