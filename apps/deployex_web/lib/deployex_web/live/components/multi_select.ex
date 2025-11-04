@@ -133,9 +133,7 @@ defmodule DeployexWeb.Components.MultiSelect do
 
   defp badge_color("services"), do: "badge-primary"
   defp badge_color("logs"), do: "badge-neutral"
-  defp badge_color(_), do: "badge-accent"
 
   defp category_color("services"), do: "bg-primary"
   defp category_color("logs"), do: "bg-neutral"
-  defp category_color(_), do: "bg-accent"
 end

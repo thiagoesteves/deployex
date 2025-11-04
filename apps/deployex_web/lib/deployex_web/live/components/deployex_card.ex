@@ -354,44 +354,15 @@ defmodule DeployexWeb.Components.DeployexCard do
 
   defp header_card(assigns) do
     ~H"""
-    <%= cond do %>
-      <% @status == :running and @version != nil -> %>
-        <div class="flex items-center justify-between p-4 bg-success/10 border-b border-success/20 rounded-t-lg">
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-            <span class="text-sm font-semibold text-success">Running</span>
-          </div>
-          <span class="font-mono text-sm font-medium text-success">{@version}</span>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
-          <.restart_button sname={@sname} restart_path={@restart_path} />
-        </div>
-      <% @status == :pre_commands -> %>
-        <div class="flex items-center justify-between p-4 bg-warning/10 border-b border-warning/20 rounded-t-lg">
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
-            <span class="text-sm font-semibold text-warning">Pre-commands</span>
-          </div>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
-          <.restart_button sname={@sname} restart_path={@restart_path} />
-        </div>
-      <% @status == :starting and @version != nil -> %>
-        <div class="flex items-center justify-between p-4 bg-warning/10 border-b border-warning/20 rounded-t-lg">
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
-            <span class="text-sm font-semibold text-warning">Starting</span>
-          </div>
-          <span class="font-mono text-sm font-medium text-warning">{@version}</span>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
-          <.restart_button sname={@sname} restart_path={@restart_path} />
-        </div>
-      <% true -> %>
-        <div class="flex items-center justify-center p-4 bg-base-200/50 border-b border-base-200 rounded-t-lg">
-          <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-base-content/30 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-base-content/60">Version not set</span>
-          </div>
-        </div>
-    <% end %>
+    <div class="flex items-center justify-between p-4 bg-success/10 border-b border-success/20 rounded-t-lg">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+        <span class="text-sm font-semibold text-success">Running</span>
+      </div>
+      <span class="font-mono text-sm font-medium text-success">{@version}</span>
+      <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
+      <.restart_button sname={@sname} restart_path={@restart_path} />
+    </div>
     """
   end
 

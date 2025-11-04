@@ -54,7 +54,8 @@ defmodule DeployexWeb.Fixture.Status do
       otp: :connected,
       tls: :supported,
       status: :running,
-      uptime: "short time"
+      uptime: "short time",
+      ports: [%{key: "PORT", base: 8765}]
     }
 
     Map.merge(deployex, attrs)
@@ -76,16 +77,21 @@ defmodule DeployexWeb.Fixture.Status do
     children = Map.get(attrs, :children, [])
     monitoring = Map.get(attrs, :monitoring, [])
 
+    [_sname, hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
+    sname = "#{name}-#{default_suffix}"
+
     application = %Status{
       name: "#{name}",
-      sname: "#{name}-#{default_suffix}",
+      sname: sname,
+      node: String.to_atom("#{sname}@#{hostname}"),
       version: "4.5.6",
       otp: :connected,
       tls: :supported,
       last_deployment: :full_deployment,
       status: :running,
       crash_restart_count: 0,
-      uptime: "long time"
+      uptime: "long time",
+      ports: [%{key: "PORT", base: 5678}]
     }
 
     %Status{
