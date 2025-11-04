@@ -31,8 +31,12 @@ config :foundation,
   base_path: "/var/lib/deployex",
   log_path: "/var/log/deployex",
   monitored_app_log_path: "/var/log",
-  applications: nil,
+  monitoring: [],
+  applications: [],
   healthcheck_logging: false,
+  logs_retention_time_ms: :timer.hours(1),
+  deploy_rollback_timeout_ms: :timer.minutes(10),
+  deploy_schedule_interval_ms: :timer.seconds(5),
   config_checksum: nil
 
 # NOTE: The default username/pass is admin/deployex and in order to generate
@@ -134,23 +138,6 @@ config :goth, file_credentials: nil
 config :sentinel, Sentinel.Logs,
   adapter: Sentinel.Logs.Server,
   data_retention_period: :timer.minutes(60)
-
-# Configure Sentinel Watchdog configuration
-config :sentinel, Sentinel.Watchdog,
-  applications_config: [
-    default: %{
-      enable_restart: true,
-      warning_threshold_percent: 75,
-      restart_threshold_percent: 90
-    }
-  ],
-  system_config: [
-    memory: %{
-      enable_restart: true,
-      warning_threshold_percent: 75,
-      restart_threshold_percent: 95
-    }
-  ]
 
 # Configure Observer Web retention time
 config :observer_web,

@@ -59,7 +59,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> [] end)
@@ -99,7 +103,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname, language: app_lang})
        ]}
     end)
@@ -141,7 +145,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname, language: app_lang})
        ]}
     end)
@@ -180,7 +184,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> [] end)
@@ -215,7 +223,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> [] end)
@@ -253,7 +265,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> expect(:monitoring, fn ->
       {:ok,
        [
-         FixtureStatus.deployex(),
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
          FixtureStatus.application(%{name: name, sname: sname})
        ]}
     end)
@@ -276,7 +288,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> [] end)
@@ -319,7 +335,11 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{sname: sname, name: name})]}
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
     end)
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)

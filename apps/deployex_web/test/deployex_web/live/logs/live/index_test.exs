@@ -267,6 +267,50 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     end
   end)
 
+  test "New deploy requested must update the nodes availables", %{conn: conn} do
+    log_type = "stdout"
+    test_pid_process = self()
+    ref = make_ref()
+    name = "test_app"
+    sname = Catalog.create_sname(name)
+    service_id = Helper.normalize_id(sname)
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    Sentinel.LogsMock
+    |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
+    |> expect(:subscribe_for_new_logs, fn ^sname, ^log_type ->
+      send(test_pid_process, {:handle_ref_event, ref, self()})
+      :ok
+    end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/logs/live")
+
+    index_live
+    |> element("#logs-live-multi-select-toggle-options")
+    |> render_click()
+
+    index_live
+    |> element("#logs-live-multi-select-services-#{service_id}-add-item")
+    |> render_click()
+
+    index_live
+    |> element("#logs-live-multi-select-logs-#{log_type}-add-item")
+    |> render_click()
+
+    assert_receive {:handle_ref_event, ^ref, liveview_pid}, 1_000
+
+    # NOTE: Since the update doesn't use the information recevied by the event
+    #       this test cannot validate new nodes, only guarantee the handle_info
+    #       is properly available
+    send(liveview_pid, {:new_deploy, Node.self(), :any})
+
+    html = render(index_live)
+    assert html =~ "Live Logs"
+  end
+
   test "Reset Stream button", %{conn: conn} do
     message = "[debug]"
     log_type = "stdout"

@@ -17,13 +17,16 @@ defmodule Deployer.Status do
           otp: :connected | :not_connected,
           tls: :supported | :not_supported,
           last_deployment: :full_deployment | :hot_upgrade,
-          supervisor: boolean(),
           status: :idle | :running | :starting,
           crash_restart_count: integer(),
           force_restart_count: integer(),
           uptime: String.t() | nil,
           latest_release: Github.t(),
-          metadata: map() | nil
+          config: map() | nil,
+          # Self-referential for nested apps
+          children: [t()],
+          # Monitoring capabilities
+          monitoring: []
         }
 
   defstruct name: nil,
@@ -35,13 +38,14 @@ defmodule Deployer.Status do
             otp: :not_connected,
             tls: :not_supported,
             last_deployment: :full_deployment,
-            supervisor: true,
             status: :idle,
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
             latest_release: %Github{},
-            metadata: nil
+            config: nil,
+            children: [],
+            monitoring: []
 
   @behaviour Deployer.Status.Adapter
 

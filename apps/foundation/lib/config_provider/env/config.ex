@@ -30,52 +30,24 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
     case Yaml.load() do
       {:ok, yaml_config} ->
+        # Foundation Config
         updated_config = [
-          foundation: [
-            {:env, yaml_config.account_name},
-            {:applications, yaml_config.applications},
-            {:config_checksum, yaml_config.config_checksum}
-          ]
+          foundation:
+            [
+              {:env, yaml_config.account_name},
+              {:applications, yaml_config.applications},
+              {:config_checksum, yaml_config.config_checksum},
+              {:monitoring, yaml_config.monitoring}
+            ] ++
+              add_if_not_nil(yaml_config, :logs_retention_time_ms) ++
+              add_if_not_nil(yaml_config, :deploy_rollback_timeout_ms) ++
+              add_if_not_nil(yaml_config, :deploy_schedule_interval_ms)
         ]
 
         # AWS Config
         updated_config =
           if yaml_config.aws_region do
             Keyword.merge(updated_config, ex_aws: [{:region, yaml_config.aws_region}])
-          else
-            updated_config
-          end
-
-        # System Config monitoring
-        updated_config =
-          if yaml_config.monitoring != [] do
-            Config.Reader.merge(updated_config,
-              sentinel: [
-                {Sentinel.Watchdog, [{:system_config, yaml_config.monitoring}]}
-              ]
-            )
-          else
-            updated_config
-          end
-
-        # Application Config monitoring
-        applications_config =
-          Enum.reduce(yaml_config.applications, [], fn application, acc ->
-            # credo:disable-for-lines:1
-            if application.monitoring != [] do
-              acc ++ [{String.to_atom(application.name), application.monitoring}]
-            else
-              acc
-            end
-          end)
-
-        updated_config =
-          if applications_config != [] do
-            Config.Reader.merge(updated_config,
-              sentinel: [
-                {Sentinel.Watchdog, [{:applications_config, applications_config}]}
-              ]
-            )
           else
             updated_config
           end
@@ -97,49 +69,6 @@ defmodule Foundation.ConfigProvider.Env.Config do
           if yaml_config.metrics_retention_time_ms do
             Config.Reader.merge(updated_config,
               observer_web: [{:data_retention_period, yaml_config.metrics_retention_time_ms}]
-            )
-          else
-            updated_config
-          end
-
-        updated_config =
-          if yaml_config.logs_retention_time_ms do
-            Config.Reader.merge(updated_config,
-              sentinel: [
-                {Sentinel.Logs,
-                 [
-                   {:data_retention_period, yaml_config.logs_retention_time_ms}
-                 ]}
-              ]
-            )
-          else
-            updated_config
-          end
-
-        # Engine Config
-        updated_config =
-          if yaml_config.deploy_rollback_timeout_ms do
-            Config.Reader.merge(updated_config,
-              deployer: [
-                {Deployer.Engine,
-                 [
-                   {:timeout_rollback, yaml_config.deploy_rollback_timeout_ms}
-                 ]}
-              ]
-            )
-          else
-            updated_config
-          end
-
-        updated_config =
-          if yaml_config.deploy_schedule_interval_ms do
-            Config.Reader.merge(updated_config,
-              deployer: [
-                {Deployer.Engine,
-                 [
-                   {:schedule_interval, yaml_config.deploy_schedule_interval_ms}
-                 ]}
-              ]
             )
           else
             updated_config
@@ -188,6 +117,13 @@ defmodule Foundation.ConfigProvider.Env.Config do
         )
 
         config
+    end
+  end
+
+  defp add_if_not_nil(config, key) do
+    case Map.get(config, key) do
+      nil -> []
+      value -> [{key, value}]
     end
   end
 end

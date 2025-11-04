@@ -78,6 +78,13 @@ config :foundation,
   env: "local",
   base_path: "/tmp/deployex/varlib",
   monitored_app_log_path: "/tmp/deployex/varlog",
+  monitoring: [
+    memory: %{
+      enable_restart: true,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 95
+    }
+  ],
   applications: [
     %{
       name: "myphoenixapp",
@@ -88,6 +95,23 @@ config :foundation,
         "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
         "PHX_SERVER=true",
         "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+      ],
+      monitoring: [
+        atom: %{
+          enable_restart: true,
+          warning_threshold_percent: 75,
+          restart_threshold_percent: 90
+        },
+        process: %{
+          enable_restart: true,
+          warning_threshold_percent: 75,
+          restart_threshold_percent: 90
+        },
+        port: %{
+          enable_restart: true,
+          warning_threshold_percent: 75,
+          restart_threshold_percent: 90
+        }
       ]
     }
   ]

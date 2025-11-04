@@ -27,39 +27,81 @@ defmodule DeployexWeb.Fixture.Status do
     |> Enum.map(&Map.merge(&1, attrs))
   end
 
-  def deployex(attrs \\ %{}) do
+  def config_by_app(current \\ %{config: %{}}, app_name \\ "test_app", attrs \\ %{}) do
+    curr = Map.get(current, :config, %{})
+
+    default = %{
+      last_ghosted_version: nil,
+      mode: :automatic,
+      manual_version: nil,
+      versions: []
+    }
+
+    config = Map.put(curr, app_name, Map.merge(default, attrs))
+
+    Map.put(current, :config, config)
+  end
+
+  def deployex do
+    config_by_app() |> deployex()
+  end
+
+  def deployex(attrs) do
     deployex = %Status{
       name: "deployex",
       sname: "deployex",
       version: "1.2.3",
       otp: :connected,
       tls: :supported,
-      supervisor: true,
       status: :running,
-      uptime: "short time"
+      uptime: "short time",
+      ports: [%{key: "PORT", base: 8765}]
     }
 
     Map.merge(deployex, attrs)
   end
 
-  def application(attrs \\ %{}) do
-    default_name = "test_app"
+  defp default_config do
+    %{
+      last_ghosted_version: nil,
+      mode: :automatic,
+      manual_version: nil,
+      versions: []
+    }
+  end
+
+  def application(attrs \\ %{}, config \\ default_config()) do
     default_suffix = "abc123"
+    name = Map.get(attrs, :name, "test_app")
+    language = Map.get(attrs, :language, "elixir")
+    children = Map.get(attrs, :children, [])
+    monitoring = Map.get(attrs, :monitoring, [])
+
+    [_sname, hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
+    sname = "#{name}-#{default_suffix}"
 
     application = %Status{
-      name: "default_name",
-      sname: "#{default_name}-#{default_suffix}",
+      name: "#{name}",
+      sname: sname,
+      node: String.to_atom("#{sname}@#{hostname}"),
       version: "4.5.6",
       otp: :connected,
       tls: :supported,
       last_deployment: :full_deployment,
-      supervisor: false,
       status: :running,
       crash_restart_count: 0,
-      uptime: "long time"
+      uptime: "long time",
+      ports: [%{key: "PORT", base: 5678}]
     }
 
-    Map.merge(application, attrs)
+    %Status{
+      name: name,
+      language: language,
+      status: :running,
+      config: config,
+      monitoring: monitoring,
+      children: children ++ [Map.merge(application, attrs)]
+    }
   end
 
   def list do

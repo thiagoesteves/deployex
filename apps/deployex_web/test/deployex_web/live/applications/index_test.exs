@@ -137,7 +137,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "Not Supported"
 
     new_state = [
-      FixtureStatus.deployex(%{tls: :not_supported}),
+      %{tls: :not_supported} |> FixtureStatus.config_by_app() |> FixtureStatus.deployex(),
       FixtureStatus.application()
     ]
 
@@ -249,5 +249,170 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     html = render(view)
     refute html =~ "Starting"
+  end
+
+  test "GET /applications with monitoring enabled", %{conn: conn} do
+    topic = "test-topic"
+
+    Deployer.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(),
+         FixtureStatus.application(%{
+           monitoring: add_metrics([:port, :process, :atom, :memory, :new])
+         })
+       ]}
+    end)
+    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "Listing Applications"
+    assert html =~ "Auto-restart enabled"
+
+    new_state = [
+      FixtureStatus.deployex(),
+      FixtureStatus.application(%{
+        monitoring: add_metrics([:port, :process, :atom, :memory, :new], false)
+      })
+    ]
+
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      topic,
+      {:monitoring_app_updated, Node.self(), new_state}
+    )
+
+    html = render(view)
+    assert html =~ "Auto-restart disabled"
+  end
+
+  %{
+    1 => %{metric: :port},
+    2 => %{metric: :process},
+    3 => %{metric: :atom},
+    4 => %{metric: :memory}
+  }
+  |> Enum.each(fn {element, %{metric: metric}} ->
+    test "#{element} - GET /applications with monitoring enabled and validating thresholds for metric: #{metric}",
+         %{
+           conn: conn
+         } do
+      topic = "test-topic"
+      metric = unquote(metric)
+
+      %{children: [application]} =
+        status_app = FixtureStatus.application(%{monitoring: add_metrics([metric])})
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [FixtureStatus.deployex(), status_app]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, html} = live(conn, ~p"/applications")
+
+      assert html =~ "Listing Applications"
+      assert html =~ "Warning: 10%"
+      assert html =~ "Restart: 20%"
+
+      # Normal
+      value = build_telemetry_data(8)
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
+      )
+
+      html = render(view)
+      assert html =~ "text-success\">\n          8%"
+
+      # Warning
+      value = build_telemetry_data(11)
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
+      )
+
+      html = render(view)
+      assert html =~ "text-warning\">\n          11%"
+
+      # Restart
+      value = build_telemetry_data(21)
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
+      )
+
+      html = render(view)
+      assert html =~ "text-error\">\n          21%"
+
+      # Send invalid node, state doesn't change
+      value = build_telemetry_data(8)
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, :invalid@host, "vm.#{metric}.total", value}
+      )
+
+      html = render(view)
+      assert html =~ "text-error\">\n          21%"
+
+      # Send invalid data, state doesn't change
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, :invalid@host, "vm.#{metric}.total", %{}}
+      )
+
+      html = render(view)
+      assert html =~ "text-error\">\n          21%"
+
+      # Normalize threshold
+      value = build_telemetry_data(8)
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
+      )
+
+      html = render(view)
+      assert html =~ "text-success\">\n          8%"
+    end
+  end)
+
+  defp add_metrics(metrics, enabled \\ true) do
+    Enum.map(metrics, fn metric ->
+      {metric,
+       %{
+         enable_restart: enabled,
+         warning_threshold_percent: 10,
+         restart_threshold_percent: 20
+       }}
+    end)
+  end
+
+  def build_telemetry_data(percentage, timestamp \\ :rand.uniform(2_000_000_000_000)) do
+    limit = 80_000
+    value = trunc(percentage / 100 * limit)
+
+    %ObserverWeb.Telemetry.Data{
+      timestamp: timestamp,
+      value: value / 1000,
+      unit: " kilobyte",
+      tags: %{},
+      measurements: %{
+        limit: limit,
+        total: value
+      }
+    }
   end
 end

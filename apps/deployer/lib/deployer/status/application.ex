@@ -53,17 +53,65 @@ defmodule Deployer.Status.Application do
   def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
-    sname_to_node = fn sname ->
-      %{node: node} = Catalog.node_info(sname)
-      node
-    end
-
-    monitoring_apps =
+    # Retrieve all nodes currently deployed
+    deployed_monitored_apps =
       Monitor.list()
-      |> Enum.sort()
-      |> Enum.map(&sname_to_node.(&1))
-      |> Enum.map(fn node ->
-        update_monitored_app_name(node)
+      |> Enum.reduce(%{}, fn sname, acc ->
+        %{name: name} = info = Catalog.node_info(sname)
+        current = acc[name] || []
+        Map.put(acc, name, current ++ [info])
+      end)
+
+    # credo:disable-for-lines:10
+    monitoring_apps =
+      Enum.map(Catalog.applications(), fn %{
+                                            name: name,
+                                            replica_ports: replica_ports,
+                                            language: language,
+                                            monitoring: monitoring
+                                          } ->
+        children =
+          Enum.reduce(deployed_monitored_apps[name] || [], [], fn app_info, acc ->
+            case update_monitored_app_name(app_info, monitoring) do
+              %{status: :running} = app_status ->
+                [app_status] ++ acc
+
+              app_status ->
+                acc ++ [app_status]
+            end
+          end)
+
+        config = Catalog.config(name)
+
+        last_ghosted_version =
+          case ghosted_version_list(name) do
+            [] -> "-/-"
+            list -> Enum.at(list, 0).version
+          end
+
+        versions =
+          name
+          |> history_version_list([])
+          |> Enum.map(& &1.version)
+          |> Enum.uniq()
+          |> Enum.take(@manual_version_max_list)
+
+        current_config = %{
+          last_ghosted_version: last_ghosted_version,
+          mode: config.mode,
+          manual_version: config.manual_version,
+          versions: versions
+        }
+
+        %Status{
+          name: name,
+          ports: replica_ports,
+          language: language,
+          status: :running,
+          config: current_config,
+          children: children,
+          monitoring: monitoring
+        }
       end)
 
     new_monitoring = [deployex] ++ monitoring_apps
@@ -194,33 +242,6 @@ defmodule Deployer.Status.Application do
     uptime = Common.uptime_to_string(Application.get_env(:foundation, :booted_at))
     {:ok, deployex_latest_release} = Github.latest_release()
 
-    metadata =
-      Enum.reduce(Catalog.applications(), %{}, fn %{name: name}, acc ->
-        config = Catalog.config(name)
-
-        last_ghosted_version =
-          case ghosted_version_list(name) do
-            [] -> "-/-"
-            list -> Enum.at(list, 0).version
-          end
-
-        versions =
-          name
-          |> history_version_list([])
-          |> Enum.map(& &1.version)
-          |> Enum.uniq()
-          |> Enum.take(@manual_version_max_list)
-
-        app_info = %{
-          last_ghosted_version: last_ghosted_version,
-          mode: config.mode,
-          manual_version: config.manual_version,
-          versions: versions
-        }
-
-        Map.put(acc, name, app_info)
-      end)
-
     %Status{
       name: "deployex",
       sname: "deployex",
@@ -234,17 +255,17 @@ defmodule Deployer.Status.Application do
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),
-      supervisor: true,
       status: :running,
       uptime: uptime,
       latest_release: deployex_latest_release,
-      metadata: metadata
+      monitoring: Application.get_env(:foundation, :monitoring)
     }
   end
 
-  defp update_monitored_app_name(node) do
-    %{name: name, sname: sname, language: language} = Catalog.node_info(node)
-
+  defp update_monitored_app_name(
+         %{name: name, sname: sname, language: language, node: node},
+         monitoring
+       ) do
     %{
       status: status,
       crash_restart_count: crash_restart_count,
@@ -273,12 +294,12 @@ defmodule Deployer.Status.Application do
       otp: check_otp_monitored_app.(node, status),
       tls: Common.check_mtls(),
       last_deployment: current_version_map(sname).deployment,
-      supervisor: false,
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
-      language: language
+      language: language,
+      monitoring: monitoring
     }
   end
 end

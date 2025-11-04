@@ -27,8 +27,8 @@ defmodule Sentinel.Watchdog do
 
   defstruct enable_restart: true,
             warning_log_flag: false,
-            warning_threshold_percent: 10,
-            restart_threshold_percent: 20
+            warning_threshold_percent: 75,
+            restart_threshold_percent: 90
 
   ### ==========================================================================
   ### GenServer Callbacks
@@ -60,7 +60,7 @@ defmodule Sentinel.Watchdog do
     monitored_nodes = Enum.map(Monitor.list(), &sname_to_node.(&1))
 
     # Initialize Ets data
-    reset_system_statistic()
+    reset_deployex_statistic()
     Enum.each(monitored_nodes, &reset_application_statistic/1)
 
     # Subscribe to receive System info
@@ -106,25 +106,25 @@ defmodule Sentinel.Watchdog do
       end)
     end
 
-    check_system_memory_limits = fn ->
+    check_deployex_memory_limits = fn ->
       # Check the application with highest usage in memory
       top_consumer_node = app_with_highest_usage(monitored_nodes)
 
-      config = get_system_memory_config()
+      config = get_deployex_memory_config()
 
-      case get_system_memory_data() do
+      case get_deployex_memory_data() do
         %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
           :ok
 
         %Data{current: count, limit: limit} ->
           current_percentage = trunc(count / limit * 100)
 
-          threshold_check_system_memory(top_consumer_node, current_percentage, config)
+          threshold_check_deployex_memory(top_consumer_node, current_percentage, config)
       end
     end
 
     # Check System Memory
-    check_system_memory_limits.()
+    check_deployex_memory_limits.()
 
     # Check Applications limits
     Enum.each(monitored_nodes, &check_monitored_app_limits.(&1))
@@ -143,7 +143,7 @@ defmodule Sentinel.Watchdog do
     if source_node == self_node do
       :ets.insert(
         @watchdog_data,
-        {{:system, :data, :memory},
+        {{:deployex, :data, :memory},
          %Data{current: memory_total - memory_free, limit: memory_total}}
       )
     end
@@ -261,13 +261,13 @@ defmodule Sentinel.Watchdog do
     config
   end
 
-  def get_system_memory_data do
-    [{_, data}] = :ets.lookup(@watchdog_data, {:system, :data, :memory})
+  def get_deployex_memory_data do
+    [{_, data}] = :ets.lookup(@watchdog_data, {:deployex, :data, :memory})
     data
   end
 
-  def get_system_memory_config do
-    [{_, config}] = :ets.lookup(@watchdog_data, {:system, :config, :memory})
+  def get_deployex_memory_config do
+    [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, :memory})
     config
   end
 
@@ -277,22 +277,20 @@ defmodule Sentinel.Watchdog do
 
   defp schedule_new_check(interval), do: Process.send_after(self(), :watchdog_check, interval)
 
-  defp load_system_config(type) do
-    Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:system_config][type]
+  defp load_deployex_config(type) do
+    deployex_monitoring = Application.fetch_env!(:foundation, :monitoring)[type]
+    Map.merge(%__MODULE__{}, deployex_monitoring || %{})
   end
 
   defp load_node_config(node, type) do
     %{name: name} = Catalog.node_info(node)
 
-    applications_config =
-      Application.fetch_env!(:sentinel, Sentinel.Watchdog)[:applications_config]
-
-    case applications_config[String.to_atom(name)] do
+    case Enum.find(Catalog.applications(), &(&1.name == name)) do
       nil ->
-        applications_config[:default]
+        %__MODULE__{}
 
-      app_monitoring_list ->
-        Keyword.get(app_monitoring_list, type) || applications_config[:default]
+      %{monitoring: monitoring} ->
+        Map.merge(%__MODULE__{}, monitoring[type] || %{})
     end
   end
 
@@ -311,16 +309,16 @@ defmodule Sentinel.Watchdog do
     target_node
   end
 
-  defp reset_system_statistic do
-    config = Map.merge(%__MODULE__{}, load_system_config(:memory))
+  defp reset_deployex_statistic do
+    config = load_deployex_config(:memory)
 
-    :ets.insert(@watchdog_data, {{:system, :config, :memory}, config})
-    :ets.insert(@watchdog_data, {{:system, :data, :memory}, %Data{}})
+    :ets.insert(@watchdog_data, {{:deployex, :config, :memory}, config})
+    :ets.insert(@watchdog_data, {{:deployex, :data, :memory}, %Data{}})
   end
 
   defp reset_application_statistic(node) do
     Enum.each(@monitored_app_limits, fn statistic ->
-      config = Map.merge(%__MODULE__{}, load_node_config(node, statistic))
+      config = load_node_config(node, statistic)
 
       :ets.insert(@watchdog_data, {{node, :config, statistic}, config})
       :ets.insert(@watchdog_data, {{node, :data, statistic}, %Data{}})
@@ -393,9 +391,9 @@ defmodule Sentinel.Watchdog do
 
   defp threshold_check_monitored_apps_limits(_node, _type, _current_percentage, _config), do: :ok
 
-  defp threshold_check_system_memory(nil, _current_percentage, _config), do: :ok
+  defp threshold_check_deployex_memory(nil, _current_percentage, _config), do: :ok
 
-  defp threshold_check_system_memory(
+  defp threshold_check_deployex_memory(
          node,
          current_percentage,
          %{
@@ -414,7 +412,7 @@ defmodule Sentinel.Watchdog do
     :ok
   end
 
-  defp threshold_check_system_memory(
+  defp threshold_check_deployex_memory(
          _node,
          current_percentage,
          %{
@@ -428,12 +426,15 @@ defmodule Sentinel.Watchdog do
     )
 
     # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{:system, :config, :memory}, %{config | warning_log_flag: true}})
+    :ets.insert(
+      @watchdog_data,
+      {{:deployex, :config, :memory}, %{config | warning_log_flag: true}}
+    )
 
     :ok
   end
 
-  defp threshold_check_system_memory(
+  defp threshold_check_deployex_memory(
          _node,
          current_percentage,
          %{
@@ -449,11 +450,11 @@ defmodule Sentinel.Watchdog do
     # Reset warning log flag, current value was normalized
     :ets.insert(
       @watchdog_data,
-      {{:system, :config, :memory}, %{config | warning_log_flag: false}}
+      {{:deployex, :config, :memory}, %{config | warning_log_flag: false}}
     )
 
     :ok
   end
 
-  defp threshold_check_system_memory(_node, _current, _config), do: :ok
+  defp threshold_check_deployex_memory(_node, _current, _config), do: :ok
 end
