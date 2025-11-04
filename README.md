@@ -10,12 +10,6 @@ DeployEx acts as a central deployment runner, gathering crucial deployment data 
 
 To learn more about DeployEx and the advantages of removing containerized abstractions from your deployment process, check out the talk [Bring back the power of Beam deployments with DeployEx](https://www.youtube.com/watch?v=MV4ROe6xmlI) at CODE BEAM America 2025.
 
-DeployEx is currently used by:
-
-- [Calori Web Server](https://github.com/thiagoesteves/calori) for **Elixir** applications and you can check it at [homepage](https://calori.com.br).
-- [Cochito Web Server](https://github.com/chouzar/cochito) for **Gleam** applications.
-- [Snake Game with Cowboy](https://github.com/thiagoesteves/erlgame) for **Erlang** applications.
-
 ![Deployment Architecture](guides/static/deployex.png)
 
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
