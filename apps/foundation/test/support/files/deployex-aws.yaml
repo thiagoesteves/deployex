@@ -21,10 +21,14 @@ applications:
       - key: PORT
         base: 4000
     env:
-      - key: MYPHOENIXAPP_PHX_SERVER
+      - key: STRING_VALUE
+        value: "string"
+      - key: BOOLEAN_TRUE
         value: true
-      - key: MYPHOENIXAPP_PHX_SERVER2
-        value: true
+      - key: BOOLEAN_FALSE
+        value: false
+      - key: NUMBER_VALUE
+        value: 123
   - name: "myumbrella"
     language: "erlang"
     replicas: 2

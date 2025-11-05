@@ -141,7 +141,6 @@ defmodule Foundation.Yaml do
   ## Examples
 
       # Initial load
-      iex> System.put_env("DEPLOYEX_CONFIG_YAML_PATH", "/path/to/config.yaml")
       iex> Foundation.Yaml.load()
       {:ok, %Foundation.Yaml{account_name: "prod", config_checksum: "abc123...", ...}}
 
