@@ -191,7 +191,7 @@ defmodule Foundation.Config.Watcher do
 
       computed_changes ->
         Logger.warning(
-          "ConfigWatcher: Detected changes in upgradable fields: \n #{inspect(computed_changes)}"
+          "ConfigWatcher: Detected #{computed_changes.changes_count} change(s) in upgradable fields: #{inspect(Map.keys(computed_changes.summary))}"
         )
 
         %{state | pending_config: yaml_upgradable, computed_changes: computed_changes}
