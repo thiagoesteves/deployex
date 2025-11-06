@@ -99,7 +99,11 @@ defmodule Foundation.Config.Watcher do
     Logger.info("ConfigWatcher: Applying pending configuration changes")
 
     # Notify subscribers about new changes
-    broadcast_config_change(state.computed_changes)
+    Phoenix.PubSub.broadcast(
+      Foundation.PubSub,
+      @pubsub_topic,
+      {:config_updated, state.computed_changes}
+    )
 
     new_state = %State{
       state
@@ -351,8 +355,4 @@ defmodule Foundation.Config.Watcher do
   end
 
   defp format_applications(apps), do: Enum.map(apps, & &1.name)
-
-  defp broadcast_config_change(new_config) do
-    Phoenix.PubSub.broadcast(Foundation.PubSub, @pubsub_topic, {:config_updated, new_config})
-  end
 end
