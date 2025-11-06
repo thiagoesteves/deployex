@@ -338,7 +338,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.deploy_rollback_timeout_ms == 45_000
           end)
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
       end
     end
 
@@ -415,7 +415,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.deploy_rollback_timeout_ms.old == 30_000
         assert changes.summary.deploy_rollback_timeout_ms.new == 90_000
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
       end
     end
 
@@ -459,7 +459,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.deploy_schedule_interval_ms.old == 60_000
         assert changes.summary.deploy_schedule_interval_ms.new == 90_000
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_schedule_interval_ms]"
       end
     end
 
@@ -503,7 +503,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.logs_retention_time_ms.old == 86_400_000
         assert changes.summary.logs_retention_time_ms.new == 90_400_000
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:logs_retention_time_ms]"
       end
     end
 
@@ -550,7 +550,8 @@ defmodule Foundation.Config.WatcherTest do
         assert Map.has_key?(changes.summary, :logs_retention_time_ms)
         assert Map.has_key?(changes.summary, :deploy_schedule_interval_ms)
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~
+                 "Detected 2 change(s) in upgradable fields: [:logs_retention_time_ms, :deploy_schedule_interval_ms]"
       end
     end
   end
@@ -595,7 +596,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.monitoring.old == []
         assert changes.summary.monitoring.new == @default_monitoring_config
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:monitoring]"
       end
     end
 
@@ -638,7 +639,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.monitoring.old == @default_monitoring_config
         assert changes.summary.monitoring.new == []
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:monitoring]"
       end
     end
 
@@ -693,7 +694,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.monitoring.old == @default_monitoring_config
         assert changes.summary.monitoring.new == new_monitoring
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:monitoring]"
       end
     end
 
@@ -778,7 +779,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.applications.old == []
         assert changes.summary.applications.new == ["my_new_app"]
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -823,7 +824,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.applications.old == ["my_new_app"]
         assert changes.summary.applications.new == []
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -873,7 +874,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.applications.details["my_new_app"].changes.language.old == "gleam"
         assert changes.summary.applications.details["my_new_app"].changes.language.new == "elixir"
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -923,7 +924,7 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.applications.details["my_new_app"].changes.replicas.old == 1
         assert changes.summary.applications.details["my_new_app"].changes.replicas.new == 5
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -979,7 +980,7 @@ defmodule Foundation.Config.WatcherTest do
                  "SECRET=500"
                ]
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -1040,7 +1041,7 @@ defmodule Foundation.Config.WatcherTest do
                  %{key: "PORT", base: 6000}
                ]
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
     end
 
@@ -1144,7 +1145,8 @@ defmodule Foundation.Config.WatcherTest do
         assert Map.has_key?(changes.summary, :deploy_schedule_interval_ms)
         assert Map.has_key?(changes.summary, :applications)
 
-        assert log =~ "ConfigWatcher: Detected changes in upgradable fields"
+        assert log =~
+                 "Detected 3 change(s) in upgradable fields: [:applications, :logs_retention_time_ms, :deploy_schedule_interval_ms]"
       end
     end
 
