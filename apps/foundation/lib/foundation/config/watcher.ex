@@ -29,7 +29,8 @@ defmodule Foundation.Config.Watcher do
   # 30 seconds
   @default_check_interval_ms 30_000
 
-  @pubsub_topic "deployex::config::changes"
+  @pubsub_topic_new "deployex::config::changes::new"
+  @pubsub_topic_apply "deployex::config::changes::apply"
 
   defmodule State do
     @moduledoc false
@@ -101,8 +102,8 @@ defmodule Foundation.Config.Watcher do
     # Notify subscribers about new changes
     Phoenix.PubSub.broadcast(
       Foundation.PubSub,
-      @pubsub_topic,
-      {:config_updated, state.computed_changes}
+      @pubsub_topic_apply,
+      {:watcher_config_apply, Node.self(), state.computed_changes}
     )
 
     new_state = %State{
@@ -147,11 +148,19 @@ defmodule Foundation.Config.Watcher do
   end
 
   @doc """
-  Subscribe to recveive notification to apply new changes
+  Subscribe to receive notification when new changes are available
+  """
+  @spec subscribe_new_config() :: :ok
+  def subscribe_new_config do
+    Phoenix.PubSub.subscribe(Foundation.PubSub, @pubsub_topic_new)
+  end
+
+  @doc """
+  Subscribe to receive notification to apply new changes
   """
   @spec subscribe_apply_new_config() :: :ok
   def subscribe_apply_new_config do
-    Phoenix.PubSub.subscribe(Foundation.PubSub, @pubsub_topic)
+    Phoenix.PubSub.subscribe(Foundation.PubSub, @pubsub_topic_apply)
   end
 
   ### ==========================================================================
@@ -177,8 +186,6 @@ defmodule Foundation.Config.Watcher do
   end
 
   defp handle_yaml_change(state, yaml_config) do
-    Logger.info("ConfigWatcher: YAML file changed (checksum: #{yaml_config.config_checksum})")
-
     # Extract upgradable fields from YAML
     yaml_upgradable = Upgradable.from_yaml(yaml_config)
 
@@ -187,12 +194,22 @@ defmodule Foundation.Config.Watcher do
       %{changes_count: 0} ->
         Logger.info("ConfigWatcher: No changes in upgradable fields")
 
-        %{state | current_config: yaml_upgradable}
+        %{state | current_config: yaml_upgradable, pending_config: nil, computed_changes: nil}
 
       computed_changes ->
-        Logger.warning(
-          "ConfigWatcher: Detected #{computed_changes.changes_count} change(s) in upgradable fields: #{inspect(Map.keys(computed_changes.summary))}"
-        )
+        # NOTE: Only Log and notify in the first event
+        if is_nil(state.pending_config) or
+             state.pending_config.config_checksum != yaml_upgradable.config_checksum do
+          Logger.warning(
+            "ConfigWatcher: Detected #{computed_changes.changes_count} change(s) in upgradable fields: #{inspect(Map.keys(computed_changes.summary))}"
+          )
+
+          Phoenix.PubSub.broadcast(
+            Foundation.PubSub,
+            @pubsub_topic_new,
+            {:watcher_config_new, Node.self(), computed_changes}
+          )
+        end
 
         %{state | pending_config: yaml_upgradable, computed_changes: computed_changes}
     end

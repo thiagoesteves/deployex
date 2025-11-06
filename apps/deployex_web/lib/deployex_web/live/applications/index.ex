@@ -8,10 +8,12 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Cache.UiSettings
+  alias DeployexWeb.Components.ConfigChangesModal
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Dashboard
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
+  alias Foundation.Config.Watcher
   alias Host.Terminal.Server
   alias ObserverWeb.Telemetry
 
@@ -32,7 +34,11 @@ defmodule DeployexWeb.ApplicationsLive do
               <li class="text-base-content font-medium">Applications</li>
             </ul>
           </div>
-          <Dashboard.content applications={@monitoring_apps_data} metrics={@metrics} />
+          <Dashboard.content
+            applications={@monitoring_apps_data}
+            metrics={@metrics}
+            pending_config_changes={@yaml_config.pending_config_changes}
+          />
         </div>
       </div>
     </Layouts.app>
@@ -88,6 +94,15 @@ defmodule DeployexWeb.ApplicationsLive do
         patch={~p"/applications"}
       />
     </.terminal_modal>
+
+    <%= if @yaml_config.show_modal do %>
+      <ConfigChangesModal.modal
+        id="yaml-config-changes-modal"
+        pending_changes={@yaml_config.pending_config_changes}
+        on_cancel="confirm-close-modal"
+        on_apply="config-changes-apply"
+      />
+    <% end %>
 
     <%= if @live_action in [:restart] do %>
       <Confirm.content id={"app-restart-modal-#{@selected_sname}"}>
@@ -224,9 +239,21 @@ defmodule DeployexWeb.ApplicationsLive do
     # Subscribe to receive System info
     Host.Memory.subscribe()
 
+    # Subscribe to receive new config changes event
+    Watcher.subscribe_new_config()
+
     {:ok, monitoring_apps_data} = Deployer.Status.monitoring()
 
     metrics = updated_metrics(monitoring_apps_data)
+
+    yaml_config =
+      case Watcher.get_computed_changes() do
+        {:ok, pending_config_changes} ->
+          Map.merge(default_yaml_config(), %{pending_config_changes: pending_config_changes})
+
+        _ ->
+          default_yaml_config()
+      end
 
     socket =
       socket
@@ -239,6 +266,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
+      |> assign(:yaml_config, yaml_config)
       |> assign(:current_path, "/applications")
 
     {:ok, socket}
@@ -257,6 +285,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
+     |> assign(:yaml_config, default_yaml_config())
      |> assign(:current_path, "/applications")}
   end
 
@@ -407,6 +436,20 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:terminal_process, process)}
   end
 
+  def handle_info(
+        {:watcher_config_new, source_node, computed_changes},
+        %{assigns: %{node: node, yaml_config: yaml_config}} = socket
+      )
+      when source_node == node do
+    {:noreply,
+     assign(socket, :yaml_config, %{yaml_config | pending_config_changes: computed_changes})}
+  end
+
+  def handle_info({:watcher_config_new, _source_node, _computed_changes}, socket) do
+    # NOTE: Ignore changes from other nodes
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_event("app-log-click", %{"name" => name, "sname" => sname, "std" => std}, socket) do
     std_path = fn
@@ -461,10 +504,31 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event("confirm-close-modal", _, socket) do
+  def handle_event(
+        "show-config-changes",
+        _any,
+        %{assigns: %{yaml_config: yaml_config}} = socket
+      ) do
+    {:noreply,
+     socket
+     |> assign(:yaml_config, %{yaml_config | show_modal: true})
+     |> push_patch(to: ~p"/applications")}
+  end
+
+  def handle_event("config-changes-apply", _any, socket) do
+    Watcher.apply_changes()
+
+    {:noreply,
+     socket
+     |> assign(:yaml_config, default_yaml_config())
+     |> push_patch(to: ~p"/applications")}
+  end
+
+  def handle_event("confirm-close-modal", _, %{assigns: %{yaml_config: yaml_config}} = socket) do
     {:noreply,
      socket
      |> assign(:mode_confirmation, nil)
+     |> assign(:yaml_config, %{yaml_config | show_modal: false})
      |> push_patch(to: ~p"/applications")}
   end
 
@@ -515,5 +579,12 @@ defmodule DeployexWeb.ApplicationsLive do
       end)
 
     %{current | monitored_nodes: new_monitored_nodes}
+  end
+
+  defp default_yaml_config do
+    %{
+      show_modal: false,
+      pending_config_changes: nil
+    }
   end
 end
