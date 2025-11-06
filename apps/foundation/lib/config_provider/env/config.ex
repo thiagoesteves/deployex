@@ -111,10 +111,11 @@ defmodule Foundation.ConfigProvider.Env.Config do
         # NOTE: Merge original config with the constructed config from yaml file
         Config.Reader.merge(config, updated_config)
 
-      {:error, reason} ->
-        Logger.warning(
-          "Error loading the YAML file, reason: #{inspect(reason)}, default configuration will be applied"
-        )
+      {:error, :not_found} ->
+        Logger.warning("YAML file not found, default configuration will be applied")
+
+      {:error, _reason} ->
+        Logger.error("Error loading the YAML file, default configuration will be applied")
 
         config
     end

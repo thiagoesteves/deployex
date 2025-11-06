@@ -33,13 +33,15 @@ defmodule Foundation.MixProject do
       {:finch, "~> 0.13"},
       {:plug_crypto, "~> 2.1.0"},
       {:bcrypt_elixir, "~> 3.0"},
+      {:phoenix_pubsub, "~> 2.0"},
       # Used by Config Provider only
       {:configparser_ex, "~> 4.0"},
       {:ex_aws, "~> 2.1"},
       {:goth, "~> 1.4"},
       {:yaml_elixir, "~> 2.0"},
       # Static Analysis
-      {:mox, "~> 1.0", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      {:mock, "~> 0.3.0", only: :test}
     ]
   end
 end

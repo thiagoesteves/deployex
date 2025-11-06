@@ -9,8 +9,6 @@ defmodule Foundation.Yaml do
   `DEPLOYEX_CONFIG_YAML_PATH` environment variable.
   """
 
-  require Logger
-
   defmodule Monitoring do
     @moduledoc false
 
@@ -60,49 +58,47 @@ defmodule Foundation.Yaml do
           }
   end
 
-  defstruct [
-    :account_name,
-    :hostname,
-    :port,
-    :release_adapter,
-    :release_bucket,
-    :secrets_adapter,
-    :secrets_path,
-    :google_credentials,
-    :aws_region,
-    :version,
-    :otp_version,
-    :otp_tls_certificates,
-    :os_target,
-    :deploy_rollback_timeout_ms,
-    :deploy_schedule_interval_ms,
-    :metrics_retention_time_ms,
-    :logs_retention_time_ms,
-    :monitoring,
-    :applications,
-    :config_checksum
-  ]
+  defstruct account_name: nil,
+            hostname: nil,
+            port: nil,
+            release_adapter: nil,
+            release_bucket: nil,
+            secrets_adapter: nil,
+            secrets_path: nil,
+            google_credentials: nil,
+            aws_region: nil,
+            version: nil,
+            otp_version: nil,
+            otp_tls_certificates: nil,
+            os_target: nil,
+            deploy_rollback_timeout_ms: nil,
+            deploy_schedule_interval_ms: nil,
+            metrics_retention_time_ms: nil,
+            logs_retention_time_ms: nil,
+            monitoring: [],
+            applications: [],
+            config_checksum: nil
 
   @type t :: %__MODULE__{
-          account_name: String.t(),
-          hostname: String.t(),
-          port: non_neg_integer(),
-          release_adapter: atom(),
-          release_bucket: String.t(),
-          secrets_adapter: atom(),
+          account_name: String.t() | nil,
+          hostname: String.t() | nil,
+          port: non_neg_integer() | nil,
+          release_adapter: atom() | nil,
+          release_bucket: String.t() | nil,
+          secrets_adapter: atom() | nil,
           secrets_path: String.t() | nil,
           google_credentials: String.t() | nil,
           aws_region: String.t() | nil,
-          version: String.t(),
-          otp_version: non_neg_integer(),
+          version: String.t() | nil,
+          otp_version: non_neg_integer() | nil,
           otp_tls_certificates: String.t() | nil,
-          os_target: String.t(),
+          os_target: String.t() | nil,
           deploy_rollback_timeout_ms: non_neg_integer() | nil,
           deploy_schedule_interval_ms: non_neg_integer() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
-          monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}],
-          applications: [Foundation.Yaml.Application.t()],
+          monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
+          applications: [Foundation.Yaml.Application.t()] | [],
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -135,20 +131,19 @@ defmodule Foundation.Yaml do
   ## Returns
 
     * `{:ok, %Foundation.Yaml{}}` - Successfully loaded and parsed configuration
-    * `{:ok, :unchanged}` - Configuration file hasn't changed (when existing_config provided)
+    * `{:error, :unchanged}` - Configuration file hasn't changed (when existing_config provided)
     * `{:error, reason}` - Failed to read or parse the YAML file
 
   ## Examples
 
       # Initial load
-      iex> System.put_env("DEPLOYEX_CONFIG_YAML_PATH", "/path/to/config.yaml")
       iex> Foundation.Yaml.load()
       {:ok, %Foundation.Yaml{account_name: "prod", config_checksum: "abc123...", ...}}
 
       # Reload with checksum check
       iex> {:ok, config} = Foundation.Yaml.load()
       iex> Foundation.Yaml.load(config)
-      {:ok, :unchanged}
+      {:error, :unchanged}
 
       # After file changes
       iex> Foundation.Yaml.load(config)
@@ -159,35 +154,29 @@ defmodule Foundation.Yaml do
     * `DEPLOYEX_CONFIG_YAML_PATH` - Required. Full path to the Deployex YAML configuration file.
 
   """
-  @spec load(t() | nil) :: {:ok, t()} | {:ok, :unchanged} | {:error, any()}
+  @spec load(t() | nil) :: {:ok, t()} | {:error, any()}
   def load(existing_config \\ nil) do
     # NOTE: The configuration path is read from an environment variable instead of
     # application config because this function must be callable during the config
     # provider initialization phase, before Application.get_env/2 is available.
     yaml_path = System.get_env("DEPLOYEX_CONFIG_YAML_PATH")
 
-    Logger.info("Reading deployex configuration file at: #{yaml_path}")
+    if yaml_path do
+      # NOTE: Required because it runs on configuration provider
+      {:ok, _} = Elixir.Application.ensure_all_started(:yaml_elixir)
 
-    {:ok, _} = Elixir.Application.ensure_all_started(:yaml_elixir)
-
-    with {:ok, content} <- File.read(yaml_path),
-         needs_reload? <- new_config?(existing_config, content),
-         {:ok, config} <- maybe_parse(needs_reload?, content) do
-      {:ok, config}
+      with {:ok, content} <- File.read(yaml_path),
+           needs_reload? <- new_config?(existing_config, content) do
+        maybe_parse(needs_reload?, content)
+      end
     else
-      {:error, reason} ->
-        Logger.error(
-          "Error while trying to read and decode at #{yaml_path} reason: #{inspect(reason)}"
-        )
-
-        {:error, reason}
+      {:error, :not_found}
     end
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  @spec new_config?(t() | nil, binary()) :: boolean()
   defp new_config?(nil, _content), do: true
 
   defp new_config?(%__MODULE__{config_checksum: old_checksum}, content) do
@@ -196,8 +185,7 @@ defmodule Foundation.Yaml do
     if old_checksum == new_checksum, do: false, else: true
   end
 
-  @spec maybe_parse(boolean(), binary()) :: {:ok, t() | :unchanged} | {:error, any()}
-  defp maybe_parse(false, _content), do: {:ok, :unchanged}
+  defp maybe_parse(false, _content), do: {:error, :unchanged}
 
   defp maybe_parse(true, content) do
     checksum = compute_checksum(content)
@@ -212,12 +200,10 @@ defmodule Foundation.Yaml do
     end
   end
 
-  @spec compute_checksum(binary()) :: String.t()
   defp compute_checksum(content) do
     :crypto.hash(:sha256, content) |> Base.encode16(case: :lower)
   end
 
-  @spec parse(map(), String.t()) :: t()
   defp parse(data, checksum) do
     %__MODULE__{
       account_name: data["account_name"],
@@ -243,24 +229,20 @@ defmodule Foundation.Yaml do
     }
   end
 
-  @spec secrets_adapter(String.t() | nil) :: atom()
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp
   defp secrets_adapter(adapter), do: raise("Secret #{adapter} not supported")
 
-  @spec release_adapter(String.t() | nil) :: atom()
   defp release_adapter("s3"), do: Deployer.Release.S3
   defp release_adapter("gcp-storage"), do: Deployer.Release.GcpStorage
   defp release_adapter(adapter), do: raise("Release #{adapter} not supported")
 
-  @spec parse_monitoring_list(list(map()) | nil) :: [Foundation.Yaml.Monitoring.t()]
   defp parse_monitoring_list(nil), do: []
 
   defp parse_monitoring_list(monitoring_list) do
     Enum.map(monitoring_list, &parse_monitoring/1)
   end
 
-  @spec parse_monitoring(map()) :: {atom(), Foundation.Yaml.Monitoring.t()}
   defp parse_monitoring(data) do
     {data["type"] |> String.to_atom(),
      %Foundation.Yaml.Monitoring{
@@ -270,14 +252,12 @@ defmodule Foundation.Yaml do
      }}
   end
 
-  @spec parse_applications(list(map()) | nil) :: [Foundation.Yaml.Application.t()]
   defp parse_applications(nil), do: []
 
   defp parse_applications(apps) do
     Enum.map(apps, &parse_application/1)
   end
 
-  @spec parse_application(map()) :: Foundation.Yaml.Application.t()
   defp parse_application(data) do
     %Foundation.Yaml.Application{
       name: data["name"],
@@ -289,7 +269,6 @@ defmodule Foundation.Yaml do
     }
   end
 
-  @spec parse_ports(list(map()) | nil) :: [Foundation.Yaml.Ports.t()]
   defp parse_ports(nil), do: []
 
   defp parse_ports(ports) do
@@ -301,7 +280,6 @@ defmodule Foundation.Yaml do
     end)
   end
 
-  @spec parse_env(list(map()) | nil) :: [String.t()]
   defp parse_env(nil), do: []
 
   defp parse_env(env_list) do

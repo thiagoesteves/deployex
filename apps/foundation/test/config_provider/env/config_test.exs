@@ -6,7 +6,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   alias Foundation.ConfigProvider.Env.Config
 
-  @file_paths "./test/support/files/"
+  @file_paths "./test/support/files"
 
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
@@ -50,7 +50,12 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:applications,
                    [
                      %{
-                       env: ["MYPHOENIXAPP_PHX_SERVER=true", "MYPHOENIXAPP_PHX_SERVER2=true"],
+                       env: [
+                         "STRING_VALUE=string",
+                         "BOOLEAN_TRUE=true",
+                         "BOOLEAN_FALSE=false",
+                         "NUMBER_VALUE=123"
+                       ],
                        name: "myphoenixapp",
                        monitoring: [],
                        replicas: 3,
@@ -67,7 +72,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "00e77a90507d142dc2ccda070e1d5860a1a47b69a1e178318c8dafe0fe208a2a"},
+                   "d165d4ff6518ef4f06f8d0fe69f940b1c3156c8260dedff28b16792789c63a8b"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:deploy_rollback_timeout_ms, 600_000},
@@ -515,7 +520,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
       assert capture_log(fn ->
                assert config == Config.load(config, [])
              end) =~
-               "Error loading the YAML file, reason: :eisdir, default configuration will be applied"
+               "Error loading the YAML file, default configuration will be applied"
     end
   end
 end
