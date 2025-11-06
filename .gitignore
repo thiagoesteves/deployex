@@ -32,7 +32,7 @@ erl_crash.dump
 *.env
 
 # Ignore local .yaml files
-*.yaml
+deployex.yaml
 
 # Ignore PLT files
 /priv/plts/*.plt
