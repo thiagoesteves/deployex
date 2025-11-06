@@ -6,7 +6,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   alias Foundation.ConfigProvider.Env.Config
 
-  @file_paths "./test/support/files/"
+  @file_paths "./test/support/files"
 
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
@@ -520,7 +520,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
       assert capture_log(fn ->
                assert config == Config.load(config, [])
              end) =~
-               "Error while trying to read and decode at . reason: :eisdir"
+               "Error loading the YAML file, default configuration will be applied"
     end
   end
 end

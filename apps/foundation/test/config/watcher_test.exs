@@ -96,7 +96,7 @@ defmodule Foundation.Config.WatcherTest do
          [
            load: fn %Yaml{config_checksum: "current_checksum"} ->
              send(test_pid, {:handle_ref_event, ref})
-             {:ok, :unchanged}
+             {:error, :unchanged}
            end
          ]}
       ]) do
@@ -190,16 +190,20 @@ defmodule Foundation.Config.WatcherTest do
           config_checksum: "new_checksum"
         }
 
+        computed_changes = %Changes{}
+
         # Subscribe to config changes
         Watcher.subscribe_apply_new_config()
 
         # Set pending config
-        :sys.replace_state(pid, fn state -> %{state | pending_config: new_config} end)
+        :sys.replace_state(pid, fn state ->
+          %{state | pending_config: new_config, computed_changes: computed_changes}
+        end)
 
         assert :ok = Watcher.apply_changes(pid)
 
         # Verify broadcast received
-        assert_receive {:config_updated, ^new_config}, 1000
+        assert_receive {:config_updated, ^computed_changes}, 1000
       end
     end
   end
@@ -230,7 +234,7 @@ defmodule Foundation.Config.WatcherTest do
          [
            load: fn %Yaml{config_checksum: "current_checksum"} ->
              send(test_pid, {:handle_ref_event, ref})
-             {:ok, :unchanged}
+             {:error, :unchanged}
            end
          ]}
       ]) do
@@ -255,7 +259,7 @@ defmodule Foundation.Config.WatcherTest do
          [
            load: fn %Yaml{config_checksum: "current_checksum"} ->
              send(test_pid, {:handle_ref_event, ref})
-             {:ok, :not_found}
+             {:error, :not_found}
            end
          ]}
       ]) do

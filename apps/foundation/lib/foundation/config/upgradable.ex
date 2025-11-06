@@ -11,21 +11,19 @@ defmodule Foundation.Config.Upgradable do
 
   alias Foundation.Yaml
 
-  defstruct [
-    :deploy_rollback_timeout_ms,
-    :deploy_schedule_interval_ms,
-    :logs_retention_time_ms,
-    :monitoring,
-    :applications,
-    :config_checksum
-  ]
+  defstruct deploy_rollback_timeout_ms: nil,
+            deploy_schedule_interval_ms: nil,
+            logs_retention_time_ms: nil,
+            monitoring: [],
+            applications: [],
+            config_checksum: nil
 
   @type t :: %__MODULE__{
           deploy_rollback_timeout_ms: non_neg_integer() | nil,
           deploy_schedule_interval_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
-          monitoring: [{atom(), Yaml.Monitoring.t()}],
-          applications: [Yaml.Application.t()],
+          monitoring: [{atom(), Yaml.Monitoring.t()}] | [],
+          applications: [Yaml.Application.t()] | [],
           config_checksum: String.t() | nil
         }
 

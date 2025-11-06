@@ -8,7 +8,7 @@ defmodule Foundation.YamlTest do
   alias Foundation.Yaml.Monitoring
   alias Foundation.Yaml.Ports
 
-  @file_paths "./test/support/files/"
+  @file_paths "./test/support/files"
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
   @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
@@ -48,7 +48,7 @@ defmodule Foundation.YamlTest do
         {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_path end]}
       ]) do
         {:ok, config} = Yaml.load()
-        {:ok, :unchanged} = Yaml.load(config)
+        {:error, :unchanged} = Yaml.load(config)
         {:ok, ^config} = Yaml.load(%{config | config_checksum: "fsdfsdf"})
       end
     end
