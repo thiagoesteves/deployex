@@ -9,7 +9,7 @@
  * None
 
 ### Bug fixes
- * None
+ * [`PULL-174`](https://github.com/thiagoesteves/deployex/pull/174) Fixing truncated logs for Live and History logs dashboard
 
 ### Enhancements
  * [`ISSUE-167`](https://github.com/thiagoesteves/deployex/issues/167) Modify Deployer app to re-load the yaml file for every deploy
