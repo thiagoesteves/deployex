@@ -247,7 +247,7 @@ defmodule DeployexWeb.ApplicationsLive do
     metrics = updated_metrics(monitoring_apps_data)
 
     yaml_config =
-      case Watcher.get_computed_changes() do
+      case Watcher.get_pending_changes() do
         {:ok, pending_config_changes} ->
           Map.merge(default_yaml_config(), %{pending_config_changes: pending_config_changes})
 
@@ -437,15 +437,15 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_info(
-        {:watcher_config_new, source_node, computed_changes},
+        {:watcher_config_new, source_node, pending_changes},
         %{assigns: %{node: node, yaml_config: yaml_config}} = socket
       )
       when source_node == node do
     {:noreply,
-     assign(socket, :yaml_config, %{yaml_config | pending_config_changes: computed_changes})}
+     assign(socket, :yaml_config, %{yaml_config | pending_config_changes: pending_changes})}
   end
 
-  def handle_info({:watcher_config_new, _source_node, _computed_changes}, socket) do
+  def handle_info({:watcher_config_new, _source_node, _pending_changes}, socket) do
     # NOTE: Ignore changes from other nodes
     {:noreply, socket}
   end

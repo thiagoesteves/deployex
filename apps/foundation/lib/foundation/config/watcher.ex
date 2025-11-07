@@ -37,14 +37,14 @@ defmodule Foundation.Config.Watcher do
     defstruct [
       :current_config,
       :pending_config,
-      :computed_changes,
+      :pending_changes,
       :check_interval_ms
     ]
 
     @type t :: %__MODULE__{
             current_config: Upgradable.t(),
             pending_config: Upgradable.t() | nil,
-            computed_changes: Changes.t() | nil,
+            pending_changes: Changes.t() | nil,
             check_interval_ms: non_neg_integer()
           }
   end
@@ -74,7 +74,7 @@ defmodule Foundation.Config.Watcher do
     state = %State{
       current_config: current_config,
       pending_config: nil,
-      computed_changes: nil,
+      pending_changes: nil,
       check_interval_ms: check_interval_ms
     }
 
@@ -84,12 +84,12 @@ defmodule Foundation.Config.Watcher do
   end
 
   @impl true
-  def handle_call(:get_computed_changes, _from, %State{pending_config: nil} = state) do
+  def handle_call(:get_pending_changes, _from, %State{pending_config: nil} = state) do
     {:reply, {:error, :no_pending_changes}, state}
   end
 
-  def handle_call(:get_computed_changes, _from, %State{pending_config: _config} = state) do
-    {:reply, {:ok, state.computed_changes}, state}
+  def handle_call(:get_pending_changes, _from, %State{pending_config: _config} = state) do
+    {:reply, {:ok, state.pending_changes}, state}
   end
 
   def handle_call(:apply_changes, _from, %State{pending_config: nil} = state) do
@@ -103,14 +103,14 @@ defmodule Foundation.Config.Watcher do
     Phoenix.PubSub.broadcast(
       Foundation.PubSub,
       @pubsub_topic_apply,
-      {:watcher_config_apply, Node.self(), state.computed_changes}
+      {:watcher_config_apply, Node.self(), state.pending_changes}
     )
 
     new_state = %State{
       state
       | current_config: state.pending_config,
         pending_config: nil,
-        computed_changes: nil
+        pending_changes: nil
     }
 
     {:reply, :ok, new_state}
@@ -133,10 +133,10 @@ defmodule Foundation.Config.Watcher do
   Returns a map with detailed information about what changed between
   the current and pending configurations.
   """
-  @spec get_computed_changes(GenServer.server()) ::
+  @spec get_pending_changes(GenServer.server()) ::
           {:ok, Changes.t()} | {:error, :no_pending_changes}
-  def get_computed_changes(server \\ __MODULE__) do
-    GenServer.call(server, :get_computed_changes)
+  def get_pending_changes(server \\ __MODULE__) do
+    GenServer.call(server, :get_pending_changes)
   end
 
   @doc """
@@ -194,24 +194,24 @@ defmodule Foundation.Config.Watcher do
       %{changes_count: 0} ->
         Logger.info("ConfigWatcher: No changes in upgradable fields")
 
-        %{state | current_config: yaml_upgradable, pending_config: nil, computed_changes: nil}
+        %{state | current_config: yaml_upgradable, pending_config: nil, pending_changes: nil}
 
-      computed_changes ->
+      pending_changes ->
         # NOTE: Only Log and notify in the first event
         if is_nil(state.pending_config) or
              state.pending_config.config_checksum != yaml_upgradable.config_checksum do
           Logger.warning(
-            "ConfigWatcher: Detected #{computed_changes.changes_count} change(s) in upgradable fields: #{inspect(Map.keys(computed_changes.summary))}"
+            "ConfigWatcher: Detected #{pending_changes.changes_count} change(s) in upgradable fields: #{inspect(Map.keys(pending_changes.summary))}"
           )
 
           Phoenix.PubSub.broadcast(
             Foundation.PubSub,
             @pubsub_topic_new,
-            {:watcher_config_new, Node.self(), computed_changes}
+            {:watcher_config_new, Node.self(), pending_changes}
           )
         end
 
-        %{state | pending_config: yaml_upgradable, computed_changes: computed_changes}
+        %{state | pending_config: yaml_upgradable, pending_changes: pending_changes}
     end
   end
 
