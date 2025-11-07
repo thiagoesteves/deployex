@@ -551,6 +551,54 @@ defmodule DeployexWeb.CoreComponents do
     """
   end
 
+  attr :id, :string, required: true
+  attr :message, :string, required: true
+
+  def copy_to_clipboard(assigns) do
+    ~H"""
+    <button
+      class="text-gray-500"
+      phx-click={JS.dispatch("phx:copy_to_clipboard", detail: %{text: @message, id: @id})}
+    >
+      <div class="flex gap-1 items-center object-center">
+        <div id={"c2c-default-message-#{@id}"}>
+          <div class="flex items-center gap-0.5">
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              >
+              </path>
+            </svg>
+          </div>
+        </div>
+        <div id={"c2c-success-message-#{@id}"} hidden>
+          <div class="flex items-center gap-0.5">
+            <svg
+              class="w-4 h-4 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+              </path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </button>
+    """
+  end
+
   @doc ~S"""
   Renders a modern history logs table with DaisyUI styling and timestamp.
   """
@@ -649,10 +697,25 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td>
-              <div class="font-mono text-xs badge badge-neutral">{log_message.type}</div>
+              <div class={["font-mono text-xs badge", log_type_badge(log_message.type)]}>
+                {log_message.type}
+              </div>
             </td>
-            <td class="font-mono text-xs text-base-content/90 max-w-0 truncate">
-              {log_message.content}
+            <td class="font-mono text-xs text-base-content/90 max-w-md">
+              <details>
+                <summary class="cursor-pointer truncate">
+                  {log_message.content}
+                </summary>
+                <div class="mt-5 break-words">
+                  <div class="flex gap-2">
+                    {log_message.content}
+                    <.copy_to_clipboard
+                      id={"c2c-modern-logs-table-#{Foundation.Common.uuid4()}"}
+                      message={log_message.content}
+                    />
+                  </div>
+                </div>
+              </details>
             </td>
           </tr>
         </tbody>
@@ -738,22 +801,37 @@ defmodule DeployexWeb.CoreComponents do
           phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
         >
           <tr
-            :for={row <- @rows}
+            :for={{_id, log_message} = row <- @rows}
             id={@row_id && @row_id.(row)}
             class="hover:bg-base-200/50 transition-colors duration-150"
           >
             <td class="font-mono text-xs">
               <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full" style={"background-color: #{elem(row, 1).color};"}>
+                <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
                 </div>
-                <span class="badge badge-neutral truncate">{elem(row, 1).service}</span>
+                <span class="badge badge-neutral truncate">{log_message.service}</span>
               </div>
             </td>
             <td>
-              <div class="font-mono text-xs badge badge-neutral">{elem(row, 1).type}</div>
+              <div class={["font-mono text-xs badge", log_type_badge(log_message.type)]}>
+                {log_message.type}
+              </div>
             </td>
-            <td class="font-mono text-xs text-base-content/90 max-w-0 truncate">
-              {elem(row, 1).content}
+            <td class="font-mono text-xs text-base-content/90 max-w-md">
+              <details>
+                <summary class="cursor-pointer truncate">
+                  {log_message.content}
+                </summary>
+                <div class="mt-5 break-words">
+                  <div class="flex gap-2">
+                    {log_message.content}
+                    <.copy_to_clipboard
+                      id={"c2c-modern-logs-table-#{Foundation.Common.uuid4()}"}
+                      message={log_message.content}
+                    />
+                  </div>
+                </div>
+              </details>
             </td>
           </tr>
         </tbody>
@@ -761,6 +839,9 @@ defmodule DeployexWeb.CoreComponents do
     </div>
     """
   end
+
+  defp log_type_badge("stdout"), do: "badge-warning"
+  defp log_type_badge("stderr"), do: "badge-error"
 
   @doc ~S"""
   Renders a table with generic log styling.

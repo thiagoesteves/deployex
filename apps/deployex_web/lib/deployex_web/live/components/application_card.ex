@@ -4,7 +4,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
 
   use Phoenix.Component
   alias Deployer.Github
-  alias DeployexWeb.Components.CopyToClipboard
   alias DeployexWeb.Components.Monitoring
   alias DeployexWeb.Helper
 
@@ -68,7 +67,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                   <div class="text-xs font-medium text-base-content/60">Node</div>
                 </div>
                 <div class="flex text-sm font-mono text-base-content/90 truncate gap-2">
-                  <CopyToClipboard.content
+                  <.copy_to_clipboard
                     id={"c2c-node-messages-#{@application.sname}"}
                     message={@application.node}
                   />
