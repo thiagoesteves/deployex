@@ -357,7 +357,7 @@ defmodule DeployexWeb.Components.DeployexCard do
     ~H"""
     <button
       :if={@pending_config_changes}
-      id={Helper.normalize_id("config-changes-#{@sname}")}
+      id={Helper.normalize_id("#{@sname}-config-changes")}
       phx-click="show-config-changes"
       phx-value-sname={@sname}
       type="button"

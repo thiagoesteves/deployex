@@ -97,7 +97,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <%= if @yaml_config.show_modal do %>
       <ConfigChangesModal.modal
-        id="yaml-config-changes-modal"
+        id="yaml"
         pending_changes={@yaml_config.pending_config_changes}
         on_cancel="confirm-close-modal"
         on_apply="config-changes-apply"

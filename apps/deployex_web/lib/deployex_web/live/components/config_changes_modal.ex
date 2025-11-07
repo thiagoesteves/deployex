@@ -5,6 +5,7 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   use DeployexWeb, :html
   use Phoenix.Component
 
+  alias DeployexWeb.Helper
   alias Foundation.Config.Changes
 
   attr :id, :string, required: true
@@ -15,16 +16,12 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   def modal(assigns) do
     ~H"""
     <div
-      id={@id}
+      id={"#{@id}-config-changes-modal"}
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      phx-click={@on_cancel}
       phx-window-keydown={@on_cancel}
       phx-key="escape"
     >
-      <div
-        class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
-        phx-click="cancel-propagation"
-      >
+      <div class="bg-base-100 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <!-- Header -->
         <div class="bg-warning/10 border-b border-warning/20 p-6">
           <div class="flex items-center justify-between">
@@ -61,6 +58,7 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
             </div>
             <button
               phx-click={@on_cancel}
+              id={Helper.normalize_id("#{@id}-config-changes-escape")}
               type="button"
               class="btn btn-sm btn-circle btn-ghost hover:bg-warning/20"
             >
@@ -99,11 +97,17 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
             <span>Review changes carefully before applying</span>
           </div>
           <div class="flex gap-3">
-            <button phx-click={@on_cancel} type="button" class="btn btn-ghost hover:bg-base-300">
+            <button
+              phx-click={@on_cancel}
+              id={Helper.normalize_id("#{@id}-config-changes-cancel")}
+              type="button"
+              class="btn btn-ghost hover:bg-base-300"
+            >
               Cancel
             </button>
             <button
               phx-click={@on_apply}
+              id={Helper.normalize_id("#{@id}-config-changes-apply")}
               type="button"
               class="btn bg-warning text-warning-content hover:bg-warning/80 gap-2"
             >
