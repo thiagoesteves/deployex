@@ -917,21 +917,10 @@ defmodule DeployexWeb.CoreComponents do
                 phx-click={@row_click && @row_click.(row)}
                 class={["relative p-0", @row_click && "hover:cursor-pointer"]}
               >
-                <div class="block px-1 py-1 pr-6 text-xs font-mono ">
+                <div class="block px-1 py-1 pr-6 text-xs font-mono max-20">
                   <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
                   <span class={["relative", i == 0 && "whitespace-nowrap font-semibold text-zinc-900"]}>
                     {render_slot(col, @row_item.(row))}
-                  </span>
-                </div>
-              </td>
-              <td :if={@action != []} class="relative w-14 p-0">
-                <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
-                  <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-zinc-50 sm:rounded-r-xl" />
-                  <span
-                    :for={action <- @action}
-                    class="relative ml-4 font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
-                  >
-                    {render_slot(action, @row_item.(row))}
                   </span>
                 </div>
               </td>
