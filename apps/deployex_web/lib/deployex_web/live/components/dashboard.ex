@@ -8,6 +8,7 @@ defmodule DeployexWeb.Components.Dashboard do
 
   attr :applications, :list, required: true
   attr :metrics, :map, required: true
+  attr :pending_config_changes, :map, default: nil
 
   def content(assigns) do
     {deployex, monitored_apps} =
@@ -31,6 +32,7 @@ defmodule DeployexWeb.Components.Dashboard do
         :if={@deployex}
         deployex={@deployex}
         metrics={@metrics}
+        pending_config_changes={@pending_config_changes}
         restart_path={~p"/applications/deployex/deployex/restart"}
       />
 

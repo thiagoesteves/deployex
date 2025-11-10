@@ -111,12 +111,12 @@ defmodule Foundation.Config.WatcherTest do
     end
   end
 
-  describe "get_computed_changes/1" do
+  describe "get_pending_changes/1" do
     test "returns error when no pending changes" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_no_pending)
 
-        assert {:error, :no_pending_changes} = Watcher.get_computed_changes(pid)
+        assert {:error, :no_pending_changes} = Watcher.get_pending_changes(pid)
       end
     end
 
@@ -134,10 +134,10 @@ defmodule Foundation.Config.WatcherTest do
         }
 
         :sys.replace_state(pid, fn state ->
-          %{state | pending_config: new_config, computed_changes: %Changes{}}
+          %{state | pending_config: new_config, pending_changes: %Changes{}}
         end)
 
-        assert {:ok, %Changes{}} = Watcher.get_computed_changes(pid)
+        assert {:ok, %Changes{}} = Watcher.get_pending_changes(pid)
       end
     end
   end
@@ -177,9 +177,51 @@ defmodule Foundation.Config.WatcherTest do
       end
     end
 
+    test "broadcasts config change when detected" do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> @default_upgradable end,
+           from_yaml: fn _config ->
+             # Force new config
+             Map.merge(@default_upgradable, %{
+               config_checksum: "new_checksum",
+               deploy_rollback_timeout_ms: 45_000
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        node = Node.self()
+
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_new_config, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            # Verify broadcast received
+            assert_receive {:watcher_config_new, ^node, _pending_changes}, 1000
+          end)
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
+      end
+    end
+
     test "broadcasts config change when applying" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_broadcast)
+        node = Node.self()
 
         new_config = %Upgradable{
           deploy_rollback_timeout_ms: 45_000,
@@ -190,36 +232,51 @@ defmodule Foundation.Config.WatcherTest do
           config_checksum: "new_checksum"
         }
 
-        computed_changes = %Changes{}
+        pending_changes = %Changes{}
 
         # Subscribe to config changes
         Watcher.subscribe_apply_new_config()
 
         # Set pending config
         :sys.replace_state(pid, fn state ->
-          %{state | pending_config: new_config, computed_changes: computed_changes}
+          %{state | pending_config: new_config, pending_changes: pending_changes}
         end)
 
         assert :ok = Watcher.apply_changes(pid)
 
         # Verify broadcast received
-        assert_receive {:config_updated, ^computed_changes}, 1000
+        assert_receive {:watcher_config_apply, ^node, ^pending_changes}, 1000
       end
     end
   end
 
-  describe "subscribe_apply_new_config/0" do
-    test "subscribes to config change notifications" do
-      assert :ok = Watcher.subscribe_apply_new_config()
+  describe "subscribe/0" do
+    test "subscribes to new config change notifications" do
+      assert :ok = Watcher.subscribe_new_config()
+      node = Node.self()
 
       # Manually broadcast a message
       Phoenix.PubSub.broadcast(
         Foundation.PubSub,
-        "deployex::config::changes",
-        {:config_updated, %{test: :data}}
+        "deployex::config::changes::new",
+        {:watcher_config_new, node, %{test: :data}}
       )
 
-      assert_receive {:config_updated, %{test: :data}}, 1000
+      assert_receive {:watcher_config_new, ^node, %{test: :data}}, 1000
+    end
+
+    test "subscribes to apply new config change notifications" do
+      assert :ok = Watcher.subscribe_apply_new_config()
+      node = Node.self()
+
+      # Manually broadcast a message
+      Phoenix.PubSub.broadcast(
+        Foundation.PubSub,
+        "deployex::config::changes::apply",
+        {:watcher_config_apply, node, %{test: :data}}
+      )
+
+      assert_receive {:watcher_config_apply, ^node, %{test: :data}}, 1000
     end
   end
 
@@ -410,7 +467,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.deploy_rollback_timeout_ms == 90_000
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.deploy_rollback_timeout_ms.old == 30_000
         assert changes.summary.deploy_rollback_timeout_ms.new == 90_000
@@ -454,7 +511,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.deploy_schedule_interval_ms == 90_000
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.deploy_schedule_interval_ms.old == 60_000
         assert changes.summary.deploy_schedule_interval_ms.new == 90_000
@@ -498,7 +555,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.logs_retention_time_ms == 90_400_000
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.logs_retention_time_ms.old == 86_400_000
         assert changes.summary.logs_retention_time_ms.new == 90_400_000
@@ -544,7 +601,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.deploy_schedule_interval_ms == 90_000
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 2
         assert Map.has_key?(changes.summary, :logs_retention_time_ms)
@@ -590,7 +647,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.monitoring != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
         assert changes.summary.monitoring.old == []
@@ -633,7 +690,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.monitoring == []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
         assert changes.summary.monitoring.old == @default_monitoring_config
@@ -688,7 +745,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.monitoring != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
         assert changes.summary.monitoring.old == @default_monitoring_config
@@ -732,7 +789,7 @@ defmodule Foundation.Config.WatcherTest do
 
         assert state.pending_config == nil
 
-        {:error, :no_pending_changes} = Watcher.get_computed_changes(:test_changes)
+        {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_changes)
       end
     end
   end
@@ -773,7 +830,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
         assert changes.summary.applications.old == []
@@ -818,7 +875,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications == []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
         assert changes.summary.applications.old == ["my_new_app"]
@@ -868,7 +925,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.applications.details["my_new_app"].status == :modified
         assert changes.summary.applications.details["my_new_app"].changes.language.old == "gleam"
@@ -918,7 +975,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.applications.details["my_new_app"].status == :modified
         assert changes.summary.applications.details["my_new_app"].changes.replicas.old == 1
@@ -968,7 +1025,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.applications.details["my_new_app"].status == :modified
 
@@ -1029,7 +1086,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.applications != []
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.summary.applications.details["my_new_app"].status == :modified
 
@@ -1082,7 +1139,7 @@ defmodule Foundation.Config.WatcherTest do
 
         assert state.pending_config == nil
 
-        {:error, :no_pending_changes} = Watcher.get_computed_changes(:test_changes)
+        {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_changes)
       end
     end
   end
@@ -1138,7 +1195,7 @@ defmodule Foundation.Config.WatcherTest do
             assert state.pending_config.deploy_schedule_interval_ms == 90_000
           end)
 
-        {:ok, changes} = Watcher.get_computed_changes(:test_changes)
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 3
         assert Map.has_key?(changes.summary, :logs_retention_time_ms)
@@ -1183,7 +1240,7 @@ defmodule Foundation.Config.WatcherTest do
 
         assert state.pending_config == nil
 
-        {:error, :no_pending_changes} = Watcher.get_computed_changes(:test_changes)
+        {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_changes)
       end
     end
   end

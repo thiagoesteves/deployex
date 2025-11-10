@@ -10,6 +10,7 @@ defmodule DeployexWeb.Components.DeployexCard do
   attr :deployex, :map, required: true
   attr :metrics, :map, required: true
   attr :restart_path, :string, required: true
+  attr :pending_config_changes, :map, default: nil
 
   def content(assigns) do
     ~H"""
@@ -29,6 +30,7 @@ defmodule DeployexWeb.Components.DeployexCard do
           sname={@deployex.sname}
           restart_path={@restart_path}
           latest_release={@deployex.latest_release}
+          pending_config_changes={@pending_config_changes}
         />
 
         <div class="card-body grid grid-cols-3 gap-6">
@@ -351,6 +353,39 @@ defmodule DeployexWeb.Components.DeployexCard do
     """
   end
 
+  defp config_changes_button(assigns) do
+    ~H"""
+    <button
+      :if={@pending_config_changes}
+      id={Helper.normalize_id("#{@sname}-config-changes")}
+      phx-click="show-config-changes"
+      phx-value-sname={@sname}
+      type="button"
+      class="btn btn-sm btn-circle bg-warning/10 border-warning/20 text-warning hover:bg-warning/20 hover:border-warning/30 hover:scale-110 transition-all duration-200 tooltip tooltip-left relative"
+      data-tip={"#{@pending_config_changes.changes_count} configuration change(s) pending"}
+    >
+      <div class="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full animate-ping"></div>
+      <div class="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full"></div>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+        >
+        </path>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        >
+        </path>
+      </svg>
+    </button>
+    """
+  end
+
   defp header_card(assigns) do
     ~H"""
     <div class="flex items-center justify-between p-4 bg-success/10 border-b border-success/20 rounded-t-lg">
@@ -359,8 +394,11 @@ defmodule DeployexWeb.Components.DeployexCard do
         <span class="text-sm font-semibold text-success">Running</span>
       </div>
       <span class="font-mono text-sm font-medium text-success">{@version}</span>
-      <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
-      <.restart_button sname={@sname} restart_path={@restart_path} />
+      <div class="flex items-center gap-2">
+        <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
+        <.config_changes_button sname={@sname} pending_config_changes={@pending_config_changes} />
+        <.restart_button sname={@sname} restart_path={@restart_path} />
+      </div>
     </div>
     """
   end
