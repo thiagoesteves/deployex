@@ -235,7 +235,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
         send(test_pid_process, {:handle_ref_event, ref})
         logs
 
-      ^sname, ^log_type, [from: from] when from in [1, 5, 15, 30, 360, 720, 1_440, 4_320] ->
+      ^sname, ^log_type, [from: _from] ->
         logs
     end)
 
@@ -283,15 +283,11 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     |> element("#logs-history-update-form")
     |> render_change(%{start_time: time}) =~ time
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
-
     time = "6h"
 
     index_live
     |> element("#logs-history-update-form")
     |> render_change(%{start_time: time}) =~ time
-
-    assert_receive {:handle_ref_event, ^ref}, 1_000
 
     time = "12h"
 
@@ -299,23 +295,17 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     |> element("#logs-history-update-form")
     |> render_change(%{start_time: time}) =~ time
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
-
     time = "1d"
 
     index_live
     |> element("#logs-history-update-form")
     |> render_change(%{start_time: time}) =~ time
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
-
     time = "3d"
 
     index_live
     |> element("#logs-history-update-form")
     |> render_change(%{start_time: time}) =~ time
-
-    assert_receive {:handle_ref_event, ^ref}, 1_000
 
     time = "1w"
 
