@@ -12,6 +12,7 @@ defmodule Foundation.Config.Watcher do
   - deploy_rollback_timeout_ms
   - deploy_schedule_interval_ms
   - logs_retention_time_ms
+  - metrics_retention_time_ms
   - monitoring settings
   - application configurations
 
@@ -230,6 +231,7 @@ defmodule Foundation.Config.Watcher do
     |> add_number_changes(:deploy_rollback_timeout_ms, old, new)
     |> add_number_changes(:deploy_schedule_interval_ms, old, new)
     |> add_number_changes(:logs_retention_time_ms, old, new)
+    |> add_number_changes(:metrics_retention_time_ms, old, new)
     |> add_monitoring_changes(old, new)
     |> add_application_changes(old, new)
   end

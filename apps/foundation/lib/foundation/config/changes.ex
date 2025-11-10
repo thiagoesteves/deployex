@@ -22,6 +22,7 @@ defmodule Foundation.Config.Changes do
           optional(:deploy_rollback_timeout_ms) => numeric_change,
           optional(:deploy_schedule_interval_ms) => numeric_change,
           optional(:logs_retention_time_ms) => numeric_change,
+          optional(:metrics_retention_time_ms) => numeric_change,
           optional(:monitoring) => %{old: list(), new: list()},
           optional(:applications) => %{
             old: [String.t()],
