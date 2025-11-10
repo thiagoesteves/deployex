@@ -33,8 +33,7 @@ defmodule DeployexWeb.Fixture.Watcher do
               config: %{
                 env: [
                   "SECRET_KEY_BASE=secret",
-                  "PHX_SERVER=true",
-                  "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+                  "PHX_SERVER=true"
                 ],
                 name: "myphoenixapp",
                 monitoring: [
@@ -58,7 +57,7 @@ defmodule DeployexWeb.Fixture.Watcher do
                 language: "elixir",
                 replica_ports: [
                   %{base: 4000, key: "PORT"},
-                  %{base: 9000, key: "MYPHOENIX_APP_PORT_TEST_1"},
+                  %{base: 3000, key: "MYPHOENIX_APP_PORT_TEST_1"},
                   %{base: 8000, key: "MYPHOENIX_APP_PORT_TEST_2"}
                 ]
               }
@@ -66,6 +65,23 @@ defmodule DeployexWeb.Fixture.Watcher do
             "myumbrella" => %{
               status: :modified,
               changes: %{
+                replicas: %{new: 2, old: 3},
+                language: %{new: "gleam", old: "elixir"},
+                env: %{
+                  new: [],
+                  old: [
+                    "SECRET_KEY_BASE=secret",
+                    "PHX_SERVER=true"
+                  ]
+                },
+                replica_ports: %{
+                  new: [
+                    %{base: 4000, key: "PORT"},
+                    %{base: 3000, key: "MYPHOENIX_APP_PORT_TEST_1"},
+                    %{base: 8000, key: "MYPHOENIX_APP_PORT_TEST_2"}
+                  ],
+                  old: []
+                },
                 monitoring: %{
                   new: [
                     atom: %Foundation.Yaml.Monitoring{
