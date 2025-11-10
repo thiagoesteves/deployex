@@ -13,6 +13,7 @@ defmodule Foundation.Config.WatcherTest do
     deploy_rollback_timeout_ms: 30_000,
     deploy_schedule_interval_ms: 60_000,
     logs_retention_time_ms: 86_400_000,
+    metrics_retention_time_ms: 86_400_000,
     monitoring: [],
     applications: [],
     config_checksum: "current_checksum"
@@ -561,6 +562,50 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.logs_retention_time_ms.new == 90_400_000
 
         assert log =~ "Detected 1 change(s) in upgradable fields: [:logs_retention_time_ms]"
+      end
+    end
+
+    test "detects metrics_retention_time_ms change" do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> @default_upgradable end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               config_checksum: "new_checksum",
+               metrics_retention_time_ms: 90_400_000
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            state = :sys.get_state(:test_changes)
+
+            assert state.pending_config != nil
+            assert state.pending_config.metrics_retention_time_ms == 90_400_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
+
+        assert changes.summary.metrics_retention_time_ms.old == 86_400_000
+        assert changes.summary.metrics_retention_time_ms.new == 90_400_000
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:metrics_retention_time_ms]"
       end
     end
 

@@ -120,7 +120,8 @@ defmodule DeployexWeb.Fixture.Watcher do
         },
         logs_retention_time_ms: %{new: 3_700_000, old: 3_600_000},
         deploy_rollback_timeout_ms: %{new: 700_000, old: 600_000},
-        deploy_schedule_interval_ms: %{new: 10_000, old: 5_000}
+        deploy_schedule_interval_ms: %{new: 10_000, old: 5_000},
+        metrics_retention_time_ms: %{new: 10_000, old: 5_000}
       },
       timestamp: DateTime.utc_now(),
       changes_count: 5
