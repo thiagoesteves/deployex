@@ -28,7 +28,22 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
                 style={"background-color: #{log_message.color};"}
               >
               </span>
-              <span>{log_message.content}</span>
+              <div class="font-mono text-xs text-base-content/90 w-1/2 ">
+                <details>
+                  <summary class="cursor-pointer truncate">
+                    {log_message.content}
+                  </summary>
+                  <div class="mt-5  text-wrap break-words">
+                    <div class="flex gap-2">
+                      {log_message.content}
+                      <.copy_to_clipboard
+                        id={"c2c-apps-logs-table-#{Foundation.Common.uuid4()}"}
+                        message={log_message.content}
+                      />
+                    </div>
+                  </div>
+                </details>
+              </div>
             </div>
           </:col>
         </.table_logs>
