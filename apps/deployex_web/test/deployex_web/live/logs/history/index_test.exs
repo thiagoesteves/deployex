@@ -231,20 +231,11 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     |> stub(:list_active_snames, fn -> [sname] end)
     |> stub(:get_types_by_sname, fn _sname -> [log_type] end)
     |> stub(:list_data_by_sname_log_type, fn
-      ^sname, ^log_type, [from: 1] ->
-        logs
-
-      ^sname, ^log_type, [from: 5] ->
-        logs
-
-      ^sname, ^log_type, [from: 15] ->
-        logs
-
-      ^sname, ^log_type, [from: 30] ->
-        logs
-
-      ^sname, ^log_type, [from: 60] ->
+      ^sname, ^log_type, [from: 10_080] ->
         send(test_pid_process, {:handle_ref_event, ref})
+        logs
+
+      ^sname, ^log_type, [from: from] when from in [1, 5, 15, 30, 360, 720, 1_440, 4_320] ->
         logs
     end)
 
@@ -287,6 +278,46 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     |> render_change(%{start_time: time}) =~ time
 
     time = "1h"
+
+    index_live
+    |> element("#logs-history-update-form")
+    |> render_change(%{start_time: time}) =~ time
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    time = "6h"
+
+    index_live
+    |> element("#logs-history-update-form")
+    |> render_change(%{start_time: time}) =~ time
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    time = "12h"
+
+    index_live
+    |> element("#logs-history-update-form")
+    |> render_change(%{start_time: time}) =~ time
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    time = "1d"
+
+    index_live
+    |> element("#logs-history-update-form")
+    |> render_change(%{start_time: time}) =~ time
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    time = "3d"
+
+    index_live
+    |> element("#logs-history-update-form")
+    |> render_change(%{start_time: time}) =~ time
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+
+    time = "1w"
 
     index_live
     |> element("#logs-history-update-form")
