@@ -12,7 +12,7 @@
  * [`PULL-174`](https://github.com/thiagoesteves/deployex/pull/174) Fixing truncated logs for Live and History logs dashboard
 
 ### Enhancements
- * [`ISSUE-167`](https://github.com/thiagoesteves/deployex/issues/167) Modify Deployer app to re-load the yaml file for every deploy
+ * [`ISSUE-167`](https://github.com/thiagoesteves/deployex/issues/167) MModify Deployer app to re-load the yaml and apply changes
  * [`PULL-171`](https://github.com/thiagoesteves/deployex/pull/171) Adding monitoring data view in UX/UI
 
 ## 0.7.3 🚀 (2025-10-28)
