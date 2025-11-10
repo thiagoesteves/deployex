@@ -42,6 +42,13 @@ defmodule Sentinel.Logs do
   @spec list_active_snames() :: list()
   def list_active_snames, do: default().list_active_snames()
 
+  @doc """
+  Update data retention period
+  """
+  @spec update_data_retention_period(non_neg_integer()) :: :ok
+  def update_data_retention_period(retention_period),
+    do: default().update_data_retention_period(retention_period)
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================

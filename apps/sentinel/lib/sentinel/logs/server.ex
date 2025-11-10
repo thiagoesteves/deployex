@@ -194,19 +194,24 @@ defmodule Sentinel.Logs.Server do
     deletion_period_to = now_minutes - retention_period - 1
     deletion_period_from = deletion_period_to - 2
 
-    prune_keys = fn key, table ->
-      Enum.each(deletion_period_from..deletion_period_to, fn timestamp ->
-        :ets.delete(table, log_type_key(key, timestamp))
-      end)
-    end
-
     Enum.each(tables, fn {sname, table} ->
       sname
       |> get_types_by_sname()
-      |> Enum.each(&prune_keys.(&1, table))
+      |> Enum.each(&prune_keys(&1, table, deletion_period_from, deletion_period_to))
     end)
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:update_data_retention_period, retention_period}, state) do
+    # If decreasing retention period, immediately prune old data
+    if retention_period && state.data_retention_period &&
+         retention_period < state.data_retention_period do
+      prune_old_data_immediately(state, retention_period)
+    end
+
+    {:noreply, %{state | data_retention_period: retention_period}}
   end
 
   ### ==========================================================================
@@ -260,6 +265,13 @@ defmodule Sentinel.Logs.Server do
   @impl true
   def list_active_snames do
     ets_lookup_if_exist(@logs_storage_table, @registry_key, [])
+  end
+
+  @impl true
+  def update_data_retention_period(retention_period) do
+    msg = {:update_data_retention_period, retention_period}
+
+    GenServer.cast(__MODULE__, msg)
   end
 
   ### ==========================================================================
@@ -368,5 +380,30 @@ defmodule Sentinel.Logs.Server do
   defp self_sname do
     [sname, _hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
     sname
+  end
+
+  defp prune_keys(key, table, deletion_period_from, deletion_period_to) do
+    Enum.each(deletion_period_from..deletion_period_to, fn timestamp ->
+      :ets.delete(table, log_type_key(key, timestamp))
+    end)
+  end
+
+  defp prune_old_data_immediately(
+         %{sname_logs_tables: tables, data_retention_period: old_retention},
+         new_retention
+       ) do
+    now_minutes = unix_to_minutes()
+    new_retention_minutes = trunc(new_retention / @one_minute_in_milliseconds)
+    old_retention_minutes = trunc(old_retention / @one_minute_in_milliseconds)
+
+    # Delete all data outside the new retention window
+    deletion_from = now_minutes - old_retention_minutes - 2
+    deletion_to = now_minutes - new_retention_minutes
+
+    Enum.each(tables, fn {sname, table} ->
+      sname
+      |> get_types_by_sname()
+      |> Enum.each(&prune_keys(&1, table, deletion_from, deletion_to))
+    end)
   end
 end
