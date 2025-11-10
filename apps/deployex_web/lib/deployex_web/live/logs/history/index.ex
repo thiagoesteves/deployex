@@ -65,7 +65,9 @@ defmodule DeployexWeb.HistoryLive do
                       phx-change="form-update"
                       class="contents"
                     >
-                      <li :for={option <- ["1m", "5m", "15m", "30m", "1h"]}>
+                      <li :for={
+                        option <- ["1m", "5m", "15m", "30m", "1h", "6h", "12h", "1d", "3d", "1w"]
+                      }>
                         <label class="label cursor-pointer justify-start gap-3">
                           <input
                             type="radio"
@@ -407,4 +409,9 @@ defmodule DeployexWeb.HistoryLive do
   defp start_time_to_integer("15m"), do: 15
   defp start_time_to_integer("30m"), do: 30
   defp start_time_to_integer("1h"), do: 60
+  defp start_time_to_integer("6h"), do: 360
+  defp start_time_to_integer("12h"), do: 720
+  defp start_time_to_integer("1d"), do: 1_440
+  defp start_time_to_integer("3d"), do: 4_320
+  defp start_time_to_integer("1w"), do: 10_080
 end

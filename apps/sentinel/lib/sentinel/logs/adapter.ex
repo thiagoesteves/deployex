@@ -8,4 +8,5 @@ defmodule Sentinel.Logs.Adapter do
   @callback list_data_by_sname_log_type(String.t(), String.t(), Keyword.t()) :: list()
   @callback get_types_by_sname(String.t()) :: list()
   @callback list_active_snames() :: list()
+  @callback update_data_retention_period(non_neg_integer()) :: :ok
 end

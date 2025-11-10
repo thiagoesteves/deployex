@@ -151,6 +151,46 @@ defmodule Sentinel.Logs.ServerTest do
     assert [] = Server.list_data_by_sname_log_type(sname, log_type, order: :asc)
   end
 
+  test "Pruning expiring entries when retention period is updated", %{sname: sname, pid: pid} do
+    log_type = "new-log-type"
+    Server.subscribe_for_new_logs(sname, log_type)
+
+    now = System.os_time(:millisecond)
+
+    with_mock System, os_time: fn _ -> now - 30_000 end do
+      Enum.each(1..5, fn index ->
+        send(
+          pid,
+          {:terminal_update,
+           %{
+             metadata: %{context: :terminal_logs, sname: sname, type: log_type},
+             source_pid: self(),
+             message: "[info] log #{index}"
+           }}
+        )
+      end)
+
+      assert_receive {:logs_new_data, ^sname, ^log_type,
+                      %Message{timestamp: _, log: "[info] log 5"}},
+                     1_000
+    end
+
+    assert [
+             %Message{timestamp: _, log: "[info] log 1"},
+             %Message{timestamp: _, log: "[info] log 2"},
+             %Message{timestamp: _, log: "[info] log 3"},
+             %Message{timestamp: _, log: "[info] log 4"},
+             %Message{timestamp: _, log: "[info] log 5"}
+           ] = Server.list_data_by_sname_log_type(sname, log_type)
+
+    # Update retention period
+    Server.update_data_retention_period(1_000)
+
+    :timer.sleep(100)
+
+    assert [] = Server.list_data_by_sname_log_type(sname, log_type, order: :asc)
+  end
+
   test "Check Node up with expected node", %{sname: sname, node: node, pid: pid} do
     log_type = "new-log-type"
     message = "message"
