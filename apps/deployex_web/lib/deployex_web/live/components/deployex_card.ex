@@ -429,27 +429,4 @@ defmodule DeployexWeb.Components.DeployexCard do
     </div>
     """
   end
-
-  def new_release?(current_version, tag_version) do
-    with {:ok, current} <- parse_version(current_version),
-         {:ok, tag} <- parse_version(tag_version) do
-      compare_versions(current, tag) == :lt
-    else
-      _ -> false
-    end
-  end
-
-  # --- Helpers ---
-
-  defp parse_version(version) do
-    # Elixir's built-in Version module does all semver parsing/validation for us
-    case Version.parse(version) do
-      {:ok, parsed} -> {:ok, parsed}
-      :error -> :error
-    end
-  end
-
-  defp compare_versions(v1, v2) do
-    Version.compare(v1, v2)
-  end
 end
