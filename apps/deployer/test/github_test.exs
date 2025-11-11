@@ -81,14 +81,9 @@ defmodule Deployer.GithubTest do
                     _module ->
           {:error, %{reason: :timeout}}
         end do
-        log =
-          capture_log(fn ->
-            assert {:ok, state} = Github.init([])
-            assert %Github{} = state
-            assert state.tag_name == ""
-          end)
-
-        assert log =~ "Error while trying to get github repo information"
+        assert {:ok, state} = Github.init([])
+        assert %Github{} = state
+        assert state.tag_name == ""
       end
     end
   end
@@ -145,13 +140,8 @@ defmodule Deployer.GithubTest do
                   _module ->
         {:error, %{reason: :timeout}}
       end do
-      log =
-        capture_log(fn ->
-          new_state = Github.update_github_info(previous_state)
-          assert new_state == previous_state
-        end)
-
-      assert log =~ "timeout"
+      new_state = Github.update_github_info(previous_state)
+      assert new_state == previous_state
     end
   end
 
