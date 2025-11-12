@@ -93,6 +93,15 @@ defmodule Deployer.Monitor.Supervisor do
     end
   end
 
+  def stop(name) do
+    child_pid =
+      name
+      |> supervisor_name()
+      |> Process.whereis()
+
+    DynamicSupervisor.terminate_child(__MODULE__, child_pid)
+  end
+
   def stop_service(name, sname) when is_nil(name) or is_nil(sname), do: :ok
 
   def stop_service(name, sname) do

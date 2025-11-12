@@ -1,13 +1,13 @@
-defmodule Foundation.Config.WatcherTest do
+defmodule Sentinel.Config.WatcherTest do
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
   import Mock
 
-  alias Foundation.Config.Changes
-  alias Foundation.Config.Upgradable
-  alias Foundation.Config.Watcher
   alias Foundation.Yaml
+  alias Sentinel.Config.Changes
+  alias Sentinel.Config.Upgradable
+  alias Sentinel.Config.Watcher
 
   @default_upgradable %Upgradable{
     logs_retention_time_ms: 86_400_000,
@@ -160,7 +160,9 @@ defmodule Foundation.Config.WatcherTest do
         }
 
         # Set pending config
-        :sys.replace_state(pid, fn state -> %{state | pending_config: new_config} end)
+        :sys.replace_state(pid, fn state ->
+          %{state | pending_config: new_config, pending_changes: %Changes{}}
+        end)
 
         assert :ok = Watcher.apply_changes(pid)
 
@@ -834,7 +836,7 @@ defmodule Foundation.Config.WatcherTest do
 
         assert changes.changes_count == 1
         assert changes.summary.applications.old == []
-        assert changes.summary.applications.new == ["my_new_app"]
+        assert Enum.map(changes.summary.applications.new, & &1.name) == ["my_new_app"]
 
         assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end
@@ -878,7 +880,7 @@ defmodule Foundation.Config.WatcherTest do
         {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 1
-        assert changes.summary.applications.old == ["my_new_app"]
+        assert Enum.map(changes.summary.applications.old, & &1.name) == ["my_new_app"]
         assert changes.summary.applications.new == []
 
         assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"

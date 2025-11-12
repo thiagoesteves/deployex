@@ -1,4 +1,4 @@
-defmodule Foundation.Config.Watcher do
+defmodule Sentinel.Config.Watcher do
   @moduledoc """
   Monitors the Deployex YAML configuration file for changes to upgradable fields.
 
@@ -23,9 +23,12 @@ defmodule Foundation.Config.Watcher do
   use GenServer
   require Logger
 
-  alias Foundation.Config.Changes
-  alias Foundation.Config.Upgradable
+  alias Deployer.Engine.Supervisor, as: EngineSupervisor
+  alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
+  alias Foundation.Catalog.Local
   alias Foundation.Yaml
+  alias Sentinel.Config.Changes
+  alias Sentinel.Config.Upgradable
 
   # 30 seconds
   @default_check_interval_ms 30_000
@@ -99,6 +102,20 @@ defmodule Foundation.Config.Watcher do
 
   def handle_call(:apply_changes, _from, state) do
     Logger.info("ConfigWatcher: Applying pending configuration changes")
+
+    summary = state.pending_changes.summary
+
+    apply_pre_config_changes(summary)
+
+    # Build configuration updates from pending changes
+    config_updates = build_config_updates(state.pending_changes.summary)
+
+    # Apply all configuration updates at once
+    Application.put_all_env(config_updates)
+
+    apply_post_config_changes(summary)
+
+    Logger.info("ConfigWatcher: Successfully applied configuration updates")
 
     # Notify subscribers about new changes
     Phoenix.PubSub.broadcast(
@@ -316,11 +333,7 @@ defmodule Foundation.Config.Watcher do
     diff = diff_applications(old.applications, new.applications)
 
     if diff != %{} do
-      Map.put(acc, :applications, %{
-        old: format_applications(old.applications),
-        new: format_applications(new.applications),
-        details: diff
-      })
+      Map.put(acc, :applications, %{old: old.applications, new: new.applications, details: diff})
     else
       acc
     end
@@ -368,5 +381,89 @@ defmodule Foundation.Config.Watcher do
     |> add_monitoring_changes(old_app, new_app)
   end
 
-  defp format_applications(apps), do: Enum.map(apps, & &1.name)
+  defp apply_pre_config_changes(summary) do
+    Enum.each(summary, fn {key, change} ->
+      case key do
+        :applications ->
+          Enum.each(change.details, fn
+            {name, %{status: :added}} ->
+              Logger.info("ConfigWatcher: Setting up folders for the new application: #{name}")
+              Local.setup_new_app(name)
+
+            {name, %{status: :removed}} ->
+              Logger.warning("ConfigWatcher: Removing application: #{name}")
+              EngineSupervisor.stop_deployment(name)
+              MonitorSupervisor.stop(name)
+
+            _ ->
+              nil
+          end)
+
+          :ok
+
+        _ ->
+          :ok
+      end
+    end)
+  end
+
+  defp apply_post_config_changes(summary) do
+    Enum.each(summary, fn {key, change} ->
+      case key do
+        :applications ->
+          Enum.each(change.details, fn
+            {name, %{status: :added}} ->
+              application = Enum.find(change.new, &(&1.name == name))
+              Logger.info("ConfigWatcher: Adding monitor deployment for application: #{name}")
+              Deployer.Monitor.init_monitor_supervisor(name)
+              Deployer.Engine.init_worker(application)
+
+            _ ->
+              nil
+          end)
+
+          :ok
+
+        _ ->
+          :ok
+      end
+    end)
+  end
+
+  defp build_config_updates(summary) do
+    Enum.reduce(summary, [], fn {key, change}, acc ->
+      case key do
+        :deploy_rollback_timeout_ms ->
+          add_foundation_config(acc, key, change.new)
+
+        :deploy_schedule_interval_ms ->
+          add_foundation_config(acc, key, change.new)
+
+        :logs_retention_time_ms ->
+          add_foundation_config(acc, key, change.new)
+
+        :metrics_retention_time_ms ->
+          add_observer_web_config(acc, change.new)
+
+        :monitoring ->
+          add_foundation_config(acc, key, change.new)
+
+        :applications ->
+          add_foundation_config(acc, key, change.new)
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp add_foundation_config(config_list, key, value) do
+    foundation_config = Keyword.get(config_list, :foundation, [])
+    updated_foundation = Keyword.put(foundation_config, key, value)
+    Keyword.put(config_list, :foundation, updated_foundation)
+  end
+
+  defp add_observer_web_config(config_list, retention_time_ms) do
+    Keyword.put(config_list, :observer_web, data_retention_period: retention_time_ms)
+  end
 end

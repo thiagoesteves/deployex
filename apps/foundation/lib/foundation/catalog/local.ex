@@ -59,6 +59,14 @@ defmodule Foundation.Catalog.Local do
   ### Foundation.Catalog.Adapter callback functions
   ### ==========================================================================
 
+  def setup_new_app(name) do
+    File.mkdir_p!(config_path(name))
+    File.mkdir_p!(history_version_path(name))
+    File.mkdir_p!(ghosted_version_path(name))
+
+    :ok
+  end
+
   @impl true
   def setup do
     applications()

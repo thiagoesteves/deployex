@@ -283,8 +283,8 @@ Release myumbrella-0.1.2 already exists. Overwrite? [Yn] Y
 2. Now, copy the release file to the distribution folder and proceed to update the version accordingly:
 ```bash
 export app_name=myumbrella
-cp _build/prod/${app_name}-0.2.6.tar.gz /tmp/deployex/bucket/dist/${app_name}
-echo "{\"version\":\"0.2.6\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
+cp _build/prod/${app_name}-0.1.2.tar.gz /tmp/deployex/bucket/dist/${app_name}
+echo "{\"version\":\"0.1.2\",\"pre_commands\": [],\"hash\":\"local\"}" | jq > /tmp/deployex/bucket/versions/${app_name}/local/current.json
 ```
 
 You can then check that DeployEx had executed a hot upgrade in the application:

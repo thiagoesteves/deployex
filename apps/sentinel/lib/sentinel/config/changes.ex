@@ -1,4 +1,4 @@
-defmodule Foundation.Config.Changes do
+defmodule Sentinel.Config.Changes do
   @moduledoc false
 
   @type numeric_change :: %{old: number(), new: number()}
@@ -6,7 +6,7 @@ defmodule Foundation.Config.Changes do
   @type list_change :: %{old: list(), new: list()}
 
   @type app_diff :: %{
-          optional(:language) => string_change,
+          :language => string_change,
           optional(:replicas) => numeric_change,
           optional(:deploy_rollback_timeout_ms) => numeric_change,
           optional(:deploy_schedule_interval_ms) => numeric_change,
@@ -25,8 +25,8 @@ defmodule Foundation.Config.Changes do
           optional(:metrics_retention_time_ms) => numeric_change,
           optional(:monitoring) => %{old: list(), new: list()},
           optional(:applications) => %{
-            old: [String.t()],
-            new: [String.t()],
+            old: [Foundation.Yaml.Application.t()],
+            new: [Foundation.Yaml.Application.t()],
             details: %{String.t() => app_status}
           }
         }
