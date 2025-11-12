@@ -3,7 +3,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
   use DeployexWeb, :html
 
   use Phoenix.Component
-  alias Deployer.Github
   alias DeployexWeb.Components.Monitoring
   alias DeployexWeb.Helper
 
@@ -406,7 +405,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <span class="text-sm font-semibold text-success">Running</span>
           </div>
           <span class="font-mono text-sm font-medium text-success">{@version}</span>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :pre_commands -> %>
@@ -415,7 +413,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
             <span class="text-sm font-semibold text-warning">Pre-commands</span>
           </div>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :starting and @version != nil -> %>
@@ -425,7 +422,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <span class="text-sm font-semibold text-warning">Starting</span>
           </div>
           <span class="font-mono text-sm font-medium text-warning">{@version}</span>
-          <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% true -> %>
@@ -436,48 +432,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
           </div>
         </div>
     <% end %>
-    """
-  end
-
-  defp version_indicator(assigns) do
-    %Github{tag_name: tag_name, prerelease: prerelease} = assigns.latest_release
-    current_version = assigns.version
-
-    show_indicator =
-      assigns.sname == "deployex" and
-        tag_name != nil and
-        tag_name != current_version and
-        prerelease == false
-
-    assigns =
-      assigns
-      |> assign(:show_indicator, show_indicator)
-      |> assign(:new_release, tag_name)
-
-    ~H"""
-    <div :if={@show_indicator} class="inline-flex">
-      <div
-        class="btn btn-sm btn-circle bg-info/10 border-info/20 text-info hover:bg-info/20 hover:border-success/30 hover:scale-110 transition-all duration-200 flex-1 tooltip before:whitespace-pre-wrap"
-        data-tip={"New version available #{@new_release}! \n Click to view releases"}
-      >
-        <a
-          href="https://github.com/thiagoesteves/deployex/releases"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="flex items-center justify-center w-5 h-5 bg-info/20 border border-info/40 rounded-full hover:bg-info/30 hover:scale-110 transition-all duration-200 cursor-pointer"
-        >
-          <svg class="w-3 h-3 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-            >
-            </path>
-          </svg>
-        </a>
-      </div>
-    </div>
     """
   end
 end

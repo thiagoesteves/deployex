@@ -3,7 +3,6 @@ defmodule DeployexWeb.Components.DeployexCard do
   use DeployexWeb, :html
 
   use Phoenix.Component
-  alias Deployer.Github
   alias DeployexWeb.Components.Monitoring
   alias DeployexWeb.Helper
 
@@ -395,7 +394,7 @@ defmodule DeployexWeb.Components.DeployexCard do
       </div>
       <span class="font-mono text-sm font-medium text-success">{@version}</span>
       <div class="flex items-center gap-2">
-        <.version_indicator sname={@sname} latest_release={@latest_release} version={@version} />
+        <.version_indicator latest_release={@latest_release} version={@version} />
         <.config_changes_button sname={@sname} pending_config_changes={@pending_config_changes} />
         <.restart_button sname={@sname} restart_path={@restart_path} />
       </div>
@@ -404,25 +403,11 @@ defmodule DeployexWeb.Components.DeployexCard do
   end
 
   defp version_indicator(assigns) do
-    %Github{tag_name: tag_name, prerelease: prerelease} = assigns.latest_release
-    current_version = assigns.version
-
-    show_indicator =
-      assigns.sname == "deployex" and
-        tag_name != nil and
-        tag_name != current_version and
-        prerelease == false
-
-    assigns =
-      assigns
-      |> assign(:show_indicator, show_indicator)
-      |> assign(:new_release, tag_name)
-
     ~H"""
-    <div :if={@show_indicator} class="inline-flex">
+    <div :if={@latest_release.new_release?} class="inline-flex">
       <div
         class="btn btn-sm btn-circle bg-info/10 border-info/20 text-info hover:bg-info/20 hover:border-success/30 hover:scale-110 transition-all duration-200 flex-1 tooltip before:whitespace-pre-wrap"
-        data-tip={"New version available #{@new_release}! \n Click to view releases"}
+        data-tip={"New version available #{@latest_release.tag_name}! \n Click to view releases"}
       >
         <a
           href="https://github.com/thiagoesteves/deployex/releases"

@@ -11,7 +11,8 @@ defmodule Deployer.Github do
 
   @type t :: %__MODULE__{
           tag_name: String.t(),
-          prerelease: false,
+          prerelease: boolean(),
+          new_release?: boolean(),
           created_at: String.t() | nil,
           updated_at: String.t() | nil,
           published_at: String.t() | nil
@@ -19,6 +20,7 @@ defmodule Deployer.Github do
 
   defstruct tag_name: "",
             prerelease: false,
+            new_release?: false,
             created_at: nil,
             updated_at: nil,
             published_at: nil
@@ -64,20 +66,25 @@ defmodule Deployer.Github do
       {:ok, %{body: body}} ->
         info = Jason.decode!(body)
 
+        tag_name = info["tag_name"]
+        prerelease = info["prerelease"]
+        current_version = Application.spec(:deployer, :vsn) |> to_string
+
+        new_release? =
+          tag_name != nil and prerelease == false and new_release?(current_version, tag_name)
+
         %__MODULE__{
-          tag_name: info["tag_name"],
-          prerelease: info["prerelease"],
+          tag_name: tag_name,
+          prerelease: prerelease,
+          new_release?: new_release?,
           created_at: info["created_at"],
           updated_at: info["updated_at"],
           published_at: info["published_at"]
         }
 
-      {:error, reason} ->
-        Logger.error(
-          "Error while trying to get github repo information, reason: #{inspect(reason)}"
-        )
-
-        # NOTE: Keep the latest state, since github can be
+      {:error, _reason} ->
+        # NOTE: Keep the latest state, since the application may not have acceess to
+        #       network or GitHub is not available
         state
     end
   end
@@ -88,5 +95,28 @@ defmodule Deployer.Github do
   @spec latest_release(module :: module()) :: {:ok, __MODULE__.t()}
   def latest_release(module \\ __MODULE__) do
     Common.call_gen_server(module, :latest_release)
+  end
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+  defp new_release?(current_version, tag_version) do
+    with {:ok, current} <- parse_version(current_version),
+         {:ok, tag} <- parse_version(tag_version) do
+      compare_versions(current, tag) == :lt
+    else
+      _ -> false
+    end
+  end
+
+  defp parse_version(version) do
+    case Version.parse(version) do
+      {:ok, parsed} -> {:ok, parsed}
+      :error -> :error
+    end
+  end
+
+  defp compare_versions(v1, v2) do
+    Version.compare(v1, v2)
   end
 end
