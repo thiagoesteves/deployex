@@ -417,11 +417,46 @@ defmodule Sentinel.Config.Watcher do
               Logger.info("ConfigWatcher: Adding monitor deployment for application: #{name}")
               Deployer.Monitor.init_monitor_supervisor(name)
               Deployer.Engine.init_worker(application)
+              :ok
+
+            {name, %{status: :modified, changes: changes}} ->
+              Enum.each(changes, fn {app_change_key, %{old: _old, new: _new}} ->
+                case app_change_key do
+                  :monitoring ->
+                    Sentinel.Watchdog.reset_app_statistics(name)
+                    :ok
+
+                  :replicas ->
+                    # TODO: Add or remove replicas
+                    :ok
+
+                  key when key in [:replica_ports, :env, :language] ->
+                    # TODO: Add next deployment variables
+                    :ok
+
+                  _ ->
+                    :ok
+                end
+              end)
+
+              :ok
 
             _ ->
-              nil
+              :ok
           end)
 
+          :ok
+
+        :monitoring ->
+          Sentinel.Watchdog.reset_app_statistics("deployex")
+          :ok
+
+        :metrics_retention_time_ms ->
+          ObserverWeb.Telemetry.update_data_retention_period(change.new)
+          :ok
+
+        :logs_retention_time_ms ->
+          Sentinel.Logs.update_data_retention_period(change.new)
           :ok
 
         _ ->

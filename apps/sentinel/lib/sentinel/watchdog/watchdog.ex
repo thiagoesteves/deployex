@@ -85,6 +85,27 @@ defmodule Sentinel.Watchdog do
   end
 
   @impl true
+  def handle_call({:reset_app_statistics, "deployex"}, _from, state) do
+    reset_deployex_statistic()
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:reset_app_statistics, app_name}, _from, state) do
+    state.monitored_nodes
+    |> Enum.each(fn node ->
+      case Catalog.node_info(node) do
+        %{name: ^app_name} ->
+          reset_application_statistic(node)
+
+        _ ->
+          nil
+      end
+    end)
+
+    {:reply, :ok, state}
+  end
+
+  @impl true
   def handle_info(
         :watchdog_check,
         %{monitored_nodes: monitored_nodes, watchdog_check_interval: watchdog_check_interval} =
@@ -269,6 +290,10 @@ defmodule Sentinel.Watchdog do
   def get_deployex_memory_config do
     [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, :memory})
     config
+  end
+
+  def reset_app_statistics(name) do
+    GenServer.call(__MODULE__, {:reset_app_statistics, name})
   end
 
   ### ==========================================================================
