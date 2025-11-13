@@ -204,8 +204,6 @@ version: "0.4.0-rc1"                                     # Deployex: Version
 otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                                # Deployex: Target OS server
-deploy_rollback_timeout_ms: 600000                       # Deployex (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
-deploy_schedule_interval_ms: 5000                        # Deployex (optional, default: 5000): Periodic checking for new deployments
 metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
 logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
 monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features
@@ -214,13 +212,15 @@ monitoring:                        # Deployex (optional, default: values describ
     warning_threshold_percent: 75  # Deployex (default: 75): Issue a warning if memory usage exceeds this percent
     restart_threshold_percent: 90  # Deployex (default: 90): Restart app if memory usage exceeds this percent
 applications:
-  - name: "myphoenixapp" # Application: Monitored app name (Elixir app name format)
-    language: "elixir"   # Application: App language (elixir, erlang or gleam)
-    replicas: 2          # Application: Number of replicas
-    replica_ports:       # Application: (optional) Each instance receives a different port in the range (base + replicas)
+  - name: "myphoenixapp"               # Application: Monitored app name (Elixir app name format)
+    language: "elixir"                 # Application: App language (elixir, erlang or gleam)
+    replicas: 2                        # Application: (optional, default: 3) Number of replicas
+    deploy_rollback_timeout_ms: 600000 # Application: (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
+    deploy_schedule_interval_ms: 5000  # Application: (optional, default: 5000): Periodic checking for new deployments
+    replica_ports:                     # Application: (optional) Each instance receives a different port in the range (base + replicas)
       - key: PORT
         base: 4000
-    env:                 # Application (optional): Environment variables
+    env:                               # Application (optional): Environment variables
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
       - key: MYPHOENIXAPP_PHX_SERVER

@@ -9,14 +9,14 @@ aws_region: "sa-east-1"
 version: "0.4.0"
 otp_version: 26
 os_target: "ubuntu-20.04"
-deploy_rollback_timeout_ms: 600000
-deploy_schedule_interval_ms: 5000
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
 applications:
   - name: "myphoenixapp"
     language: "elixir"
     replicas: 3
+    deploy_rollback_timeout_ms: 600000
+    deploy_schedule_interval_ms: 5000
     replica_ports:
       - key: PORT
         base: 4000
@@ -32,6 +32,8 @@ applications:
   - name: "myumbrella"
     language: "erlang"
     replicas: 2
+    deploy_rollback_timeout_ms: 600000
+    deploy_schedule_interval_ms: 5000
     replica_ports:
       - key: PORT
         base: 4050

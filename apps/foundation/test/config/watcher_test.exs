@@ -10,8 +10,6 @@ defmodule Foundation.Config.WatcherTest do
   alias Foundation.Yaml
 
   @default_upgradable %Upgradable{
-    deploy_rollback_timeout_ms: 30_000,
-    deploy_schedule_interval_ms: 60_000,
     logs_retention_time_ms: 86_400_000,
     metrics_retention_time_ms: 86_400_000,
     monitoring: [],
@@ -126,8 +124,6 @@ defmodule Foundation.Config.WatcherTest do
         {:ok, pid} = Watcher.start_link(name: :test_with_pending)
 
         new_config = %Upgradable{
-          deploy_rollback_timeout_ms: 45_000,
-          deploy_schedule_interval_ms: 60_000,
           logs_retention_time_ms: 86_400_000,
           monitoring: [],
           applications: [],
@@ -157,8 +153,6 @@ defmodule Foundation.Config.WatcherTest do
         {:ok, pid} = Watcher.start_link(name: :test_apply_success)
 
         new_config = %Upgradable{
-          deploy_rollback_timeout_ms: 45_000,
-          deploy_schedule_interval_ms: 75_000,
           logs_retention_time_ms: 86_400_000,
           monitoring: [],
           applications: [],
@@ -190,7 +184,7 @@ defmodule Foundation.Config.WatcherTest do
              # Force new config
              Map.merge(@default_upgradable, %{
                config_checksum: "new_checksum",
-               deploy_rollback_timeout_ms: 45_000
+               logs_retention_time_ms: 45_000
              })
            end
          ]},
@@ -215,7 +209,7 @@ defmodule Foundation.Config.WatcherTest do
             assert_receive {:watcher_config_new, ^node, _pending_changes}, 1000
           end)
 
-        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:logs_retention_time_ms]"
       end
     end
 
@@ -225,8 +219,6 @@ defmodule Foundation.Config.WatcherTest do
         node = Node.self()
 
         new_config = %Upgradable{
-          deploy_rollback_timeout_ms: 45_000,
-          deploy_schedule_interval_ms: 75_000,
           logs_retention_time_ms: 86_400_000,
           monitoring: [],
           applications: [],
@@ -373,7 +365,7 @@ defmodule Foundation.Config.WatcherTest do
            from_yaml: fn _config ->
              Map.merge(@default_upgradable, %{
                config_checksum: "new_checksum",
-               deploy_rollback_timeout_ms: 45_000
+               metrics_retention_time_ms: 45_000
              })
            end
          ]},
@@ -393,10 +385,10 @@ defmodule Foundation.Config.WatcherTest do
 
             state = :sys.get_state(:test_changes)
             assert state.pending_config != nil
-            assert state.pending_config.deploy_rollback_timeout_ms == 45_000
+            assert state.pending_config.metrics_retention_time_ms == 45_000
           end)
 
-        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:metrics_retention_time_ms]"
       end
     end
 
@@ -433,94 +425,6 @@ defmodule Foundation.Config.WatcherTest do
   end
 
   describe "timeout changes detection" do
-    test "detects deploy_rollback_timeout_ms change" do
-      test_pid = self()
-      ref = make_ref()
-
-      with_mocks([
-        {Upgradable, [],
-         [
-           from_app_env: fn -> @default_upgradable end,
-           from_yaml: fn _config ->
-             Map.merge(@default_upgradable, %{
-               config_checksum: "new_checksum",
-               deploy_rollback_timeout_ms: 90_000
-             })
-           end
-         ]},
-        {Yaml, [],
-         [
-           load: fn %Yaml{config_checksum: "current_checksum"} ->
-             send(test_pid, {:handle_ref_event, ref})
-             {:ok, %Yaml{}}
-           end
-         ]}
-      ]) do
-        log =
-          capture_log(fn ->
-            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
-
-            assert_receive {:handle_ref_event, ^ref}, 1_000
-
-            state = :sys.get_state(:test_changes)
-
-            assert state.pending_config != nil
-            assert state.pending_config.deploy_rollback_timeout_ms == 90_000
-          end)
-
-        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
-
-        assert changes.summary.deploy_rollback_timeout_ms.old == 30_000
-        assert changes.summary.deploy_rollback_timeout_ms.new == 90_000
-
-        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_rollback_timeout_ms]"
-      end
-    end
-
-    test "detects deploy_schedule_interval_ms change" do
-      test_pid = self()
-      ref = make_ref()
-
-      with_mocks([
-        {Upgradable, [],
-         [
-           from_app_env: fn -> @default_upgradable end,
-           from_yaml: fn _config ->
-             Map.merge(@default_upgradable, %{
-               config_checksum: "new_checksum",
-               deploy_schedule_interval_ms: 90_000
-             })
-           end
-         ]},
-        {Yaml, [],
-         [
-           load: fn %Yaml{config_checksum: "current_checksum"} ->
-             send(test_pid, {:handle_ref_event, ref})
-             {:ok, %Yaml{}}
-           end
-         ]}
-      ]) do
-        log =
-          capture_log(fn ->
-            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
-
-            assert_receive {:handle_ref_event, ^ref}, 1_000
-
-            state = :sys.get_state(:test_changes)
-
-            assert state.pending_config != nil
-            assert state.pending_config.deploy_schedule_interval_ms == 90_000
-          end)
-
-        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
-
-        assert changes.summary.deploy_schedule_interval_ms.old == 60_000
-        assert changes.summary.deploy_schedule_interval_ms.new == 90_000
-
-        assert log =~ "Detected 1 change(s) in upgradable fields: [:deploy_schedule_interval_ms]"
-      end
-    end
-
     test "detects logs_retention_time_ms change" do
       test_pid = self()
       ref = make_ref()
@@ -621,7 +525,7 @@ defmodule Foundation.Config.WatcherTest do
              Map.merge(@default_upgradable, %{
                config_checksum: "new_checksum",
                logs_retention_time_ms: 90_400_000,
-               deploy_schedule_interval_ms: 90_000
+               metrics_retention_time_ms: 90_000
              })
            end
          ]},
@@ -643,17 +547,17 @@ defmodule Foundation.Config.WatcherTest do
 
             assert state.pending_config != nil
             assert state.pending_config.logs_retention_time_ms == 90_400_000
-            assert state.pending_config.deploy_schedule_interval_ms == 90_000
+            assert state.pending_config.metrics_retention_time_ms == 90_000
           end)
 
         {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 2
         assert Map.has_key?(changes.summary, :logs_retention_time_ms)
-        assert Map.has_key?(changes.summary, :deploy_schedule_interval_ms)
+        assert Map.has_key?(changes.summary, :metrics_retention_time_ms)
 
         assert log =~
-                 "Detected 2 change(s) in upgradable fields: [:logs_retention_time_ms, :deploy_schedule_interval_ms]"
+                 "Detected 2 change(s) in upgradable fields: [:logs_retention_time_ms, :metrics_retention_time_ms]"
       end
     end
   end
@@ -1030,6 +934,114 @@ defmodule Foundation.Config.WatcherTest do
       end
     end
 
+    test "detects modified application deploy_rollback_timeout_ms" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [Map.merge(@default_application, %{deploy_rollback_timeout_ms: 60_000})]
+      new_applications = [Map.merge(@default_application, %{deploy_rollback_timeout_ms: 80_000})]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{
+               applications: old_applications
+             })
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               applications: new_applications
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            state = :sys.get_state(:test_changes)
+
+            assert state.pending_config.applications != []
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
+
+        assert changes.summary.applications.details["my_new_app"].status == :modified
+
+        assert changes.summary.applications.details["my_new_app"].changes.deploy_rollback_timeout_ms.old ==
+                 60_000
+
+        assert changes.summary.applications.details["my_new_app"].changes.deploy_rollback_timeout_ms.new ==
+                 80_000
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    test "detects modified application deploy_schedule_interval_ms" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [Map.merge(@default_application, %{deploy_schedule_interval_ms: 60_000})]
+      new_applications = [Map.merge(@default_application, %{deploy_schedule_interval_ms: 80_000})]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{
+               applications: old_applications
+             })
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               applications: new_applications
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            state = :sys.get_state(:test_changes)
+
+            assert state.pending_config.applications != []
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_changes)
+
+        assert changes.summary.applications.details["my_new_app"].status == :modified
+
+        assert changes.summary.applications.details["my_new_app"].changes.deploy_schedule_interval_ms.old ==
+                 60_000
+
+        assert changes.summary.applications.details["my_new_app"].changes.deploy_schedule_interval_ms.new ==
+                 80_000
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
     test "detects modified application environment variables" do
       test_pid = self()
       ref = make_ref()
@@ -1214,7 +1226,7 @@ defmodule Foundation.Config.WatcherTest do
              Map.merge(@default_upgradable, %{
                config_checksum: "new_checksum",
                logs_retention_time_ms: 90_400_000,
-               deploy_schedule_interval_ms: 90_000,
+               metrics_retention_time_ms: 90_000,
                applications: new_applications
              })
            end
@@ -1237,18 +1249,18 @@ defmodule Foundation.Config.WatcherTest do
 
             assert state.pending_config != nil
             assert state.pending_config.logs_retention_time_ms == 90_400_000
-            assert state.pending_config.deploy_schedule_interval_ms == 90_000
+            assert state.pending_config.metrics_retention_time_ms == 90_000
           end)
 
         {:ok, changes} = Watcher.get_pending_changes(:test_changes)
 
         assert changes.changes_count == 3
         assert Map.has_key?(changes.summary, :logs_retention_time_ms)
-        assert Map.has_key?(changes.summary, :deploy_schedule_interval_ms)
+        assert Map.has_key?(changes.summary, :metrics_retention_time_ms)
         assert Map.has_key?(changes.summary, :applications)
 
         assert log =~
-                 "Detected 3 change(s) in upgradable fields: [:applications, :logs_retention_time_ms, :deploy_schedule_interval_ms]"
+                 "Detected 3 change(s) in upgradable fields: [:applications, :logs_retention_time_ms, :metrics_retention_time_ms]"
       end
     end
 

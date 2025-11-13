@@ -36,8 +36,6 @@ defmodule Foundation.YamlTest do
         assert config.otp_version == 26
         assert config.otp_tls_certificates == nil
         assert config.os_target == "ubuntu-20.04"
-        assert config.deploy_rollback_timeout_ms == 600_000
-        assert config.deploy_schedule_interval_ms == 5000
         assert config.metrics_retention_time_ms == 3_600_000
         assert config.logs_retention_time_ms == 3_600_000
       end
@@ -180,8 +178,8 @@ defmodule Foundation.YamlTest do
         assert config.otp_version == 26
         assert config.otp_tls_certificates == nil
         assert config.os_target == "ubuntu-20.04"
-        assert config.deploy_rollback_timeout_ms == 600_000
-        assert config.deploy_schedule_interval_ms == 5000
+        # assert config.deploy_rollback_timeout_ms == 600_000
+        # assert config.deploy_schedule_interval_ms == 5000
         assert config.metrics_retention_time_ms == 3_600_000
         assert config.logs_retention_time_ms == 3_600_000
 
@@ -192,6 +190,8 @@ defmodule Foundation.YamlTest do
                    monitoring: [],
                    replicas: 3,
                    language: "elixir",
+                   deploy_rollback_timeout_ms: 600_000,
+                   deploy_schedule_interval_ms: 5000,
                    replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4000}]
                  },
                  %Foundation.Yaml.Application{
@@ -200,6 +200,8 @@ defmodule Foundation.YamlTest do
                    monitoring: [],
                    replicas: 2,
                    language: "erlang",
+                   deploy_rollback_timeout_ms: 600_000,
+                   deploy_schedule_interval_ms: 5000,
                    replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4050}]
                  }
                ]

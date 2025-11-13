@@ -9,6 +9,12 @@ defmodule Foundation.Yaml do
   `DEPLOYEX_CONFIG_YAML_PATH` environment variable.
   """
 
+  @default_metrics_retention_time_ms :timer.hours(1)
+  @default_logs_retention_time_ms :timer.hours(1)
+  @default_replicas 3
+  @default_deploy_rollback_timeout_ms :timer.minutes(10)
+  @default_deploy_schedule_interval_ms :timer.seconds(5)
+
   defmodule Monitoring do
     @moduledoc false
 
@@ -43,6 +49,8 @@ defmodule Foundation.Yaml do
       :name,
       :language,
       :replicas,
+      :deploy_rollback_timeout_ms,
+      :deploy_schedule_interval_ms,
       :replica_ports,
       :env,
       :monitoring
@@ -52,6 +60,8 @@ defmodule Foundation.Yaml do
             name: atom(),
             language: String.t(),
             replicas: non_neg_integer(),
+            deploy_rollback_timeout_ms: non_neg_integer() | nil,
+            deploy_schedule_interval_ms: non_neg_integer() | nil,
             replica_ports: [Foundation.Yaml.Ports.t()],
             env: [String.t()],
             monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}]
@@ -71,8 +81,6 @@ defmodule Foundation.Yaml do
             otp_version: nil,
             otp_tls_certificates: nil,
             os_target: nil,
-            deploy_rollback_timeout_ms: nil,
-            deploy_schedule_interval_ms: nil,
             metrics_retention_time_ms: nil,
             logs_retention_time_ms: nil,
             monitoring: [],
@@ -93,8 +101,6 @@ defmodule Foundation.Yaml do
           otp_version: non_neg_integer() | nil,
           otp_tls_certificates: String.t() | nil,
           os_target: String.t() | nil,
-          deploy_rollback_timeout_ms: non_neg_integer() | nil,
-          deploy_schedule_interval_ms: non_neg_integer() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
@@ -219,10 +225,9 @@ defmodule Foundation.Yaml do
       otp_version: data["otp_version"],
       otp_tls_certificates: data["otp_tls_certificates"],
       os_target: data["os_target"],
-      deploy_rollback_timeout_ms: data["deploy_rollback_timeout_ms"],
-      deploy_schedule_interval_ms: data["deploy_schedule_interval_ms"],
-      metrics_retention_time_ms: data["metrics_retention_time_ms"],
-      logs_retention_time_ms: data["logs_retention_time_ms"],
+      metrics_retention_time_ms:
+        data["metrics_retention_time_ms"] || @default_metrics_retention_time_ms,
+      logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,
       monitoring: parse_monitoring_list(data["monitoring"]),
       applications: parse_applications(data["applications"]),
       config_checksum: checksum
@@ -262,7 +267,11 @@ defmodule Foundation.Yaml do
     %Foundation.Yaml.Application{
       name: data["name"],
       language: data["language"],
-      replicas: data["replicas"],
+      replicas: data["replicas"] || @default_replicas,
+      deploy_rollback_timeout_ms:
+        data["deploy_rollback_timeout_ms"] || @default_deploy_rollback_timeout_ms,
+      deploy_schedule_interval_ms:
+        data["deploy_schedule_interval_ms"] || @default_deploy_schedule_interval_ms,
       replica_ports: parse_ports(data["replica_ports"]),
       env: parse_env(data["env"]),
       monitoring: parse_monitoring_list(data["monitoring"])

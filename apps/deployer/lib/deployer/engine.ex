@@ -13,18 +13,11 @@ defmodule Deployer.Engine do
   @spec init_deployment_workers() :: :ok
   def init_deployment_workers do
     Enum.each(Catalog.applications(), fn %{name: name} = application ->
-      timeout_rollback = Application.fetch_env!(:foundation, :deploy_rollback_timeout_ms)
-      schedule_interval = Application.fetch_env!(:foundation, :deploy_schedule_interval_ms)
-
       ghosted_version_list = Status.ghosted_version_list(name)
 
       service =
         struct(
-          %Engine.Worker{
-            timeout_rollback: timeout_rollback,
-            schedule_interval: schedule_interval,
-            ghosted_version_list: ghosted_version_list
-          },
+          %Engine.Worker{ghosted_version_list: ghosted_version_list},
           application
         )
 

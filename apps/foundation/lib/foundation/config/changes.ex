@@ -8,6 +8,8 @@ defmodule Foundation.Config.Changes do
   @type app_diff :: %{
           optional(:language) => string_change,
           optional(:replicas) => numeric_change,
+          optional(:deploy_rollback_timeout_ms) => numeric_change,
+          optional(:deploy_schedule_interval_ms) => numeric_change,
           optional(:replica_ports) => list_change,
           optional(:env) => list_change,
           optional(:monitoring) => %{old: any(), new: any()}
@@ -19,8 +21,6 @@ defmodule Foundation.Config.Changes do
           | %{status: :modified, changes: app_diff}
 
   @type summary :: %{
-          optional(:deploy_rollback_timeout_ms) => numeric_change,
-          optional(:deploy_schedule_interval_ms) => numeric_change,
           optional(:logs_retention_time_ms) => numeric_change,
           optional(:metrics_retention_time_ms) => numeric_change,
           optional(:monitoring) => %{old: list(), new: list()},

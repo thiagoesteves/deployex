@@ -39,9 +39,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
               {:config_checksum, yaml_config.config_checksum},
               {:monitoring, yaml_config.monitoring}
             ] ++
-              add_if_not_nil(yaml_config, :logs_retention_time_ms) ++
-              add_if_not_nil(yaml_config, :deploy_rollback_timeout_ms) ++
-              add_if_not_nil(yaml_config, :deploy_schedule_interval_ms)
+              add_if_not_nil(yaml_config, :logs_retention_time_ms)
         ]
 
         # AWS Config

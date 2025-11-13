@@ -35,8 +35,6 @@ config :foundation,
   applications: [],
   healthcheck_logging: false,
   logs_retention_time_ms: :timer.hours(1),
-  deploy_rollback_timeout_ms: :timer.minutes(10),
-  deploy_schedule_interval_ms: :timer.seconds(5),
   config_checksum: nil
 
 # NOTE: The default username/pass is admin/deployex and in order to generate
@@ -111,10 +109,6 @@ config :ex_aws,
     :instance_role
   ],
   http_client: Deployer.Aws.ExAwsHttpClient
-
-config :deployer, Deployer.Engine,
-  timeout_rollback: :timer.minutes(10),
-  schedule_interval: :timer.seconds(5)
 
 # Foundation Adapters
 config :foundation, Foundation.Rpc, adapter: Foundation.Rpc.Local

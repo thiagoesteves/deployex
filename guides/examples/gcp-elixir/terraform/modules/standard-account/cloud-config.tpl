@@ -52,8 +52,6 @@ write_files:
       otp_version: 28
       otp_tls_certificates: "/usr/local/share/ca-certificates"
       os_target: "ubuntu-24.04"
-      deploy_rollback_timeout_ms: 600000
-      deploy_schedule_interval_ms: 5000
       metrics_retention_time_ms: 3600000
       logs_retention_time_ms: 3600000
       monitoring:
@@ -65,6 +63,8 @@ write_files:
         - name: "myappname"
           language: "elixir"
           replicas: ${replicas}
+          deploy_rollback_timeout_ms: 600000
+          deploy_schedule_interval_ms: 5000
           replica_ports:
             - key: PORT
               base: 4000

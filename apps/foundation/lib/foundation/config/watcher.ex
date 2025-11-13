@@ -228,8 +228,6 @@ defmodule Foundation.Config.Watcher do
 
   defp build_summary(old, new) do
     %{}
-    |> add_number_changes(:deploy_rollback_timeout_ms, old, new)
-    |> add_number_changes(:deploy_schedule_interval_ms, old, new)
     |> add_number_changes(:logs_retention_time_ms, old, new)
     |> add_number_changes(:metrics_retention_time_ms, old, new)
     |> add_monitoring_changes(old, new)
@@ -368,6 +366,8 @@ defmodule Foundation.Config.Watcher do
     %{}
     |> add_string_changes(:language, old_app, new_app)
     |> add_number_changes(:replicas, old_app, new_app)
+    |> add_number_changes(:deploy_rollback_timeout_ms, old_app, new_app)
+    |> add_number_changes(:deploy_schedule_interval_ms, old_app, new_app)
     |> add_replica_ports_changes(old_app, new_app)
     |> add_env_changes(old_app, new_app)
     |> add_monitoring_changes(old_app, new_app)

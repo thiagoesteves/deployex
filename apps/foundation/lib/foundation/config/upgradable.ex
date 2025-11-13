@@ -11,17 +11,13 @@ defmodule Foundation.Config.Upgradable do
 
   alias Foundation.Yaml
 
-  defstruct deploy_rollback_timeout_ms: nil,
-            deploy_schedule_interval_ms: nil,
-            logs_retention_time_ms: nil,
+  defstruct logs_retention_time_ms: nil,
             metrics_retention_time_ms: nil,
             monitoring: [],
             applications: [],
             config_checksum: nil
 
   @type t :: %__MODULE__{
-          deploy_rollback_timeout_ms: non_neg_integer() | nil,
-          deploy_schedule_interval_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Yaml.Monitoring.t()}] | [],
@@ -35,8 +31,6 @@ defmodule Foundation.Config.Upgradable do
   @spec from_yaml(Yaml.t()) :: t()
   def from_yaml(%Yaml{} = config) do
     %__MODULE__{
-      deploy_rollback_timeout_ms: config.deploy_rollback_timeout_ms,
-      deploy_schedule_interval_ms: config.deploy_schedule_interval_ms,
       logs_retention_time_ms: config.logs_retention_time_ms,
       metrics_retention_time_ms: config.metrics_retention_time_ms,
       monitoring: config.monitoring,
@@ -51,8 +45,6 @@ defmodule Foundation.Config.Upgradable do
   @spec from_app_env() :: t()
   def from_app_env do
     %__MODULE__{
-      deploy_rollback_timeout_ms: Application.get_env(:foundation, :deploy_rollback_timeout_ms),
-      deploy_schedule_interval_ms: Application.get_env(:foundation, :deploy_schedule_interval_ms),
       logs_retention_time_ms: Application.get_env(:foundation, :logs_retention_time_ms),
       metrics_retention_time_ms: Application.get_env(:observer_web, :data_retention_period),
       monitoring: Application.get_env(:foundation, :monitoring, []),
