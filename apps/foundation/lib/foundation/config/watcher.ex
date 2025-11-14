@@ -346,15 +346,10 @@ defmodule Foundation.Config.Watcher do
         Map.drop(old_app, [:__struct__]) != Map.drop(new_app, [:__struct__]) ->
           diff_application = diff_application(old_app, new_app)
 
-          # credo:disable-for-lines:1
-          if diff_application != %{} do
-            Map.put(acc, name, %{
-              status: :modified,
-              changes: diff_application
-            })
-          else
-            acc
-          end
+          Map.put(acc, name, %{
+            status: :modified,
+            changes: diff_application
+          })
 
         true ->
           acc

@@ -445,7 +445,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "c8a4336d8f8518f0b115842333528d6f72e08bcbf3e20fa5f619e127d2338a16"},
+                   "5c1d8cb90a8661ac4fefad8d1ad2aa760d4d7257f61bd310e9aadf31c3b97968"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
@@ -505,6 +505,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            {Foundation.ConfigProvider.Secrets.Manager,
             adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
            {:env, "not-set"},
+           {:logs_retention_time_ms, 0},
            {:config_checksum, nil}
          ]},
         {:deployex_web,
@@ -523,6 +524,37 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                assert config == Config.load(config, [])
              end) =~
                "Error loading the YAML file, default configuration will be applied"
+    end
+  end
+
+  test "load/3 Yaml file not found, keep the configuration" do
+    with_mocks([
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> nil end]}
+    ]) do
+      config = [
+        {:foundation,
+         [
+           {Foundation.ConfigProvider.Secrets.Manager,
+            adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
+           {:env, "not-set"},
+           {:config_checksum, nil}
+         ]},
+        {:deployex_web,
+         [
+           {DeployexWeb.Endpoint,
+            [
+              url: [host: "not-set", port: 443, scheme: "https"],
+              http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 999]
+            ]}
+         ]},
+        {:ex_aws, [region: "not-set"]},
+        {:observer_web, [mode: :observer, data_retention_period: 0]}
+      ]
+
+      assert capture_log(fn ->
+               assert config == Config.load(config, [])
+             end) =~
+               "DEPLOYEX_CONFIG_YAML_PATH not defined, default configuration will be applied"
     end
   end
 end

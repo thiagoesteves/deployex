@@ -9,7 +9,6 @@ aws_region: "sa-east-1"
 version: "0.4.0"
 otp_version: 26
 os_target: "ubuntu-20.04"
-
 # optional - metrics_retention_time_ms: 3600000
 # optional - logs_retention_time_ms: 3600000
 applications:
@@ -17,6 +16,6 @@ applications:
     language: "elixir"
     # optional - deploy_rollback_timeout_ms: 600000
     # optional - deploy_schedule_interval_ms: 5000
-    replicas: 3
+    # optional - replicas: 3
 # optional - replica_ports:
 # optional - env:

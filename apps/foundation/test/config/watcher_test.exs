@@ -392,6 +392,57 @@ defmodule Foundation.Config.WatcherTest do
       end
     end
 
+    test "detects changes in the YAML file before apply" do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> @default_upgradable end,
+           from_yaml: fn _config ->
+             # First 2 calls are the starting process and update,
+             # the next ones should be the new version
+             called = Process.get("from_yaml", 0)
+             Process.put("from_yaml", called + 1)
+
+             if called > 0 do
+               send(test_pid, {:handle_ref_event, ref})
+
+               Map.merge(@default_upgradable, %{
+                 config_checksum: "new_checksum_2",
+                 metrics_retention_time_ms: 90_000
+               })
+             else
+               Map.merge(@default_upgradable, %{
+                 config_checksum: "new_checksum_1",
+                 metrics_retention_time_ms: 45_000
+               })
+             end
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            state = :sys.get_state(:test_changes)
+            assert state.pending_config != nil
+            assert state.pending_config.metrics_retention_time_ms == 90_000
+          end)
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:metrics_retention_time_ms]"
+      end
+    end
+
     test "updates checksum when no upgradable changes detected" do
       test_pid = self()
       ref = make_ref()
@@ -655,7 +706,7 @@ defmodule Foundation.Config.WatcherTest do
 
       new_monitoring = [
         process: %Foundation.Yaml.Monitoring{
-          enable_restart: true,
+          enable_restart: false,
           warning_threshold_percent: 75,
           restart_threshold_percent: 90
         }
@@ -831,6 +882,45 @@ defmodule Foundation.Config.WatcherTest do
         assert changes.summary.applications.new == []
 
         assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    test "No changes in the application" do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{
+               applications: [@default_application]
+             })
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               config_checksum: "new_checksum",
+               applications: [@default_application]
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        {:ok, _pid} = Watcher.start_link(name: :test_changes, check_interval_ms: 10)
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        state = :sys.get_state(:test_changes)
+
+        assert state.pending_config == nil
+
+        {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_changes)
       end
     end
 
@@ -1304,5 +1394,10 @@ defmodule Foundation.Config.WatcherTest do
 
   test "Test non-mocked lod_config" do
     assert %Upgradable{} == Upgradable.from_yaml(%Yaml{})
+  end
+
+  test "Improve coverage" do
+    assert {:error, :no_pending_changes} == Watcher.get_pending_changes()
+    assert {:error, :no_pending_changes} == Watcher.apply_changes()
   end
 end

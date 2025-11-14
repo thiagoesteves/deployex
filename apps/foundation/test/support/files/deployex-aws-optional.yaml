@@ -14,7 +14,7 @@ os_target: "ubuntu-20.04"
 applications:
   - name: "myphoenixapp"
     language: "elixir"
-    replicas: 3
+    # optional - replicas: 3
     # optional - deploy_rollback_timeout_ms: 600000
     # optional - deploy_schedule_interval_ms: 5000
     replica_ports:

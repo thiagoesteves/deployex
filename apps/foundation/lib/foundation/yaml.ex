@@ -196,13 +196,8 @@ defmodule Foundation.Yaml do
   defp maybe_parse(true, content) do
     checksum = compute_checksum(content)
 
-    case YamlElixir.read_from_string(content) do
-      {:ok, data} ->
-        config = parse(data, checksum)
-        {:ok, config}
-
-      {:error, reason} ->
-        {:error, reason}
+    with {:ok, data} <- YamlElixir.read_from_string(content) do
+      {:ok, parse(data, checksum)}
     end
   end
 
