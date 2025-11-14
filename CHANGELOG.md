@@ -1,12 +1,14 @@
 # CHANGELOG (0.7.X)
 
-## 0.7.4 (:soon:)
+## 0.8.0 (:soon:)
 
 ### Backwards incompatible changes for 0.7.3
  * None
 
 ### Installer Actions
- * None
+ * Update `deployex.yaml` file, moving variables `deploy_timeout_rollback_ms` and `deploy_timeout_rollback_ms` to  each application instead of globally name.
+ * Update `deployex.sh` to be able to install using new configuration. The logs directory have changed from `/var/log/{monitored_app_name}` to `/var/log/monitored-apps/{monitored_app_name}` which means you will need to update the log collector like CloudWatch.
+`wget https://github.com/thiagoesteves/deployex/releases/download/0.8.0/deployex.sh`
 
 ### Bug fixes
  * [`PULL-174`](https://github.com/thiagoesteves/deployex/pull/174) Fixing truncated logs for Live and History logs dashboard
