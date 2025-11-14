@@ -272,26 +272,31 @@ defmodule Sentinel.Watchdog do
   ### Public APIs
   ### ==========================================================================
 
+  @spec get_app_data(node :: node(), type :: atom()) :: Data.t()
   def get_app_data(node, type) do
     [{_, data}] = :ets.lookup(@watchdog_data, {node, :data, type})
     data
   end
 
+  @spec get_app_config(node :: node(), type :: atom()) :: map()
   def get_app_config(node, type) do
     [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
     config
   end
 
+  @spec get_deployex_memory_data() :: Data.t()
   def get_deployex_memory_data do
     [{_, data}] = :ets.lookup(@watchdog_data, {:deployex, :data, :memory})
     data
   end
 
+  @spec get_deployex_memory_config() :: map()
   def get_deployex_memory_config do
     [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, :memory})
     config
   end
 
+  @spec reset_app_statistics(name :: String.t()) :: :ok
   def reset_app_statistics(name) do
     GenServer.call(__MODULE__, {:reset_app_statistics, name})
   end

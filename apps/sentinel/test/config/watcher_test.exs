@@ -148,7 +148,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-    test "applies pending changes successfully" do
+    test "applies pending changes successfully (Empty changes)" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_success)
 

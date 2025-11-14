@@ -153,7 +153,7 @@ defmodule Sentinel.Config.Watcher do
   Returns a map with detailed information about what changed between
   the current and pending configurations.
   """
-  @spec get_pending_changes(GenServer.server()) ::
+  @spec get_pending_changes(server :: GenServer.server()) ::
           {:ok, Changes.t()} | {:error, :no_pending_changes}
   def get_pending_changes(server \\ __MODULE__) do
     GenServer.call(server, :get_pending_changes)
@@ -162,7 +162,7 @@ defmodule Sentinel.Config.Watcher do
   @doc """
   Applies the pending configuration changes.
   """
-  @spec apply_changes(GenServer.server()) :: :ok | {:error, :no_pending_changes}
+  @spec apply_changes(server :: GenServer.server()) :: :ok | {:error, :no_pending_changes}
   def apply_changes(server \\ __MODULE__) do
     GenServer.call(server, :apply_changes)
   end
@@ -390,7 +390,6 @@ defmodule Sentinel.Config.Watcher do
         :applications ->
           Enum.each(change.details, fn
             {name, %{status: :added}} ->
-              Logger.info("ConfigWatcher: Setting up folders for the new application: #{name}")
               Local.setup_new_app(name)
 
             {name, %{status: :removed}} ->
@@ -418,7 +417,6 @@ defmodule Sentinel.Config.Watcher do
           Enum.each(change.details, fn
             {name, %{status: :added}} ->
               application = Enum.find(change.new, &(&1.name == name))
-              Logger.info("ConfigWatcher: Adding monitor deployment for application: #{name}")
               Monitor.init_monitor_supervisor(name)
               Engine.init_worker(application)
               :ok
