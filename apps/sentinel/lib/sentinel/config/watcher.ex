@@ -468,12 +468,6 @@ defmodule Sentinel.Config.Watcher do
   defp build_config_updates(summary) do
     Enum.reduce(summary, [], fn {key, change}, acc ->
       case key do
-        :deploy_rollback_timeout_ms ->
-          add_foundation_config(acc, key, change.new)
-
-        :deploy_schedule_interval_ms ->
-          add_foundation_config(acc, key, change.new)
-
         :logs_retention_time_ms ->
           add_foundation_config(acc, key, change.new)
 

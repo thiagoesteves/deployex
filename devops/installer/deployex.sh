@@ -46,6 +46,7 @@ DEPLOYEX_STORAGE_DIR=/opt/deployex/storage
 DEPLOYEX_SERVICE_DIR=/opt/deployex/service
 DEPLOYEX_LOG_PATH=/var/log/deployex
 DEPLOYEX_VAR_LIB=/var/lib/deployex
+DEPLOYEX_MONITORED_APP_LOG_PATH=/var/log/monitored-apps
 
 remove_deployex() {
     echo "#           Removing Deployex              #"
@@ -108,16 +109,9 @@ DEPLOYEX_SYSTEMD_FILE="
 
     # Create log directories for all applications
     echo "# Creating log directories for applications #"
-    local app_count=$(yq '.applications | length' "$yaml_file")
-    
-    for ((i=0; i<app_count; i++)); do
-        local app_name=$(yq ".applications[$i].name" "$yaml_file" | tr -d '"')
-        if [ -n "$app_name" ]; then
-            echo "  - Creating log directory for: $app_name"
-            mkdir -p /var/log/${app_name}/
-            chown deployex:deployex /var/log/${app_name}/
-        fi
-    done
+    echo "  - Application logs at: $DEPLOYEX_MONITORED_APP_LOG_PATH"
+    mkdir -p ${DEPLOYEX_MONITORED_APP_LOG_PATH}/
+    chown deployex:deployex /var/log/${app_name}/
 
     printf "%s\n" "${DEPLOYEX_SYSTEMD_FILE}" > ${DEPLOYEX_SYSTEMD_PATH}
     echo "#    Deployex installed with success       #"
