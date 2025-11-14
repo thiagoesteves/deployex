@@ -23,7 +23,9 @@ defmodule Sentinel.Config.Watcher do
   use GenServer
   require Logger
 
+  alias Deployer.Engine
   alias Deployer.Engine.Supervisor, as: EngineSupervisor
+  alias Deployer.Monitor
   alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
   alias Foundation.Catalog.Local
   alias Foundation.Yaml
@@ -381,6 +383,7 @@ defmodule Sentinel.Config.Watcher do
     |> add_monitoring_changes(old_app, new_app)
   end
 
+  # credo:disable-for-lines:5
   defp apply_pre_config_changes(summary) do
     Enum.each(summary, fn {key, change} ->
       case key do
@@ -407,6 +410,7 @@ defmodule Sentinel.Config.Watcher do
     end)
   end
 
+  # credo:disable-for-lines:15
   defp apply_post_config_changes(summary) do
     Enum.each(summary, fn {key, change} ->
       case key do
@@ -415,26 +419,20 @@ defmodule Sentinel.Config.Watcher do
             {name, %{status: :added}} ->
               application = Enum.find(change.new, &(&1.name == name))
               Logger.info("ConfigWatcher: Adding monitor deployment for application: #{name}")
-              Deployer.Monitor.init_monitor_supervisor(name)
-              Deployer.Engine.init_worker(application)
+              Monitor.init_monitor_supervisor(name)
+              Engine.init_worker(application)
               :ok
 
             {name, %{status: :modified, changes: changes}} ->
-              Enum.each(changes, fn {app_change_key, %{old: _old, new: _new}} ->
+              Enum.each(changes, fn {app_change_key, %{old: _old, new: new}} ->
                 case app_change_key do
                   :monitoring ->
                     Sentinel.Watchdog.reset_app_statistics(name)
                     :ok
 
-                  :replicas ->
-                    # TODO: Add or remove replicas
-                    :ok
+                  field ->
+                    Engine.Worker.updated_state_values(name, Map.put(%{}, field, new))
 
-                  key when key in [:replica_ports, :env, :language] ->
-                    # TODO: Add next deployment variables
-                    :ok
-
-                  _ ->
                     :ok
                 end
               end)
@@ -458,9 +456,6 @@ defmodule Sentinel.Config.Watcher do
         :logs_retention_time_ms ->
           Sentinel.Logs.update_data_retention_period(change.new)
           :ok
-
-        _ ->
-          :ok
       end
     end)
   end
@@ -468,20 +463,11 @@ defmodule Sentinel.Config.Watcher do
   defp build_config_updates(summary) do
     Enum.reduce(summary, [], fn {key, change}, acc ->
       case key do
-        :logs_retention_time_ms ->
-          add_foundation_config(acc, key, change.new)
-
         :metrics_retention_time_ms ->
           add_observer_web_config(acc, change.new)
 
-        :monitoring ->
-          add_foundation_config(acc, key, change.new)
-
-        :applications ->
-          add_foundation_config(acc, key, change.new)
-
         _ ->
-          acc
+          add_foundation_config(acc, key, change.new)
       end
     end)
   end
