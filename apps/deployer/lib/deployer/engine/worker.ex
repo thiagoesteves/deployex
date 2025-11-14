@@ -220,8 +220,13 @@ defmodule Deployer.Engine.Worker do
         next_instance..new_replicas,
         {state.deployments, available_ports},
         fn instance, {deployments, available_ports} ->
-          [free_ports | rest] = available_ports
-          {Map.put(deployments, instance, %Engine.Deployment{ports: free_ports}), rest}
+          case available_ports do
+            [ports | rest] ->
+              {Map.put(deployments, instance, %Engine.Deployment{ports: ports}), rest}
+
+            _ ->
+              {Map.put(deployments, instance, %Engine.Deployment{ports: []}), []}
+          end
         end
       )
 
@@ -263,6 +268,7 @@ defmodule Deployer.Engine.Worker do
   end
 
   def handle_cast({:updated_state_values, %{replica_ports: replica_ports}}, %__MODULE__{} = state) do
+    Logger.warning("Updating replica ports for #{state.name}")
     {:noreply, do_restart_deployments(%{state | replica_ports: replica_ports})}
   end
 

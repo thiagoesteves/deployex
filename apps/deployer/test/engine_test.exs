@@ -1091,4 +1091,674 @@ defmodule Deployer.EngineTest do
       assert logs =~ "is not stable, ghosting version"
     end
   end
+
+  describe "Config updates" do
+    test "Check restart deployments requested" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn %{sname: sname} ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref, sname})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language,
+                   replicas: 3
+                 })
+
+        assert_receive {:handle_ref_event, ^ref, _sname}, 1_000
+
+        module_name = String.to_atom(name)
+        _state = :sys.get_state(module_name)
+
+        Engine.Worker.restart_deployments(name)
+        # Check the State is fully restarted and ready to deploy again
+        assert %Deployer.Engine.Worker{
+                 replicas: 3,
+                 current: 1,
+                 deployments: %{
+                   1 => %Deployer.Engine.Deployment{
+                     ports: [],
+                     state: :init,
+                     sname: nil,
+                     timer_ref: nil
+                   },
+                   2 => %Deployer.Engine.Deployment{
+                     ports: [],
+                     state: :init,
+                     sname: nil,
+                     timer_ref: nil
+                   },
+                   3 => %Deployer.Engine.Deployment{
+                     ports: [],
+                     state: :init,
+                     sname: nil,
+                     timer_ref: nil
+                   }
+                 },
+                 deployment_to_terminate: nil
+               } = :sys.get_state(module_name)
+      end
+    end
+
+    test "Update value" do
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> expect(:current_version, 2, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} ->
+        send(pid, {:handle_ref_event, ref})
+        {:ok, self()}
+      end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 10,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        module_name = String.to_atom(name)
+
+        Engine.Worker.updated_state_values(name, %{deploy_rollback_timeout_ms: 5_000})
+
+        assert %Deployer.Engine.Worker{deploy_rollback_timeout_ms: 5_000} =
+                 :sys.get_state(module_name)
+
+        Engine.Worker.updated_state_values(name, %{language: "gleam"})
+        assert %Deployer.Engine.Worker{language: "gleam"} = :sys.get_state(module_name)
+
+        Engine.Worker.updated_state_values(name, %{deploy_schedule_interval_ms: 5_000})
+
+        assert %Deployer.Engine.Worker{deploy_schedule_interval_ms: 5_000} =
+                 :sys.get_state(module_name)
+
+        Engine.Worker.updated_state_values(name, %{env: ["any=abc"]})
+        assert %Deployer.Engine.Worker{env: ["any=abc"]} = :sys.get_state(module_name)
+      end
+    end
+
+    test "Check Add replicas (Without replica_ports)" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn %{sname: sname} ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref, sname})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Engine.Worker.start_link(%Engine.Worker{
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 100,
+                            name: name,
+                            language: language,
+                            replicas: 3
+                          })
+
+                 assert_receive {:handle_ref_event, ^ref, sname}, 1_000
+
+                 module_name = String.to_atom(name)
+                 _state = :sys.get_state(module_name)
+
+                 Engine.notify_application_running(sname)
+
+                 Engine.Worker.updated_state_values(name, %{replicas: 5})
+                 # Check the State is fully restarted and ready to deploy again
+                 assert %Deployer.Engine.Worker{
+                          replicas: 5,
+                          current: 4,
+                          deployments: %{
+                            1 => %Deployer.Engine.Deployment{
+                              ports: [],
+                              sname: _sname,
+                              state: :active,
+                              timer_ref: _timer_ref
+                            },
+                            2 => %Deployer.Engine.Deployment{
+                              ports: [],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            3 => %Deployer.Engine.Deployment{
+                              ports: [],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            4 => %Deployer.Engine.Deployment{
+                              ports: [],
+                              state: :init,
+                              sname: nil,
+                              timer_ref: nil
+                            },
+                            5 => %Deployer.Engine.Deployment{
+                              ports: [],
+                              state: :init,
+                              sname: nil,
+                              timer_ref: nil
+                            }
+                          },
+                          deployment_to_terminate: nil
+                        } = :sys.get_state(module_name)
+               end
+             end) =~ "Adding new replicas for myelixir"
+    end
+
+    test "Check Add replicas (With replica_ports)" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn %{sname: sname} ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref, sname})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Engine.Worker.start_link(%Engine.Worker{
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 100,
+                            name: name,
+                            language: language,
+                            replicas: 3,
+                            replica_ports: [%{key: "PORT", base: 6000}]
+                          })
+
+                 assert_receive {:handle_ref_event, ^ref, sname}, 1_000
+
+                 module_name = String.to_atom(name)
+                 _state = :sys.get_state(module_name)
+
+                 Engine.notify_application_running(sname)
+
+                 Engine.Worker.updated_state_values(name, %{replicas: 5})
+                 # Check the State is fully restarted and ready to deploy again
+                 assert %Deployer.Engine.Worker{
+                          replicas: 5,
+                          current: 4,
+                          deployments: %{
+                            1 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6003, key: "PORT"}],
+                              sname: _sname,
+                              state: :active,
+                              timer_ref: _timer_ref
+                            },
+                            2 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6001, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            3 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6002, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            4 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6004, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            5 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6005, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            }
+                          },
+                          deployment_to_terminate: nil
+                        } = :sys.get_state(module_name)
+               end
+             end) =~ "Adding new replicas for myelixir"
+    end
+
+    test "Check Remove replicas (With replica_ports)" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn %{sname: sname} ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref, sname})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Engine.Worker.start_link(%Engine.Worker{
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 100,
+                            name: name,
+                            language: language,
+                            replicas: 3,
+                            replica_ports: [%{key: "PORT", base: 6000}]
+                          })
+
+                 assert_receive {:handle_ref_event, ^ref, sname}, 1_000
+
+                 module_name = String.to_atom(name)
+                 _state = :sys.get_state(module_name)
+
+                 Engine.notify_application_running(sname)
+
+                 Engine.Worker.updated_state_values(name, %{replicas: 2})
+                 # Check the State is fully restarted and ready to deploy again
+                 assert %Deployer.Engine.Worker{
+                          replicas: 2,
+                          current: 1,
+                          deployments: %{
+                            1 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6003, key: "PORT"}],
+                              sname: _sname,
+                              state: :active,
+                              timer_ref: _timer_ref
+                            },
+                            2 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 6001, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            }
+                          },
+                          deployment_to_terminate: nil
+                        } = :sys.get_state(module_name)
+               end
+             end) =~ "Removing replicas for myelixir"
+    end
+
+    test "Check Change replica ports (it forces to restart the deployment)" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname ->
+        # First 2 calls are the starting process and update
+        # the next ones should be the new version
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2 do
+          to_version
+        else
+          from_version
+        end
+      end)
+      |> expect(:update, 2, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 2, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 2, fn %{sname: sname} ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("start_service", 0)
+        Process.put("start_service", called + 1)
+
+        if called > 0 do
+          send(pid, {:handle_ref_event, ref, sname})
+        end
+
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        # First time: initialization
+        # Second time: new deployment
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0 do
+          %{version: to_version, hash: "local", pre_commands: []}
+        else
+          %{version: from_version, hash: "local", pre_commands: []}
+        end
+      end)
+      |> expect(:download_release, 2, fn _app_name, version, _download_path
+                                         when version in [from_version, to_version] ->
+        :ok
+      end)
+
+      Deployer.UpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+                                from_version: ^from_version,
+                                to_version: ^to_version
+                              } ->
+        {:ok, :full_deployment}
+      end)
+
+      assert capture_log(fn ->
+               with_mock System, [:passthrough],
+                 cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+                 assert {:ok, _pid} =
+                          Engine.Worker.start_link(%Engine.Worker{
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 100,
+                            name: name,
+                            language: language,
+                            replicas: 3,
+                            replica_ports: [%{key: "PORT", base: 6000}]
+                          })
+
+                 assert_receive {:handle_ref_event, ^ref, sname}, 1_000
+
+                 module_name = String.to_atom(name)
+                 _state = :sys.get_state(module_name)
+
+                 Engine.notify_application_running(sname)
+
+                 Engine.Worker.updated_state_values(name, %{
+                   replica_ports: [%{base: 7000, key: "PORT"}]
+                 })
+
+                 # Check the State is fully restarted and ready to deploy again
+                 assert %Deployer.Engine.Worker{
+                          replicas: 3,
+                          current: 2,
+                          deployments: %{
+                            1 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 7000, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            2 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 7001, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            },
+                            3 => %Deployer.Engine.Deployment{
+                              ports: [%{base: 7002, key: "PORT"}],
+                              sname: nil,
+                              state: :init,
+                              timer_ref: nil
+                            }
+                          },
+                          deployment_to_terminate: nil
+                        } = :sys.get_state(module_name)
+               end
+             end) =~ "Updating replica ports for myelixir"
+    end
+  end
 end
