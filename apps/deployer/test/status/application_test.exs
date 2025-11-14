@@ -57,6 +57,8 @@ defmodule Deployer.Status.ApplicationTest do
     assert StatusApp.current_version(sname_1) == nil
     assert StatusApp.current_version(sname_2) == nil
     assert StatusApp.current_version(sname_3) == nil
+
+    assert StatusApp.current_version_map(nil) == %Catalog.Version{}
   end
 
   test "current_version / current_version_map", %{
@@ -98,6 +100,11 @@ defmodule Deployer.Status.ApplicationTest do
 
   test "subscribe/0" do
     assert StatusApp.subscribe() == :ok
+  end
+
+  test "list_installed_apps/1" do
+    assert StatusApp.list_installed_apps("test_app") == []
+    assert StatusApp.list_installed_apps("invalid_app") == []
   end
 
   test "ghosted_version", %{name_1: name_1, sname_1: sname_1} do

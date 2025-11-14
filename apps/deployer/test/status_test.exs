@@ -64,4 +64,11 @@ defmodule Deployer.StatusTest do
 
     assert {:ok, %{mode: ^mode, version: ^version}} = Status.set_mode("myelixir", mode, version)
   end
+
+  test "ghosted_version_list/1" do
+    Deployer.StatusMock
+    |> expect(:ghosted_version_list, fn _name -> [] end)
+
+    assert Enum.empty?(Status.ghosted_version_list(:name))
+  end
 end

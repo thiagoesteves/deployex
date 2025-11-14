@@ -2,6 +2,7 @@ defmodule Deployer.MonitorTest do
   use ExUnit.Case, async: false
 
   import Mox
+  import Mock
   import ExUnit.CaptureLog
 
   setup :set_mox_global
@@ -891,5 +892,26 @@ defmodule Deployer.MonitorTest do
     assert state == MonitorApp.state(sname)
 
     assert :ok = MonitorApp.stop_service(name, sname)
+  end
+
+  test "list/1" do
+    Deployer.MonitorMock
+    |> expect(:list, fn _options -> [] end)
+
+    assert [] == Deployer.Monitor.list([])
+  end
+
+  test "subscribe_new_deploy/0" do
+    Deployer.MonitorMock
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert :ok == Deployer.Monitor.subscribe_new_deploy()
+  end
+
+  test "init_all_monitor_supervisors/0" do
+    with_mock DynamicSupervisor, [:passthrough],
+      start_child: fn _module, _spec -> {:ok, self()} end do
+      assert :ok == Deployer.Monitor.init_all_monitor_supervisors()
+    end
   end
 end
