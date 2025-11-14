@@ -32,16 +32,13 @@ defmodule Foundation.ConfigProvider.Env.Config do
       {:ok, yaml_config} ->
         # Foundation Config
         updated_config = [
-          foundation:
-            [
-              {:env, yaml_config.account_name},
-              {:applications, yaml_config.applications},
-              {:config_checksum, yaml_config.config_checksum},
-              {:monitoring, yaml_config.monitoring}
-            ] ++
-              add_if_not_nil(yaml_config, :logs_retention_time_ms) ++
-              add_if_not_nil(yaml_config, :deploy_rollback_timeout_ms) ++
-              add_if_not_nil(yaml_config, :deploy_schedule_interval_ms)
+          foundation: [
+            {:env, yaml_config.account_name},
+            {:applications, yaml_config.applications},
+            {:config_checksum, yaml_config.config_checksum},
+            {:monitoring, yaml_config.monitoring},
+            {:logs_retention_time_ms, yaml_config.logs_retention_time_ms}
+          ]
         ]
 
         # AWS Config
@@ -66,13 +63,9 @@ defmodule Foundation.ConfigProvider.Env.Config do
 
         # Telemetry Config
         updated_config =
-          if yaml_config.metrics_retention_time_ms do
-            Config.Reader.merge(updated_config,
-              observer_web: [{:data_retention_period, yaml_config.metrics_retention_time_ms}]
-            )
-          else
-            updated_config
-          end
+          Config.Reader.merge(updated_config,
+            observer_web: [{:data_retention_period, yaml_config.metrics_retention_time_ms}]
+          )
 
         # GCP Config (Goth)
         updated_config =
@@ -112,19 +105,16 @@ defmodule Foundation.ConfigProvider.Env.Config do
         Config.Reader.merge(config, updated_config)
 
       {:error, :not_found} ->
-        Logger.warning("YAML file not found, default configuration will be applied")
+        Logger.warning(
+          "DEPLOYEX_CONFIG_YAML_PATH not defined, default configuration will be applied"
+        )
+
+        config
 
       {:error, _reason} ->
         Logger.error("Error loading the YAML file, default configuration will be applied")
 
         config
-    end
-  end
-
-  defp add_if_not_nil(config, key) do
-    case Map.get(config, key) do
-      nil -> []
-      value -> [{key, value}]
     end
   end
 end

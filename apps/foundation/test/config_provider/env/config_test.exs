@@ -68,15 +68,15 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {:config_checksum,
-                   "d165d4ff6518ef4f06f8d0fe69f940b1c3156c8260dedff28b16792789c63a8b"},
+                   "5d6ee0b036f41e901aec5dd4d6a2af087d96040402a9ade329573795540bb8a1"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
-                  {:deploy_rollback_timeout_ms, 600_000},
-                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -173,11 +173,13 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {:config_checksum,
-                   "a67eddebd4a9e00269cbe4d322e994289bb4e039210e6f61d759f918541f6b85"},
+                   "998af846cae59aad19183c5006e56bf22c1c161501752d06a6bf1fb6493f1e38"},
                   {:monitoring,
                    [
                      memory: %Foundation.Yaml.Monitoring{
@@ -187,8 +189,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
-                  {:deploy_rollback_timeout_ms, 600_000},
-                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -247,6 +247,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        ],
                        replicas: 3,
                        language: "elixir",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
@@ -271,11 +273,13 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        ],
                        replicas: 2,
                        language: "erlang",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {:config_checksum,
-                   "e24863bf980b40262095c0b2a7c7500663f0702434072f8e4e5f5a111407e809"},
+                   "ba24931b10e4dea96ac3b978a0f3737ff740da082059df6401b2cb9ff44485e1"},
                   {:monitoring,
                    [
                      memory: %Foundation.Yaml.Monitoring{
@@ -285,8 +289,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
-                  {:deploy_rollback_timeout_ms, 600_000},
-                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -329,6 +331,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 3,
                        language: "elixir",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4000, key: "PORT"}]
                      },
                      %{
@@ -337,15 +341,15 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 2,
                        language: "erlang",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
                        replica_ports: [%{base: 4050, key: "PORT"}]
                      }
                    ]},
                   {:config_checksum,
-                   "a8424a9c39a86772229fb235c10fe2e11a154de521bbb483d46a641cccc0f716"},
+                   "a4a6bf0fac50a3d7dfb66676935069d93b2506d8fce0e1bd50dcf0f77962b41d"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
-                  {:deploy_rollback_timeout_ms, 600_000},
-                  {:deploy_schedule_interval_ms, 5_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -404,12 +408,11 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
-  test "load/3 - Optional fields don't change if not passed in the YAML" do
+  test "load/3 - Optional fields are initialized with default values from YAML" do
     with_mocks([
       {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
     ]) do
       assert [
-               {:observer_web, [mode: :observer, data_retention_period: 1000]},
                {:ex_aws, [region: "sa-east-1"]},
                {:deployex_web,
                 [
@@ -419,6 +422,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      http: [port: 5001]
                    ]}
                 ]},
+               {:observer_web, [mode: :observer, data_retention_period: 3_600_000]},
                {:deployer,
                 [
                   {Deployer.Release,
@@ -426,9 +430,6 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                 ]},
                {:foundation,
                 [
-                  {:logs_retention_time_ms, 0},
-                  {:deploy_rollback_timeout_ms, 0},
-                  {:deploy_schedule_interval_ms, 0},
                   {:env, "prod"},
                   {:applications,
                    [
@@ -438,12 +439,15 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        monitoring: [],
                        replicas: 3,
                        language: "elixir",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5000,
                        replica_ports: [%{base: 4000, key: "PORT"}]
                      }
                    ]},
                   {:config_checksum,
-                   "f1d04d2f94b52f4564a7e93b926be090313799a0f8ae753d8e123a1f8f201de3"},
+                   "5c1d8cb90a8661ac4fefad8d1ad2aa760d4d7257f61bd310e9aadf31c3b97968"},
                   {:monitoring, []},
+                  {:logs_retention_time_ms, 3_600_000},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -453,11 +457,9 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
              ] =
                Config.load(
                  [
-                   observer_web: [mode: :observer, data_retention_period: 1000],
+                   observer_web: [mode: :observer, data_retention_period: 0],
                    foundation: [
-                     logs_retention_time_ms: 0,
-                     deploy_rollback_timeout_ms: 0,
-                     deploy_schedule_interval_ms: 0
+                     logs_retention_time_ms: 0
                    ]
                  ],
                  []
@@ -503,6 +505,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
            {Foundation.ConfigProvider.Secrets.Manager,
             adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
            {:env, "not-set"},
+           {:logs_retention_time_ms, 0},
            {:config_checksum, nil}
          ]},
         {:deployex_web,
@@ -521,6 +524,37 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                assert config == Config.load(config, [])
              end) =~
                "Error loading the YAML file, default configuration will be applied"
+    end
+  end
+
+  test "load/3 Yaml file not found, keep the configuration" do
+    with_mocks([
+      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> nil end]}
+    ]) do
+      config = [
+        {:foundation,
+         [
+           {Foundation.ConfigProvider.Secrets.Manager,
+            adapter: Foundation.ConfigProvider.Secrets.Gcp, path: "any-env-path"},
+           {:env, "not-set"},
+           {:config_checksum, nil}
+         ]},
+        {:deployex_web,
+         [
+           {DeployexWeb.Endpoint,
+            [
+              url: [host: "not-set", port: 443, scheme: "https"],
+              http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 999]
+            ]}
+         ]},
+        {:ex_aws, [region: "not-set"]},
+        {:observer_web, [mode: :observer, data_retention_period: 0]}
+      ]
+
+      assert capture_log(fn ->
+               assert config == Config.load(config, [])
+             end) =~
+               "DEPLOYEX_CONFIG_YAML_PATH not defined, default configuration will be applied"
     end
   end
 end

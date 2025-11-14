@@ -34,8 +34,8 @@ defmodule Deployer.Engine.Worker do
           ghosted_version_list: list(),
           deployments: map(),
           deployment_to_terminate: map(),
-          timeout_rollback: non_neg_integer(),
-          schedule_interval: non_neg_integer()
+          deploy_rollback_timeout_ms: non_neg_integer(),
+          deploy_schedule_interval_ms: non_neg_integer()
         }
 
   defstruct replicas: 1,
@@ -48,8 +48,8 @@ defmodule Deployer.Engine.Worker do
             ghosted_version_list: [],
             deployments: %{},
             deployment_to_terminate: nil,
-            timeout_rollback: 0,
-            schedule_interval: 0
+            deploy_rollback_timeout_ms: 0,
+            deploy_schedule_interval_ms: 0
 
   @dialyzer {:nowarn_function, initialize_version: 1}
 
@@ -67,12 +67,12 @@ defmodule Deployer.Engine.Worker do
           name: name,
           replica_ports: replica_ports,
           replicas: replicas,
-          schedule_interval: schedule_interval
+          deploy_schedule_interval_ms: deploy_schedule_interval_ms
         } = state
       ) do
     Logger.info("Initializing Engine Server for #{name}")
 
-    schedule_new_deployment(schedule_interval)
+    schedule_new_deployment(deploy_schedule_interval_ms)
 
     check_installled_apps = fn
       [] ->
@@ -119,7 +119,7 @@ defmodule Deployer.Engine.Worker do
 
   @impl true
   def handle_info(:schedule, %__MODULE__{} = state) do
-    schedule_new_deployment(state.schedule_interval)
+    schedule_new_deployment(state.deploy_schedule_interval_ms)
     current_deployment = state.deployments[state.current]
 
     new_state =
@@ -345,7 +345,7 @@ defmodule Deployer.Engine.Worker do
       Process.send_after(
         self(),
         {:timeout_rollback, state.current, sname},
-        state.timeout_rollback,
+        state.deploy_rollback_timeout_ms,
         []
       )
 

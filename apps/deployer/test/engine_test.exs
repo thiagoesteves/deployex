@@ -29,16 +29,16 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 5_000,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 5_000,
                    name: name,
                    language: language
                  })
 
         assert {:error, {:already_started, _pid}} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 5_000,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 5_000,
                    name: name,
                    language: language
                  })
@@ -82,8 +82,8 @@ defmodule Deployer.EngineTest do
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
                           Engine.Worker.start_link(%Engine.Worker{
-                            timeout_rollback: 1_000,
-                            schedule_interval: 10,
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 10,
                             name: name,
                             language: language
                           })
@@ -123,8 +123,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 10,
                    name: name,
                    language: language
                  })
@@ -205,8 +205,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 10,
                    name: name,
                    language: language
                  })
@@ -260,8 +260,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 10,
                    name: name,
                    language: language,
                    ghosted_version_list: [%{version: ghosted_version}]
@@ -353,8 +353,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 10,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 10,
                    name: name,
                    language: language
                  })
@@ -424,8 +424,8 @@ defmodule Deployer.EngineTest do
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
                           Engine.Worker.start_link(%Engine.Worker{
-                            timeout_rollback: 1_000,
-                            schedule_interval: 200,
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 200,
                             name: name,
                             language: language
                           })
@@ -509,8 +509,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language,
                    replicas: 3
@@ -599,8 +599,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })
@@ -686,8 +686,8 @@ defmodule Deployer.EngineTest do
                  cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
                  assert {:ok, _pid} =
                           Engine.Worker.start_link(%Engine.Worker{
-                            timeout_rollback: 1_000,
-                            schedule_interval: 100,
+                            deploy_rollback_timeout_ms: 1_000,
+                            deploy_schedule_interval_ms: 100,
                             name: name,
                             language: language
                           })
@@ -777,8 +777,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 30_000,
-                   schedule_interval: 200,
+                   deploy_rollback_timeout_ms: 30_000,
+                   deploy_schedule_interval_ms: 200,
                    name: name,
                    language: language
                  })
@@ -864,8 +864,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 30_000,
-                   schedule_interval: 200,
+                   deploy_rollback_timeout_ms: 30_000,
+                   deploy_schedule_interval_ms: 200,
                    name: name,
                    language: language
                  })
@@ -922,8 +922,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 50,
-                   schedule_interval: 200,
+                   deploy_rollback_timeout_ms: 50,
+                   deploy_schedule_interval_ms: 200,
                    name: name,
                    language: language
                  })
@@ -1009,8 +1009,8 @@ defmodule Deployer.EngineTest do
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
-                   timeout_rollback: 1_000,
-                   schedule_interval: 100,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })
@@ -1070,8 +1070,8 @@ defmodule Deployer.EngineTest do
             cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
             assert {:ok, _pid} =
                      Engine.Worker.start_link(%Engine.Worker{
-                       timeout_rollback: 50,
-                       schedule_interval: 200,
+                       deploy_rollback_timeout_ms: 50,
+                       deploy_schedule_interval_ms: 200,
                        name: name,
                        language: language,
                        replica_ports: [%{key: "PORT1", base: 1}]
