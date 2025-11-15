@@ -110,6 +110,24 @@ defmodule Sentinel.Config.WatcherTest do
     end
   end
 
+  describe "Upgradable from_app_env/0" do
+    test "Check default values for test target" do
+      assert %Upgradable{
+               applications: _,
+               monitoring: [
+                 memory: %{
+                   enable_restart: true,
+                   warning_threshold_percent: 10,
+                   restart_threshold_percent: 20
+                 }
+               ],
+               logs_retention_time_ms: 3_600_000,
+               config_checksum: nil,
+               metrics_retention_time_ms: 3_600_000
+             } = Upgradable.from_app_env()
+    end
+  end
+
   describe "get_pending_changes/1" do
     test "returns error when no pending changes" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
