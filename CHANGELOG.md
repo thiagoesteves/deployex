@@ -6,9 +6,31 @@
  * None
 
 ### Installer Actions
- * Update `deployex.yaml` file, moving variables `deploy_timeout_rollback_ms` and `deploy_timeout_rollback_ms` to  each application instead of globally name.
- * Update `deployex.sh` to be able to install using new configuration. The logs directory have changed from `/var/log/{monitored_app_name}` to `/var/log/monitored-apps/{monitored_app_name}` which means you will need to update the log collector like CloudWatch.
-`wget https://github.com/thiagoesteves/deployex/releases/download/0.8.0/deployex.sh`
+ 1. Update `deployex.yaml` file, moving the variables `deploy_timeout_rollback_ms` and `deploy_timeout_rollback_ms` to each application instead of defining them globally.
+
+**Before (0.8.0 and earlier):**
+```yaml
+deploy_rollback_timeout_ms: 600000
+deploy_schedule_interval_ms: 5000
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+```
+**After (0.8.0):**
+```yaml
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+    deploy_rollback_timeout_ms: 600000
+    deploy_schedule_interval_ms: 5000
+```
+ 2. Download `deployex.sh` to support installation using the new configuration format. The logs directory has changed from `/var/log/{monitored_app_name}` to `/var/log/monitored-apps/{monitored_app_name}`, which means you will need to update your log collector (e.g., CloudWatch).
+ ```bash
+ rm deployex.sh
+ wget https://github.com/thiagoesteves/deployex/releases/download/0.8.0/deployex.sh
+ chmod a+x deployex.sh
+ ./deployex.sh --install
+ ```
 
 ### Bug fixes
  * [`PULL-174`](https://github.com/thiagoesteves/deployex/pull/174) Fixing truncated logs for Live and History logs dashboard
