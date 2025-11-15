@@ -57,9 +57,14 @@ defmodule Deployer.Status.Application do
     deployed_monitored_apps =
       Monitor.list()
       |> Enum.reduce(%{}, fn sname, acc ->
-        %{name: name} = info = Catalog.node_info(sname)
-        current = acc[name] || []
-        Map.put(acc, name, current ++ [info])
+        case Catalog.node_info(sname) do
+          nil ->
+            acc
+
+          %{name: name} = info ->
+            current = acc[name] || []
+            Map.put(acc, name, current ++ [info])
+        end
       end)
 
     # credo:disable-for-lines:10

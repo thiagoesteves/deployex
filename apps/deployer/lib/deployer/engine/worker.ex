@@ -101,20 +101,21 @@ defmodule Deployer.Engine.Worker do
 
     snames = check_installled_apps.(Status.list_installed_apps(name))
 
-    build_ports_by_index = fn index ->
-      Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
-    end
-
     deployments =
       1..replicas
       |> Enum.with_index(fn instance, index ->
-        {instance, build_ports_by_index.(index), Enum.at(snames, index)}
+        {instance, build_ports_by_index(replica_ports, index), Enum.at(snames, index)}
       end)
       |> Enum.reduce(%{}, fn {instance, ports, sname}, acc ->
         Map.put(acc, instance, %Engine.Deployment{sname: sname, ports: ports})
       end)
 
-    {:ok, %{state | deployments: deployments, available_ports: build_ports_by_index.(replicas)}}
+    {:ok,
+     %{
+       state
+       | deployments: deployments,
+         available_ports: build_ports_by_index(replica_ports, replicas)
+     }}
   end
 
   @impl true
@@ -184,6 +185,97 @@ defmodule Deployer.Engine.Worker do
   end
 
   @impl true
+  def handle_cast(:restart_deployments, %__MODULE__{} = state) do
+    {:noreply, do_restart_deployments(state)}
+  end
+
+  def handle_cast(
+        {:updated_state_values, %{replicas: new_replicas}},
+        %__MODULE__{replicas: current_replicas} = state
+      )
+      when new_replicas > current_replicas do
+    Logger.warning("Adding new replicas for #{state.name}")
+
+    # Check the available port between the old set and the new set.
+    all_ports =
+      Enum.with_index(0..new_replicas, fn _instance, index ->
+        Enum.shuffle(build_ports_by_index(state.replica_ports, index))
+      end)
+
+    used_ports =
+      Enum.map(state.deployments, fn {_instance, %Engine.Deployment{ports: ports}} -> ports end) ++
+        [state.available_ports]
+
+    available_ports =
+      MapSet.difference(
+        MapSet.new(all_ports, &Enum.sort_by(&1, fn m -> m.key end)),
+        MapSet.new(used_ports, &Enum.sort_by(&1, fn m -> m.key end))
+      )
+      |> MapSet.to_list()
+
+    next_instance = current_replicas + 1
+
+    {new_deployments, _available_ports} =
+      Enum.reduce(
+        next_instance..new_replicas,
+        {state.deployments, available_ports},
+        fn instance, {deployments, available_ports} ->
+          case available_ports do
+            [ports | rest] ->
+              {Map.put(deployments, instance, %Engine.Deployment{ports: ports}), rest}
+
+            _ ->
+              {Map.put(deployments, instance, %Engine.Deployment{ports: []}), []}
+          end
+        end
+      )
+
+    {:noreply,
+     %{
+       state
+       | deployments: new_deployments,
+         replicas: new_replicas,
+         current: next_instance
+     }}
+  end
+
+  def handle_cast(
+        {:updated_state_values, %{replicas: new_replicas}},
+        %__MODULE__{replicas: current_replicas} = state
+      ) do
+    Logger.warning("Removing replicas for #{state.name}")
+
+    new_deployments =
+      Enum.reduce(1..current_replicas, state.deployments, fn instance, deployments ->
+        if instance <= new_replicas do
+          deployments
+        else
+          %{sname: sname} = deployments[instance]
+          Logger.info(" # Terminating node: #{sname}")
+          Monitor.stop_service(state.name, sname)
+          Catalog.cleanup(sname)
+          Map.delete(deployments, instance)
+        end
+      end)
+
+    {:noreply,
+     %{
+       state
+       | deployments: new_deployments,
+         replicas: new_replicas,
+         current: 1
+     }}
+  end
+
+  def handle_cast({:updated_state_values, %{replica_ports: replica_ports}}, %__MODULE__{} = state) do
+    Logger.warning("Updating replica ports for #{state.name}")
+    {:noreply, do_restart_deployments(%{state | replica_ports: replica_ports})}
+  end
+
+  def handle_cast({:updated_state_values, values}, %__MODULE__{} = state) do
+    {:noreply, struct(state, values)}
+  end
+
   def handle_cast(
         {:application_running, sname},
         %__MODULE__{deployment_to_terminate: deployment_to_terminate} = state
@@ -238,7 +330,7 @@ defmodule Deployer.Engine.Worker do
       iex> Deployer.Engine.notify_application_running(sname)
       :ok
   """
-  @spec notify_application_running(String.t()) :: :ok
+  @spec notify_application_running(sname :: String.t()) :: :ok
   def notify_application_running(sname) do
     case Catalog.node_info(sname) do
       %{name: name} ->
@@ -251,11 +343,74 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
+  @doc """
+  Update application state values that are upgradable. All values MUST be updated individually
+
+  - language
+  - env
+  - deploy_rollback_timeout_ms
+  - deploy_schedule_interval_ms
+  - replica_ports
+  - replicas
+
+  ## Examples
+
+      iex> Deployer.Engine.updated_state_values("myapp", %{language: language})
+      :ok
+  """
+  @spec updated_state_values(name :: String.t(), values :: map()) :: :ok
+  def updated_state_values(name, values) do
+    name
+    |> String.to_existing_atom()
+    |> GenServer.cast({:updated_state_values, values})
+  end
+
+  @doc """
+  Force the deployment restart, which will redeploy nodes for the application.
+
+  ## Examples
+
+      iex> Deployer.Engine.restart_deployments("myapp")
+      :ok
+  """
+  @spec restart_deployments(name :: String.t()) :: :ok
+  def restart_deployments(name) do
+    name
+    |> String.to_existing_atom()
+    |> GenServer.cast(:restart_deployments)
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
 
   defp schedule_new_deployment(timeout), do: Process.send_after(self(), :schedule, timeout)
+
+  defp build_ports_by_index(replica_ports, index) do
+    Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
+  end
+
+  defp do_restart_deployments(
+         %__MODULE__{deployments: deployments, replica_ports: replica_ports, replicas: replicas} =
+           state
+       ) do
+    new_deployments =
+      Enum.reduce(deployments, %{}, fn {instance, %Engine.Deployment{sname: sname}}, acc ->
+        Logger.info(" # Terminating node: #{sname}")
+        Monitor.stop_service(state.name, sname)
+        Catalog.cleanup(sname)
+
+        ports = build_ports_by_index(replica_ports, instance - 1)
+        Map.put(acc, instance, %Engine.Deployment{ports: ports})
+      end)
+
+    %{
+      state
+      | deployments: new_deployments,
+        available_ports: build_ports_by_index(replica_ports, replicas),
+        deployment_to_terminate: nil
+    }
+  end
 
   defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do
     sname = state.deployments[current].sname
@@ -483,7 +638,7 @@ defmodule Deployer.Engine.Worker do
     sname = Catalog.create_sname(name)
 
     # Setup Logs and folders
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     sname
   end

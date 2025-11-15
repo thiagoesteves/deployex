@@ -116,7 +116,7 @@ write_files:
                     "encoding": "utf-8"
                 },
                 {
-                    "file_path": "/var/log/myappname/myappname-*-stdout.log",
+                    "file_path": "/var/log/monitored-apps/myappname/myappname-*-stdout.log",
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-myappname-stdout-log",
                     "timezone": "UTC",
@@ -125,7 +125,7 @@ write_files:
                     "encoding": "utf-8"
                 },
                 {
-                    "file_path": "/var/log/myappname/myappname-*-stderr.log",
+                    "file_path": "/var/log/monitored-apps/myappname/myappname-*-stderr.log",
                     "log_group_name": "${log_group_name}",
                     "log_stream_name": "{instance_id}-myappname-stderr-log",
                     "timezone": "UTC",
@@ -158,7 +158,7 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      /var/log/myappname/*.log {
+      /var/log/monitored-apps/myappname/*.log {
           maxsize 20M
           missingok
           rotate 7

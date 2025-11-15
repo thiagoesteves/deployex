@@ -50,7 +50,7 @@ defmodule Deployer.Release.GcpStorageTest do
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     with_mocks([
       {System, [], [cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end]},
@@ -71,7 +71,7 @@ defmodule Deployer.Release.GcpStorageTest do
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     with_mocks([
       {Goth, [], [fetch!: fn _name -> %{token: "gcp-token"} end]},

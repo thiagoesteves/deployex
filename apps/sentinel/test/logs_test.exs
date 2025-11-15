@@ -49,4 +49,11 @@ defmodule Sentinel.LogsTest do
 
     assert [] = Logs.list_active_snames()
   end
+
+  test "update_data_retention_period/1" do
+    Sentinel.LogsMock
+    |> expect(:update_data_retention_period, fn _value -> :ok end)
+
+    assert :ok = Logs.update_data_retention_period(30_000)
+  end
 end

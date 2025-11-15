@@ -1,4 +1,4 @@
-defmodule Foundation.Config.Upgradable do
+defmodule Sentinel.Config.Upgradable do
   @moduledoc """
   Defines the subset of Deployex configuration that can be upgraded at runtime.
 

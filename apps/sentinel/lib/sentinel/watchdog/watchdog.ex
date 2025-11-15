@@ -85,6 +85,27 @@ defmodule Sentinel.Watchdog do
   end
 
   @impl true
+  def handle_call({:reset_app_statistics, "deployex"}, _from, state) do
+    reset_deployex_statistic()
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:reset_app_statistics, app_name}, _from, state) do
+    state.monitored_nodes
+    |> Enum.each(fn node ->
+      case Catalog.node_info(node) do
+        %{name: ^app_name} ->
+          reset_application_statistic(node)
+
+        _ ->
+          nil
+      end
+    end)
+
+    {:reply, :ok, state}
+  end
+
+  @impl true
   def handle_info(
         :watchdog_check,
         %{monitored_nodes: monitored_nodes, watchdog_check_interval: watchdog_check_interval} =
@@ -251,24 +272,33 @@ defmodule Sentinel.Watchdog do
   ### Public APIs
   ### ==========================================================================
 
+  @spec get_app_data(node :: node(), type :: atom()) :: Data.t()
   def get_app_data(node, type) do
     [{_, data}] = :ets.lookup(@watchdog_data, {node, :data, type})
     data
   end
 
+  @spec get_app_config(node :: node(), type :: atom()) :: map()
   def get_app_config(node, type) do
     [{_, config}] = :ets.lookup(@watchdog_data, {node, :config, type})
     config
   end
 
+  @spec get_deployex_memory_data() :: Data.t()
   def get_deployex_memory_data do
     [{_, data}] = :ets.lookup(@watchdog_data, {:deployex, :data, :memory})
     data
   end
 
+  @spec get_deployex_memory_config() :: map()
   def get_deployex_memory_config do
     [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, :memory})
     config
+  end
+
+  @spec reset_app_statistics(name :: String.t()) :: :ok
+  def reset_app_statistics(name) do
+    GenServer.call(__MODULE__, {:reset_app_statistics, name})
   end
 
   ### ==========================================================================
@@ -283,14 +313,11 @@ defmodule Sentinel.Watchdog do
   end
 
   defp load_node_config(node, type) do
-    %{name: name} = Catalog.node_info(node)
-
-    case Enum.find(Catalog.applications(), &(&1.name == name)) do
-      nil ->
-        %__MODULE__{}
-
-      %{monitoring: monitoring} ->
-        Map.merge(%__MODULE__{}, monitoring[type] || %{})
+    with %{name: name} <- Catalog.node_info(node),
+         %{monitoring: monitoring} <- Enum.find(Catalog.applications(), &(&1.name == name)) do
+      Map.merge(%__MODULE__{}, monitoring[type] || %{})
+    else
+      _ -> %__MODULE__{}
     end
   end
 

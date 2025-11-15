@@ -25,8 +25,8 @@ defmodule Deployer.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _pid} = response ->
-        Deployer.Monitor.initialize_monitor_supervisor()
-        init_deployment_workers()
+        Deployer.Monitor.init_all_monitor_supervisors()
+        init_all_workers()
         response
 
       {:error, reason} = response ->
@@ -40,11 +40,11 @@ defmodule Deployer.Application do
 
     defp application_servers, do: [Deployer.Status.Application]
 
-    defp init_deployment_workers, do: Engine.init_deployment_workers()
+    defp init_all_workers, do: Engine.init_all_workers()
   else
     defp application_servers, do: []
 
-    defp init_deployment_workers, do: :ok
+    defp init_all_workers, do: :ok
   end
 
   defp gcp_app_credentials do

@@ -8,8 +8,9 @@ defmodule Foundation.Catalog.Adapter do
 
   @type bin_service :: :current | :new
 
-  @callback setup() :: :ok
-  @callback setup(String.t()) :: :ok
+  @callback setup_all_apps() :: :ok
+  @callback setup_new_app(String.t()) :: :ok
+  @callback setup_new_node(String.t()) :: :ok
   @callback cleanup(String.t() | nil) :: :ok
   @callback applications() :: list
   @callback create_sname(String.t()) :: String.t()

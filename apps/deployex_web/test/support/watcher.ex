@@ -1,7 +1,7 @@
 defmodule DeployexWeb.Fixture.Watcher do
   @moduledoc false
   def build_pending_changes do
-    %Foundation.Config.Changes{
+    %Sentinel.Config.Changes{
       summary: %{
         applications: %{
           new: ["myumbrella", "another_myumbrella"],

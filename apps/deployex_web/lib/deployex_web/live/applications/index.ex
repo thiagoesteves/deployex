@@ -13,9 +13,9 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.Components.Dashboard
   alias DeployexWeb.Components.SystemBar
   alias Foundation.Common
-  alias Foundation.Config.Watcher
   alias Host.Terminal.Server
   alias ObserverWeb.Telemetry
+  alias Sentinel.Config.Watcher
 
   @deployex_terminate_delay 300
 

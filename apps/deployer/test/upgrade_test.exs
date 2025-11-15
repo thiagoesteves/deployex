@@ -127,7 +127,7 @@ defmodule Deployer.UpgradeAppTest do
 
     sname = Catalog.create_sname(app_name)
     %{node: node} = Catalog.node_info(sname)
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     %{
       node: node,

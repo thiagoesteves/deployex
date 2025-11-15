@@ -12,28 +12,33 @@ defmodule Sentinel.Logs do
   @doc """
   Subscribe for new log notifications for the respective sname/log_type
   """
-  @spec subscribe_for_new_logs(String.t(), String.t()) :: :ok | {:error, term}
+  @spec subscribe_for_new_logs(sname :: String.t(), log_type :: String.t()) ::
+          :ok | {:error, term}
   def subscribe_for_new_logs(sname, log_type),
     do: default().subscribe_for_new_logs(sname, log_type)
 
   @doc """
   Unsubscribe for new data notifications for the respective sname/log_type
   """
-  @spec unsubscribe_for_new_logs(String.t(), String.t()) :: :ok
+  @spec unsubscribe_for_new_logs(sname :: String.t(), log_type :: String.t()) :: :ok
   def unsubscribe_for_new_logs(sname, log_type),
     do: default().unsubscribe_for_new_logs(sname, log_type)
 
   @doc """
   Fetch data by sname and log_type
   """
-  @spec list_data_by_sname_log_type(String.t(), String.t(), Keyword.t()) :: list()
+  @spec list_data_by_sname_log_type(
+          sname :: String.t(),
+          log_type :: String.t(),
+          options :: Keyword.t()
+        ) :: list()
   def list_data_by_sname_log_type(sname, log_type, options),
     do: default().list_data_by_sname_log_type(sname, log_type, options)
 
   @doc """
   List all log types registered for the respective sname
   """
-  @spec get_types_by_sname(String.t()) :: list()
+  @spec get_types_by_sname(sname :: String.t()) :: list()
   def get_types_by_sname(sname), do: default().get_types_by_sname(sname)
 
   @doc """
@@ -45,7 +50,7 @@ defmodule Sentinel.Logs do
   @doc """
   Update data retention period
   """
-  @spec update_data_retention_period(non_neg_integer()) :: :ok
+  @spec update_data_retention_period(retention_period :: non_neg_integer()) :: :ok
   def update_data_retention_period(retention_period),
     do: default().update_data_retention_period(retention_period)
 

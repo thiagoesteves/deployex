@@ -83,7 +83,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 | ------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [**0.7.4** :soon:](https://github.com/thiagoesteves/deployex/releases/tag/0.7.4) | -/-                                                            | **27.3.4.3**                                               | **28.1.1** [2]                                             |
+| [**0.8.0** :soon:](https://github.com/thiagoesteves/deployex/releases/tag/0.8.0) | -/-                                                            | **27.3.4.3**                                               | **28.1.1** [2]                                             |
 | [**0.7.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.3) | -/-                                                            | **27.3.4.3**                                               | **28.1.1** [2]                                             |
 | [**0.7.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.2) | -/-                                                            | **27.3.4.3**                                               | **28.1** [2]                                               |
 | [**0.7.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.1) | -/-                                                            | **27.3.4.3**                                               | **28.1** [2]                                               |
@@ -354,8 +354,8 @@ export monitored_app_name=myphoenixapp
 export sname="${monitored_app_name}-2l0rkp"
 
 # production
-tail -f /var/log/${monitored_app_name}/${sname}-stdout.log
-tail -f /var/log/${monitored_app_name}/${sname}-stderr.log
+tail -f /var/log/monitored-apps/${monitored_app_name}/${sname}-stdout.log
+tail -f /var/log/monitored-apps/${monitored_app_name}/${sname}-stderr.log
 # local test
 tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stdout.log
 tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stderr.log

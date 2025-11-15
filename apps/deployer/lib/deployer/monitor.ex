@@ -102,10 +102,20 @@ defmodule Deployer.Monitor do
   @doc """
   Initialize one monitor supervisor per monitored application
   """
-  @spec initialize_monitor_supervisor :: :ok
-  def initialize_monitor_supervisor do
+  @spec init_monitor_supervisor(name :: String.t()) :: :ok
+  def init_monitor_supervisor(name) do
+    _ = Monitor.Supervisor.create_monitor_supervisor(name)
+
+    :ok
+  end
+
+  @doc """
+  Initialize all monitor supervisor based on the applications config
+  """
+  @spec init_all_monitor_supervisors :: :ok
+  def init_all_monitor_supervisors do
     Enum.each(Catalog.applications(), fn %{name: name} ->
-      {:ok, _pid} = Monitor.Supervisor.create_monitor_supervisor(name)
+      init_monitor_supervisor(name)
     end)
 
     :ok

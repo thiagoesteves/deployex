@@ -34,7 +34,7 @@ defmodule Deployer.GithubTest do
         assert {:ok, pid} = Github.start_link(name: custom_name)
 
         assert {:ok, state} = Github.latest_release(custom_name)
-        assert state.tag_name == "v1.0.0"
+        assert state.tag_name == "1.0.0"
         assert state.prerelease == false
         assert state.created_at == "2024-01-01T10:00:00Z"
 
@@ -68,7 +68,7 @@ defmodule Deployer.GithubTest do
         end do
         assert {:ok, state} = Github.init([])
         assert %Github{} = state
-        assert state.tag_name == "v1.0.0"
+        assert state.tag_name == "1.0.0"
       end
     end
 
@@ -90,8 +90,8 @@ defmodule Deployer.GithubTest do
 
   describe "handle_info/2" do
     test "updates state on :updated_github_info message" do
-      initial_state = %Github{tag_name: "v1.0.0"}
-      mock_response = build_mock_response(%{"tag_name" => "v2.0.0"})
+      initial_state = %Github{tag_name: "1.0.0"}
+      mock_response = build_mock_response(%{"tag_name" => "2.0.0"})
 
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
@@ -102,12 +102,30 @@ defmodule Deployer.GithubTest do
           {:ok, %{body: Jason.encode!(mock_response)}}
         end do
         assert {:noreply, new_state} = Github.handle_info(:updated_github_info, initial_state)
-        assert new_state.tag_name == "v2.0.0"
+        assert new_state.tag_name == "2.0.0"
+        assert new_state.new_release?
+      end
+    end
+
+    test "preserves state when version doesn't follow semver" do
+      initial_state = %Github{tag_name: "1.0.0"}
+      mock_response = build_mock_response(%{"tag_name" => "sfsdfsfsdf"})
+
+      with_mock Finch, [:passthrough],
+        request: fn %Finch.Request{
+                      host: "api.github.com",
+                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                    },
+                    _module ->
+          {:ok, %{body: Jason.encode!(mock_response)}}
+        end do
+        assert {:noreply, new_state} = Github.handle_info(:updated_github_info, initial_state)
+        refute new_state.new_release?
       end
     end
 
     test "preserves state when update fails" do
-      initial_state = %Github{tag_name: "v1.0.0", prerelease: false}
+      initial_state = %Github{tag_name: "1.0.0", prerelease: false}
 
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
@@ -146,7 +164,7 @@ defmodule Deployer.GithubTest do
   end
 
   test "handles invalid JSON response" do
-    previous_state = %Github{tag_name: "v1.0.0"}
+    previous_state = %Github{tag_name: "1.0.0"}
 
     with_mock Finch, [:passthrough],
       request: fn %Finch.Request{
@@ -166,7 +184,7 @@ defmodule Deployer.GithubTest do
   defp build_mock_response(overrides \\ %{}) do
     Map.merge(
       %{
-        "tag_name" => "v1.0.0",
+        "tag_name" => "1.0.0",
         "prerelease" => false,
         "created_at" => "2024-01-01T10:00:00Z",
         "updated_at" => "2024-01-02T10:00:00Z",

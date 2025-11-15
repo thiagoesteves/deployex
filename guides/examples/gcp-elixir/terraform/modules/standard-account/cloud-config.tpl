@@ -108,7 +108,7 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      /var/log/myappname/*.log {
+      /var/log/monitored-apps/myappname/*.log {
           maxsize 20M
           missingok
           rotate 7

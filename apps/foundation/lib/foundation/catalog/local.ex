@@ -30,7 +30,7 @@ defmodule Foundation.Catalog.Local do
   def init(_attrs) do
     :ets.new(@token_table, [:set, :protected, :named_table])
 
-    setup()
+    setup_all_apps()
 
     {:ok, %{}}
   end
@@ -60,20 +60,22 @@ defmodule Foundation.Catalog.Local do
   ### ==========================================================================
 
   @impl true
-  def setup do
-    applications()
-    |> Enum.each(fn %{name: name} ->
-      # Create paths to store persistent information
-      File.mkdir_p!(config_path(name))
-      File.mkdir_p!(history_version_path(name))
-      File.mkdir_p!(ghosted_version_path(name))
-    end)
+  def setup_all_apps do
+    Enum.each(applications(), fn %{name: name} -> setup_new_app(name) end)
+    :ok
+  end
+
+  @impl true
+  def setup_new_app(name) do
+    File.mkdir_p!(config_path(name))
+    File.mkdir_p!(history_version_path(name))
+    File.mkdir_p!(ghosted_version_path(name))
 
     :ok
   end
 
   @impl true
-  def setup(sname) do
+  def setup_new_node(sname) do
     case node_info(sname) do
       %{name: name} ->
         [new_path(sname), current_path(sname), previous_path(sname)]

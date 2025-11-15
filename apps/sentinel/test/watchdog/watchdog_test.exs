@@ -111,6 +111,55 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert [{_, 1_000_000}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
   end
 
+  test "handle_info/2 - application statistics - reset config" do
+    sname = Catalog.create_sname("myelixir")
+    %{node: node, name: name} = Catalog.node_info(sname)
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    node_statistic = %{
+      total_memory: 1_000_000,
+      port_limit: 1_000,
+      port_count: 100,
+      atom_limit: 2_000,
+      atom_count: 200,
+      process_limit: 3_000,
+      process_count: 300
+    }
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    send(pid, {:new_deploy, Node.self(), sname})
+
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :port)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :atom)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :process)
+
+    assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+
+    FixtureTelemetry.send_update_app_message(pid, node, node_statistic)
+
+    wait_message_processing(pid)
+    assert %Data{current: 100, limit: 1000} = Watchdog.get_app_data(node, :port)
+    assert %Data{current: 200, limit: 2000} = Watchdog.get_app_data(node, :atom)
+    assert %Data{current: 300, limit: 3000} = Watchdog.get_app_data(node, :process)
+
+    assert [{_, 1_000_000}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+
+    # Do not update when value=nil
+    Watchdog.reset_app_statistics(name)
+
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :port)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :atom)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_app_data(node, :process)
+
+    Watchdog.reset_app_statistics("deployex")
+
+    assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
+  end
+
   test "handle_info/2 - update application statistics - invalid source" do
     fake_sname = Catalog.create_sname("mygleam")
     %{node: fake_node} = Catalog.node_info(fake_sname)

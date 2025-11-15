@@ -30,4 +30,13 @@ defmodule Deployer.Engine.Supervisor do
 
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
+
+  def stop_deployment(name) do
+    child_pid =
+      name
+      |> String.to_existing_atom()
+      |> Process.whereis()
+
+    DynamicSupervisor.terminate_child(__MODULE__, child_pid)
+  end
 end
