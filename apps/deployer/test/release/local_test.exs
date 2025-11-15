@@ -36,7 +36,7 @@ defmodule Deployer.Release.LocalTest do
     sname = Catalog.create_sname(name)
     new_path = Catalog.new_path(sname)
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
     FixtureFiles.create_tar(name, version)
 
     assert :ok = Local.download_release(name, version, new_path)

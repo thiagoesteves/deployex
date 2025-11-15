@@ -8,7 +8,7 @@ defmodule Foundation.Fixture.Catalog do
   def cleanup do
     Application.get_env(:foundation, :base_path) |> File.rm_rf()
 
-    Catalog.setup()
+    Catalog.setup_all_apps()
   end
 
   def create_current_json(name, map \\ %{version: "1.0.0", hash: "local"}) do

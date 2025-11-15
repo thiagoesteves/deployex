@@ -12,7 +12,7 @@ defmodule Foundation.CatalogTest do
       |> Enum.at(0)
       |> Map.get(:name)
 
-    Catalog.setup()
+    Catalog.setup_all_apps()
     %{name: name}
   end
 

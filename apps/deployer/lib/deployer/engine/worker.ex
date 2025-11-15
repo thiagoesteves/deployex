@@ -638,7 +638,7 @@ defmodule Deployer.Engine.Worker do
     sname = Catalog.create_sname(name)
 
     # Setup Logs and folders
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     sname
   end

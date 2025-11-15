@@ -12,16 +12,28 @@ defmodule Foundation.Catalog do
   ### ==========================================================================
 
   @doc """
-  Ensure all directories are initialised for deployex app
+  Ensure all directories are initialised for all monitored apps in the catalog
 
     ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.setup() == :ok
+    ...> assert Catalog.setup_all_apps() == :ok
   """
   @impl true
-  @spec setup() :: :ok
-  def setup, do: default().setup()
+  @spec setup_all_apps() :: :ok
+  def setup_all_apps, do: default().setup_all_apps()
+
+  @doc """
+  Ensure all directories are initialised for a new app
+
+    ## Examples
+
+    iex> alias Foundation.Catalog
+    ...> assert Catalog.setup_new_app("myapp") == :ok
+  """
+  @impl true
+  @spec setup_new_app(name :: String.t()) :: :ok
+  def setup_new_app(name), do: default().setup_new_app(name)
 
   @doc """
   Ensure all directories are initialised for the respective node
@@ -29,12 +41,12 @@ defmodule Foundation.Catalog do
     ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.setup("testapp") == :ok
-    ...> assert Catalog.setup(nil) == :ok
+    ...> assert Catalog.setup_new_node("testapp") == :ok
+    ...> assert Catalog.setup_new_node(nil) == :ok
   """
   @impl true
-  @spec setup(String.t()) :: :ok
-  def setup(sname), do: default().setup(sname)
+  @spec setup_new_node(String.t()) :: :ok
+  def setup_new_node(sname), do: default().setup_new_node(sname)
 
   @doc """
   Ensure all folders for the respective node are cleaned

@@ -46,7 +46,7 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
              "Application Logs [#{name}-#{suffix}]"
@@ -86,7 +86,7 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     assert index_live |> element("#app-log-stderr-#{name_id}-#{suffix}") |> render_click() =~
              "Application Logs [#{name}-#{suffix}]"
@@ -126,7 +126,7 @@ defmodule DeployexWeb.Applications.LogsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     assert index_live |> element("#app-log-stdout-#{name_id}-#{suffix}") |> render_click() =~
              "Application Logs [#{name}-#{suffix}]"

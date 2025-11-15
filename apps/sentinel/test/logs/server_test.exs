@@ -275,10 +275,10 @@ defmodule Sentinel.Logs.ServerTest do
   defp create_consumer(context) do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
-    Catalog.setup(sname)
+    Catalog.setup_new_node(sname)
 
     node_self = Node.self()
-    Catalog.setup("nonode")
+    Catalog.setup_new_node("nonode")
 
     fake_sname = Catalog.create_sname("fake")
 
