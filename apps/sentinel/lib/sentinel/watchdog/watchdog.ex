@@ -19,13 +19,15 @@ defmodule Sentinel.Watchdog do
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
-          enable_restart: boolean,
-          warning_log_flag: boolean,
+          enabled: boolean(),
+          enable_restart: boolean(),
+          warning_log_flag: boolean(),
           warning_threshold_percent: nil | non_neg_integer(),
           restart_threshold_percent: nil | non_neg_integer()
         }
 
-  defstruct enable_restart: true,
+  defstruct enabled: true,
+            enable_restart: true,
             warning_log_flag: false,
             warning_threshold_percent: 75,
             restart_threshold_percent: 90
@@ -115,14 +117,16 @@ defmodule Sentinel.Watchdog do
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
 
-        # credo:disable-for-lines:1
-        case get_app_data(node, type) do
-          %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
-            :ok
+        if config.enabled do
+          # credo:disable-for-lines:1
+          case get_app_data(node, type) do
+            %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
+              :ok
 
-          %Data{current: count, limit: limit} ->
-            current_percentage = trunc(count / limit * 100)
-            threshold_check_monitored_apps_limits(node, type, current_percentage, config)
+            %Data{current: count, limit: limit} ->
+              current_percentage = trunc(count / limit * 100)
+              threshold_check_monitored_apps_limits(node, type, current_percentage, config)
+          end
         end
       end)
     end
@@ -308,8 +312,13 @@ defmodule Sentinel.Watchdog do
   defp schedule_new_check(interval), do: Process.send_after(self(), :watchdog_check, interval)
 
   defp load_deployex_config(type) do
-    deployex_monitoring = Application.fetch_env!(:foundation, :monitoring)[type]
-    Map.merge(%__MODULE__{}, deployex_monitoring || %{})
+    case Application.fetch_env!(:foundation, :monitoring)[type] do
+      nil ->
+        %__MODULE__{enabled: false}
+
+      deployex_monitoring ->
+        Map.merge(%__MODULE__{}, deployex_monitoring)
+    end
   end
 
   defp load_node_config(node, type) do
@@ -317,7 +326,7 @@ defmodule Sentinel.Watchdog do
          %{monitoring: monitoring} <- Enum.find(Catalog.applications(), &(&1.name == name)) do
       Map.merge(%__MODULE__{}, monitoring[type] || %{})
     else
-      _ -> %__MODULE__{}
+      _ -> %__MODULE__{enabled: false}
     end
   end
 
