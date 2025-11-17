@@ -74,8 +74,19 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
             </button>
           </div>
         </div>
+        <!-- Strategy Legend -->
+        <div class="bg-base-200/50 border-b border-base-300 px-6 py-4">
+          <div class="flex items-center gap-4 text-sm">
+            <span class="font-semibold text-base-content/70">Apply Strategies:</span>
+            <div class="flex flex-wrap gap-3">
+              <.strategy_badge strategy={:immediate} show_description={true} />
+              <.strategy_badge strategy={:next_deploy} show_description={true} />
+              <.strategy_badge strategy={:full_deploy} show_description={true} />
+            </div>
+          </div>
+        </div>
         <!-- Content -->
-        <div class="overflow-y-auto max-h-[calc(90vh-200px)] p-6">
+        <div class="overflow-y-auto max-h-[calc(90vh-280px)] p-6">
           <div class="space-y-6">
             <%= for {field, change_data} <- @pending_changes.summary do %>
               <.render_change_section field={field} change_data={change_data} />
@@ -129,6 +140,85 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
+  # Strategy badge component with optional tooltip
+  attr :strategy, :atom, required: true
+  attr :show_description, :boolean, default: false
+
+  defp strategy_badge(assigns) do
+    {badge_class, label, description} = strategy_config(assigns.strategy)
+
+    assigns =
+      assigns
+      |> assign(:badge_class, badge_class)
+      |> assign(:label, label)
+      |> assign(:description, description)
+
+    ~H"""
+    <div
+      class={"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium #{@badge_class} #{if @show_description, do: "tooltip tooltip-bottom", else: ""}"}
+      data-tip={if @show_description, do: @description, else: nil}
+    >
+      <%= case @strategy do %>
+        <% :immediate -> %>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"
+            >
+            </path>
+          </svg>
+        <% :next_deploy -> %>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            >
+            </path>
+          </svg>
+        <% :full_deploy -> %>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+            >
+            </path>
+          </svg>
+      <% end %>
+      <span>{@label}</span>
+    </div>
+    """
+  end
+
+  defp strategy_config(:immediate) do
+    {
+      "bg-success/20 text-success border border-success/30",
+      "Immediate",
+      "Applied instantly without requiring deployment"
+    }
+  end
+
+  defp strategy_config(:next_deploy) do
+    {
+      "bg-info/20 text-info border border-info/30",
+      "Next Deploy",
+      "Takes effect on the next scheduled deployment"
+    }
+  end
+
+  defp strategy_config(:full_deploy) do
+    {
+      "bg-error/20 text-error border border-error/30",
+      "Full Deploy",
+      "Requires full redeployment with service interruption"
+    }
+  end
+
   defp render_change_section(%{field: :applications} = assigns) do
     ~H"""
     <div class="bg-base-200 rounded-lg p-4 border border-base-300">
@@ -144,8 +234,8 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
         </svg>
         <h3 class="text-lg font-bold text-base-content">Applications</h3>
       </div>
-      <%= for {app_name, app_changes} <- @change_data.details do %>
-        <.render_app_change app_name={app_name} app_changes={app_changes} />
+      <%= for {name, status} <- @change_data.details do %>
+        <.render_app_change name={name} status={status} />
       <% end %>
     </div>
     """
@@ -154,17 +244,20 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   defp render_change_section(%{field: :monitoring} = assigns) do
     ~H"""
     <div class="bg-base-200 rounded-lg p-4 border border-base-300">
-      <div class="flex items-center gap-2 mb-4">
-        <svg class="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          >
-          </path>
-        </svg>
-        <h3 class="text-lg font-bold text-base-content">Monitoring Configuration</h3>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            >
+            </path>
+          </svg>
+          <h3 class="text-lg font-bold text-base-content">Monitoring Configuration</h3>
+        </div>
+        <.strategy_badge strategy={@change_data.apply_strategy} />
       </div>
       <div class="space-y-3">
         <% metrics = (Keyword.keys(@change_data.old) ++ Keyword.keys(@change_data.new)) |> Enum.uniq() %>
@@ -189,17 +282,20 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
 
     ~H"""
     <div class="bg-base-200 rounded-lg p-4 border border-base-300">
-      <div class="flex items-center gap-2 mb-3">
-        <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-          >
-          </path>
-        </svg>
-        <h3 class="text-lg font-bold text-base-content">{@field_name}</h3>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+            >
+            </path>
+          </svg>
+          <h3 class="text-lg font-bold text-base-content">{@field_name}</h3>
+        </div>
+        <.strategy_badge strategy={@change_data.apply_strategy} />
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div class="bg-error/10 border border-error/20 rounded-lg p-3">
@@ -219,12 +315,18 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
-  defp render_app_change(%{app_changes: %{status: :added}} = assigns) do
+  defp render_app_change(%{status: %{status: :added, apply_strategies: strategies}} = assigns) do
+    primary_strategy = List.first(strategies, :immediate)
+    assigns = assign(assigns, :primary_strategy, primary_strategy)
+
     ~H"""
     <div class="ml-4 mb-3 bg-success/10 border-l-4 border-success rounded-lg p-3">
-      <div class="flex items-center gap-2 mb-2">
-        <div class="w-2 h-2 bg-success rounded-full"></div>
-        <span class="font-semibold text-success">Added: {@app_name}</span>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-success rounded-full"></div>
+          <span class="font-semibold text-success">Added: {@name}</span>
+        </div>
+        <.strategy_badge strategy={@primary_strategy} />
       </div>
       <div class="text-sm text-base-content/70 ml-4">
         New application will be deployed
@@ -233,12 +335,18 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
-  defp render_app_change(%{app_changes: %{status: :removed}} = assigns) do
+  defp render_app_change(%{status: %{status: :removed, apply_strategies: strategies}} = assigns) do
+    primary_strategy = List.first(strategies, :immediate)
+    assigns = assign(assigns, :primary_strategy, primary_strategy)
+
     ~H"""
     <div class="ml-4 mb-3 bg-error/10 border-l-4 border-error rounded-lg p-3">
-      <div class="flex items-center gap-2 mb-2">
-        <div class="w-2 h-2 bg-error rounded-full"></div>
-        <span class="font-semibold text-error">Removed: {@app_name}</span>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-error rounded-full"></div>
+          <span class="font-semibold text-error">Removed: {@name}</span>
+        </div>
+        <.strategy_badge strategy={@primary_strategy} />
       </div>
       <div class="text-sm text-base-content/70 ml-4">
         Application will be stopped and removed
@@ -247,33 +355,47 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
-  defp render_app_change(%{app_changes: %{status: :modified}} = assigns) do
+  defp render_app_change(%{status: %{status: :modified, apply_strategies: strategies}} = assigns) do
+    has_full_deploy = :full_deploy in strategies
+    assigns = assign(assigns, :has_full_deploy, has_full_deploy)
+
     ~H"""
     <div class="ml-4 mb-3 bg-warning/10 border-l-4 border-warning rounded-lg p-3">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="w-2 h-2 bg-warning rounded-full"></div>
-        <span class="font-semibold text-warning">Modified: {@app_name}</span>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-warning rounded-full"></div>
+          <span class="font-semibold text-warning">Modified: {@name}</span>
+        </div>
+        <div class="flex gap-2">
+          <%= for strategy <- Enum.uniq(@status.apply_strategies) do %>
+            <.strategy_badge strategy={strategy} />
+          <% end %>
+        </div>
       </div>
-      <div class="flex items-start gap-2 text-sm">
-        <svg
-          class="w-4 h-4 text-error flex-shrink-0 mt-0.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span class="text-base-content/80">
-          Application modifications require a new full deployment to take effect.
-        </span>
-      </div>
+
+      <%= if @has_full_deploy do %>
+        <div class="flex items-start gap-2 text-sm mb-3 bg-error/10 border border-error/20 rounded-lg p-2">
+          <svg
+            class="w-4 h-4 text-error flex-shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+            />
+          </svg>
+          <span class="text-error font-medium">
+            Some modifications require a full deployment with service interruption
+          </span>
+        </div>
+      <% end %>
+
       <div class="ml-4 space-y-2 mt-2">
-        <%= for {field, change} <- @app_changes.changes do %>
+        <%= for {field, change} <- @status.changes do %>
           <.render_change_section field={field} change_data={change} />
         <% end %>
       </div>
@@ -298,9 +420,9 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
 
   defp render_monitoring_change(%{old: nil} = assigns) do
     ~H"""
-    <div class="bg-warning/10 border-l-4 border-warning rounded-lg p-3">
+    <div class="bg-success/10 border-l-4 border-success rounded-lg p-3">
       <div class="flex items-center gap-2 mb-2">
-        <div class="w-2 h-2 bg-warning rounded-full"></div>
+        <div class="w-2 h-2 bg-success rounded-full"></div>
         <span class="font-semibold text-success">Added: {String.upcase(to_string(@type))}</span>
       </div>
 
