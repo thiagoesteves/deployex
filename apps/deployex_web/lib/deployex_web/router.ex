@@ -61,10 +61,11 @@ defmodule DeployexWeb.Router do
       live "/logs/history", HistoryLive, :index
       live "/embedded-observer", ObserverLive, :index
       live "/applications", ApplicationsLive, :index
+      live "/applications/:name/versions", ApplicationsLive, :versions
+      live "/applications/:name/restart", ApplicationsLive, :full_restart
       live "/applications/:name/:sname/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:name/:sname/logs/stderr", ApplicationsLive, :logs_stderr
       live "/applications/:name/:sname/terminal", ApplicationsLive, :terminal
-      live "/applications/:name/versions", ApplicationsLive, :versions
       live "/applications/:name/:sname/versions", ApplicationsLive, :versions
       live "/applications/:name/:sname/restart", ApplicationsLive, :restart
       live "/applications/deployex/docs", DocsLive, :index

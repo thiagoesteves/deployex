@@ -67,16 +67,21 @@ defmodule Deployer.Status.Application do
         end
       end)
 
-    # credo:disable-for-lines:10
     monitoring_apps =
       Enum.map(Catalog.applications(), fn %{
                                             name: name,
                                             replica_ports: replica_ports,
                                             language: language,
-                                            monitoring: monitoring
+                                            monitoring: monitoring,
+                                            replicas: replicas,
+                                            deploy_rollback_timeout_ms:
+                                              deploy_rollback_timeout_ms,
+                                            deploy_schedule_interval_ms:
+                                              deploy_schedule_interval_ms
                                           } ->
         children =
           Enum.reduce(deployed_monitored_apps[name] || [], [], fn app_info, acc ->
+            # credo:disable-for-lines:1
             case update_monitored_app_name(app_info, monitoring) do
               %{status: :running} = app_status ->
                 [app_status] ++ acc
@@ -112,6 +117,9 @@ defmodule Deployer.Status.Application do
           name: name,
           ports: replica_ports,
           language: language,
+          replicas: replicas,
+          deploy_rollback_timeout_ms: deploy_rollback_timeout_ms,
+          deploy_schedule_interval_ms: deploy_schedule_interval_ms,
           status: :running,
           config: current_config,
           children: children,
@@ -257,6 +265,9 @@ defmodule Deployer.Status.Application do
           base: Application.get_env(:deployex_web, DeployexWeb.Endpoint)[:http][:port]
         }
       ],
+      replicas: 1,
+      deploy_rollback_timeout_ms: 0,
+      deploy_schedule_interval_ms: 0,
       version: Application.spec(:deployer, :vsn) |> to_string,
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),

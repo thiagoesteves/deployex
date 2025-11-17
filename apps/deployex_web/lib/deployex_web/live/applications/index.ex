@@ -2,6 +2,7 @@ defmodule DeployexWeb.ApplicationsLive do
   use DeployexWeb, :live_view
 
   alias Deployer.Deployex
+  alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Logs
@@ -102,6 +103,77 @@ defmodule DeployexWeb.ApplicationsLive do
         on_cancel="confirm-close-modal"
         on_apply="config-changes-apply"
       />
+    <% end %>
+
+    <%= if @live_action == :full_restart do %>
+      <Confirm.content id={"full-app-restart-modal-#{@selected_sname}"}>
+        <:header>Full Deployment Restart</:header>
+
+        <div class="space-y-4">
+          <p class="text-base-content/90">
+            You are about to perform a <span class="font-bold text-error">full restart</span>
+            of all deployment instances for:
+          </p>
+          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
+                <span class="text-base font-mono font-bold text-primary">
+                  {String.first(@selected_name)}
+                </span>
+              </div>
+              <% app =
+                Enum.find(@monitoring_apps_data, &(&1.name == @selected_name)) || %{replicas: 0} %>
+              <div :if={app.replicas > 0}>
+                <p class="font-semibold text-base-content">{@selected_name}</p>
+                <p class="text-sm text-base-content/60">
+                  {app.replicas} replica(s)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-error/10 border border-error/20 rounded-lg p-4">
+            <div class="flex gap-3">
+              <svg
+                class="w-5 h-5 text-error flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                >
+                </path>
+              </svg>
+              <div class="space-y-2">
+                <p class="font-semibold text-error">Warning: Destructive Operation</p>
+                <ul class="text-sm text-base-content/80 space-y-1 list-disc list-inside">
+                  <li>All running application instances will be terminated</li>
+                  <li>Deployments will restart sequentially</li>
+                  <li>This may cause temporary service interruption</li>
+                  <li>This action cannot be undone</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <:footer>
+          <Confirm.cancel_button id="full-restart-cancel">
+            Cancel
+          </Confirm.cancel_button>
+          <Confirm.danger_button
+            id="full-restart-execute"
+            event="full-restart-execute"
+            value={@selected_name}
+          >
+            Yes, Restart All
+          </Confirm.danger_button>
+        </:footer>
+      </Confirm.content>
     <% end %>
 
     <%= if @live_action in [:restart] do %>
@@ -345,6 +417,12 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:selected_sname, sname)
   end
 
+  defp apply_action(socket, :full_restart, %{"name" => name}) do
+    socket
+    |> assign(:page_title, "Restart all #{name} applications")
+    |> assign(:selected_name, name)
+  end
+
   @impl true
   def handle_info(
         {:metrics_new_data, source_node, metric_key,
@@ -480,6 +558,11 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("restart", %{"id" => sname}, socket) do
     Monitor.restart(sname)
+    {:noreply, push_patch(socket, to: ~p"/applications")}
+  end
+
+  def handle_event("full-restart-execute", %{"id" => name}, socket) do
+    Engine.restart_deployments(name)
     {:noreply, push_patch(socket, to: ~p"/applications")}
   end
 

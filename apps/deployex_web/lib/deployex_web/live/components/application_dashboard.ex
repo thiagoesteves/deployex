@@ -13,7 +13,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
     ~H"""
     <div>
       <!-- Modern Header -->
-      <%= for %{name: name, children: children, config: config, monitoring: monitoring}  <- @monitored_apps do %>
+      <%= for %{name: name, children: children, config: config, monitoring: monitoring, replicas: replicas, deploy_rollback_timeout_ms: deploy_rollback_timeout_ms, deploy_schedule_interval_ms: deploy_schedule_interval_ms}  <- @monitored_apps do %>
         <div class="bg-base-100 border border-base-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 mt-6">
           <!-- App Header -->
           <div class="flex items-center justify-between mb-6">
@@ -26,12 +26,44 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 <p class="text-sm text-base-content/70">Application Instance</p>
               </div>
             </div>
-            <div class="flex items-center gap-2 bg-success/10 border border-success/20 rounded-full px-3 py-1">
-              <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-              <span class="text-sm text-success font-medium">Running</span>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2 bg-success/10 border border-success/20 rounded-full px-3 py-1">
+                <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                <span class="text-sm text-success font-medium">Running</span>
+              </div>
+              <.link
+                id={Helper.normalize_id("app-restart-#{name}")}
+                patch={~p"/applications/#{name}/restart"}
+              >
+                <button
+                  type="button"
+                  class="btn btn-sm bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 rounded-lg transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    >
+                    </path>
+                  </svg>
+                  <svg class="w-4 h-4 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    >
+                    </path>
+                  </svg>
+                  Full Restart
+                </button>
+              </.link>
             </div>
           </div>
-          <!-- Configuration Grid -->
+          
+    <!-- Configuration Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Mode Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">
@@ -130,6 +162,97 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               <% end %>
             </div>
           </div>
+          
+    <!-- Additional Configuration Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <!-- Replicas Section -->
+            <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
+              <div class="flex items-center gap-2 mb-2">
+                <svg
+                  class="w-4 h-4 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                  >
+                  </path>
+                </svg>
+                <span class="text-sm font-medium text-base-content">Replicas</span>
+              </div>
+              <div class="text-2xl font-bold text-primary">{replicas}</div>
+              <div class="text-xs text-base-content/60 mt-1">Active instances</div>
+            </div>
+            
+    <!-- Rollback Timeout Section -->
+            <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
+              <div class="flex items-center gap-2 mb-2">
+                <svg
+                  class="w-4 h-4 text-warning"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
+                <span class="text-sm font-medium text-base-content">Rollback Timeout</span>
+                <div
+                  class="tooltip tooltip-right"
+                  data-tip="Maximum time allowed before marking a deployment as failed and triggering an automatic rollback"
+                >
+                  <div class="w-4 h-4 rounded-full bg-warning/20 border border-warning/40 flex items-center justify-center cursor-help hover:bg-warning/30 transition-colors">
+                    <span class="text-[10px] font-bold text-warning">?</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-warning">
+                {format_ms_to_readable(deploy_rollback_timeout_ms)}
+              </div>
+              <div class="text-xs text-base-content/60 mt-1 font-mono">
+                {deploy_rollback_timeout_ms}ms
+              </div>
+            </div>
+            
+    <!-- Schedule Interval Section -->
+            <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  >
+                  </path>
+                </svg>
+                <span class="text-sm font-medium text-base-content">Schedule Interval</span>
+                <div
+                  class="tooltip tooltip-right"
+                  data-tip="Frequency at which the system checks for new versions and triggers deployments"
+                >
+                  <div class="w-4 h-4 rounded-full bg-info/20 border border-info/40 flex items-center justify-center cursor-help hover:bg-info/30 transition-colors">
+                    <span class="text-[10px] font-bold text-info">?</span>
+                  </div>
+                </div>
+              </div>
+              <div class="text-2xl font-bold text-info">
+                {format_ms_to_readable(deploy_schedule_interval_ms)}
+              </div>
+              <div class="text-xs text-base-content/60 mt-1 font-mono">
+                {deploy_schedule_interval_ms}ms
+              </div>
+            </div>
+          </div>
 
           <div class="mt-3 bg-base-300 rounded-lg">
             <%= for monitored_app <- children do %>
@@ -223,4 +346,16 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
     </div>
     """
   end
+
+  # Helper function to format milliseconds to readable format
+  defp format_ms_to_readable(ms) when is_integer(ms) do
+    cond do
+      ms >= 3_600_000 -> "#{Float.round(ms / 3_600_000, 1)}h"
+      ms >= 60_000 -> "#{Float.round(ms / 60_000, 1)}m"
+      ms >= 1000 -> "#{Float.round(ms / 1000, 1)}s"
+      true -> "#{ms}ms"
+    end
+  end
+
+  defp format_ms_to_readable(_), do: "N/A"
 end

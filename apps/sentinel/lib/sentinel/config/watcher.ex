@@ -247,37 +247,41 @@ defmodule Sentinel.Config.Watcher do
 
   defp build_summary(old, new) do
     %{}
-    |> add_number_changes(:logs_retention_time_ms, old, new)
-    |> add_number_changes(:metrics_retention_time_ms, old, new)
-    |> add_monitoring_changes(old, new)
+    |> add_number_changes(:logs_retention_time_ms, old, new, :immediate)
+    |> add_number_changes(:metrics_retention_time_ms, old, new, :immediate)
+    |> add_monitoring_changes(old, new, :immediate)
     |> add_application_changes(old, new)
   end
 
-  defp add_number_changes(acc, field, old, new) do
+  defp add_number_changes(acc, field, old, new, strategy) do
     old_val = Map.get(old, field)
     new_val = Map.get(new, field)
 
     if new_val != nil and is_number(new_val) and old_val != new_val do
-      Map.put(acc, field, %{old: old_val, new: new_val})
+      Map.put(acc, field, %{old: old_val, new: new_val, apply_strategy: strategy})
     else
       acc
     end
   end
 
-  defp add_string_changes(acc, field, old, new) do
+  defp add_string_changes(acc, field, old, new, strategy) do
     old_val = Map.get(old, field)
     new_val = Map.get(new, field)
 
     if new_val != nil and is_binary(new_val) and old_val != new_val do
-      Map.put(acc, field, %{old: old_val, new: new_val})
+      Map.put(acc, field, %{old: old_val, new: new_val, apply_strategy: strategy})
     else
       acc
     end
   end
 
-  defp add_monitoring_changes(acc, old, new) do
+  defp add_monitoring_changes(acc, old, new, strategy) do
     if diff_monitoring_list(old.monitoring, new.monitoring) != %{} do
-      Map.put(acc, :monitoring, %{old: old.monitoring, new: new.monitoring})
+      Map.put(acc, :monitoring, %{
+        old: old.monitoring,
+        new: new.monitoring,
+        apply_strategy: strategy
+      })
     else
       acc
     end
@@ -309,25 +313,29 @@ defmodule Sentinel.Config.Watcher do
     end)
   end
 
-  defp add_env_changes(acc, old_app, new_app) do
+  defp add_env_changes(acc, old_app, new_app, strategy) do
     old_env = Enum.sort(old_app.env)
     new_env = Enum.sort(new_app.env)
 
     if old_env == new_env do
       acc
     else
-      Map.put(acc, :env, %{old: old_env, new: new_env})
+      Map.put(acc, :env, %{old: old_env, new: new_env, apply_strategy: strategy})
     end
   end
 
-  defp add_replica_ports_changes(acc, old_app, new_app) do
+  defp add_replica_ports_changes(acc, old_app, new_app, strategy) do
     old_replica_ports = Enum.map(old_app.replica_ports, &"#{&1.key}=#{&1.base}") |> Enum.sort()
     new_replica_ports = Enum.map(new_app.replica_ports, &"#{&1.key}=#{&1.base}") |> Enum.sort()
 
     if old_replica_ports == new_replica_ports do
       acc
     else
-      Map.put(acc, :replica_ports, %{old: old_app.replica_ports, new: new_app.replica_ports})
+      Map.put(acc, :replica_ports, %{
+        old: old_app.replica_ports,
+        new: new_app.replica_ports,
+        apply_strategy: strategy
+      })
     end
   end
 
@@ -353,17 +361,20 @@ defmodule Sentinel.Config.Watcher do
 
       cond do
         old_app == nil ->
-          Map.put(acc, name, %{status: :added, config: new_app})
+          Map.put(acc, name, %{status: :added, config: new_app, apply_strategy: [:immediate]})
 
         new_app == nil ->
-          Map.put(acc, name, %{status: :removed, config: old_app})
+          Map.put(acc, name, %{status: :removed, config: old_app, apply_strategy: [:immediate]})
 
         Map.drop(old_app, [:__struct__]) != Map.drop(new_app, [:__struct__]) ->
-          diff_application = diff_application(old_app, new_app)
+          changes = diff_application(old_app, new_app)
+          # credo:disable-for-lines:1
+          strategies = Enum.map(changes, fn {_field, %{apply_strategy: strategy}} -> strategy end)
 
           Map.put(acc, name, %{
             status: :modified,
-            changes: diff_application
+            changes: changes,
+            apply_strategies: strategies
           })
 
         true ->
@@ -374,20 +385,20 @@ defmodule Sentinel.Config.Watcher do
 
   defp diff_application(old_app, new_app) do
     %{}
-    |> add_string_changes(:language, old_app, new_app)
-    |> add_number_changes(:replicas, old_app, new_app)
-    |> add_number_changes(:deploy_rollback_timeout_ms, old_app, new_app)
-    |> add_number_changes(:deploy_schedule_interval_ms, old_app, new_app)
-    |> add_replica_ports_changes(old_app, new_app)
-    |> add_env_changes(old_app, new_app)
-    |> add_monitoring_changes(old_app, new_app)
+    |> add_string_changes(:language, old_app, new_app, :next_deploy)
+    |> add_number_changes(:replicas, old_app, new_app, :immediate)
+    |> add_number_changes(:deploy_rollback_timeout_ms, old_app, new_app, :immediate)
+    |> add_number_changes(:deploy_schedule_interval_ms, old_app, new_app, :immediate)
+    |> add_replica_ports_changes(old_app, new_app, :full_deploy)
+    |> add_env_changes(old_app, new_app, :next_deploy)
+    |> add_monitoring_changes(old_app, new_app, :immediate)
   end
 
-  # credo:disable-for-lines:5
   defp apply_pre_config_changes(summary) do
     Enum.each(summary, fn {key, change} ->
       case key do
         :applications ->
+          # credo:disable-for-lines:1
           Enum.each(change.details, fn
             {name, %{status: :added}} ->
               Local.setup_new_app(name)
@@ -409,7 +420,6 @@ defmodule Sentinel.Config.Watcher do
     end)
   end
 
-  # credo:disable-for-lines:15
   defp apply_post_config_changes(summary) do
     Enum.each(summary, fn {key, change} ->
       case key do
@@ -422,7 +432,17 @@ defmodule Sentinel.Config.Watcher do
               :ok
 
             {name, %{status: :modified, changes: changes}} ->
-              Enum.each(changes, fn {app_change_key, %{old: _old, new: new}} ->
+              # NOTE: Move all changes that require a full redeployment to the end of the applied list.
+              changes
+              |> Enum.reduce([], fn
+                {_field, %{apply_strategy: :full_deploy}} = value, acc ->
+                  acc ++ [value]
+
+                value, acc ->
+                  [value] ++ acc
+              end)
+              |> Enum.each(fn {app_change_key, %{old: _old, new: new}} ->
+                # credo:disable-for-lines:1
                 case app_change_key do
                   :monitoring ->
                     Sentinel.Watchdog.reset_app_statistics(name)

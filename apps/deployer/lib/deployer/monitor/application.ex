@@ -407,7 +407,6 @@ defmodule Deployer.Monitor.Application do
     end)
   end
 
-  # credo:disable-for-lines:28
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
 
   defp execute_pre_commands(

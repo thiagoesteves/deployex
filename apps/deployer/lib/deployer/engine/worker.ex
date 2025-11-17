@@ -370,7 +370,7 @@ defmodule Deployer.Engine.Worker do
 
   ## Examples
 
-      iex> Deployer.Engine.restart_deployments("myapp")
+      iex> Deployer.Engine.Worker.restart_deployments("myapp")
       :ok
   """
   @spec restart_deployments(name :: String.t()) :: :ok
