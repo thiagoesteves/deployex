@@ -25,11 +25,14 @@ defmodule Foundation.ConfigProvider.Secrets.Gcp do
 
     file_credentials = Keyword.get(config, :goth) |> Keyword.get(:file_credentials)
 
-    source = {:service_account, Jason.decode!(file_credentials)}
+    decoded_credentials =
+      file_credentials
+      |> File.read!()
+      |> Jason.decode!()
 
     children = [
       {Finch, name: FinchGcpSecretManagerClient},
-      {Goth, name: goth_name, source: source}
+      {Goth, name: goth_name, source: {:service_account, decoded_credentials}}
     ]
 
     {:ok, sup} = Supervisor.start_link(children, strategy: :one_for_one)

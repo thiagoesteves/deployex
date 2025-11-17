@@ -53,9 +53,12 @@ defmodule Deployer.Application do
         []
 
       file_credentials ->
-        source = {:service_account, Jason.decode!(file_credentials)}
+        decoded_credentials =
+          file_credentials
+          |> File.read!()
+          |> Jason.decode!()
 
-        [{Goth, name: Deployer.Goth, source: source}]
+        [{Goth, name: Deployer.Goth, source: {:service_account, decoded_credentials}}]
     end
   end
 end
