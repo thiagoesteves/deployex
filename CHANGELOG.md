@@ -41,6 +41,7 @@ applications:
  * [`PULL-171`](https://github.com/thiagoesteves/deployex/pull/171) Adding monitoring data view in UX/UI
  * [`PULL-177`](https://github.com/thiagoesteves/deployex/pull/177) Adding configurable log retention period
  * [`PULL-180`](https://github.com/thiagoesteves/deployex/pull/180) Moving deploy timeouts to be handle by application and not globally
+ * [`PULL-182`](https://github.com/thiagoesteves/deployex/pull/182) Adding app config information in the UI/UX and full restart button for all apps
 
 ## 0.7.3 🚀 (2025-10-28)
 
