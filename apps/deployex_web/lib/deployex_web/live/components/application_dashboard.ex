@@ -206,7 +206,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 <span class="text-sm font-medium text-base-content">Rollback Timeout</span>
                 <div
                   class="tooltip tooltip-right"
-                  data-tip="Maximum time allowed before marking a deployment as failed and triggering an automatic rollback"
+                  data-tip="Maximum time allowed before marking a deployment as failed (ghosted version) and triggering an automatic rollback"
                 >
                   <div class="w-4 h-4 rounded-full bg-warning/20 border border-warning/40 flex items-center justify-center cursor-help hover:bg-warning/30 transition-colors">
                     <span class="text-[10px] font-bold text-warning">?</span>
