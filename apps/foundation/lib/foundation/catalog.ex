@@ -45,7 +45,7 @@ defmodule Foundation.Catalog do
     ...> assert Catalog.setup_new_node(nil) == :ok
   """
   @impl true
-  @spec setup_new_node(String.t()) :: :ok
+  @spec setup_new_node(sname :: String.t()) :: :ok
   def setup_new_node(sname), do: default().setup_new_node(sname)
 
   @doc """
@@ -69,7 +69,47 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.applications == [ %{env: ["SECRET=value", "PHX_SERVER=true"], language: "elixir", name: "myelixir", replicas: 3, monitoring: [port: %{enable_restart: true, warning_threshold_percent: 10, restart_threshold_percent: 20}, process: %{enable_restart: true, warning_threshold_percent: 10, restart_threshold_percent: 20}, atom: %{enable_restart: true, warning_threshold_percent: 10, restart_threshold_percent: 20}], replica_ports: [%{base: 4444, key: "PORT"}]}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "myerlang", replicas: 3, replica_ports: [%{base: 5555, key: "PORT"}], language: "erlang", monitoring: [{:port, %{enable_restart: false, warning_threshold_percent: 10, restart_threshold_percent: 20}},                  {:process, %{enable_restart: true, warning_threshold_percent: 10, restart_threshold_percent: 20}},                  {:atom, %{enable_restart: true, warning_threshold_percent: 10, restart_threshold_percent: 20}}]}, %{env: ["SECRET=value", "PHX_SERVER=true"], name: "mygleam", replicas: 3, replica_ports: [%{base: 6666, key: "PORT"}], language: "gleam", monitoring: []} ]  
+    iex> apps = Catalog.applications()
+    iex> assert [
+    ...>   %{
+    ...>     env: ["SECRET=value", "PHX_SERVER=true"],
+    ...>     language: "elixir",
+    ...>     monitoring: [
+    ...>       port: %{enable_restart: true, restart_threshold_percent: 20, warning_threshold_percent: 10},
+    ...>       process: %{enable_restart: true, restart_threshold_percent: 20, warning_threshold_percent: 10},
+    ...>       atom: %{enable_restart: true, restart_threshold_percent: 20, warning_threshold_percent: 10}
+    ...>     ],
+    ...>     name: "myelixir",
+    ...>     replica_ports: [%{base: 4444, key: "PORT"}],
+    ...>     replicas: 3,
+    ...>     deploy_rollback_timeout_ms: 600_000,
+    ...>     deploy_schedule_interval_ms: 5_000
+    ...>   },
+    ...>   %{
+    ...>     env: ["SECRET=value", "PHX_SERVER=true"],
+    ...>     language: "erlang",
+    ...>     monitoring: [
+    ...>       port: %{enable_restart: false, restart_threshold_percent: 20, warning_threshold_percent: 10},
+    ...>       process: %{enable_restart: true, restart_threshold_percent: 20, warning_threshold_percent: 10},
+    ...>       atom: %{enable_restart: true, restart_threshold_percent: 20, warning_threshold_percent: 10}
+    ...>     ],
+    ...>     name: "myerlang",
+    ...>     replica_ports: [%{base: 5555, key: "PORT"}],
+    ...>     replicas: 3,
+    ...>     deploy_rollback_timeout_ms: 600_000,
+    ...>     deploy_schedule_interval_ms: 5_000
+    ...>   },
+    ...>   %{
+    ...>     env: ["SECRET=value", "PHX_SERVER=true"],
+    ...>     language: "gleam",
+    ...>     monitoring: [],
+    ...>     name: "mygleam",
+    ...>     replica_ports: [%{base: 6666, key: "PORT"}],
+    ...>     replicas: 3,
+    ...>     deploy_rollback_timeout_ms: 600_000,
+    ...>     deploy_schedule_interval_ms: 5_000
+    ...>   }
+    ...> ] = apps
   """
   @impl true
   @spec applications() :: list()

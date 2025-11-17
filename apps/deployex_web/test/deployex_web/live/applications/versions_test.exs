@@ -4,6 +4,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Phoenix.LiveViewTest
   import Mox
 
+  alias Deployer.Github
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias DeployexWeb.Helper
   alias Foundation.Catalog
@@ -108,5 +109,25 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ suffix
 
     refute html =~ "0.3456702894.2351693834"
+  end
+
+  test "Deployex - Validate version and Github releases", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.deployex(%{
+           version: "9.9.9",
+           latest_release: %Github{tag_name: "10.0.0", new_release?: true}
+         })
+       ]}
+    end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, _index_live, html} = live(conn, ~p"/applications")
+
+    assert html =~ "9.9.9"
+    assert html =~ "New version available 10.0.0! \n Click to view releases"
   end
 end

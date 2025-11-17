@@ -146,7 +146,8 @@ defmodule Sentinel.Config.WatcherApplyTest do
                   "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod",
                   "PHX_SERVER=true",
                   "SECRET_KEY_BASE=secret"
-                ]
+                ],
+                apply_strategy: :next_deploy
               },
               monitoring: %{
                 new: [
@@ -177,12 +178,17 @@ defmodule Sentinel.Config.WatcherApplyTest do
                     warning_threshold_percent: 75,
                     restart_threshold_percent: 90
                   }
-                ]
+                ],
+                apply_strategy: :immediate
               },
-              replicas: %{new: 5, old: 2},
-              language: %{new: "gleam", old: "elixir"},
-              deploy_rollback_timeout_ms: %{new: 700_000, old: 600_000},
-              deploy_schedule_interval_ms: %{new: 8000, old: 5000},
+              replicas: %{new: 5, old: 2, apply_strategy: :immediate},
+              language: %{new: "gleam", old: "elixir", apply_strategy: :next_deploy},
+              deploy_rollback_timeout_ms: %{
+                new: 700_000,
+                old: 600_000,
+                apply_strategy: :immediate
+              },
+              deploy_schedule_interval_ms: %{new: 8000, old: 5000, apply_strategy: :immediate},
               replica_ports: %{
                 new: [
                   %Foundation.Yaml.Ports{key: "PORT", base: 4000},
@@ -195,7 +201,8 @@ defmodule Sentinel.Config.WatcherApplyTest do
                   %{base: 4000, key: "PORT"},
                   %{base: 9000, key: "MYPHOENIX_APP_PORT_TEST_1"},
                   %{base: 8000, key: "MYPHOENIX_APP_PORT_TEST_2"}
-                ]
+                ],
+                apply_strategy: :full_deploy
               }
             }
           },
@@ -238,10 +245,11 @@ defmodule Sentinel.Config.WatcherApplyTest do
             warning_threshold_percent: 75,
             restart_threshold_percent: 95
           }
-        ]
+        ],
+        apply_strategy: :immediate
       },
-      logs_retention_time_ms: %{new: 45_600_000, old: 3_600_000},
-      metrics_retention_time_ms: %{new: 45_600_000, old: 3_600_000}
+      logs_retention_time_ms: %{new: 45_600_000, old: 3_600_000, apply_strategy: :immediate},
+      metrics_retention_time_ms: %{new: 45_600_000, old: 3_600_000, apply_strategy: :immediate}
     },
     timestamp: ~U[2025-11-14 23:41:07.000464Z],
     changes_count: 4

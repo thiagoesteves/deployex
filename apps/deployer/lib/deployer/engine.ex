@@ -47,4 +47,10 @@ defmodule Deployer.Engine do
   """
   @spec notify_application_running(sname :: String.t()) :: :ok
   def notify_application_running(sname), do: Engine.Worker.notify_application_running(sname)
+
+  @doc """
+  Force the deployment restart, which will redeploy nodes for the application.
+  """
+  @spec restart_deployments(name :: String.t()) :: :ok
+  def restart_deployments(name), do: Engine.Worker.restart_deployments(name)
 end

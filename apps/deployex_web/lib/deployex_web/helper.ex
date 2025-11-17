@@ -66,6 +66,7 @@ defmodule DeployexWeb.Helper do
   into a normalized format containing expected attributes such as color, service 
   identifiers, and categorization.
   """
+  @spec normalize_logs(list(Message.t()), String.t(), String.t()) :: list(map())
   def normalize_logs(messages, service, log_type) do
     Enum.reduce(messages, [], fn message, acc ->
       acc ++ normalize_log(message, service, log_type)
@@ -81,6 +82,7 @@ defmodule DeployexWeb.Helper do
     ...> assert Helper.normalize_id(:"my_app-1@host") == "my-app-1-host"
     ...> assert Helper.normalize_id("my_app-2@host") == "my-app-2-host"
   """
+  @spec normalize_id(atom() | String.t()) :: String.t()
   def normalize_id(node) when is_atom(node) do
     node |> Atom.to_string() |> normalize_id()
   end
@@ -92,7 +94,7 @@ defmodule DeployexWeb.Helper do
   @doc """
   This function return the node from a node_info request
   """
-
+  @spec sname_to_node(String.t()) :: atom()
   def sname_to_node(sname) do
     %{node: node} = Catalog.node_info(sname)
     node
@@ -101,6 +103,7 @@ defmodule DeployexWeb.Helper do
   @doc """
   This function return the short name for the self node
   """
+  @spec self_sname() :: String.t()
   def self_sname do
     [sname, _hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
     sname
@@ -112,6 +115,7 @@ defmodule DeployexWeb.Helper do
   This function takes a Message struct and breaks it down into individual log entries,
   splitting on newlines and applying the appropriate formatting and metadata to each line.
   """
+  @spec normalize_log(Message.t(), String.t(), String.t()) :: list(map())
   def normalize_log(%Message{log: log, timestamp: timestamp}, service, log_type) do
     log
     |> String.split(["\n", "\r"], trim: true)
@@ -128,4 +132,28 @@ defmodule DeployexWeb.Helper do
       }
     end)
   end
+
+  @doc """
+  Converts milliseconds into a human-readable string.
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.format_ms_to_readable(3_600_000) == "1.0h"
+    ...> assert Helper.format_ms_to_readable(60_000) == "1.0m"
+    ...> assert Helper.format_ms_to_readable(1000) == "1.0s"
+    ...> assert Helper.format_ms_to_readable(100) == "100ms"
+    ...> assert Helper.format_ms_to_readable(nil) == "N/A"
+  """
+  @spec format_ms_to_readable(integer() | any()) :: String.t()
+  def format_ms_to_readable(ms) when is_integer(ms) do
+    cond do
+      ms >= 3_600_000 -> "#{Float.round(ms / 3_600_000, 1)}h"
+      ms >= 60_000 -> "#{Float.round(ms / 60_000, 1)}m"
+      ms >= 1000 -> "#{Float.round(ms / 1000, 1)}s"
+      true -> "#{ms}ms"
+    end
+  end
+
+  def format_ms_to_readable(_), do: "N/A"
 end
