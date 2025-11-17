@@ -32,7 +32,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 <span class="text-sm text-success font-medium">Running</span>
               </div>
               <.link
-                id={Helper.normalize_id("app-restart-#{name}")}
+                id={Helper.normalize_id("app-full-restart-#{name}")}
                 patch={~p"/applications/#{name}/restart"}
               >
                 <button
@@ -162,8 +162,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               <% end %>
             </div>
           </div>
-          
-    <!-- Additional Configuration Grid -->
+          <!-- Additional Configuration Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <!-- Replicas Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
@@ -187,8 +186,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               <div class="text-2xl font-bold text-primary">{replicas}</div>
               <div class="text-xs text-base-content/60 mt-1">Active instances</div>
             </div>
-            
-    <!-- Rollback Timeout Section -->
+            <!-- Rollback Timeout Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
               <div class="flex items-center gap-2 mb-2">
                 <svg
@@ -216,14 +214,13 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 </div>
               </div>
               <div class="text-2xl font-bold text-warning">
-                {format_ms_to_readable(deploy_rollback_timeout_ms)}
+                {Helper.format_ms_to_readable(deploy_rollback_timeout_ms)}
               </div>
               <div class="text-xs text-base-content/60 mt-1 font-mono">
                 {deploy_rollback_timeout_ms}ms
               </div>
             </div>
-            
-    <!-- Schedule Interval Section -->
+            <!-- Schedule Interval Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
               <div class="flex items-center gap-2 mb-2">
                 <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,7 +243,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                 </div>
               </div>
               <div class="text-2xl font-bold text-info">
-                {format_ms_to_readable(deploy_schedule_interval_ms)}
+                {Helper.format_ms_to_readable(deploy_schedule_interval_ms)}
               </div>
               <div class="text-xs text-base-content/60 mt-1 font-mono">
                 {deploy_schedule_interval_ms}ms
@@ -346,16 +343,4 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
     </div>
     """
   end
-
-  # Helper function to format milliseconds to readable format
-  defp format_ms_to_readable(ms) when is_integer(ms) do
-    cond do
-      ms >= 3_600_000 -> "#{Float.round(ms / 3_600_000, 1)}h"
-      ms >= 60_000 -> "#{Float.round(ms / 60_000, 1)}m"
-      ms >= 1000 -> "#{Float.round(ms / 1000, 1)}s"
-      true -> "#{ms}ms"
-    end
-  end
-
-  defp format_ms_to_readable(_), do: "N/A"
 end

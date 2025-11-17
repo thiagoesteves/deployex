@@ -77,6 +77,9 @@ defmodule DeployexWeb.Fixture.Status do
     children = Map.get(attrs, :children, [])
     monitoring = Map.get(attrs, :monitoring, [])
 
+    # This will guarantee that the app name will have an existing atom.
+    _ = String.to_atom(name)
+
     [_sname, hostname] = Node.self() |> Atom.to_string() |> String.split(["@"])
     sname = "#{name}-#{default_suffix}"
 

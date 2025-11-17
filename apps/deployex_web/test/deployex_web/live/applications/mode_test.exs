@@ -93,7 +93,7 @@ defmodule DeployexWeb.Applications.ModeTest do
        [
          FixtureStatus.deployex(),
          FixtureStatus.application(%{name: "myelixir"}, %{
-           last_ghosted_version: nil,
+           last_ghosted_version: "9.9.9",
            mode: :automatic,
            manual_version: FixtureStatus.version(%{version: "1.0.2"}),
            versions: Enum.map(1..3, fn index -> "1.0.#{index}" end)
@@ -111,7 +111,9 @@ defmodule DeployexWeb.Applications.ModeTest do
        }}
     end)
 
-    {:ok, index_live, _html} = live(conn, ~p"/applications")
+    {:ok, index_live, html} = live(conn, ~p"/applications")
+
+    assert html =~ "9.9.9"
 
     assert render_change(index_live, "app-mode-select", %{
              "select-mode" => expected_manual_version,
