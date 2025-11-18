@@ -27,7 +27,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
        [start_link: fn _children, _options -> {:ok, pid} end, stop: fn _pid, :normal -> :ok end]}
     ]) do
       assert [
-               {:goth, [file_credentials: "{}"]},
+               {:goth, [file_credentials: "./test/support/files/gcp-config.json"]},
                {:foundation,
                 [
                   {Manager, [adapter: Gcp, path: "any-env-path"]},
@@ -53,7 +53,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
                      {Manager, adapter: Gcp, path: "any-env-path"},
                      {:env, "prod"}
                    ],
-                   goth: [{:file_credentials, "{}"}]
+                   goth: [{:file_credentials, "./test/support/files/gcp-config.json"}]
                  ],
                  []
                )
@@ -75,7 +75,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
     ]) do
       assert_raise RuntimeError, fn ->
         [
-          {:goth, [file_credentials: "{}"]},
+          {:goth, [file_credentials: "./test/support/files/gcp-config.json"]},
           {:foundation,
            [
              {Manager, [adapter: Gcp, path: "any-env-path"]},
@@ -101,7 +101,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
                 {Manager, adapter: Gcp, path: "any-env-path"},
                 {:env, "prod"}
               ],
-              goth: [{:file_credentials, "{}"}]
+              goth: [{:file_credentials, "./test/support/files/gcp-config.json"}]
             ],
             []
           )

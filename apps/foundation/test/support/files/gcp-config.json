@@ -1,0 +1,13 @@
+{
+	"type": "service_account",
+	"project_id": "some-project",
+	"private_key_id": "key-id",
+	"private_key": "-----BEGIN PRIVATE KEY-----s3cr3t-----END PRIVATE KEY-----\n",
+	"client_email": "deployex@some-project.iam.gserviceaccount.com",
+	"client_id": "4420954499999999999",
+	"auth_uri": "https://accounts.google.com/o/oauth2/auth",
+	"token_uri": "https://oauth2.googleapis.com/token",
+	"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+	"client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/deployex%40some-project.iam.gserviceaccount.com",
+	"universe_domain": "googleapis.com"
+}
