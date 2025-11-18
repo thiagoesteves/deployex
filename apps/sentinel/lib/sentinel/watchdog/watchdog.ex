@@ -323,8 +323,9 @@ defmodule Sentinel.Watchdog do
 
   defp load_node_config(node, type) do
     with %{name: name} <- Catalog.node_info(node),
-         %{monitoring: monitoring} <- Enum.find(Catalog.applications(), &(&1.name == name)) do
-      Map.merge(%__MODULE__{}, monitoring[type] || %{})
+         %{monitoring: monitoring} <- Enum.find(Catalog.applications(), &(&1.name == name)),
+         %{} = mon_type <- monitoring[type] do
+      Map.merge(%__MODULE__{}, mon_type)
     else
       _ -> %__MODULE__{enabled: false}
     end

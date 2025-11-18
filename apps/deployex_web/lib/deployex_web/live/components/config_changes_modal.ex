@@ -433,9 +433,12 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
-  defp render_monitoring_change(assigns) do
+  defp render_monitoring_change(%{old: old, new: new} = assigns) do
+    is_diff = monitoring_differs?(old, new)
+    assigns = assign(assigns, :is_diff, is_diff)
+
     ~H"""
-    <div class="bg-warning/10 border-l-4 border-warning rounded-lg p-3">
+    <div :if={@is_diff} class="bg-warning/10 border-l-4 border-warning rounded-lg p-3">
       <div class="flex items-center gap-2 mb-2">
         <div class="w-2 h-2 bg-warning rounded-full"></div>
         <span class="font-semibold text-warning">Modified: {String.upcase(to_string(@type))}</span>
@@ -484,6 +487,17 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     Enum.find_value(monitoring_list, fn
       {^type, config} -> config
       _ -> nil
+    end)
+  end
+
+  defp monitoring_differs?(old_mon, new_mon) do
+    old_map = Map.drop(old_mon, [:__struct__])
+    new_map = Map.drop(new_mon, [:__struct__])
+
+    (Map.keys(old_map) ++ Map.keys(new_map))
+    |> Enum.uniq()
+    |> Enum.any?(fn key ->
+      Map.get(old_map, key) != Map.get(new_map, key)
     end)
   end
 end
