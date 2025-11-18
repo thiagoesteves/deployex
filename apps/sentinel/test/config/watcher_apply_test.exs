@@ -6,11 +6,11 @@ defmodule Sentinel.Config.WatcherApplyTest do
 
   alias Deployer.Engine
   alias Deployer.Engine.Supervisor, as: EngineSupervisor
-  alias Sentinel.Fixture.Watcher, as: FixtureWatcher
   alias Deployer.Monitor
   alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
   alias Sentinel.Config.Upgradable
   alias Sentinel.Config.Watcher
+  alias Sentinel.Fixture.Watcher, as: FixtureWatcher
 
   @default_upgradable %Upgradable{
     logs_retention_time_ms: 86_400_000,
