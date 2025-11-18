@@ -558,12 +558,20 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("restart", %{"id" => sname}, socket) do
     Monitor.restart(sname)
-    {:noreply, push_patch(socket, to: ~p"/applications")}
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Restart initiated for #{sname}")
+     |> push_patch(to: ~p"/applications")}
   end
 
   def handle_event("full-restart-execute", %{"id" => name}, socket) do
     Engine.restart_deployments(name)
-    {:noreply, push_patch(socket, to: ~p"/applications")}
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Full restart initiated for #{name}")
+     |> push_patch(to: ~p"/applications")}
   end
 
   def handle_event("set-mode", %{"id" => _}, %{assigns: %{mode_confirmation: nil}} = socket) do
@@ -604,6 +612,7 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply,
      socket
      |> assign(:yaml_config, default_yaml_config())
+     |> put_flash(:info, "New config changes applied with success!")
      |> push_patch(to: ~p"/applications")}
   end
 

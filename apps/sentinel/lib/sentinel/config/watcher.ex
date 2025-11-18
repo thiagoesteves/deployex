@@ -361,10 +361,10 @@ defmodule Sentinel.Config.Watcher do
 
       cond do
         old_app == nil ->
-          Map.put(acc, name, %{status: :added, config: new_app, apply_strategy: [:immediate]})
+          Map.put(acc, name, %{status: :added, config: new_app, apply_strategies: [:immediate]})
 
         new_app == nil ->
-          Map.put(acc, name, %{status: :removed, config: old_app, apply_strategy: [:immediate]})
+          Map.put(acc, name, %{status: :removed, config: old_app, apply_strategies: [:immediate]})
 
         Map.drop(old_app, [:__struct__]) != Map.drop(new_app, [:__struct__]) ->
           changes = diff_application(old_app, new_app)

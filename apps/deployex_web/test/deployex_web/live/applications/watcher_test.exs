@@ -5,7 +5,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
   import Mox
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias DeployexWeb.Fixture.Watcher, as: FixtureWatcher
+  alias Sentinel.Fixture.Watcher, as: FixtureWatcher
 
   setup [
     :set_mox_global,
@@ -28,7 +28,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     assert liveview |> element("#deployex-config-changes") |> has_element?()
     html = render(liveview)
-    assert html =~ "5 configuration change(s) pending"
+    assert html =~ "4 configuration change(s) pending"
   end
 
   test "GET /applications Review pending changes and click cancel button", %{conn: conn} do
@@ -50,7 +50,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     assert liveview |> element("#deployex-config-changes") |> has_element?()
     html = render(liveview)
-    assert html =~ "5 configuration change(s) pending"
+    assert html =~ "4 configuration change(s) pending"
   end
 
   test "GET /applications Review pending changes and click escape button", %{conn: conn} do
@@ -72,7 +72,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     assert liveview |> element("#deployex-config-changes") |> has_element?()
     html = render(liveview)
-    assert html =~ "5 configuration change(s) pending"
+    assert html =~ "4 configuration change(s) pending"
   end
 
   test "GET /applications Review pending changes and apply changes", %{conn: conn} do
