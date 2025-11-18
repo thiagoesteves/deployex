@@ -12,6 +12,7 @@ defmodule Foundation.Yaml do
   @default_metrics_retention_time_ms :timer.hours(1)
   @default_logs_retention_time_ms :timer.hours(1)
   @default_replicas 3
+  @default_language "elixir"
   @default_deploy_rollback_timeout_ms :timer.minutes(10)
   @default_deploy_schedule_interval_ms :timer.seconds(5)
 
@@ -261,7 +262,7 @@ defmodule Foundation.Yaml do
   defp parse_application(data) do
     %Foundation.Yaml.Application{
       name: data["name"],
-      language: data["language"],
+      language: data["language"] || @default_language,
       replicas: data["replicas"] || @default_replicas,
       deploy_rollback_timeout_ms:
         data["deploy_rollback_timeout_ms"] || @default_deploy_rollback_timeout_ms,

@@ -233,6 +233,57 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    test "broadcasts config change when normalized" do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> @default_upgradable end,
+           from_yaml: fn _config ->
+             called = Process.get("from_yaml", 0)
+             Process.put("from_yaml", called + 1)
+
+             if called > 0 do
+               @default_upgradable
+             else
+               Map.merge(@default_upgradable, %{
+                 config_checksum: "new_checksum",
+                 logs_retention_time_ms: 45_000
+               })
+             end
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn
+             %Yaml{config_checksum: "current_checksum"} ->
+               send(test_pid, {:handle_ref_event, ref})
+               {:ok, %Yaml{config_checksum: "new_checksum"}}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        node = Node.self()
+
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_new_config, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            # Verify broadcast received
+            assert_receive {:watcher_config_new, ^node, %Changes{}}, 1000
+
+            # Verify Changes Normalized
+            assert_receive {:watcher_config_new, ^node, nil}, 1000
+          end)
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:logs_retention_time_ms]"
+      end
+    end
+
     test "broadcasts config change when applying" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_broadcast)
