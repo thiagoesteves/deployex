@@ -9,8 +9,6 @@ defmodule Sentinel.Config.Watcher do
   ## Upgradable Fields
 
   Only a subset of configuration fields can be upgraded at runtime without restart:
-  - deploy_rollback_timeout_ms
-  - deploy_schedule_interval_ms
   - logs_retention_time_ms
   - metrics_retention_time_ms
   - monitoring settings

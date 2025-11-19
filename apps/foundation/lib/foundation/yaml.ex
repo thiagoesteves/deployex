@@ -17,7 +17,9 @@ defmodule Foundation.Yaml do
   @default_deploy_schedule_interval_ms :timer.seconds(5)
 
   defmodule Monitoring do
-    @moduledoc false
+    @moduledoc """
+    Provides structure to define monitoring feature
+    """
 
     defstruct [
       :enable_restart,
@@ -33,7 +35,9 @@ defmodule Foundation.Yaml do
   end
 
   defmodule Ports do
-    @moduledoc false
+    @moduledoc """
+    Provides structure to define Ports feature
+    """
 
     defstruct [:key, :base]
 
@@ -44,7 +48,9 @@ defmodule Foundation.Yaml do
   end
 
   defmodule Application do
-    @moduledoc false
+    @moduledoc """
+    Provides structure to define Application feature
+    """
 
     defstruct [
       :name,
