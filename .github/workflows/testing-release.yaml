@@ -35,7 +35,7 @@ jobs:
           version-type: strict
 
       - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
+        run: mix do deps.get + compile --warnings-as-errors
 
       - name: Assets Deploy
         run: mix assets.deploy
@@ -80,7 +80,7 @@ jobs:
           version-type: strict
 
       - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
+        run: mix do deps.get + compile --warnings-as-errors
 
       - name: Assets Deploy
         run: mix assets.deploy

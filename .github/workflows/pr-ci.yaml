@@ -34,7 +34,7 @@ jobs:
             deployex-
 
       - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
+        run: mix do deps.get + compile --warnings-as-errors
 
   test:
     name: Test
@@ -90,7 +90,7 @@ jobs:
             deployex-
 
       - name: Install Elixir dependencies
-        run: mix do deps.get, compile --warnings-as-errors
+        run: mix do deps.get + compile --warnings-as-errors
 
       - name: Run mix deps.unlock
         run: mix deps.unlock --check-unused
