@@ -53,7 +53,8 @@ defmodule Deployer.Release.GcpStorageTest do
     Catalog.setup_new_node(sname)
 
     with_mocks([
-      {System, [], [cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end]},
+      {System, [:passthrough],
+       [cmd: fn "tar", ["-x", "-f", _download_path, "-C", ^new_path] -> {"", 0} end]},
       {Goth, [], [fetch!: fn _name -> %{token: "gcp-token"} end]},
       {Finch, [],
        [
