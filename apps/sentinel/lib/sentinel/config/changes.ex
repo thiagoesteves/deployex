@@ -1,5 +1,7 @@
 defmodule Sentinel.Config.Changes do
-  @moduledoc false
+  @moduledoc """
+  Provides structure to define Changes feature
+  """
 
   @type(apply_strategy :: :immediate, :next_deploy, :full_deploy)
   @type numeric_change :: %{old: number(), new: number(), apply_strategy: apply_strategy()}

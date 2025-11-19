@@ -2,7 +2,7 @@
 
 > Who supervises the supervisor (of your application)?
 
-![Development](https://img.shields.io/badge/STATUS-Development%20v0.7.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml)
+![Development](https://img.shields.io/badge/STATUS-Development%20v0.8.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml)
 
 DeployEx is a lightweight tool designed for managing deployments for Beam applications (Elixir, Gleam and Erlang) without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
@@ -15,7 +15,6 @@ To learn more about DeployEx and the advantages of removing containerized abstra
 Upon deployment, the following dashboard becomes available, providing easy access to logs, the terminal, process observability, and much more for both DeployEx and the monitored applications.
 
 ![Deployex Monitoring](guides/static/deployex_monitoring_app_tls.png)
-[▶️ See DeployEx in action](https://youtu.be/tzWcCmuqNV4)
 
 ## 🔉 Features
 
@@ -69,41 +68,25 @@ Your application is now better protected from crashes caused by excessive memory
 Check out this must-watch video:  
 ▶️ [Battling Memory Leaks: Tales from the Trenches at WhatsApp](https://youtu.be/NCgsTBeQbc8)
 
-## ⚠️ [Next steps](https://github.com/thiagoesteves/deployex/issues)
+## ⚠️ What is coming next? 
 
-### What is coming next
-
-- [ISSUE-110](https://github.com/thiagoesteves/deployex/issues/110) - Add Health Check via OTP distribution
-- [ISSUE-111](https://github.com/thiagoesteves/deployex/issues/111) - Add support for secrets via Environment vars
-- [ISSUE-112](https://github.com/thiagoesteves/deployex/issues/112) - Add support for hot upgrading DeployEx
+[Roadmap](https://github.com/users/thiagoesteves/projects/4)
 
 ## 📁 Getting Started
 
 Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP Major version to prevent compatibility issues and system malfunctions. DeployEx releases will contain binaries for the following OTP versions:
 
-| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-26-green.svg"/> [1] | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [**0.8.0** :soon:](https://github.com/thiagoesteves/deployex/releases/tag/0.8.0) | -/-                                                            | **27.3.4.3**                                               | **28.1.1** [2]                                             |
-| [**0.7.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.3) | -/-                                                            | **27.3.4.3**                                               | **28.1.1** [2]                                             |
-| [**0.7.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.2) | -/-                                                            | **27.3.4.3**                                               | **28.1** [2]                                               |
-| [**0.7.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.1) | -/-                                                            | **27.3.4.3**                                               | **28.1** [2]                                               |
-| [**0.7.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.0) | -/-                                                            | **27.3.4.3**                                               | **28.1** [2]                                               |
-| [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
-| [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | -/-                                                            | **27.3.4.2**                                               | **28.0.2** [2]                                             |
-| [**0.5.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.5.2) | **26.2.5.12**                                                  | **27.3.4**                                                 | **28.0** [2]                                               |
-| [**0.5.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.5.1) | **26.2.5.12**                                                  | **27.3.4**                                                 | -/-                                                        |
-| [**0.5.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.5.0) | **26.2.5.12**                                                  | **27.3.4**                                                 | -/-                                                        |
-| [**0.4.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.4.2) | **26.2.5.12**                                                  | **27.3.3**                                                 | -/-                                                        |
-| [**0.4.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.4.1) | **26.2.5.10**                                                  | **27.3.3**                                                 | -/-                                                        |
-| [**0.4.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.4.0) | **26.2.5.10**                                                  | **27.3.3**                                                 | -/-                                                        |
-| [**0.3.4**](https://github.com/thiagoesteves/deployex/releases/tag/0.3.4) | **26.2.5.10**                                                  | -/-                                                        | -/-                                                        |
-| [**0.3.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.3.3) | **26.2.5.6**                                                   | -/-                                                        | -/-                                                        |
-| [**0.3.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.3.2) | **26.2.5.6**                                                   | -/-                                                        | -/-                                                        |
-| [**0.3.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.3.1) | **26.2.5.6**                                                   | -/-                                                        | -/-                                                        |
-| [**0.3.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.3.0) | **26.2.5.6**                                                   | -/-                                                        | -/-                                                        |
+| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [**0.8.0** :soon:](https://github.com/thiagoesteves/deployex/releases/tag/0.8.0) | **27.3.4.3**                                               | **28.1.1**                                                 |
+| [**0.7.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.3) | **27.3.4.3**                                               | **28.1.1** [1]                                             |
+| [**0.7.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.2) | **27.3.4.3**                                               | **28.1** [1]                                               |
+| [**0.7.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.1) | **27.3.4.3**                                               | **28.1** [1]                                               |
+| [**0.7.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.0) | **27.3.4.3**                                               | **28.1** [1]                                               |
+| [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | **27.3.4.2**                                               | **28.0.2** [1]                                             |
+| [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | **27.3.4.2**                                               | **28.0.2** [1]                                             |
 
-- **[1]** - Binaries for `OTP-26` won't support new releases of `erlexec`
-- **[2]** - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4)
+- **[1]** - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4)
 
 ### Running the application
 
@@ -188,90 +171,7 @@ DeployEx application typically requires a few environment variables to be define
 | **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV | Yaml configuration for Deployex and Monitored application |
 | **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV | If using mTLS, the certificate PATH is needed             |
 
-Once DeployEx runs, it fetches the configuration from the YAML file described in the path `DEPLOYEX_CONFIG_YAML_PATH`. The YAML file configuration contains the following fields:
-
-```yaml
-account_name: "prod"                                     # Deployex: Cloud/Environment Account name
-hostname: "deployex.myphoenixapp.com"                    # Deployex: hostname
-port: 5001                                               # Deployex: port
-release_adapter: "s3"                                    # Deployex: release adapter type s3 or gcp-storage
-release_bucket: "myphoenixapp-prod-distribution"         # Deployex: release distribution bucket name
-secrets_adapter: "aws"                                   # Deployex: release adapter type aws or gcp
-secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
-aws_region: "sa-east-1"                                  # Deployex: aws region (only for AWS)
-google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
-version: "0.4.0-rc1"                                     # Deployex: Version
-otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
-otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
-os_target: "ubuntu-24.04"                                # Deployex: Target OS server
-metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
-logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
-monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features
-  - type: "memory"
-    enable_restart: true           # Deployex (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-    warning_threshold_percent: 75  # Deployex (default: 75): Issue a warning if memory usage exceeds this percent
-    restart_threshold_percent: 90  # Deployex (default: 90): Restart app if memory usage exceeds this percent
-applications:
-  - name: "myphoenixapp"               # Application: Monitored app name (Elixir app name format)
-    language: "elixir"                 # Application: (optional, default: elixir) App language (elixir, erlang or gleam)
-    replicas: 2                        # Application: (optional, default: 3) Number of replicas
-    deploy_rollback_timeout_ms: 600000 # Application: (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
-    deploy_schedule_interval_ms: 5000  # Application: (optional, default: 5000): Periodic checking for new deployments
-    replica_ports:                     # Application: (optional) Each instance receives a different port in the range (base + replicas)
-      - key: PORT
-        base: 4000
-    env:                               # Application (optional): Environment variables
-      - key: MYPHOENIXAPP_PHX_HOST
-        value: "myphoenixapp.com"
-      - key: MYPHOENIXAPP_PHX_SERVER
-        value: true
-      - key: MYPHOENIXAPP_CLOUD_ENVIRONMENT
-        value: "prod"
-      - key: MYPHOENIXAPP_OTP_TLS_CERT_PATH
-        value: "/usr/local/share/ca-certificates"
-      - key: MYPHOENIXAPP_SECRETS_ADAPTER
-        value: "aws"
-      - key: MYPHOENIXAPP_SECRETS_PATH
-        value: "myphoenixapp-prod-secrets"
-      - key: AWS_REGION
-        value: "sa-east-1"
-    monitoring:                       # Application (optional, default: values described in atom, process and port): Monitoring features
-      - type: "atom"
-        enable_restart: true          # Application (default: true): Restart app if memory usage exceeds 'restart_threshold_percent'
-        warning_threshold_percent: 75 # Application (default: 75): Issue a warning if memory usage exceeds this percent
-        restart_threshold_percent: 90 # Application (default: 90): Restart app if memory usage exceeds this percent
-      - type: "process"
-        enable_restart: true
-        warning_threshold_percent: 75
-        restart_threshold_percent: 90
-      - type: "port"
-        enable_restart: true
-        warning_threshold_percent: 75
-        restart_threshold_percent: 90
-  - name: "myapp"
-    language: "elixir"
-    replica_ports:
-      - key: PORT
-        base: 4040
-    replicas: 2
-    env:
-      - key: MYAPP_PHX_HOST
-        value: "myapp.com"
-      - key: MYAPP_PHX_SERVER
-        value: true
-      - key: MYAPP_CLOUD_ENVIRONMENT
-        value: "prod"
-      - key: MYAPP_OTP_TLS_CERT_PATH
-        value: "/usr/local/share/ca-certificates"
-      - key: MYAPP_SECRETS_ADAPTER
-        value: "aws"
-      - key: MYAPP_SECRETS_PATH
-        value: "myapp-prod-secrets"
-      - key: AWS_REGION
-        value: "sa-east-1"
-```
-
-For local testing, these variables are not expected or set to default values.
+Once DeployEx runs, it fetches the configuration from the YAML file described in the session [YAML Management](guides/examples/yaml-runtime-upgrade/README.md). For local testing, these variables are not expected or set to default values.
 
 ### ☁️ Cloud Providers
 

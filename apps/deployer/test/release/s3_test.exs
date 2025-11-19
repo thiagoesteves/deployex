@@ -36,7 +36,8 @@ defmodule Deployer.Release.S3Test do
     source_path = "dist/#{name}/#{name}-#{version}.tar.gz"
 
     with_mocks([
-      {System, [], [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
+      {System, [:passthrough],
+       [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
       {ExAws, [], [request: fn _command -> {:ok, :done} end]}
     ]) do
       assert :ok = S3.download_release(name, version, new_path)
@@ -51,7 +52,8 @@ defmodule Deployer.Release.S3Test do
     source_path = "dist/#{name}/#{name}-#{version}.tar.gz"
 
     with_mocks([
-      {System, [], [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
+      {System, [:passthrough],
+       [cmd: fn "tar", ["-x", "-f", ^source_path, "-C", ^new_path] -> {"", 0} end]},
       {ExAws, [], [request: fn _command -> {:error, :invalid_data} end]}
     ]) do
       assert {:error, :invalid_data} = S3.download_release(name, version, new_path)

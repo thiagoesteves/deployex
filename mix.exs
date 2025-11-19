@@ -97,7 +97,8 @@ defmodule Deployex.MixProject do
           title: "Local-Elixir-Umbrella"
         ],
         "guides/examples/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
-        "guides/examples/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"]
+        "guides/examples/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"],
+        "guides/examples/yaml-runtime-upgrade/README.md": [filename: "README.md", title: "YAML"]
       ]
     ]
   end

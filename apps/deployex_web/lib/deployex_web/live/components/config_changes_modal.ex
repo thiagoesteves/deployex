@@ -6,10 +6,9 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   use Phoenix.Component
 
   alias DeployexWeb.Helper
-  alias Sentinel.Config.Changes
 
   attr :id, :string, required: true
-  attr :pending_changes, Changes, required: true
+  attr :pending_changes, :map, required: true
   attr :on_apply, :string, required: true
   attr :on_cancel, :string, required: true
 
