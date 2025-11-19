@@ -36,7 +36,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
           <div class="gap-6">
             <div class="flex items-center gap-6 mb-8">
               <div class="avatar">
-                <div class="w-20 h-20 rounded-3xl bg-base-200/30 flex items-center justify-center">
+                <div class="w-20 h-20 rounded-xl bg-base-200/30 flex items-center justify-center">
                   <img src={"/images/#{@application.language}.ico"} alt="" class="w-12 h-12" />
                 </div>
               </div>

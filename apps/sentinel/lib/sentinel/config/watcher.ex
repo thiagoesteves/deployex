@@ -196,7 +196,14 @@ defmodule Sentinel.Config.Watcher do
       {:ok, %Yaml{} = yaml_config} ->
         handle_yaml_change(state, yaml_config)
 
-      {:error, reason} when reason in [:unchanged, :not_found] ->
+      {:error, :unchanged} ->
+        # NOTE: The YAML file may have returned to the original values, matching the checksum,
+        #       pending changes need to be cleaned
+        notify_if_removed(state)
+
+        %{state | pending_config: nil, pending_changes: nil}
+
+      {:error, :not_found} ->
         state
 
       {:error, reason} ->
@@ -214,10 +221,12 @@ defmodule Sentinel.Config.Watcher do
       %{changes_count: 0} ->
         Logger.info("ConfigWatcher: No changes in upgradable fields")
 
+        notify_if_removed(state)
+
         %{state | current_config: yaml_upgradable, pending_config: nil, pending_changes: nil}
 
       pending_changes ->
-        # NOTE: Only Log and notify in the first event
+        # Notify Changes were added
         if is_nil(state.pending_config) or
              state.pending_config.config_checksum != yaml_upgradable.config_checksum do
           Logger.warning(
@@ -233,6 +242,18 @@ defmodule Sentinel.Config.Watcher do
 
         %{state | pending_config: yaml_upgradable, pending_changes: pending_changes}
     end
+  end
+
+  defp notify_if_removed(%{pending_config: nil}), do: :ok
+
+  defp notify_if_removed(%{pending_config: _pending_config}) do
+    Logger.info("ConfigWatcher: Normalized change(s)")
+
+    Phoenix.PubSub.broadcast(
+      Foundation.PubSub,
+      @pubsub_topic_new,
+      {:watcher_config_new, Node.self(), nil}
+    )
   end
 
   defp compute_changes(old_config, new_config) do
@@ -304,7 +325,7 @@ defmodule Sentinel.Config.Watcher do
         new_mon == nil ->
           Map.put(acc, type, %{status: :removed, config: old_mon})
 
-        Map.drop(old_mon, [:__struct__]) != Map.drop(new_mon, [:__struct__]) ->
+        monitoring_differs?(old_mon, new_mon) ->
           Map.put(acc, type, %{status: :modified, old: old_mon, new: new_mon})
 
         true ->
@@ -366,19 +387,22 @@ defmodule Sentinel.Config.Watcher do
         new_app == nil ->
           Map.put(acc, name, %{status: :removed, config: old_app, apply_strategies: [:immediate]})
 
-        Map.drop(old_app, [:__struct__]) != Map.drop(new_app, [:__struct__]) ->
-          changes = diff_application(old_app, new_app)
-          # credo:disable-for-lines:1
-          strategies = Enum.map(changes, fn {_field, %{apply_strategy: strategy}} -> strategy end)
-
-          Map.put(acc, name, %{
-            status: :modified,
-            changes: changes,
-            apply_strategies: strategies
-          })
-
         true ->
-          acc
+          changes = diff_application(old_app, new_app)
+
+          # credo:disable-for-lines:3
+          if changes != %{} do
+            strategies =
+              Enum.map(changes, fn {_field, %{apply_strategy: strategy}} -> strategy end)
+
+            Map.put(acc, name, %{
+              status: :modified,
+              changes: changes,
+              apply_strategies: strategies
+            })
+          else
+            acc
+          end
       end
     end)
   end
@@ -498,5 +522,16 @@ defmodule Sentinel.Config.Watcher do
 
   defp add_observer_web_config(config_list, retention_time_ms) do
     Keyword.put(config_list, :observer_web, data_retention_period: retention_time_ms)
+  end
+
+  defp monitoring_differs?(old_mon, new_mon) do
+    old_map = Map.drop(old_mon, [:__struct__])
+    new_map = Map.drop(new_mon, [:__struct__])
+
+    (Map.keys(old_map) ++ Map.keys(new_map))
+    |> Enum.uniq()
+    |> Enum.any?(fn key ->
+      Map.get(old_map, key) != Map.get(new_map, key)
+    end)
   end
 end

@@ -213,7 +213,7 @@ monitoring:                        # Deployex (optional, default: values describ
     restart_threshold_percent: 90  # Deployex (default: 90): Restart app if memory usage exceeds this percent
 applications:
   - name: "myphoenixapp"               # Application: Monitored app name (Elixir app name format)
-    language: "elixir"                 # Application: App language (elixir, erlang or gleam)
+    language: "elixir"                 # Application: (optional, default: elixir) App language (elixir, erlang or gleam)
     replicas: 2                        # Application: (optional, default: 3) Number of replicas
     deploy_rollback_timeout_ms: 600000 # Application: (optional, default: 600000): The maximum time allowed for attempting a deployment before considering the version as non-deployable and rolling back
     deploy_schedule_interval_ms: 5000  # Application: (optional, default: 5000): Periodic checking for new deployments

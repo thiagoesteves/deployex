@@ -76,6 +76,7 @@ defmodule DeployexWeb.Fixture.Status do
     language = Map.get(attrs, :language, "elixir")
     children = Map.get(attrs, :children, [])
     monitoring = Map.get(attrs, :monitoring, [])
+    replicas = Map.get(attrs, :replicas, 1)
 
     # This will guarantee that the app name will have an existing atom.
     _ = String.to_atom(name)
@@ -100,6 +101,7 @@ defmodule DeployexWeb.Fixture.Status do
     %Status{
       name: name,
       language: language,
+      replicas: replicas,
       status: :running,
       config: config,
       monitoring: monitoring,

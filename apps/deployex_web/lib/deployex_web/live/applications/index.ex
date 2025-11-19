@@ -515,6 +515,14 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_info(
+        {:watcher_config_new, source_node, nil},
+        %{assigns: %{node: node}} = socket
+      )
+      when source_node == node do
+    {:noreply, assign(socket, :yaml_config, default_yaml_config())}
+  end
+
+  def handle_info(
         {:watcher_config_new, source_node, pending_changes},
         %{assigns: %{node: node, yaml_config: yaml_config}} = socket
       )

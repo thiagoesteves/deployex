@@ -130,7 +130,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                     </svg>
                     <span class="text-sm font-medium text-base-content">Last Ghosted</span>
                   </div>
-                  <div class="bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
+                  <div class="bg-warning/30 border border-warning/20 rounded-lg px-3 py-2">
                     <span class="text-sm font-mono text-warning-content">
                       {config.last_ghosted_version}
                     </span>
