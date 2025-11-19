@@ -1,4 +1,4 @@
-defmodule Host.MemoryTest do
+defmodule Host.InfoTest do
   use ExUnit.Case, async: false
 
   import Mox
@@ -7,12 +7,12 @@ defmodule Host.MemoryTest do
   setup :verify_on_exit!
 
   alias Foundation.Common
-  alias Host.Memory.Server, as: MemoryServer
+  alias Host.Info.Server, as: InfoServer
 
   test "start_link/1 for Windows (Not Implemented yet)" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
-    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
   end
 
   test "System Info Notification for Linux" do
@@ -61,12 +61,12 @@ defmodule Host.MemoryTest do
         {:ok, [{:stdout, [os_description]}]}
     end)
 
-    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
 
-    MemoryServer.subscribe()
+    InfoServer.subscribe()
 
     assert_receive {:update_system_info,
-                    %Host.Memory{
+                    %Host.Info{
                       host: "Linux",
                       description: ^os_description,
                       memory_free: 1_263_837_184,
@@ -118,12 +118,12 @@ defmodule Host.MemoryTest do
         {:ok, [{:stdout, [os_description]}]}
     end)
 
-    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
 
-    MemoryServer.subscribe()
+    InfoServer.subscribe()
 
     assert_receive {:update_system_info,
-                    %Host.Memory{
+                    %Host.Info{
                       host: "Linux",
                       description: ^os_description,
                       memory_free: 1_263_837_184,
@@ -189,12 +189,12 @@ defmodule Host.MemoryTest do
         {:ok, [{:stdout, [os_description]}]}
     end)
 
-    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
 
-    MemoryServer.subscribe()
+    InfoServer.subscribe()
 
     assert_receive {:update_system_info,
-                    %Host.Memory{
+                    %Host.Info{
                       host: "macOS",
                       description: ^os_description,
                       memory_free: 17_201_512_448,
@@ -211,10 +211,10 @@ defmodule Host.MemoryTest do
     Host.CommanderMock
     |> stub(:os_type, fn -> {:win32, :any} end)
 
-    assert {:ok, _pid} = MemoryServer.start_link(name: name, update_info_interval: 100)
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
 
-    MemoryServer.subscribe()
+    InfoServer.subscribe()
 
-    assert_receive {:update_system_info, %Host.Memory{host: "Windows"}}, 1_000
+    assert_receive {:update_system_info, %Host.Info{host: "Windows"}}, 1_000
   end
 end

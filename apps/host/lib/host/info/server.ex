@@ -1,4 +1,4 @@
-defmodule Host.Memory.Server do
+defmodule Host.Info.Server do
   @moduledoc """
   This server is responsible for periodically capturing system information
   and sending it to processes that are subscribed to it
@@ -102,7 +102,7 @@ defmodule Host.Memory.Server do
 
         description = stdout |> Enum.join() |> String.trim()
 
-        %Host.Memory{
+        %Host.Info{
           host: "Linux",
           source_node: self_node,
           description: description,
@@ -150,7 +150,7 @@ defmodule Host.Memory.Server do
         {:ok, [{:stdout, stdout}]} = Commander.run("sw_vers -productVersion", [:stdout, :sync])
         description = stdout |> Enum.join() |> String.trim()
 
-        %Host.Memory{
+        %Host.Info{
           host: "macOS",
           source_node: self_node,
           description: description,
@@ -161,7 +161,7 @@ defmodule Host.Memory.Server do
         }
 
       {:win32, _} ->
-        %Host.Memory{host: "Windows", source_node: self_node}
+        %Host.Info{host: "Windows", source_node: self_node}
     end
   end
 end

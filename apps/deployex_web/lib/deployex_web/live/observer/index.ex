@@ -50,7 +50,7 @@ defmodule DeployexWeb.ObserverLive do
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
     # Subscribe to receive System info
-    Host.Memory.subscribe()
+    Host.Info.subscribe()
 
     {:ok,
      socket

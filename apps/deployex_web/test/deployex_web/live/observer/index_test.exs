@@ -26,7 +26,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
       Host.PubSub,
       "deployex::system_info_updated",
       {:update_system_info,
-       %Host.Memory{
+       %Host.Info{
          host: host,
          description: description,
          memory_free: 17_201_512_448,

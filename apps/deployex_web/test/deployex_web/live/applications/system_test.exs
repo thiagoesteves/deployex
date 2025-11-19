@@ -33,7 +33,7 @@ defmodule DeployexWeb.Applications.SystemTest do
     send(
       liveview_pid,
       {:update_system_info,
-       %Host.Memory{
+       %Host.Info{
          host: host,
          description: description,
          memory_free: 17_201_512_448,

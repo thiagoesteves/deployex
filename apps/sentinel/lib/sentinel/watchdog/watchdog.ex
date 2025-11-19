@@ -9,7 +9,7 @@ defmodule Sentinel.Watchdog do
 
   alias Deployer.Monitor
   alias Foundation.Catalog
-  alias Host.Memory
+  alias Host.Info
   alias ObserverWeb.Telemetry
   alias Sentinel.Watchdog.Data
 
@@ -66,7 +66,7 @@ defmodule Sentinel.Watchdog do
     Enum.each(monitored_nodes, &reset_application_statistic/1)
 
     # Subscribe to receive System info
-    Memory.subscribe()
+    Info.subscribe()
 
     # Subscribe to receive Beam vm metrics from Observer Web
     Enum.each(monitored_nodes, fn node ->
@@ -162,7 +162,7 @@ defmodule Sentinel.Watchdog do
 
   def handle_info(
         {:update_system_info,
-         %Memory{source_node: source_node, memory_free: memory_free, memory_total: memory_total}},
+         %Info{source_node: source_node, memory_free: memory_free, memory_total: memory_total}},
         %{self_node: self_node} = state
       ) do
     if source_node == self_node do

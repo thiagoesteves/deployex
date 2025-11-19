@@ -1,9 +1,9 @@
-defmodule Host.Memory do
+defmodule Host.Info do
   @moduledoc """
-  This module will provide host memory information
+  This module will provide host information
   """
 
-  alias Host.Memory.Server
+  alias Host.Info.Server
 
   @type t :: %__MODULE__{
           host: String.t(),

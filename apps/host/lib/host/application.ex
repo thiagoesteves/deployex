@@ -23,7 +23,7 @@ defmodule Host.Application do
 
   if_not_test do
     defp application_servers do
-      [Host.Memory.Server]
+      [Host.Info.Server]
     end
   else
     defp application_servers, do: []
