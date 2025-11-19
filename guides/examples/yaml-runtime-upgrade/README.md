@@ -12,7 +12,7 @@ secrets_adapter: "aws"                                   # Deployex: release ada
 secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
 aws_region: "sa-east-1"                                  # Deployex: aws region (only for AWS)
 google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
-version: "0.4.0-rc1"                                     # Deployex: Version
+version: "0.8.0"                                         # Deployex: Version
 otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                                # Deployex: Target OS server
