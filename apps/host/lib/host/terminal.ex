@@ -34,12 +34,12 @@ defmodule Host.Terminal do
   @doc """
   Starts a new Terminal Server
   """
-  @spec new(t()) :: {:ok, pid} | {:error, pid(), :already_started}
+  @spec new(attrs :: t()) :: {:ok, pid} | {:error, pid(), :already_started}
   def new(%__MODULE__{} = attrs), do: __MODULE__.Supervisor.new(attrs)
 
   @doc """
   Asynchronously terminates a Terminal based on the passed pid
   """
-  @spec async_terminate(pid()) :: :ok
+  @spec async_terminate(pid :: pid()) :: :ok
   def async_terminate(pid), do: __MODULE__.Server.async_terminate(pid)
 end

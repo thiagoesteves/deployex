@@ -1,6 +1,6 @@
 defmodule Host.Info.Server do
   @moduledoc """
-  This server is responsible for periodically capturing system information
+  This server is responsible for periodically capturing host information
   and sending it to processes that are subscribed to it
   """
   use GenServer
@@ -8,8 +8,13 @@ defmodule Host.Info.Server do
 
   alias Host.Commander
 
+  alias Host.Info.Cpu
+  alias Host.Info.Description
+  alias Host.Info.Memory
+  alias Host.Info.Uptime
+
   @update_info_interval :timer.seconds(1)
-  @system_info_updated_topic "deployex::system_info_updated"
+  @system_info_updated_topic "deployex::host_info_updated"
 
   ### ==========================================================================
   ### GenServer Callbacks
@@ -33,12 +38,12 @@ defmodule Host.Info.Server do
 
   @impl true
   def handle_info(:update_info, %{self_node: self_node} = state) do
-    memory_info = memory_info(self_node)
+    host_info = host_info(self_node)
 
     Phoenix.PubSub.broadcast(
       Host.PubSub,
       @system_info_updated_topic,
-      {:update_system_info, memory_info}
+      {:update_system_info, host_info}
     )
 
     {:noreply, state}
@@ -55,113 +60,26 @@ defmodule Host.Info.Server do
   ### Private Functions
   ### ==========================================================================
 
-  defp cpu_sum(cpu_list) do
-    Enum.reduce(cpu_list, 0.0, fn cpu_line, acc ->
-      case cpu_line |> String.trim() |> Float.parse() do
-        {cpu, _} ->
-          acc + cpu
+  defp host_info(self_node) do
+    host_info = %Host.Info{source_node: self_node}
 
-        _ ->
-          acc
+    {memory, cpu, uptime, description} =
+      case Commander.os_type() do
+        {:unix, :linux} ->
+          {Memory.get_linux(), Cpu.get_linux(), Uptime.get_linux(), Description.get_linux()}
+
+        {:unix, :darwin} ->
+          {Memory.get_macos(), Cpu.get_macos(), Uptime.get_macos(), Description.get_macos()}
+
+        {:win32, _} ->
+          {Memory.get_windows(), Cpu.get_windows(), Uptime.get_windows(),
+           Description.get_windows()}
       end
-    end)
-  end
 
-  defp memory_info(self_node) do
-    case Commander.os_type() do
-      {:unix, :linux} ->
-        # Memory Info
-        {:ok, [{:stdout, stdout}]} = Commander.run("free -b", [:stdout, :sync])
-
-        free_list =
-          stdout |> Enum.join() |> String.split("\n", trim: true) |> Enum.at(1) |> String.split()
-
-        memory_total = free_list |> Enum.at(1) |> String.to_integer()
-        memory_free = free_list |> Enum.at(6) |> String.to_integer()
-
-        # Number of CPUs
-        {:ok, [{:stdout, stdout}]} = Commander.run("nproc", [:stdout, :sync])
-        cpus = stdout |> Enum.join() |> String.trim() |> String.to_integer()
-
-        # CPU utilization
-        {:ok, [{:stdout, stdout}]} = Commander.run("ps -eo pcpu", [:stdout, :sync])
-
-        [_title | cpu_utilization] =
-          stdout
-          |> Enum.join()
-          |> String.split("\n", trim: true)
-
-        cpu = cpu_sum(cpu_utilization)
-
-        # Host OS description
-        {:ok, [{:stdout, stdout}]} =
-          Commander.run("cat /etc/os-release | grep VERSION= | sed 's/VERSION=//; s/\"//g'", [
-            :stdout,
-            :sync
-          ])
-
-        description = stdout |> Enum.join() |> String.trim()
-
-        %Host.Info{
-          host: "Linux",
-          source_node: self_node,
-          description: description,
-          memory_free: memory_free,
-          memory_total: memory_total,
-          cpus: cpus,
-          cpu: Float.round(cpu, 2)
-        }
-
-      {:unix, :darwin} ->
-        # Memory Info
-        {:ok, [{:stdout, stdout}]} = Commander.run("vm_stat", [:stdout, :sync])
-        info_list = stdout |> Enum.join() |> String.split("\n")
-
-        [page_size_text] =
-          String.split(
-            Enum.at(info_list, 0),
-            ["Mach Virtual Memory Statistics: (page size of ", " bytes)"],
-            trim: true
-          )
-
-        [page_free_text] = String.split(Enum.at(info_list, 1), ["Pages free:", "."], trim: true)
-
-        page_size = page_size_text |> String.trim() |> String.to_integer()
-        page_free = page_free_text |> String.trim() |> String.to_integer()
-
-        {:ok, [{:stdout, stdout}]} = Commander.run("sysctl -n hw.memsize", [:stdout, :sync])
-        memory_total = stdout |> Enum.join() |> String.trim() |> String.to_integer()
-
-        # Number of CPUs
-        {:ok, [{:stdout, stdout}]} = Commander.run("sysctl -n hw.ncpu", [:stdout, :sync])
-        cpus = stdout |> Enum.join() |> String.trim() |> String.to_integer()
-
-        # CPU utilization
-        {:ok, [{:stdout, stdout}]} = Commander.run("ps -A -o %cpu", [:stdout, :sync])
-
-        [_title | cpu_utilization] =
-          stdout
-          |> Enum.join()
-          |> String.split("\n", trim: true)
-
-        cpu = cpu_sum(cpu_utilization)
-
-        # Host OS description
-        {:ok, [{:stdout, stdout}]} = Commander.run("sw_vers -productVersion", [:stdout, :sync])
-        description = stdout |> Enum.join() |> String.trim()
-
-        %Host.Info{
-          host: "macOS",
-          source_node: self_node,
-          description: description,
-          memory_free: page_size * page_free,
-          memory_total: memory_total,
-          cpus: cpus,
-          cpu: Float.round(cpu, 2)
-        }
-
-      {:win32, _} ->
-        %Host.Info{host: "Windows", source_node: self_node}
-    end
+    host_info
+    |> struct(Map.from_struct(memory))
+    |> struct(Map.from_struct(cpu))
+    |> struct(Map.from_struct(uptime))
+    |> struct(Map.from_struct(description))
   end
 end

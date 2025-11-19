@@ -11,6 +11,7 @@ defmodule Host.Info do
           description: String.t(),
           memory_free: nil | non_neg_integer(),
           memory_total: nil | non_neg_integer(),
+          uptime: nil | String.t(),
           cpu: nil | non_neg_integer(),
           cpus: nil | non_neg_integer()
         }
@@ -20,6 +21,7 @@ defmodule Host.Info do
             description: "",
             memory_free: nil,
             memory_total: nil,
+            uptime: nil,
             cpu: nil,
             cpus: nil
 

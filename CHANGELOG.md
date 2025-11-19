@@ -35,6 +35,7 @@ applications:
 ### Bug fixes
  * [`PULL-174`](https://github.com/thiagoesteves/deployex/pull/174) Fixing truncated logs for Live and History logs dashboard
  * [`PULL-175`](https://github.com/thiagoesteves/deployex/pull/175) Adding log details in live applications stdout/stderr
+ * [`PULL-181`](https://github.com/thiagoesteves/deployex/pull/181) Fixes GCP service account credentials config
 
 ### Enhancements
  * [`ISSUE-167`](https://github.com/thiagoesteves/deployex/issues/167) Modify Deployer app to re-load the yaml and apply changes
@@ -42,6 +43,7 @@ applications:
  * [`PULL-177`](https://github.com/thiagoesteves/deployex/pull/177) Adding configurable log retention period
  * [`PULL-180`](https://github.com/thiagoesteves/deployex/pull/180) Moving deploy timeouts to be handle by application and not globally
  * [`PULL-182`](https://github.com/thiagoesteves/deployex/pull/182) Adding app config information in the UI/UX and full restart button for all apps
+ * [`PULL-186`](https://github.com/thiagoesteves/deployex/pull/186) Adding host uptime to UI/UX
 
 ## 0.7.3 🚀 (2025-10-28)
 

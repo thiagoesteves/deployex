@@ -15,7 +15,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
     assert html =~ "Observer Web"
   end
 
-  test "GET /embedded-observer system info", %{conn: conn} do
+  test "GET /embedded-observer host info", %{conn: conn} do
     host = "macOS"
     description = "15.1.1"
     total_memory = "64.00"
@@ -24,7 +24,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
 
     Phoenix.PubSub.broadcast(
       Host.PubSub,
-      "deployex::system_info_updated",
+      "deployex::host_info_updated",
       {:update_system_info,
        %Host.Info{
          host: host,
