@@ -70,8 +70,6 @@ Check out this must-watch video:
 
 ## ⚠️ What is coming next? 
 
-### What is coming next
-
 [Roadmap](https://github.com/users/thiagoesteves/projects/4)
 
 ## 📁 Getting Started
