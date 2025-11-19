@@ -40,7 +40,7 @@ defmodule Mix.Shared do
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
         # Host
-        Host.Memory,
+        Host.Info,
         Host.Commander.Local,
         Host.Terminal.Server.Message,
         Host.Application,

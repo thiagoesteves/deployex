@@ -21,12 +21,15 @@ defmodule DeployexWeb.Components.SystemBar do
         |> assign(cpu: 0.00)
         |> assign(cpus_used: 0)
         |> assign(cpus_max: "--")
+        |> assign(uptime: "--")
       else
         memory_used = trunc((info.memory_total - info.memory_free) / info.memory_total * 100)
         memory_max = :erlang.float_to_binary(info.memory_total / @one_gigabyte, [{:decimals, 2}])
 
         cpus_max = trunc(info.cpus * 100)
         cpus_used = trunc(info.cpu / cpus_max * 100)
+
+        uptime = Map.get(info, :uptime, "--")
 
         assigns
         |> assign(system: info.host)
@@ -36,6 +39,7 @@ defmodule DeployexWeb.Components.SystemBar do
         |> assign(cpu: info.cpu)
         |> assign(cpus_used: cpus_used)
         |> assign(cpus_max: cpus_max)
+        |> assign(uptime: uptime)
       end
 
     ~H"""
@@ -71,8 +75,7 @@ defmodule DeployexWeb.Components.SystemBar do
                 </div>
               </div>
             </div>
-            
-    <!-- System Info -->
+            <!-- System Info -->
             <div class="divider divider-horizontal mx-4"></div>
             <div class="flex items-center gap-3">
               <img src={"/images/#{host_system_image(@system)}"} alt="System" class="w-8 h-8" />
@@ -86,6 +89,13 @@ defmodule DeployexWeb.Components.SystemBar do
 
         <div class="navbar-end">
           <div class="flex items-center gap-8">
+            <!-- Uptime -->
+            <div class="flex items-center gap-3">
+              <div class="flex flex-col items-end">
+                <span class="text-sm font-semibold text-base-content">Uptime</span>
+                <span class="text-xs text-base-content/60">{@uptime}</span>
+              </div>
+            </div>
             <!-- Memory Usage -->
             <div class="flex items-center gap-3">
               <div class="flex flex-col items-end">
@@ -100,8 +110,7 @@ defmodule DeployexWeb.Components.SystemBar do
                 </span>
               </div>
             </div>
-            
-    <!-- CPU Usage -->
+            <!-- CPU Usage -->
             <div class="flex items-center gap-3">
               <div class="flex flex-col items-end">
                 <span class="text-sm font-semibold text-base-content">CPU</span>

@@ -309,7 +309,7 @@ defmodule DeployexWeb.ApplicationsLive do
     Status.subscribe()
 
     # Subscribe to receive System info
-    Host.Memory.subscribe()
+    Host.Info.subscribe()
 
     # Subscribe to receive new config changes event
     Watcher.subscribe_new_config()

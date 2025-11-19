@@ -14,7 +14,7 @@ defmodule Host.Commander do
   gen_server for supervision
   """
   @impl true
-  @spec run_link(String.t(), list()) ::
+  @spec run_link(command :: String.t(), options :: list()) ::
           {:ok, any()} | {:ok, pid(), integer()} | {:error, any()}
   def run_link(command, options), do: default().run_link(command, options)
 
@@ -22,7 +22,7 @@ defmodule Host.Commander do
   Run the passed commands
   """
   @impl true
-  @spec run(String.t(), list()) ::
+  @spec run(command :: String.t(), options :: list()) ::
           {:ok, any()} | {:ok, pid(), integer()} | {:error, any()}
   def run(command, options), do: default().run(command, options)
 
@@ -30,14 +30,14 @@ defmodule Host.Commander do
   Stop the passed process pid
   """
   @impl true
-  @spec stop(integer()) :: :ok | {:error, any()}
+  @spec stop(process_pid :: integer()) :: :ok | {:error, any()}
   def stop(process_pid), do: default().stop(process_pid)
 
   @doc """
   Send a message to the passed process pid
   """
   @impl true
-  @spec send(integer(), String.t()) :: :ok
+  @spec send(process_pid :: integer(), message :: String.t()) :: :ok
   def send(process_pid, message), do: default().send(process_pid, message)
 
   @doc """

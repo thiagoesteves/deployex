@@ -1,12 +1,10 @@
 defmodule Sentinel.Fixture.Host do
   @moduledoc """
-  This module will provide Host Memory Fixtures
+  This module will provide Host Info Fixtures
   """
 
-  alias Host.Memory
-
   def send_update_sys_info_message(pid, source_node, memory_free, memory_total) do
-    message = %Memory{
+    message = %Host.Info{
       source_node: source_node,
       memory_free: memory_free,
       memory_total: memory_total

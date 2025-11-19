@@ -111,7 +111,7 @@ DEPLOYEX_SYSTEMD_FILE="
     echo "# Creating log directories for applications #"
     echo "  - Application logs at: $DEPLOYEX_MONITORED_APP_LOG_PATH"
     mkdir -p ${DEPLOYEX_MONITORED_APP_LOG_PATH}/
-    chown deployex:deployex /var/log/${app_name}/
+    chown deployex:deployex ${DEPLOYEX_MONITORED_APP_LOG_PATH}/
 
     printf "%s\n" "${DEPLOYEX_SYSTEMD_FILE}" > ${DEPLOYEX_SYSTEMD_PATH}
     echo "#    Deployex installed with success       #"
