@@ -102,7 +102,7 @@ defmodule Sentinel.Config.Watcher do
     {:reply, {:error, :no_pending_changes}, state}
   end
 
-  def handle_call(:apply_changes, _from, state) do
+  def handle_call(:apply_changes, _from, %State{} = state) do
     Logger.info("ConfigWatcher: Applying pending configuration changes")
 
     summary = state.pending_changes.summary

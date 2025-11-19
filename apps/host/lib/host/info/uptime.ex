@@ -36,10 +36,12 @@ defmodule Host.Info.Uptime do
 
   @spec get_macos() :: t()
   def get_macos do
+    regex = Regex.compile!("sec = (\\d+)", "")
+
     with {:ok, [{:stdout, stdout_kern_boottime}]} <-
            Commander.run("sysctl -n kern.boottime", [:stdout, :sync]),
          stdout <- Enum.join(stdout_kern_boottime, ""),
-         [_, boot_time_str] <- Regex.run(~r/sec = (\d+)/, stdout) do
+         [_, boot_time_str] <- Regex.run(regex, stdout) do
       boot_time = String.to_integer(boot_time_str)
       current_time = System.os_time(:second)
       uptime_seconds = current_time - boot_time
