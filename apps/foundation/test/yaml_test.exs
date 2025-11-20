@@ -10,6 +10,7 @@ defmodule Foundation.YamlTest do
 
   @file_paths "./test/support/files"
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
+  @yaml_aws_env "#{@file_paths}/deployex-aws-env.yaml"
   @yaml_aws_no_app "#{@file_paths}/deployex-aws-no-app.yaml"
   @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
@@ -241,6 +242,17 @@ defmodule Foundation.YamlTest do
 
         assert config.release_adapter == Deployer.Release.GcpStorage
         assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
+      end
+    end
+
+    test "Secres/Release for ENV" do
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_env end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert config.release_adapter == Deployer.Release.S3
+        assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Env
       end
     end
   end

@@ -246,6 +246,7 @@ defmodule Foundation.Yaml do
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp
+  defp secrets_adapter("env"), do: Foundation.ConfigProvider.Secrets.Env
   defp secrets_adapter(adapter), do: raise("Secret #{adapter} not supported")
 
   defp release_adapter("s3"), do: Deployer.Release.S3

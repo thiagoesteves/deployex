@@ -8,7 +8,7 @@ hostname: "deployex.myphoenixapp.com"                    # Deployex: hostname
 port: 5001                                               # Deployex: port
 release_adapter: "s3"                                    # Deployex: release adapter type s3 or gcp-storage
 release_bucket: "myphoenixapp-prod-distribution"         # Deployex: release distribution bucket name
-secrets_adapter: "aws"                                   # Deployex: release adapter type aws or gcp
+secrets_adapter: "aws"                                   # Deployex: secrets adapter type aws, gcp or env
 secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
 aws_region: "sa-east-1"                                  # Deployex: aws region (only for AWS)
 google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
