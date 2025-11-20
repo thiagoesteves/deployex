@@ -3,6 +3,8 @@
 # Default values
 DEFAULT_CONFIG_FILE="deployex.yaml"
 DEFAULT_DIST_URL="https://github.com/thiagoesteves/deployex/releases/download"
+DEFAULT_DEPLOYEX_OPT_DIR="/opt/deployex"
+DEFAULT_DEPLOYEX_VAR_LIB="/var/lib/deployex"
 
 # Function to display usage information
 usage() {
@@ -41,8 +43,6 @@ usage() {
 
 DEPLOYEX_SERVICE_NAME=deployex.service
 DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
-DEPLOYEX_OPT_DIR=/opt/deployex
-DEPLOYEX_VAR_LIB=/var/lib/deployex
 DEPLOYEX_LOG_PATH=/var/log/deployex
 DEPLOYEX_MONITORED_APP_LOG_PATH=/var/log/monitored-apps
 
@@ -239,6 +239,21 @@ version=$(yq '.version' $config_file | tr -d '"')
 otp_version=$(yq '.otp_version' $config_file | tr -d '"')
 otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
 os_target=$(yq '.os_target' $config_file | tr -d '"')
+install_path=$(yq '.install_path' $config_file | tr -d '"')
+var_path=$(yq '.var_path' $config_file | tr -d '"')
+
+# Use defaults if not defined or null
+if [[ -z $install_path || $install_path == "null" ]]; then
+    DEPLOYEX_OPT_DIR=${DEFAULT_DEPLOYEX_OPT_DIR}
+else
+    DEPLOYEX_OPT_DIR=${install_path}
+fi
+
+if [[ -z $var_path || $var_path == "null" ]]; then
+    DEPLOYEX_VAR_LIB=${DEFAULT_DEPLOYEX_VAR_LIB}
+else
+    DEPLOYEX_VAR_LIB=${var_path}
+fi
 
 if [ $dist_url != $DEFAULT_DIST_URL ]; then
     base_release=${dist_url}
