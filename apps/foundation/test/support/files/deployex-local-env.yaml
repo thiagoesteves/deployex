@@ -1,7 +1,7 @@
 account_name: "prod"
 hostname: "deployex.example.com"
 port: 5001
-release_adapter: "s3"
+release_adapter: "local"
 release_bucket: "myapp-prod-distribution"
 secrets_adapter: "env"
 secrets_path: "deployex-myapp-prod-secrets"

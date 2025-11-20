@@ -6,7 +6,7 @@ Once DeployEx runs, it fetches the configuration from the YAML file described in
 account_name: "prod"                                     # Deployex: Cloud/Environment Account name
 hostname: "deployex.myphoenixapp.com"                    # Deployex: hostname
 port: 5001                                               # Deployex: port
-release_adapter: "s3"                                    # Deployex: release adapter type s3 or gcp-storage
+release_adapter: "s3"                                    # Deployex: release adapter type s3, gcp-storage or local
 release_bucket: "myphoenixapp-prod-distribution"         # Deployex: release distribution bucket name
 secrets_adapter: "aws"                                   # Deployex: secrets adapter type aws, gcp or env
 secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
@@ -114,9 +114,9 @@ These fields require a **full DeployEx restart** to take effect:
 - `account_name` - Cloud/Environment account identifier
 - `hostname` - DeployEx hostname
 - `port` - DeployEx port
-- `release_adapter` - Release distribution adapter (s3, gcp-storage)
+- `release_adapter` - Release distribution adapter (s3, gcp-storage or local)
 - `release_bucket` - Release distribution bucket name
-- `secrets_adapter` - Secrets provider (aws, gcp)
+- `secrets_adapter` - Secrets provider (aws, gcp or env)
 - `secrets_path` - Path to secrets in provider
 - `aws_region` - AWS region configuration
 - `google_credentials` - GCP credentials file path

@@ -251,6 +251,7 @@ defmodule Foundation.Yaml do
 
   defp release_adapter("s3"), do: Deployer.Release.S3
   defp release_adapter("gcp-storage"), do: Deployer.Release.GcpStorage
+  defp release_adapter("local"), do: Deployer.Release.Local
   defp release_adapter(adapter), do: raise("Release #{adapter} not supported")
 
   defp parse_monitoring_list(nil), do: []
