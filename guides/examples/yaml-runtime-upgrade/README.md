@@ -18,6 +18,8 @@ os_target: "ubuntu-24.04"                                # Deployex: Target OS s
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 install_path: "/opt/deployex"                            # Deployex (optional, default: /opt/deployex): Path to Deployex installation in the host
 var_path: "/var/lib/deployex"                            # Deployex (optional, default: /var/lib/deployex): Path to Deployex managed data
+log_path: "/var/log/deployex"                            # Deployex (optional, default: /var/log/deployex): Path to Deployex logs
+monitored_app_log_path: "/var/log/monitored-apps"        # Deployex (optional, default: /var/log/monitored-apps): Path to Deployex monitored apps log
 metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
 logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
 monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features

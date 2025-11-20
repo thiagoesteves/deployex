@@ -39,7 +39,9 @@ defmodule Foundation.ConfigProvider.Env.Config do
             {:monitoring, yaml_config.monitoring},
             {:logs_retention_time_ms, yaml_config.logs_retention_time_ms},
             {:install_path, yaml_config.install_path},
-            {:var_path, yaml_config.var_path}
+            {:var_path, yaml_config.var_path},
+            {:log_path, yaml_config.log_path},
+            {:monitored_app_log_path, yaml_config.monitored_app_log_path}
           ]
         ]
 

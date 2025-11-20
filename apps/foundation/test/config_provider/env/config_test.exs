@@ -80,6 +80,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
+                                  {:log_path, "/var/log/deployex"},
+                {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -181,6 +183,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
+                {:log_path, "/var/log/deployex"},
+                {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Env,
@@ -286,7 +290,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "e07879b0aa766c6a8a7bf8b44ae65e1ed62ab0c5db3c9bedd83802d577a28513"},
+                   "3ac46199d71a6a46155d64e2c5558ee19279bffb8bccc60f12af1670046ad09c"},
                   {:monitoring,
                    [
                      memory: %Foundation.Yaml.Monitoring{
@@ -298,6 +302,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/install/deployex"},
                   {:var_path, "/var/lib/install/deployex"},
+                                  {:log_path, "/var/log/install/deployex"},
+                {:monitored_app_log_path, "/var/log/install/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -400,6 +406,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
+                {:log_path, "/var/log/deployex"},
+                {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -458,11 +466,13 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "fe80f57a7516d81ebb63012ef3714ec5b0a7046b49dc90a6cc84f42199174699"},
+                   "9b6cb25872864716974f64a1477510d4127b0d7b3063e75d8c39e9dd00fb578d"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/install/deployex"},
                   {:var_path, "/var/lib/install/deployex"},
+                                  {:log_path, "/var/log/install/deployex"},
+                {:monitored_app_log_path, "/var/log/install/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -565,6 +575,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
+                                  {:log_path, "/var/log/deployex"},
+                {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,

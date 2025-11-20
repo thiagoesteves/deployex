@@ -17,6 +17,8 @@ defmodule Foundation.Yaml do
   @default_deploy_schedule_interval_ms :timer.seconds(5)
   @default_install_path "/opt/deployex"
   @default_var_path "/var/lib/deployex"
+  @default_log_path "/var/log/deployex"
+  @default_monitored_app_log_path "/var/log/monitored-apps"
 
   defmodule Monitoring do
     @moduledoc """
@@ -91,6 +93,8 @@ defmodule Foundation.Yaml do
             otp_tls_certificates: nil,
             os_target: nil,
             install_path: nil,
+            log_path: nil,
+            monitored_app_log_path: nil,
             var_path: nil,
             metrics_retention_time_ms: nil,
             logs_retention_time_ms: nil,
@@ -114,6 +118,8 @@ defmodule Foundation.Yaml do
           os_target: String.t() | nil,
           install_path: String.t() | nil,
           var_path: String.t() | nil,
+          log_path: String.t() | nil,
+          monitored_app_log_path: String.t() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
@@ -235,6 +241,8 @@ defmodule Foundation.Yaml do
       os_target: data["os_target"],
       install_path: data["install_path"] || @default_install_path,
       var_path: data["var_path"] || @default_var_path,
+      log_path: data["log_path"] || @default_log_path,
+      monitored_app_log_path: data["monitored_app_log_path"] || @default_monitored_app_log_path,
       metrics_retention_time_ms:
         data["metrics_retention_time_ms"] || @default_metrics_retention_time_ms,
       logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,
