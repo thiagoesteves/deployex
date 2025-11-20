@@ -26,10 +26,11 @@ import Config
 config :foundation,
   generators: [timestamp_type: :utc_datetime],
   booted_at: System.monotonic_time(),
-  bin_dir: "/opt/deployex/bin",
-  bin_path: "/opt/deployex/bin/deployex",
-  base_path: "/var/lib/deployex",
+  # DeployEx Installation path in the host machine
+  install_path: "/opt/deployex",
   log_path: "/var/log/deployex",
+  # DeployEx managed data like monitored apps, storage, etc
+  var_path: "/var/lib/deployex",
   monitored_app_log_path: "/var/log/monitored-apps",
   monitoring: [],
   applications: [],

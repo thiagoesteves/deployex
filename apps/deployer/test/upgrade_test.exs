@@ -137,7 +137,7 @@ defmodule Deployer.UpgradeAppTest do
       new_path: Catalog.new_path(sname),
       from_version: "0.1.0",
       to_version: "0.2.0",
-      base_path: Application.get_env(:foundation, :base_path)
+      var_path: Application.get_env(:foundation, :var_path)
     }
   end
 
@@ -185,7 +185,7 @@ defmodule Deployer.UpgradeAppTest do
     new_path: new_path,
     from_version: from_version,
     to_version: to_version,
-    base_path: base_path
+    var_path: var_path
   } do
     new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     current_releases_path = "#{current_path}/releases/#{to_version}"
@@ -193,7 +193,7 @@ defmodule Deployer.UpgradeAppTest do
     File.mkdir_p!(current_releases_path)
     File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
-    File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
+    File.write("#{var_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
              assert {:ok, :hot_upgrade} =
@@ -201,7 +201,7 @@ defmodule Deployer.UpgradeAppTest do
                         sname: sname,
                         name: app_name,
                         language: "elixir",
-                        download_path: "#{base_path}/#{app_name}-#{to_version}.tar.gz",
+                        download_path: "#{var_path}/#{app_name}-#{to_version}.tar.gz",
                         current_path: current_path,
                         new_path: new_path,
                         from_version: from_version,
@@ -357,7 +357,7 @@ defmodule Deployer.UpgradeAppTest do
     new_path: new_path,
     from_version: from_version,
     to_version: to_version,
-    base_path: base_path
+    var_path: var_path
   } do
     new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
     new_lib_priv_path = "#{new_path}/lib/#{app_name}-#{to_version}/priv/appup"
@@ -371,7 +371,7 @@ defmodule Deployer.UpgradeAppTest do
 
     File.write("#{new_lib_priv_path}/#{app_name}.appup", @valid_appup_file)
     File.write("#{new_releases_path}/#{app_name}.rel", @release_file)
-    File.write("#{base_path}/#{app_name}-#{to_version}.tar.gz", "")
+    File.write("#{var_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
              assert :ok = UpgradeApp.prepare_new_path(app_name, "erlang", to_version, new_path)
@@ -381,7 +381,7 @@ defmodule Deployer.UpgradeAppTest do
                         sname: sname,
                         name: app_name,
                         language: "erlang",
-                        download_path: "#{base_path}/#{app_name}-#{to_version}.tar.gz",
+                        download_path: "#{var_path}/#{app_name}-#{to_version}.tar.gz",
                         current_path: current_path,
                         new_path: new_path,
                         from_version: from_version,

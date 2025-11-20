@@ -6,7 +6,7 @@ defmodule Foundation.Fixture.Catalog do
   alias Foundation.Catalog
 
   def cleanup do
-    Application.get_env(:foundation, :base_path) |> File.rm_rf()
+    Application.get_env(:foundation, :var_path) |> File.rm_rf()
 
     Catalog.setup_all_apps()
   end

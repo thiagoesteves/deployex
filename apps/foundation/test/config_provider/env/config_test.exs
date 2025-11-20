@@ -77,6 +77,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    "5d6ee0b036f41e901aec5dd4d6a2af087d96040402a9ade329573795540bb8a1"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -101,6 +103,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                           replica_ports: [%{base: 1000, key: "PORT"}]
                         }
                       ]},
+                     {:install_path, "any-path"},
+                     {:var_path, "any-path"},
                      {:config_checksum, nil}
                    ],
                    deployex_web: [
@@ -179,7 +183,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "998af846cae59aad19183c5006e56bf22c1c161501752d06a6bf1fb6493f1e38"},
+                   "e07879b0aa766c6a8a7bf8b44ae65e1ed62ab0c5db3c9bedd83802d577a28513"},
                   {:monitoring,
                    [
                      memory: %Foundation.Yaml.Monitoring{
@@ -189,6 +193,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/install/deployex"},
+                  {:var_path, "/var/lib/install/deployex"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -289,6 +295,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -347,9 +355,11 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "a4a6bf0fac50a3d7dfb66676935069d93b2506d8fce0e1bd50dcf0f77962b41d"},
+                   "fe80f57a7516d81ebb63012ef3714ec5b0a7046b49dc90a6cc84f42199174699"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/install/deployex"},
+                  {:var_path, "/var/lib/install/deployex"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -448,6 +458,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    "5c1d8cb90a8661ac4fefad8d1ad2aa760d4d7257f61bd310e9aadf31c3b97968"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,

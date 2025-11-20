@@ -5,7 +5,7 @@ defmodule Foundation.CatalogTest do
   alias Foundation.Catalog
 
   setup do
-    Application.get_env(:foundation, :base_path) |> File.rm_rf()
+    Application.get_env(:foundation, :var_path) |> File.rm_rf()
 
     name =
       Application.get_env(:foundation, :applications)

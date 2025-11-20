@@ -14,8 +14,10 @@ aws_region: "sa-east-1"                                  # Deployex: aws region 
 google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
 version: "0.8.0"                                         # Deployex: Version
 otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
-otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                                # Deployex: Target OS server
+otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
+install_path: "/opt/deployex"                            # Deployex (optional, default: /opt/deployex): Path to Deployex installation in the host
+var_path: "/var/lib/deployex"                            # Deployex (optional, default: /var/lib/deployex): Path to Deployex managed data
 metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
 logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
 monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features

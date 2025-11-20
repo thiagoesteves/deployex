@@ -15,6 +15,8 @@ defmodule Foundation.Yaml do
   @default_language "elixir"
   @default_deploy_rollback_timeout_ms :timer.minutes(10)
   @default_deploy_schedule_interval_ms :timer.seconds(5)
+  @default_install_path "/opt/deployex"
+  @default_var_path "/var/lib/deployex"
 
   defmodule Monitoring do
     @moduledoc """
@@ -88,6 +90,8 @@ defmodule Foundation.Yaml do
             otp_version: nil,
             otp_tls_certificates: nil,
             os_target: nil,
+            install_path: nil,
+            var_path: nil,
             metrics_retention_time_ms: nil,
             logs_retention_time_ms: nil,
             monitoring: [],
@@ -108,6 +112,8 @@ defmodule Foundation.Yaml do
           otp_version: non_neg_integer() | nil,
           otp_tls_certificates: String.t() | nil,
           os_target: String.t() | nil,
+          install_path: String.t() | nil,
+          var_path: String.t() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
@@ -227,6 +233,8 @@ defmodule Foundation.Yaml do
       otp_version: data["otp_version"],
       otp_tls_certificates: data["otp_tls_certificates"],
       os_target: data["os_target"],
+      install_path: data["install_path"] || @default_install_path,
+      var_path: data["var_path"] || @default_var_path,
       metrics_retention_time_ms:
         data["metrics_retention_time_ms"] || @default_metrics_retention_time_ms,
       logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,

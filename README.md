@@ -257,8 +257,8 @@ export sname="${monitored_app_name}-2l0rkp"
 tail -f /var/log/monitored-apps/${monitored_app_name}/${sname}-stdout.log
 tail -f /var/log/monitored-apps/${monitored_app_name}/${sname}-stderr.log
 # local test
-tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stdout.log
-tail -f /tmp/deployex/varlog/${monitored_app_name}/${sname}-stderr.log
+tail -f /tmp/deployex/var/log/${monitored_app_name}/${sname}-stdout.log
+tail -f /tmp/deployex/var/log/${monitored_app_name}/${sname}-stderr.log
 ```
 
 ### Connecting to the monitored app manually

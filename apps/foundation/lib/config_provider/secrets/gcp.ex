@@ -6,8 +6,6 @@ defmodule Foundation.ConfigProvider.Secrets.Gcp do
 
   require Logger
 
-  # alias ExAws.Operation.JSON
-
   @doc """
   secrets/3.
 

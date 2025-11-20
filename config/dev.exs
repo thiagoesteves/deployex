@@ -76,8 +76,10 @@ config :swoosh, :api_client, false
 
 config :foundation,
   env: "local",
-  base_path: "/tmp/deployex/varlib",
-  monitored_app_log_path: "/tmp/deployex/varlog",
+  install_path: nil,
+  log_path: nil,
+  var_path: "/tmp/deployex/var/lib/deployex",
+  monitored_app_log_path: "/tmp/deployex/var/log",
   monitoring: [
     memory: %{
       enable_restart: true,
