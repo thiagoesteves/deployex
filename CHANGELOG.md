@@ -1,6 +1,6 @@
 # CHANGELOG (0.8.X)
 
-## 0.8.0 🚀 (2025-11-19)
+## 0.8.0 🚀 (2025-11-20)
 
 ### Backwards incompatible changes for 0.7.3
 
