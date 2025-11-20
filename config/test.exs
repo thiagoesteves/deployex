@@ -1,13 +1,11 @@
 import Config
 
-base_test_path = "/tmp/deployex-test"
-
 config :foundation,
   env: "local",
-  install_path: "#{base_test_path}/opt/deployex",
-  log_path: "#{base_test_path}/var/log/deployex",
-  var_path: "#{base_test_path}/var/lib/deployex",
-  monitored_app_log_path: "#{base_test_path}/var/log/monitored-apps",
+  install_path: "/tmp/opt/deployex",
+  log_path: "/tmp/var/log/deployex",
+  var_path: "/tmp/var/lib/deployex",
+  monitored_app_log_path: "/tmp/var/log/monitored-apps",
   monitoring: [
     memory: %{
       enable_restart: true,
@@ -95,7 +93,7 @@ config :deployer, Deployer.Monitor, adapter: Deployer.MonitorMock
 
 config :deployer, Deployer.Release,
   adapter: Deployer.ReleaseMock,
-  bucket: "/tmp/deployex-test/bucket"
+  bucket: "/tmp/bucket"
 
 config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 

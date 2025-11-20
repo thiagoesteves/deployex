@@ -42,7 +42,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name}") |> render_click() =~
-             "Bin: /tmp/deployex-test/opt/#{name}"
+             "Bin: /tmp/opt/#{name}"
 
     FixtureTerminal.terminate_all()
 
@@ -82,7 +82,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-             "Bin: /tmp/deployex-test/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+             "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
 
     FixtureTerminal.terminate_all()
 
@@ -124,7 +124,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-             "Bin: /tmp/deployex-test/var/lib/deployex/service/#{name}/#{sname}/current/erlang-shipment"
+             "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/erlang-shipment"
 
     FixtureTerminal.terminate_all()
 
@@ -166,7 +166,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-             "Bin: /tmp/deployex-test/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+             "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
 
     FixtureTerminal.terminate_all()
 
@@ -244,7 +244,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-             "Bin: /tmp/deployex-test/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+             "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
 
     # NOTE: Force handle_event in the live component
     index_live
@@ -310,7 +310,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
-             "Bin: /tmp/deployex-test/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+             "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
 
     assert [pid] = FixtureTerminal.list_children()
 
