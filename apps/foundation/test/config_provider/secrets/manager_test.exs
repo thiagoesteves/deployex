@@ -108,15 +108,13 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
     assert [
              {:foundation,
               [
-                {Manager, [adapter: SecretsMock, path: "any-env-path"]},
-                {:env, "local"}
+                {Manager, [adapter: nil, path: "any-env-path"]}
               ]}
            ] =
              Manager.load(
                [
                  foundation: [
-                   {Manager, adapter: SecretsMock, path: "any-env-path"},
-                   {:env, "local"}
+                   {Manager, adapter: nil, path: "any-env-path"}
                  ]
                ],
                []

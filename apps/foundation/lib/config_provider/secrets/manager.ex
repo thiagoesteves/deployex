@@ -27,7 +27,6 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
   @impl Config.Provider
   def load(config, opts) do
     Logger.info("[Config Provider] Loading Secrets")
-    env = Keyword.get(config, :foundation) |> Keyword.get(:env)
 
     secrets_adapter =
       Keyword.get(config, :foundation)
@@ -39,8 +38,8 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
       |> Keyword.get(Foundation.ConfigProvider.Secrets.Manager)
       |> Keyword.get(:path)
 
-    if env == "local" do
-      Logger.info("  - No secrets retrieved, local environment")
+    if is_nil(secrets_adapter) do
+      Logger.info("  - No secrets retrieved, using default values")
       config
     else
       Logger.info("  - Trying to retrieve secrets: #{secrets_adapter} - #{secrets_path}")

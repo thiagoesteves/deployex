@@ -9,6 +9,10 @@ google_credentials: "/home/ubuntu/gcp-config.json"
 version: "0.4.0"
 otp_version: 26
 os_target: "ubuntu-20.04"
+install_path: "/opt/install/deployex"
+var_path: "/var/lib/install/deployex"
+log_path: "/var/log/install/deployex"
+monitored_app_log_path: "/var/log/install/monitored-apps"
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
 applications:

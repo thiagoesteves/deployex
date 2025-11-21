@@ -153,8 +153,8 @@ The default `dev` application for deployex is `myphoenixapp`. To add another app
 ```elixir
 config :foundation,
   env: "local",
-  base_path: "/tmp/deployex/varlib",
-  monitored_app_log_path: "/tmp/deployex/varlog",
+  var_path: "/tmp/deployex/varlib",
+  monitored_app_log_path: "/tmp/deployex/var/log",
   applications: [
     %{
       name: "myumbrella",

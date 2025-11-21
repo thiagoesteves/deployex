@@ -96,7 +96,7 @@ defmodule Foundation.Common do
   @spec remove_deployex_from_path :: String.t()
   def remove_deployex_from_path do
     bindir = System.get_env("BINDIR", "")
-    deployex_bin_dir = Application.fetch_env!(:foundation, :bin_dir)
+    deployex_bin_dir = Application.fetch_env!(:foundation, :install_path) <> "/bin"
 
     paths =
       "PATH"

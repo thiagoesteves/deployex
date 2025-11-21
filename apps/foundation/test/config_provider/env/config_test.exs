@@ -9,6 +9,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @file_paths "./test/support/files"
 
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
+  @yaml_local_env "#{@file_paths}/deployex-local-env.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
   @yaml_aws_monitoring_multiple_apps "#{@file_paths}/deployex-aws-monitoring-multiple-apps.yaml"
   @yaml_aws_optional "#{@file_paths}/deployex-aws-optional.yaml"
@@ -22,7 +23,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -77,6 +78,10 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    "5d6ee0b036f41e901aec5dd4d6a2af087d96040402a9ade329573795540bb8a1"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
+                  {:log_path, "/var/log/deployex"},
+                  {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -101,6 +106,111 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                           replica_ports: [%{base: 1000, key: "PORT"}]
                         }
                       ]},
+                     {:install_path, "any-path"},
+                     {:var_path, "any-path"},
+                     {:config_checksum, nil}
+                   ],
+                   deployex_web: [
+                     {DeployexWeb.Endpoint,
+                      [
+                        url: [host: "not-set", port: 443, scheme: "https"],
+                        http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 999]
+                      ]}
+                   ],
+                   ex_aws: [region: "not-set"],
+                   observer_web: [mode: :observer, data_retention_period: 0]
+                 ],
+                 []
+               )
+    end
+  end
+
+  test "load/3 with success for AWS for secrets from environment" do
+    with_mock System, [:passthrough],
+      get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_local_env end do
+      assert [
+               {:ex_aws, [region: "sa-east-1"]},
+               {:deployex_web,
+                [
+                  {DeployexWeb.Endpoint,
+                   [
+                     url: [port: 443, scheme: "https", host: "deployex.example.com"],
+                     http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 5001]
+                   ]}
+                ]},
+               {:observer_web,
+                [
+                  mode: :observer,
+                  data_retention_period: 3_600_000
+                ]},
+               {:deployer,
+                [
+                  {Deployer.Release,
+                   [adapter: Deployer.Release.Local, bucket: "myapp-prod-distribution"]}
+                ]},
+               {:foundation,
+                [
+                  {:env, "prod"},
+                  {:applications,
+                   [
+                     %{
+                       env: [
+                         "STRING_VALUE=string",
+                         "BOOLEAN_TRUE=true",
+                         "BOOLEAN_FALSE=false",
+                         "NUMBER_VALUE=123"
+                       ],
+                       name: "myphoenixapp",
+                       monitoring: [],
+                       replicas: 3,
+                       language: "elixir",
+                       replica_ports: [%{base: 4000, key: "PORT"}]
+                     },
+                     %{
+                       env: ["MYUMBRELLA_PHX_SERVER=true", "MYUMBRELLA_PHX_SERVER2=true"],
+                       name: "myumbrella",
+                       monitoring: [],
+                       replicas: 2,
+                       language: "erlang",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
+                       replica_ports: [%{base: 4050, key: "PORT"}]
+                     }
+                   ]},
+                  {:config_checksum,
+                   "80b62c3694c0311d2d9567fbf777b419bced562b5bd5196432d811faf128f845"},
+                  {:monitoring, []},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
+                  {:log_path, "/var/log/deployex"},
+                  {:monitored_app_log_path, "/var/log/monitored-apps"},
+                  {Foundation.ConfigProvider.Secrets.Manager,
+                   [
+                     adapter: Foundation.ConfigProvider.Secrets.Env,
+                     path: "deployex-myapp-prod-secrets"
+                   ]}
+                ]}
+             ] =
+               Config.load(
+                 [
+                   foundation: [
+                     {Foundation.ConfigProvider.Secrets.Manager,
+                      adapter: Foundation.ConfigProvider.Secrets.Env, path: "any-env-path"},
+                     {:env, "not-set"},
+                     {:applications,
+                      [
+                        %{
+                          env: [],
+                          name: "myphoenixapp",
+                          monitoring: [],
+                          replicas: 3,
+                          language: "not-set",
+                          replica_ports: [%{base: 1000, key: "PORT"}]
+                        }
+                      ]},
+                     {:install_path, "any-path"},
+                     {:var_path, "any-path"},
                      {:config_checksum, nil}
                    ],
                    deployex_web: [
@@ -120,7 +230,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS - Monitoring for a single app" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring end]}
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -179,7 +290,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "998af846cae59aad19183c5006e56bf22c1c161501752d06a6bf1fb6493f1e38"},
+                   "3ac46199d71a6a46155d64e2c5558ee19279bffb8bccc60f12af1670046ad09c"},
                   {:monitoring,
                    [
                      memory: %Foundation.Yaml.Monitoring{
@@ -189,6 +300,10 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/install/deployex"},
+                  {:var_path, "/var/lib/install/deployex"},
+                  {:log_path, "/var/log/install/deployex"},
+                  {:monitored_app_log_path, "/var/log/install/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -201,7 +316,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for AWS - Monitoring for a multiple applications" do
     with_mocks([
-      {System, [],
+      {System, [:passthrough],
        [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring_multiple_apps end]}
     ]) do
       assert [
@@ -289,6 +404,10 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
+                  {:log_path, "/var/log/deployex"},
+                  {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -301,7 +420,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with success for GCP" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_path end]}
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_path end]}
     ]) do
       assert [
                {:ex_aws, [region: "not-set"]},
@@ -347,9 +466,13 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "a4a6bf0fac50a3d7dfb66676935069d93b2506d8fce0e1bd50dcf0f77962b41d"},
+                   "9b6cb25872864716974f64a1477510d4127b0d7b3063e75d8c39e9dd00fb578d"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/install/deployex"},
+                  {:var_path, "/var/lib/install/deployex"},
+                  {:log_path, "/var/log/install/deployex"},
+                  {:monitored_app_log_path, "/var/log/install/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Gcp,
@@ -382,7 +505,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with error for invalid release" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_release_error end]}
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_release_error end]}
     ]) do
       config = [
         foundation: [
@@ -410,7 +534,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 - Optional fields are initialized with default values from YAML" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
     ]) do
       assert [
                {:ex_aws, [region: "sa-east-1"]},
@@ -448,6 +573,10 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    "5c1d8cb90a8661ac4fefad8d1ad2aa760d4d7257f61bd310e9aadf31c3b97968"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
+                  {:log_path, "/var/log/deployex"},
+                  {:monitored_app_log_path, "/var/log/monitored-apps"},
                   {Foundation.ConfigProvider.Secrets.Manager,
                    [
                      adapter: Foundation.ConfigProvider.Secrets.Aws,
@@ -469,7 +598,8 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with error for invalid secrets" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_secrets_error end]}
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_secrets_error end]}
     ]) do
       config = [
         foundation: [
@@ -497,7 +627,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 with error with no valid yaml file" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> "." end]}
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> "." end]}
     ]) do
       config = [
         {:foundation,
@@ -529,7 +659,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
   test "load/3 Yaml file not found, keep the configuration" do
     with_mocks([
-      {System, [], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> nil end]}
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> nil end]}
     ]) do
       config = [
         {:foundation,

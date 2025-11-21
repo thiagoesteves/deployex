@@ -145,7 +145,7 @@ defmodule Deployer.MonitorTest do
 
                assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
+               "Version: 1.0.0 set but no /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
     end
 
     test "Running application - no executable path - gleam", %{
@@ -185,7 +185,7 @@ defmodule Deployer.MonitorTest do
 
                assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/erlang-shipment"
+               "Version: 1.0.0 set but no /tmp/var/lib/deployex/service/#{name}/#{sname}/current/erlang-shipment"
     end
 
     test "Running application - no executable path - erlang", %{
@@ -225,7 +225,7 @@ defmodule Deployer.MonitorTest do
 
                assert :ok = MonitorApp.stop_service(name, sname)
              end) =~
-               "Version: 1.0.0 set but no /tmp/deployex/test/varlib/service/#{name}/#{sname}/current/bin/#{name}"
+               "Version: 1.0.0 set but no /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
     end
 
     @tag :capture_log

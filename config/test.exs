@@ -2,10 +2,10 @@ import Config
 
 config :foundation,
   env: "local",
-  base_path: "/tmp/deployex/test/varlib",
-  bin_dir: "/tmp/deployex/test/opt",
-  bin_path: "/tmp/deployex/test/opt/deployex",
-  monitored_app_log_path: "/tmp/deployex/test/varlog",
+  install_path: "/tmp/opt/deployex",
+  log_path: "/tmp/var/log/deployex",
+  var_path: "/tmp/var/lib/deployex",
+  monitored_app_log_path: "/tmp/var/log/monitored-apps",
   monitoring: [
     memory: %{
       enable_restart: true,
@@ -93,7 +93,7 @@ config :deployer, Deployer.Monitor, adapter: Deployer.MonitorMock
 
 config :deployer, Deployer.Release,
   adapter: Deployer.ReleaseMock,
-  bucket: "/tmp/deployex/test/bucket"
+  bucket: "/tmp/bucket"
 
 config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 

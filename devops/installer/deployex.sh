@@ -3,6 +3,10 @@
 # Default values
 DEFAULT_CONFIG_FILE="deployex.yaml"
 DEFAULT_DIST_URL="https://github.com/thiagoesteves/deployex/releases/download"
+DEFAULT_DEPLOYEX_OPT_DIR="/opt/deployex"
+DEFAULT_DEPLOYEX_VAR_LIB="/var/lib/deployex"
+DEFAULT_DEPLOYEX_LOG_PATH="/var/log/deployex"
+DEFAULT_DEPLOYEX_MONITORED_APP_LOG_PATH="/var/log/monitored-apps"
 
 # Function to display usage information
 usage() {
@@ -41,12 +45,6 @@ usage() {
 
 DEPLOYEX_SERVICE_NAME=deployex.service
 DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
-DEPLOYEX_OPT_DIR=/opt/deployex
-DEPLOYEX_STORAGE_DIR=/opt/deployex/storage
-DEPLOYEX_SERVICE_DIR=/opt/deployex/service
-DEPLOYEX_LOG_PATH=/var/log/deployex
-DEPLOYEX_VAR_LIB=/var/lib/deployex
-DEPLOYEX_MONITORED_APP_LOG_PATH=/var/log/monitored-apps
 
 remove_deployex() {
     echo "#           Removing Deployex              #"
@@ -58,9 +56,10 @@ remove_deployex() {
     rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
     systemctl daemon-reload
     systemctl reset-failed
-    rm -rf ${DEPLOYEX_SERVICE_DIR}
+    rm -rf ${DEPLOYEX_OPT_DIR}
     rm -rf ${DEPLOYEX_LOG_PATH}
     rm -rf ${DEPLOYEX_VAR_LIB}
+    rm -rf ${DEPLOYEX_MONITORED_APP_LOG_PATH}
     echo "#     Deployex removed with success        #"
 }
 
@@ -162,7 +161,7 @@ update_deployex() {
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean and create a new directory         #"
-    rm -rf ${DEPLOYEX_SERVICE_DIR}
+    rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
     cd ${DEPLOYEX_OPT_DIR}
     tar xf /tmp/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
@@ -240,6 +239,35 @@ version=$(yq '.version' $config_file | tr -d '"')
 otp_version=$(yq '.otp_version' $config_file | tr -d '"')
 otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
 os_target=$(yq '.os_target' $config_file | tr -d '"')
+install_path=$(yq '.install_path' $config_file | tr -d '"')
+var_path=$(yq '.var_path' $config_file | tr -d '"')
+log_path=$(yq '.log_path' $config_file | tr -d '"')
+monitored_app_log_path=$(yq '.monitored_app_log_path' $config_file | tr -d '"')
+
+# Use defaults if not defined or null
+if [[ -z $install_path || $install_path == "null" ]]; then
+    DEPLOYEX_OPT_DIR=${DEFAULT_DEPLOYEX_OPT_DIR}
+else
+    DEPLOYEX_OPT_DIR=${install_path}
+fi
+
+if [[ -z $var_path || $var_path == "null" ]]; then
+    DEPLOYEX_VAR_LIB=${DEFAULT_DEPLOYEX_VAR_LIB}
+else
+    DEPLOYEX_VAR_LIB=${var_path}
+fi
+
+if [[ -z $log_path || $log_path == "null" ]]; then
+    DEPLOYEX_LOG_PATH=${DEFAULT_DEPLOYEX_LOG_PATH}
+else
+    DEPLOYEX_LOG_PATH=${log_path}
+fi
+
+if [[ -z $monitored_app_log_path || $monitored_app_log_path == "null" ]]; then
+    DEPLOYEX_MONITORED_APP_LOG_PATH=${DEFAULT_DEPLOYEX_MONITORED_APP_LOG_PATH}
+else
+    DEPLOYEX_MONITORED_APP_LOG_PATH=${monitored_app_log_path}
+fi
 
 if [ $dist_url != $DEFAULT_DIST_URL ]; then
     base_release=${dist_url}

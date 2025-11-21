@@ -165,11 +165,11 @@ DeployEx application typically requires a few environment variables to be define
 
 | ENV NAME                           | EXAMPLE                          |             SOURCE | DESCRIPTION                                               |
 | ---------------------------------- | -------------------------------- | -----------------: | --------------------------------------------------------- |
-| **DEPLOYEX_SECRET_KEY_BASE**       | 42otsNl...Fpq3dIJ02              | aws or gcp secrets | secret key used for encryption                            |
-| **DEPLOYEX_ERLANG_COOKIE**         | cookie                           | aws or gcp secrets | erlang cookie                                             |
-| **DEPLOYEX_ADMIN_HASHED_PASSWORD** | 2b1...42ASi                      | aws or gcp secrets | Hashed admin password for authentication                  |
-| **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV | Yaml configuration for Deployex and Monitored application |
-| **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV | If using mTLS, the certificate PATH is needed             |
+| **DEPLOYEX_SECRET_KEY_BASE**       | 42otsNl...Fpq3dIJ02              | aws, gcp or env secrets | secret key used for encryption                            |
+| **DEPLOYEX_ERLANG_COOKIE**         | cookie                           | aws, gcp or env secrets | erlang cookie                                             |
+| **DEPLOYEX_ADMIN_HASHED_PASSWORD** | 2b1...42ASi                      | aws, gcp or env secrets | Hashed admin password for authentication                  |
+| **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV      | Yaml configuration for Deployex and Monitored application |
+| **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV      | If using mTLS, the certificate PATH is needed             |
 
 Once DeployEx runs, it fetches the configuration from the YAML file described in the session [YAML Management](guides/examples/yaml-runtime-upgrade/README.md). For local testing, these variables are not expected or set to default values.
 

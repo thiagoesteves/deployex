@@ -205,7 +205,7 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def bin_path(@deployex_sname, _bin_service) do
-    Application.fetch_env!(:foundation, :bin_path)
+    Application.fetch_env!(:foundation, :install_path) <> "/bin/deployex"
   end
 
   # credo:disable-for-lines:1
@@ -231,7 +231,7 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
-  def service_path(name), do: "#{base_path()}/service/#{name}"
+  def service_path(name), do: "#{var_path()}/service/#{name}"
 
   @impl true
   def new_path(nil), do: nil
@@ -326,17 +326,17 @@ defmodule Foundation.Catalog.Local do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defp base_path, do: Application.fetch_env!(:foundation, :base_path)
+  defp var_path, do: Application.fetch_env!(:foundation, :var_path)
   defp log_path, do: Application.fetch_env!(:foundation, :monitored_app_log_path)
 
   defp config_path(name),
-    do: "#{base_path()}/storage/#{name}/deployex/config"
+    do: "#{var_path()}/storage/#{name}/deployex/config"
 
   defp history_version_path(name),
-    do: "#{base_path()}/storage/#{name}/deployex/history"
+    do: "#{var_path()}/storage/#{name}/deployex/history"
 
   defp ghosted_version_path(name),
-    do: "#{base_path()}/storage/#{name}/deployex/ghosted"
+    do: "#{var_path()}/storage/#{name}/deployex/ghosted"
 
   defp insert_by_timestamp(path, data) do
     file = "#{System.os_time(:microsecond)}.term"

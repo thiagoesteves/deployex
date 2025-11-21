@@ -6,16 +6,20 @@ Once DeployEx runs, it fetches the configuration from the YAML file described in
 account_name: "prod"                                     # Deployex: Cloud/Environment Account name
 hostname: "deployex.myphoenixapp.com"                    # Deployex: hostname
 port: 5001                                               # Deployex: port
-release_adapter: "s3"                                    # Deployex: release adapter type s3 or gcp-storage
+release_adapter: "s3"                                    # Deployex: release adapter type s3, gcp-storage or local
 release_bucket: "myphoenixapp-prod-distribution"         # Deployex: release distribution bucket name
-secrets_adapter: "aws"                                   # Deployex: release adapter type aws or gcp
+secrets_adapter: "aws"                                   # Deployex: secrets adapter type aws, gcp or env
 secrets_path: "deployex-myphoenixapp-prod-secrets"       # Deployex: secret path to be retrieved from
 aws_region: "sa-east-1"                                  # Deployex: aws region (only for AWS)
 google_credentials: "/home/ubuntu/gcp-config.json"       # Deployex: google credentials (only for GCP)
 version: "0.8.0"                                         # Deployex: Version
 otp_version: 28                                          # Deployex: Otp version (It needs to match the monitored applications)
-otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
 os_target: "ubuntu-24.04"                                # Deployex: Target OS server
+otp_tls_certificates: "/usr/local/share/ca-certificates" # Deployex (optional): Path to the certificates that will be consumed by Deployex
+install_path: "/opt/deployex"                            # Deployex (optional, default: /opt/deployex): Path to Deployex installation in the host
+var_path: "/var/lib/deployex"                            # Deployex (optional, default: /var/lib/deployex): Path to Deployex managed data
+log_path: "/var/log/deployex"                            # Deployex (optional, default: /var/log/deployex): Path to Deployex logs
+monitored_app_log_path: "/var/log/monitored-apps"        # Deployex (optional, default: /var/log/monitored-apps): Path to Deployex monitored apps log
 metrics_retention_time_ms: 3600000                       # Deployex (optional, default: 3600000): Retention time for metrics
 logs_retention_time_ms: 3600000                          # Deployex (optional, default: 3600000): Retention time for logs
 monitoring:                        # Deployex (optional, default: values described in memory): Monitoring features
@@ -112,9 +116,9 @@ These fields require a **full DeployEx restart** to take effect:
 - `account_name` - Cloud/Environment account identifier
 - `hostname` - DeployEx hostname
 - `port` - DeployEx port
-- `release_adapter` - Release distribution adapter (s3, gcp-storage)
+- `release_adapter` - Release distribution adapter (s3, gcp-storage or local)
 - `release_bucket` - Release distribution bucket name
-- `secrets_adapter` - Secrets provider (aws, gcp)
+- `secrets_adapter` - Secrets provider (aws, gcp or env)
 - `secrets_path` - Path to secrets in provider
 - `aws_region` - AWS region configuration
 - `google_credentials` - GCP credentials file path

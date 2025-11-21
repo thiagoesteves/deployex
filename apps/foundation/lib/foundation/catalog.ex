@@ -151,10 +151,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.stdout_path("deployex") == "/var/log/deployex/deployex-stdout.log"
-    ...> assert Catalog.stdout_path("myelixir-1") == "/tmp/deployex/test/varlog/myelixir/myelixir-1-stdout.log"
-    ...> assert Catalog.stdout_path("myelixir-2") == "/tmp/deployex/test/varlog/myelixir/myelixir-2-stdout.log"
-    ...> assert Catalog.stdout_path("myelixir-3") == "/tmp/deployex/test/varlog/myelixir/myelixir-3-stdout.log"
+    ...> assert Catalog.stdout_path("deployex") == "/tmp/var/log/deployex/deployex-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-1") == "/tmp/var/log/monitored-apps/myelixir/myelixir-1-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-2") == "/tmp/var/log/monitored-apps/myelixir/myelixir-2-stdout.log"
+    ...> assert Catalog.stdout_path("myelixir-3") == "/tmp/var/log/monitored-apps/myelixir/myelixir-3-stdout.log"
   """
   @impl true
   @spec stdout_path(String.t()) :: String.t() | nil
@@ -166,10 +166,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.stderr_path("deployex") == "/var/log/deployex/deployex-stderr.log"
-    ...> assert Catalog.stderr_path("myelixir-1") == "/tmp/deployex/test/varlog/myelixir/myelixir-1-stderr.log"
-    ...> assert Catalog.stderr_path("myelixir-2") == "/tmp/deployex/test/varlog/myelixir/myelixir-2-stderr.log"
-    ...> assert Catalog.stderr_path("myelixir-3") == "/tmp/deployex/test/varlog/myelixir/myelixir-3-stderr.log"
+    ...> assert Catalog.stderr_path("deployex") == "/tmp/var/log/deployex/deployex-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-1") == "/tmp/var/log/monitored-apps/myelixir/myelixir-1-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-2") == "/tmp/var/log/monitored-apps/myelixir/myelixir-2-stderr.log"
+    ...> assert Catalog.stderr_path("myelixir-3") == "/tmp/var/log/monitored-apps/myelixir/myelixir-3-stderr.log"
   """
   @impl true
   @spec stderr_path(String.t()) :: String.t() | nil
@@ -181,30 +181,30 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("myelixir-1", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/current/bin/myelixir"
-    ...> assert Catalog.bin_path("myelixir-2", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/current/bin/myelixir"
-    ...> assert Catalog.bin_path("myelixir-3", :current) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/current/bin/myelixir"
-    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("mygleam-1", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-1/current/erlang-shipment"
-    ...> assert Catalog.bin_path("mygleam-2", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-2/current/erlang-shipment"
-    ...> assert Catalog.bin_path("mygleam-3", :current) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-3/current/erlang-shipment"
-    ...> assert Catalog.bin_path("deployex",  :current) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("myerlang-1", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-1/current/bin/myerlang"
-    ...> assert Catalog.bin_path("myerlang-2", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-2/current/bin/myerlang"
-    ...> assert Catalog.bin_path("myerlang-3", :current) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-3/current/bin/myerlang"
-    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("myelixir-1", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/new/bin/myelixir"
-    ...> assert Catalog.bin_path("myelixir-2", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/new/bin/myelixir"
-    ...> assert Catalog.bin_path("myelixir-3", :new) == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/new/bin/myelixir"
-    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("mygleam-1", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-1/new/erlang-shipment"
-    ...> assert Catalog.bin_path("mygleam-2", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-2/new/erlang-shipment"
-    ...> assert Catalog.bin_path("mygleam-3", :new) == "/tmp/deployex/test/varlib/service/mygleam/mygleam-3/new/erlang-shipment"
-    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/deployex/test/opt/deployex"
-    ...> assert Catalog.bin_path("myerlang-1", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-1/new/bin/myerlang"
-    ...> assert Catalog.bin_path("myerlang-2", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-2/new/bin/myerlang"
-    ...> assert Catalog.bin_path("myerlang-3", :new) == "/tmp/deployex/test/varlib/service/myerlang/myerlang-3/new/bin/myerlang"
+    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("myelixir-1", :current) == "/tmp/var/lib/deployex/service/myelixir/myelixir-1/current/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-2", :current) == "/tmp/var/lib/deployex/service/myelixir/myelixir-2/current/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-3", :current) == "/tmp/var/lib/deployex/service/myelixir/myelixir-3/current/bin/myelixir"
+    ...> assert Catalog.bin_path("deployex", :current) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("mygleam-1", :current) == "/tmp/var/lib/deployex/service/mygleam/mygleam-1/current/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-2", :current) == "/tmp/var/lib/deployex/service/mygleam/mygleam-2/current/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-3", :current) == "/tmp/var/lib/deployex/service/mygleam/mygleam-3/current/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex",  :current) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("myerlang-1", :current) == "/tmp/var/lib/deployex/service/myerlang/myerlang-1/current/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-2", :current) == "/tmp/var/lib/deployex/service/myerlang/myerlang-2/current/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-3", :current) == "/tmp/var/lib/deployex/service/myerlang/myerlang-3/current/bin/myerlang"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("myelixir-1", :new) == "/tmp/var/lib/deployex/service/myelixir/myelixir-1/new/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-2", :new) == "/tmp/var/lib/deployex/service/myelixir/myelixir-2/new/bin/myelixir"
+    ...> assert Catalog.bin_path("myelixir-3", :new) == "/tmp/var/lib/deployex/service/myelixir/myelixir-3/new/bin/myelixir"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("mygleam-1", :new) == "/tmp/var/lib/deployex/service/mygleam/mygleam-1/new/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-2", :new) == "/tmp/var/lib/deployex/service/mygleam/mygleam-2/new/erlang-shipment"
+    ...> assert Catalog.bin_path("mygleam-3", :new) == "/tmp/var/lib/deployex/service/mygleam/mygleam-3/new/erlang-shipment"
+    ...> assert Catalog.bin_path("deployex", :new) == "/tmp/opt/deployex/bin/deployex"
+    ...> assert Catalog.bin_path("myerlang-1", :new) == "/tmp/var/lib/deployex/service/myerlang/myerlang-1/new/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-2", :new) == "/tmp/var/lib/deployex/service/myerlang/myerlang-2/new/bin/myerlang"
+    ...> assert Catalog.bin_path("myerlang-3", :new) == "/tmp/var/lib/deployex/service/myerlang/myerlang-3/new/bin/myerlang"
   """
   @impl true
   @spec bin_path(String.t(), Foundation.Catalog.Adapter.bin_service()) :: String.t()
@@ -218,7 +218,7 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.service_path("testapp") == "/tmp/deployex/test/varlib/service/testapp"
+    ...> assert Catalog.service_path("testapp") == "/tmp/var/lib/deployex/service/testapp"
   """
   @impl true
   @spec service_path(String.t()) :: String.t()
@@ -230,10 +230,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.new_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/new"
-    ...> assert Catalog.new_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/new"
-    ...> assert Catalog.new_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/new"
-    ...> assert Catalog.new_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/new"
+    ...> assert Catalog.new_path("myelixir-0") == "/tmp/var/lib/deployex/service/myelixir/myelixir-0/new"
+    ...> assert Catalog.new_path("myelixir-1") == "/tmp/var/lib/deployex/service/myelixir/myelixir-1/new"
+    ...> assert Catalog.new_path("myelixir-2") == "/tmp/var/lib/deployex/service/myelixir/myelixir-2/new"
+    ...> assert Catalog.new_path("myelixir-3") == "/tmp/var/lib/deployex/service/myelixir/myelixir-3/new"
     ...> refute Catalog.new_path(nil)
   """
   @impl true
@@ -246,10 +246,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.current_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/current"
-    ...> assert Catalog.current_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/current"
-    ...> assert Catalog.current_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/current"
-    ...> assert Catalog.current_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/current"
+    ...> assert Catalog.current_path("myelixir-0") == "/tmp/var/lib/deployex/service/myelixir/myelixir-0/current"
+    ...> assert Catalog.current_path("myelixir-1") == "/tmp/var/lib/deployex/service/myelixir/myelixir-1/current"
+    ...> assert Catalog.current_path("myelixir-2") == "/tmp/var/lib/deployex/service/myelixir/myelixir-2/current"
+    ...> assert Catalog.current_path("myelixir-3") == "/tmp/var/lib/deployex/service/myelixir/myelixir-3/current"
     ...> refute Catalog.current_path(nil)
   """
   @impl true
@@ -262,10 +262,10 @@ defmodule Foundation.Catalog do
   ## Examples
 
     iex> alias Foundation.Catalog
-    ...> assert Catalog.previous_path("myelixir-0") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-0/previous"
-    ...> assert Catalog.previous_path("myelixir-1") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-1/previous"
-    ...> assert Catalog.previous_path("myelixir-2") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-2/previous"
-    ...> assert Catalog.previous_path("myelixir-3") == "/tmp/deployex/test/varlib/service/myelixir/myelixir-3/previous"
+    ...> assert Catalog.previous_path("myelixir-0") == "/tmp/var/lib/deployex/service/myelixir/myelixir-0/previous"
+    ...> assert Catalog.previous_path("myelixir-1") == "/tmp/var/lib/deployex/service/myelixir/myelixir-1/previous"
+    ...> assert Catalog.previous_path("myelixir-2") == "/tmp/var/lib/deployex/service/myelixir/myelixir-2/previous"
+    ...> assert Catalog.previous_path("myelixir-3") == "/tmp/var/lib/deployex/service/myelixir/myelixir-3/previous"
     ...> refute Catalog.previous_path(nil)
   """
   @impl true

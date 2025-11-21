@@ -10,6 +10,7 @@ defmodule Foundation.YamlTest do
 
   @file_paths "./test/support/files"
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
+  @yaml_local_env "#{@file_paths}/deployex-local-env.yaml"
   @yaml_aws_no_app "#{@file_paths}/deployex-aws-no-app.yaml"
   @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
@@ -189,8 +190,6 @@ defmodule Foundation.YamlTest do
         assert config.otp_version == 26
         assert config.otp_tls_certificates == nil
         assert config.os_target == "ubuntu-20.04"
-        # assert config.deploy_rollback_timeout_ms == 600_000
-        # assert config.deploy_schedule_interval_ms == 5000
         assert config.metrics_retention_time_ms == 3_600_000
         assert config.logs_retention_time_ms == 3_600_000
 
@@ -241,6 +240,17 @@ defmodule Foundation.YamlTest do
 
         assert config.release_adapter == Deployer.Release.GcpStorage
         assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Gcp
+      end
+    end
+
+    test "Secres/Release for ENV" do
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_local_env end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert config.release_adapter == Deployer.Release.Local
+        assert config.secrets_adapter == Foundation.ConfigProvider.Secrets.Env
       end
     end
   end
