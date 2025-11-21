@@ -437,6 +437,24 @@ defmodule Deployer.Upgrade.Application do
   end
 
   @spec permfy(Execute.t()) :: :ok | {:error, any()}
+  def permfy(%Execute{name: "deployex"}) do
+    # NOTE: Self-upgrade limitation - permify must be executed in a separate sequence.
+    #       When DeployEx upgrades itself, including permify in the main upgrade sequence
+    #       causes the process to crash after successfully applying the changes. This occurs
+    #       when initiated via /bin/deployex rpc or iex. Tests with asynchronous tasks did
+    #       not resolve this issue. The permify step succeeds, but the calling process is
+    #       killed during the make_permanent operation.
+    #
+    #       This issue does not occur with managed applications because DeployEx calls each
+    #       upgrade step individually from an external process. When upgrading itself, the
+    #       calling process is part of the system being upgraded, causing it to be terminated
+    #       when permify triggers supervisor restarts.
+    #
+    #       Solution: Split the upgrade into two sequences - complete the upgrade without
+    #       permify, then call permify separately after the upgrade succeeds.
+    :ok
+  end
+
   def permfy(%Execute{
         node: node,
         name: name,
@@ -444,7 +462,16 @@ defmodule Deployer.Upgrade.Application do
         current_path: current_path,
         to_version: to_version
       }) do
-    case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
+    task =
+      Task.async(fn ->
+        # Small delay to ensure the task is fully set up
+        :timer.sleep(100)
+        Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout)
+      end)
+
+    # Wait for the result with a timeout
+    case Task.await(task, :infinity) do
+      # case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
       :ok ->
         Logger.info("Made release permanent: #{to_version}")
 

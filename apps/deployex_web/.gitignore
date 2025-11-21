@@ -42,3 +42,18 @@ npm-debug.log
 # Ignore appup files
 /rel/appups
 
+# Ignore digested files after release
+/priv/static/favicon-*
+/priv/static/robots-*
+/priv/static/*.txt.gz
+/priv/static/images/elixir-*
+/priv/static/images/erlang-*
+/priv/static/images/gleam-*
+/priv/static/images/phoenix-*
+/priv/static/images/unknown-*
+/priv/static/images/linux-*
+/priv/static/images/gleam-*
+/priv/static/images/logo-*
+/priv/static/images/windows-*
+/priv/static/images/mac-*
+/priv/static/images/*.svg.gz
