@@ -85,8 +85,8 @@ defmodule Deployer.Upgrade.Application do
          :ok <- check_install_release(data),
          :ok <- update_sys_config_from_installed_version(data),
          :ok <- install_release(data),
-         :ok <- permfy(data),
-         :ok <- return_original_sys_config(data) do
+         :ok <- return_original_sys_config(data),
+         :ok <- permfy(data) do
       message =
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
 
