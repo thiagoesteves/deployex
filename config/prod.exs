@@ -14,8 +14,10 @@ config :deployex_web, DeployexWeb.Endpoint,
     # for details about using IPv6 vs IPv4 and loopback vs public addresses.
     ip: {0, 0, 0, 0, 0, 0, 0, 0}
   ],
-  server: true,
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  server: true
+
+# NOTE: DO NOT cache the static files to properly hot upgrade
+# cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: DeployexWeb.Finch

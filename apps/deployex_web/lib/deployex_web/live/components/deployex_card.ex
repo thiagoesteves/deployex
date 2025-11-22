@@ -111,7 +111,7 @@ defmodule DeployexWeb.Components.DeployexCard do
             </div>
           </div>
           <div>
-            <div class="grid grid-cols-3 grid-rows-2 gap-3 mb-16">
+            <div class="grid grid-cols-3 grid-rows-2 gap-3 mb-5">
               <div class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors">
                 <div class="flex items-center gap-2 mb-2">
                   <svg
@@ -264,6 +264,29 @@ defmodule DeployexWeb.Components.DeployexCard do
                     </path>
                   </svg>
                   <span class="font-medium">stderr</span>
+                </button>
+              </div>
+
+              <div class="flex">
+                <button
+                  id={Helper.normalize_id("app-versions-#{@deployex.sname}")}
+                  phx-click="app-versions-click"
+                  phx-value-name={@deployex.name}
+                  phx-value-sname={@deployex.sname}
+                  type="button"
+                  class="btn btn-sm bg-info/10 text-info border-info/20 hover:bg-info/20 hover:border-info/30 hover:scale-105 transition-all duration-200 w-full tooltip"
+                  data-tip="Manage deployex versions"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 4v10a2 2 0 002 2h6a2 2 0 002-2V8M7 8h10M9 12h6m-6 4h6"
+                    >
+                    </path>
+                  </svg>
+                  <span class="font-medium">Versions</span>
                 </button>
               </div>
             </div>

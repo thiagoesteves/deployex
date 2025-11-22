@@ -28,3 +28,6 @@ foundation-*.tar
 # Dialyzer
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+
+# Ignore appup files
+/rel/appups

@@ -36,8 +36,7 @@ defmodule DeployexWeb.Layouts do
     ~H"""
     <div class="drawer lg:drawer-open">
       <input id="nav-drawer" type="checkbox" class="drawer-toggle" />
-      
-    <!-- Mobile Menu Button -->
+      <!-- Mobile Menu Button -->
       <div class="navbar lg:hidden bg-base-100 border-b border-base-200">
         <div class="navbar-start">
           <label for="nav-drawer" class="btn btn-square btn-ghost hover:bg-base-200">

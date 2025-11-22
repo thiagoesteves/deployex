@@ -62,8 +62,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               </.link>
             </div>
           </div>
-          
-    <!-- Configuration Grid -->
+          <!-- Configuration Grid -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Mode Section -->
             <div class="bg-base-200 border border-base-300 rounded-lg p-4">

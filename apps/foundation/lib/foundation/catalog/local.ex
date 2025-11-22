@@ -14,6 +14,7 @@ defmodule Foundation.Catalog.Local do
   require Logger
 
   @token_table :tokens
+  @deployex_name "deployex"
   @deployex_sname "deployex"
   @nohost_sname "nonode"
   @config_key_file "config.term"
@@ -31,6 +32,23 @@ defmodule Foundation.Catalog.Local do
     :ets.new(@token_table, [:set, :protected, :named_table])
 
     setup_all_apps()
+
+    # Update deployex latest version if required
+    current_version = Application.spec(:foundation, :vsn) |> to_string()
+
+    case Enum.at(versions(@deployex_name, []), 0) do
+      %Catalog.Version{version: ^current_version} ->
+        :ok
+
+      _ ->
+        add_version(%Catalog.Version{
+          version: current_version,
+          sname: @deployex_sname,
+          name: @deployex_name,
+          deployment: :full_deployment,
+          inserted_at: NaiveDateTime.utc_now()
+        })
+    end
 
     {:ok, %{}}
   end
@@ -61,7 +79,11 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def setup_all_apps do
+    # Applications
     Enum.each(applications(), fn %{name: name} -> setup_new_app(name) end)
+    # Deployex
+    setup_new_app(@deployex_name)
+
     :ok
   end
 
@@ -145,7 +167,7 @@ defmodule Foundation.Catalog.Local do
         [name] when name in [@deployex_sname, @nohost_sname] ->
           %Catalog.Node{
             node: Node.self(),
-            sname: @deployex_sname,
+            sname: @deployex_name,
             name: @deployex_sname,
             hostname: hostname,
             suffix: "",
@@ -331,6 +353,9 @@ defmodule Foundation.Catalog.Local do
 
   defp config_path(name),
     do: "#{var_path()}/storage/#{name}/deployex/config"
+
+  defp history_version_path(@deployex_name),
+    do: "#{var_path()}/storage/#{@deployex_name}/deployex/history"
 
   defp history_version_path(name),
     do: "#{var_path()}/storage/#{name}/deployex/history"
