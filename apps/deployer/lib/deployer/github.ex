@@ -68,7 +68,7 @@ defmodule Deployer.Github do
 
         tag_name = info["tag_name"]
         prerelease = info["prerelease"]
-        current_version = Application.spec(:deployer, :vsn) |> to_string
+        current_version = Application.spec(:foundation, :vsn) |> to_string
 
         new_release? =
           tag_name != nil and prerelease == false and new_release?(current_version, tag_name)

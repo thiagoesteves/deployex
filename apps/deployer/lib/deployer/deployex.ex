@@ -62,7 +62,7 @@ defmodule Deployer.Deployex do
   @spec hot_upgrade_check(download_path :: String.t()) :: {:ok, Check.t()} | {:error, any()}
   def hot_upgrade_check(download_path) do
     deployex_path = Application.fetch_env!(:foundation, :install_path)
-    current_version = Application.spec(:deployer, :vsn)
+    current_version = Application.spec(:foundation, :vsn)
     to_version = parse_version(download_path)
     name = "deployex"
 
@@ -135,7 +135,7 @@ defmodule Deployer.Deployex do
   """
   @spec hot_upgrade(download_path :: String.t()) :: :ok | {:error, any()}
   def hot_upgrade(download_path) do
-    current_version = Application.spec(:deployer, :vsn)
+    current_version = Application.spec(:foundation, :vsn)
     to_version = parse_version(download_path)
     name = "deployex"
 
