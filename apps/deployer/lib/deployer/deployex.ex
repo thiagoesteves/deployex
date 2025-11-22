@@ -6,10 +6,13 @@ defmodule Deployer.Deployex do
   alias Deployer.Upgrade
   alias Deployer.Upgrade.Check
   alias Deployer.Upgrade.Execute
+  alias Foundation.Catalog
   alias Foundation.Rpc
   alias Host.Commander
 
   require Logger
+
+  @deployex_name "deployex"
 
   ### ==========================================================================
   ### Public Functions
@@ -64,16 +67,15 @@ defmodule Deployer.Deployex do
     deployex_path = Application.fetch_env!(:foundation, :install_path)
     current_version = Application.spec(:foundation, :vsn)
     to_version = parse_version(download_path)
-    name = "deployex"
 
     # Temporary path to extract the release
-    new_path = "/tmp/hotupgrade/#{name}"
+    new_path = "/tmp/hotupgrade/#{@deployex_name}"
     File.rm_rf(new_path)
     File.mkdir_p(new_path)
 
     check = %Check{
-      sname: name,
-      name: name,
+      sname: @deployex_name,
+      name: @deployex_name,
       language: "elixir",
       download_path: download_path,
       current_path: deployex_path,
@@ -137,14 +139,13 @@ defmodule Deployer.Deployex do
   def hot_upgrade(download_path) do
     current_version = Application.spec(:foundation, :vsn)
     to_version = parse_version(download_path)
-    name = "deployex"
 
-    Logger.info("#{name} hot upgrade requested: #{current_version} -> #{to_version}")
+    Logger.info("#{@deployex_name} hot upgrade requested: #{current_version} -> #{to_version}")
 
     with {:ok, check} <- hot_upgrade_check(download_path),
          %Execute{} = upgrade_data <- struct(%Execute{node: Node.self()}, Map.from_struct(check)),
          :ok <- Upgrade.execute(upgrade_data) do
-      Logger.warning("Hot upgrade in #{name} installed with success")
+      Logger.warning("Hot upgrade in #{@deployex_name} installed with success")
       :ok
     else
       {:error, reason} = error ->
@@ -189,10 +190,19 @@ defmodule Deployer.Deployex do
   @spec make_permanent(download_path :: String.t()) :: :ok | {:error, any()}
   def make_permanent(download_path) do
     node = Node.self()
-    to_version = download_path |> parse_version() |> to_charlist
+    parsed_version = download_path |> parse_version()
+    to_version = parsed_version |> to_charlist
 
     case Rpc.call(node, :release_handler, :make_permanent, [to_version], :infinity) do
       :ok ->
+        Catalog.add_version(%Catalog.Version{
+          version: parsed_version,
+          sname: @deployex_name,
+          name: @deployex_name,
+          deployment: :hot_upgrade,
+          inserted_at: NaiveDateTime.utc_now()
+        })
+
         Logger.info("Release marked as permanent: #{to_version}")
         :ok
 
@@ -212,7 +222,7 @@ defmodule Deployer.Deployex do
     [_, to_version] =
       download_path
       |> Path.basename(".tar.gz")
-      |> String.split("deployex-")
+      |> String.split("#{@deployex_name}-")
 
     to_version
   end
