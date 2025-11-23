@@ -28,10 +28,12 @@ Upon deployment, the following dashboard becomes available, providing easy acces
   - Elixir application using the [Jellyfish][jyf] library.
   - Elixir umbrella applications using the [Jellyfish][jyf] library.
   - Erlang application using the [rebar3_appup_plugin](https://github.com/lrascao/rebar3_appup_plugin) plugin.
+  - DeployEx itself (Isn't that awesome?)
 - Supports the following cloud providers (with terraform files):
   - Amazon Web Services (AWS)
-  - Google Cloud Provisioning (GCP)
-- Provides rollback functionality if a monitored app version remains unstable for 10 minutes.
+  - Google Cloud Platform (GCP)
+- Supports local environments for non-cloud deployments
+- Provides rollback functionality if a monitored app version remains unstable for 10 minutes (time configurable).
 - Rolled-back monitored app versions are ghosted, preventing their redeployment.
 - Ensures all nodes remain connected to the OTP distribution, including DeployEx itself.
 - Supports OTP distribution with mutual TLS (mTLS) for secure monitoring of apps and DeployEx.
@@ -183,9 +185,34 @@ DeployEx offers a comprehensive set of Terraform examples for programmatically d
 
 ### Installation
 
-If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [installer script](/devops/installer/deployex.sh) provided in the release package. For an example of monitored app, please see the setup for the [Calori Web Server - AWS](https://github.com/thiagoesteves/calori/blob/main/devops/aws/terraform/modules/standard-account/cloud-config.tpl)/[Calori Web Server - GCP](https://github.com/thiagoesteves/calori/blob/main/devops/gcp/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a YAML configuration file, an example of which can be found [here](/devops/installer/deployex-aws.yaml). This YAML file can also export environment variables specific to the monitored applications.
+If you intend to install DeployEx directly on an Ubuntu server, you can utilize the [deployex script](/devops/installer/deployex.sh) provided in the release package. This script is able to `install`, `update` and `hot-upgrade` DeployEx.
+
+```bash
+Usage:
+  ./deployex.sh --install [config_file] [--dist <base_url>]
+  ./deployex.sh --update [config_file] [--dist <base_url>]
+  ./deployex.sh --uninstall [config_file]
+  ./deployex.sh --hot-upgrade <release_path> [config_file]
+  ./deployex.sh --help
+```
+
+For an example of monitored app, please see the setup for the [Calori Web Server - AWS](https://github.com/thiagoesteves/calori/blob/main/devops/aws/terraform/modules/standard-account/cloud-config.tpl)/[Calori Web Server - GCP](https://github.com/thiagoesteves/calori/blob/main/devops/gcp/terraform/modules/standard-account/cloud-config.tpl). The installer script requires a YAML configuration file, an example of which can be found [here](/devops/installer/deployex-aws.yaml). This YAML file can also export environment variables specific to the monitored applications.
 
 Currently, the release and installation process supports **Ubuntu version 24.04**. However, you have the option to manually compile and install DeployEx on your target system.
+
+#### 🔥 Hot-Upgrades
+
+This feature can be applied to monitored apps and to DeployEx itself. There are many considerations before using hot-upgrades, and the decision of when to apply them is up to each project. DeployEx uses [Jellyfish][jyf] to generate appup files automatically, which can be modified or created manually if you want to add more actions. Sometimes it's better to start by looking at what you cannot hot-upgrade, then analyze the other changes in the release. The `Jellyfish+DeployEx` package has some limitations that may change over time, so stay tuned for these recommendations.
+
+DO NOT HOT-UPGRADE if:
+ * The new release is updating Elixir and/or Erlang OTP
+ * The new release is updating/adding/removing libraries (there is a feature in progress in Jellyfish for updating specific libraries)
+ * The new release changed the `runtime.exs` file
+ * The new release changed config_provider files
+
+Keep in mind that most of your releases will not require full deployment. You don't update OTP or libraries frequently, but you can combine hot-upgrades with migrations to avoid downtime. This topic is very vast, and we encourage you to apply and learn. High availability is a feature that doesn't come for free and require learning process.
+
+If you want to hot-upgrade DeployEx itself, check the GitHub manual release creation to see how you can create a release that can hot-upgrade from a specific version. Additional information can be found in the Changelog of DeployEx releases, where you can analyze whether the version you are running can be hot-upgraded to the latest one.
 
 ### Pre-commands (Elixir only)
 

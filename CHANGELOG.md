@@ -6,7 +6,7 @@
 ### Backwards incompatible changes for 0.8.0
 
 ### Installer Actions
- 1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation and log directories.
+ 1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation, hotupgrades and changing folder for log directories.
  ```bash
  rm deployex.sh
  wget https://github.com/thiagoesteves/deployex/releases/download/0.8.1/deployex.sh
@@ -19,6 +19,7 @@
 
 ### Enhancements
  * [`ISSUE-188`](https://github.com/thiagoesteves/deployex/issues/188) Add DeployEx Secrets via environment vars
+ * [`PULL-189`](https://github.com/thiagoesteves/deployex/pull/189) Adding hot upgrade functionality for DeployEx itself via CLI
 
 ## 0.8.0 🚀 (2025-11-20)
 
