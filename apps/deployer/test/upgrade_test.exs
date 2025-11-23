@@ -312,6 +312,8 @@ defmodule Deployer.UpgradeAppTest do
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
+             assert :ok = UpgradeApp.prepare_new_path(app_name, "elixir", to_version, new_path)
+
              assert {:ok, :full_deployment} =
                       UpgradeApp.check(%Check{
                         sname: sname,
@@ -742,6 +744,10 @@ defmodule Deployer.UpgradeAppTest do
              })
 
     assert File.exists?("#{current_bin_path}/#{app_name}")
+  end
+
+  test "permfy/1 Deployex skip execution" do
+    assert :ok = UpgradeApp.permfy(%Execute{name: "deployex"})
   end
 
   test "return_original_sys_config/1 Elixir success", %{

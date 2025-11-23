@@ -248,6 +248,8 @@ defmodule Deployer.Status.Application do
   end
 
   defp update_deployex_app do
+    name = "deployex"
+
     check_otp_deployex = fn ->
       if Node.list() != [], do: :connected, else: :not_connected
     end
@@ -256,8 +258,8 @@ defmodule Deployer.Status.Application do
     {:ok, deployex_latest_release} = Github.latest_release()
 
     %Status{
-      name: "deployex",
-      sname: "deployex",
+      name: name,
+      sname: name,
       node: Node.self(),
       ports: [
         %{
@@ -268,9 +270,10 @@ defmodule Deployer.Status.Application do
       replicas: 1,
       deploy_rollback_timeout_ms: 0,
       deploy_schedule_interval_ms: 0,
-      version: Application.spec(:deployer, :vsn) |> to_string,
+      version: current_version(name),
       otp: check_otp_deployex.(),
       tls: Common.check_mtls(),
+      last_deployment: current_version_map(name).deployment,
       status: :running,
       uptime: uptime,
       latest_release: deployex_latest_release,

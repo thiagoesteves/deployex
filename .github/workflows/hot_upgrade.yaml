@@ -1,0 +1,79 @@
+name: Create Release with Hot Upgrade (Ubuntu 24.04)
+
+on:
+  workflow_dispatch:
+    inputs:
+      otp:
+        description: "OTP version"
+        required: true
+        default: "28"
+        type: choice
+        options:
+          - "27"
+          - "28"
+      from_version:
+        description: "Version to upgrade from"
+        required: true
+        type: string
+
+      target_version:
+        description: "Version to upgrade to"
+        required: true
+        type: string
+
+env:
+  BASENAME: deployex
+  MIX_ENV: prod
+  RETENTION_DAYS: 7
+
+jobs:
+  generate_release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install libcap-dev (recommended by erlexec)
+        run: sudo apt-get install libcap-dev -y
+
+      - name: Compile FROM version
+        run: |
+          echo "===================================="
+          echo "Compiling FROM version: ${{ inputs.from_version }}"
+          echo "===================================="
+          
+          git checkout ${{ inputs.from_version }}
+
+      - name: Copy .tool-versions
+        run: cp devops/releases/otp-${{ inputs.otp }}/.tool-versions .
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+
+      - name: Compile and Generate a release for the current deployed version
+        run: |
+          mix deps.get + compile 
+          mix assets.deploy
+          mix release
+
+      - name: Compile and Generate a release for the target version
+        run: |
+          echo "===================================="
+          echo "Compiling TARGET version: ${{ inputs.target_version }}"
+          echo "===================================="
+          
+          git checkout ${{ inputs.target_version }}
+          mix do deps.get + compile --force --warnings-as-errors
+          mix assets.deploy
+          mix release
+
+      - name: "Upload release file artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BASENAME }}-${{ inputs.target_version }}.tar.gz
+          path: _build/prod/${{ env.BASENAME }}-${{ inputs.target_version }}.tar.gz
+          retention-days: ${{ env.RETENTION_DAYS }}

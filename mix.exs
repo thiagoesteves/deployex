@@ -22,7 +22,7 @@ defmodule Deployex.MixProject do
       releases: [
         deployex: [
           include_executable_for: [:unix],
-          steps: [:assemble, :tar],
+          steps: [:assemble, &Jellyfish.generate/1, :tar],
           applications: [
             foundation: :permanent,
             host: :permanent,
@@ -120,7 +120,8 @@ defmodule Deployex.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mock, "~> 0.3.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      {:jellyfish, "~> 0.2.0"}
     ]
   end
 

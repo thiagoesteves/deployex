@@ -13,6 +13,8 @@ usage() {
     echo "Usage:"
     echo "  $0 --install [config_file] [--dist <base_url>]"
     echo "  $0 --update [config_file] [--dist <base_url>]"
+    echo "  $0 --uninstall [config_file]"
+    echo "  $0 --hot-upgrade <release_path> [config_file]"
     echo "  $0 --help"
     echo
     echo "Options:"
@@ -20,6 +22,10 @@ usage() {
     echo "                            (default: ${DEFAULT_CONFIG_FILE})"
     echo "  --update [config_file]    Update ONLY the deployex application using a config file"
     echo "                            (default: ${DEFAULT_CONFIG_FILE})"
+    echo "  --uninstall [config_file] Completely remove deployex from the system"
+    echo "                            (default: ${DEFAULT_CONFIG_FILE})"
+    echo "  --hot-upgrade <release_path>    Perform hot upgrade with downloaded release tarball"
+    echo "                                  [config_file] (default: ${DEFAULT_CONFIG_FILE})"
     echo "  --dist <base_url>         Base URL for downloading releases"
     echo "                            (default: ${DEFAULT_DIST_URL})"
     echo "  --help                    Print help"
@@ -40,6 +46,15 @@ usage() {
     echo "  Update with custom config and distribution:"
     echo "    $0 --update my-config.yaml --dist https://example.com/releases"
     echo
+    echo "  Uninstall deployex completely:"
+    echo "    $0 --uninstall"
+    echo
+    echo "  Hot upgrade with local release file:"
+    echo "    $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz"
+    echo
+    echo "  Hot upgrade with custom config:"
+    echo "    $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz my-config.yaml"
+    echo
     exit 1
 }
 
@@ -48,14 +63,21 @@ DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
 
 remove_deployex() {
     echo "#           Removing Deployex              #"
-    systemctl stop ${DEPLOYEX_SERVICE_NAME}
-    systemctl disable ${DEPLOYEX_SERVICE_NAME}
-    rm /etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
-    rm /etc/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
-    rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME}
-    rm /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
+    # Stop and disable service
+    systemctl stop ${DEPLOYEX_SERVICE_NAME} 2>/dev/null
+    systemctl disable ${DEPLOYEX_SERVICE_NAME} 2>/dev/null
+
+    # Remove systemd service files from all possible locations  
+    rm -f /etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
+    rm -f /etc/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
+    rm -f /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME}
+    rm -f /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
+
+    # Reload systemd to forget about the service
     systemctl daemon-reload
     systemctl reset-failed
+
+    # Remove directories
     rm -rf ${DEPLOYEX_OPT_DIR}
     rm -rf ${DEPLOYEX_LOG_PATH}
     rm -rf ${DEPLOYEX_VAR_LIB}
@@ -127,7 +149,7 @@ update_deployex() {
     echo "#           Updating Deployex              #"
     cd /tmp
     echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}"
-    rm -f deployex-ubuntu-*.tar.gz
+    rm -f deployex-*.tar.gz
     rm -f ${CHECKSUM_FILE}
     echo "#           Downloading files              #"
     wget ${BASE_RELEASE}/${CHECKSUM_FILE}
@@ -171,10 +193,55 @@ update_deployex() {
     systemctl enable --now ${DEPLOYEX_SERVICE_NAME}
 }
 
+hot_upgrade_deployex() {
+    local RELEASE_PATH=$1
+    
+    # Perform hot upgrade via RPC
+    echo "# Executing hot upgrade via RPC            #"
+    echo "# Release file: ${RELEASE_PATH}"
+    
+    RESPONSE=$(${DEPLOYEX_OPT_DIR}/bin/deployex rpc "Deployer.Deployex.hot_upgrade(\"${RELEASE_PATH}\")")
+    EXIT_CODE=$?
+    
+    echo "$RESPONSE"
+    
+    if [ $EXIT_CODE -ne 0 ]; then
+        echo "Error: Hot upgrade RPC call failed with exit code ${EXIT_CODE}"
+        exit 1
+    fi
+    
+    # Check if upgrade was successful by looking for success message
+    if echo "$RESPONSE" | grep -q "Hot upgrade in deployex installed with success"; then
+        echo "# Hot upgrade completed successfully       #"
+        echo ""
+        echo "# Making upgrade permanent                 #"
+        
+        # Make the upgrade permanent
+        PERM_RESP=$(${DEPLOYEX_OPT_DIR}/bin/deployex rpc "Deployer.Deployex.make_permanent(\"${RELEASE_PATH}\")")
+        PERM_EXIT_CODE=$?
+        
+        echo "$PERM_RESP"
+        
+        if [ $PERM_EXIT_CODE -ne 0 ]; then
+            echo "Warning: make_permanent RPC call failed with exit code ${PERM_EXIT_CODE}"
+            echo "The hot upgrade was applied but may not persist across restarts."
+        else
+            echo "# Upgrade made permanent                   #"
+        fi
+    else
+        echo "Error: Hot upgrade did not complete successfully"
+        echo "Check the output above for details"
+        exit 1
+    fi
+    
+    echo "#   Deployex hot upgraded successfully     #"
+}
+
 # Initialize variables
 operation=""
 config_file=""
 dist_url=${DEFAULT_DIST_URL}
+release_path=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -190,10 +257,40 @@ while [[ $# -gt 0 ]]; do
                 config_file=${DEFAULT_CONFIG_FILE}
             fi
             ;;
+        --uninstall)
+            operation=uninstall
+            shift
+            # Check if next argument exists and is not another flag
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                config_file="$1"
+                shift
+            else
+                config_file=${DEFAULT_CONFIG_FILE}
+            fi
+            ;;
         --update)
             operation=update
             shift
             # Check if next argument exists and is not another flag
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                config_file="$1"
+                shift
+            else
+                config_file=${DEFAULT_CONFIG_FILE}
+            fi
+            ;;
+        --hot-upgrade)
+            operation=hot-upgrade
+            shift
+            # Release path is required for hot-upgrade
+            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+                release_path="$1"
+                shift
+            else
+                echo "Error: --hot-upgrade requires a release path"
+                usage
+            fi
+            # Check for optional config file
             if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
                 config_file="$1"
                 shift
@@ -293,6 +390,25 @@ elif [ $operation == update ]; then
         usage
     fi
     update_deployex $os_target $otp_version $base_release
+elif [ $operation == uninstall ]; then
+    remove_deployex
+    # Remove user and group (only if they exist)
+    if id "deployex" &>/dev/null; then
+        deluser --remove-home deployex 2>/dev/null || true
+    fi
+    
+    if getent group deployex &>/dev/null; then
+        delgroup deployex 2>/dev/null || true
+    fi
+
+    echo "# Deployex uninstalled with success        #"
+elif [ $operation == hot-upgrade ]; then
+    # Version to download - need all parameters
+    if [[ -z $release_path ]]; then
+        echo "Error: Release_path cannot be empty"
+        usage
+    fi
+    hot_upgrade_deployex $release_path
 else
     usage
 fi

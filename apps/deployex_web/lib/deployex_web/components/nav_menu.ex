@@ -74,8 +74,7 @@ defmodule DeployexWeb.Components.NavMenu do
     ~H"""
     <div id={"#{@id}"} class="drawer-side shadow-sm">
       <label for="nav-drawer" class="drawer-overlay lg:hidden"></label>
-      
-    <!-- Modern Flat Sidebar -->
+      <!-- Modern Flat Sidebar -->
       <aside
         class={
         "min-h-screen bg-base-100 transition-all duration-200 ease-out " <>
@@ -83,13 +82,11 @@ defmodule DeployexWeb.Components.NavMenu do
       }
         style={nav_bar_width(@ui_settings.nav_menu_collapsed)}
       >
-        
-    <!-- Brand Section -->
+        <!-- Brand Section -->
         <div class="p-6 border-b border-base-300">
           <.modern_brand collapsed={@ui_settings.nav_menu_collapsed} />
         </div>
-        
-    <!-- Navigation -->
+        <!-- Navigation -->
         <nav class="flex-1 p-3" role="navigation">
           <div class="space-y-1">
             <%= for item <- @nav_items do %>
@@ -101,13 +98,11 @@ defmodule DeployexWeb.Components.NavMenu do
             <% end %>
           </div>
         </nav>
-        
-    <!-- User Profile -->
+        <!-- User Profile -->
         <div class="p-4 border-t border-base-300">
           <.user_profile collapsed={@ui_settings.nav_menu_collapsed} />
         </div>
-        
-    <!-- Toggle Button as Menu Item -->
+        <!-- Toggle Button as Menu Item -->
         <div class="px-3 pb-4">
           <.toggle_menu_item collapsed={@ui_settings.nav_menu_collapsed} target={@myself} />
         </div>
@@ -155,8 +150,7 @@ defmodule DeployexWeb.Components.NavMenu do
           <.icon name="hero-cube" class="w-6 h-6 text-primary" />
         </div>
       </div>
-      
-    <!-- Brand Text - Only show when expanded -->
+      <!-- Brand Text - Only show when expanded -->
       <div :if={@collapsed} class="min-w-0 flex-1">
         <h1 class="text-xl font-bold text-base-content tracking-tight">
           DeployEx
@@ -198,8 +192,7 @@ defmodule DeployexWeb.Components.NavMenu do
           }
         />
       </div>
-      
-    <!-- Label - Only show when expanded -->
+      <!-- Label - Only show when expanded -->
       <div :if={@collapsed} class="flex-1 min-w-0">
         <span class={
           "text-sm font-medium truncate " <>
@@ -211,8 +204,7 @@ defmodule DeployexWeb.Components.NavMenu do
           {@item.label}
         </span>
       </div>
-      
-    <!-- Badge for notifications - Only show when expanded -->
+      <!-- Badge for notifications - Only show when expanded -->
       <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
         <div class="w-2 h-2 bg-error rounded-full"></div>
       </div>
@@ -249,8 +241,7 @@ defmodule DeployexWeb.Components.NavMenu do
           class="w-5 h-5 transition-colors duration-150 text-base-content/60 group-hover:text-base-content"
         />
       </div>
-      
-    <!-- Label - Only show when expanded -->
+      <!-- Label - Only show when expanded -->
       <div :if={@collapsed} class="flex-1 min-w-0 text-left">
         <span class="text-sm font-medium truncate text-base-content/80 group-hover:text-base-content">
           {@label}
@@ -273,14 +264,12 @@ defmodule DeployexWeb.Components.NavMenu do
           <.icon name="hero-user" class="w-4 h-4 text-success" />
         </div>
       </div>
-      
-    <!-- User Info -->
+      <!-- User Info -->
       <div :if={@collapsed} class="flex-1 min-w-0">
         <p class="text-sm font-medium text-base-content truncate">Admin</p>
         <p class="text-xs text-base-content/60">Online</p>
       </div>
-      
-    <!-- Settings Menu -->
+      <!-- Settings Menu -->
       <div :if={@collapsed} class="dropdown dropdown-top dropdown-end">
         <div tabindex="0" role="button" class="btn btn-ghost btn-xs">
           <.icon name="hero-ellipsis-horizontal" class="w-4 h-4" />
