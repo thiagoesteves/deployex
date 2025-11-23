@@ -81,11 +81,15 @@ defmodule Deployer.DeployexTest do
     node = Node.self()
 
     Foundation.RpcMock
-    |> expect(:call, fn ^node, :release_handler, :make_permanent, [~c"1.0.0"], :infinity ->
+    |> expect(:call, fn ^node, :release_handler, :make_permanent, [~c"1.2.3"], :infinity ->
       :ok
     end)
 
-    assert :ok = Deployex.make_permanent("/tmp/deployex-1.0.0.tar.gz")
+    refute "1.2.3" == Enum.at(Foundation.Catalog.versions("deployex", []), 0).version
+
+    assert :ok = Deployex.make_permanent("/tmp/deployex-1.2.3.tar.gz")
+
+    assert "1.2.3" == Enum.at(Foundation.Catalog.versions("deployex", []), 0).version
   end
 
   test "make_permanent/1 error" do
