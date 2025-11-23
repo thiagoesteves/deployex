@@ -12,12 +12,12 @@ on:
           - "27"
           - "28"
       from_version:
-        description: "Version to upgrade from"
+        description: "Version to upgrade from (tag only)"
         required: true
         type: string
 
       target_version:
-        description: "Version to upgrade to"
+        description: "Version to upgrade to (tag only)"
         required: true
         type: string
 
@@ -33,6 +33,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate tags exist
+        run: |
+          echo "Validating tags..."
+          
+          # Check if from_version is a valid tag
+          if ! git rev-parse "refs/tags/${{ inputs.from_version }}" >/dev/null 2>&1; then
+            echo "Error: Tag '${{ inputs.from_version }}' does not exist"
+            exit 1
+          fi
+          
+          # Check if target_version is a valid tag
+          if ! git rev-parse "refs/tags/${{ inputs.target_version }}" >/dev/null 2>&1; then
+            echo "Error: Tag '${{ inputs.target_version }}' does not exist"
+            exit 1
+          fi
+          
+          echo "✓ Both tags are valid"
 
       - name: Install libcap-dev (recommended by erlexec)
         run: sudo apt-get install libcap-dev -y
@@ -60,12 +78,12 @@ jobs:
           mix assets.deploy
           mix release
 
-      - name: Compile and Generate a release for the target version
+      - name: Compile and Generate a release (with hotupgrade info) for the target version
         run: |
           echo "===================================="
           echo "Compiling TARGET version: ${{ inputs.target_version }}"
           echo "===================================="
-          
+
           git checkout ${{ inputs.target_version }}
           mix do deps.get + compile --force --warnings-as-errors
           mix assets.deploy
