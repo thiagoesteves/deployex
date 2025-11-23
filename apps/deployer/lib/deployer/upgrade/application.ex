@@ -462,16 +462,7 @@ defmodule Deployer.Upgrade.Application do
         current_path: current_path,
         to_version: to_version
       }) do
-    task =
-      Task.async(fn ->
-        # Small delay to ensure the task is fully set up
-        :timer.sleep(100)
-        Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout)
-      end)
-
-    # Wait for the result with a timeout
-    case Task.await(task, :infinity) do
-      # case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
+    case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
       :ok ->
         Logger.info("Made release permanent: #{to_version}")
 
