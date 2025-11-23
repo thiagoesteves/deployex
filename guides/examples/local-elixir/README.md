@@ -139,8 +139,13 @@ config :foundation,
       name: "myphoenixapp",
       replicas: 2,
       language: "elixir",
+      deploy_rollback_timeout_ms: :timer.minutes(10),
+      deploy_schedule_interval_ms: :timer.seconds(5),
       replica_ports: [%{key: "PORT", base: 4000}],
-      env: []
+      env: [
+        "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
+        "PHX_SERVER=true"
+      ]
     }
   ]
 ```
