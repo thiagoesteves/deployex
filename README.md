@@ -50,7 +50,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Supports safe tracing for all connected applications.
 - Provides visualization of Host System memory and CPU usage.
 - Provides easy access to the host shell (tmux).
-- Provides installer script to be used with ubuntu hosts.
+- Provides script to be used with ubuntu/debian hosts to install/update and hotupgrade DeployEx.
 - Provides status information per node:
   - OTP connectivity
   - Version history
@@ -202,17 +202,19 @@ Currently, the release and installation process supports **Ubuntu version 24.04*
 
 #### 🔥 Hot-Upgrades
 
-This feature can be applied to monitored apps and to DeployEx itself. There are many considerations before using hot-upgrades, and the decision of when to apply them is up to each project. DeployEx uses [Jellyfish][jyf] to generate appup files automatically, which can be modified or created manually if you want to add more actions. Sometimes it's better to start by looking at what you cannot hot-upgrade, then analyze the other changes in the release. The `Jellyfish+DeployEx` package has some limitations that may change over time, so stay tuned for these recommendations.
+This feature can be applied to monitored apps and to DeployEx itself. There are many considerations before using hot-upgrades, and the decision of when to apply them is up to each project. DeployEx uses [Jellyfish][jyf] to generate appup files automatically, which can be modified or created manually if you want to add more actions. Sometimes it's better to start by looking at what you cannot hot-upgrade, then analyze the other changes in the release. The `Jellyfish + DeployEx` package has some limitations that may change over time, so stay tuned for these recommendations.
 
-DO NOT HOT-UPGRADE if:
+**DO NOT HOT-UPGRADE if:**
  * The new release is updating Elixir and/or Erlang OTP
  * The new release is updating/adding/removing libraries (there is a feature in progress in Jellyfish for updating specific libraries)
  * The new release changed the `runtime.exs` file
  * The new release changed config_provider files
 
-Keep in mind that most of your releases will not require full deployment. You don't update OTP or libraries frequently, but you can combine hot-upgrades with migrations to avoid downtime. This topic is very vast, and we encourage you to apply and learn. High availability is a feature that doesn't come for free and require learning process.
+Keep in mind that most of your releases will not require full deployment. You don't update OTP or libraries frequently, but you can combine hot-upgrades with migrations to avoid downtime, and much more. This topic is very vast, and we encourage you to apply and learn. High availability is a feature that doesn't come for free and require learning process.
 
-If you want to hot-upgrade DeployEx itself, check the GitHub manual release creation to see how you can create a release that can hot-upgrade from a specific version. Additional information can be found in the Changelog of DeployEx releases, where you can analyze whether the version you are running can be hot-upgraded to the latest one.
+If you want to hot-upgrade DeployEx itself, check the [GitHub action to create releases with hotupgrade](/.github/workflows/hot_upgrade.yaml) to see how you can create a release that can hot-upgrade from a specific version. Additional information can be found in the Changelog of DeployEx releases, where you can analyze whether the version you are running can be hot-upgraded to the latest one.
+
+To see an example of hot-upgrading your monitored applications using GitHub CI, check out [this workflow](https://github.com/thiagoesteves/calori/blob/main/.github/workflows/hot-upgrade.yaml). The job fetches the `current.json` file, uses the latest deployed SHA to checkout the current version, compiles it, then switches to the target version, compiles again, and generates a release with the hot-upgrade information.
 
 ### Pre-commands (Elixir only)
 

@@ -1,4 +1,4 @@
-name: Create Release with Hot Upgrade (Ubuntu 24.04)
+name: Create Release with Hot Upgrade (Ubuntu 24.04 / Debian 13)
 
 on:
   workflow_dispatch:
