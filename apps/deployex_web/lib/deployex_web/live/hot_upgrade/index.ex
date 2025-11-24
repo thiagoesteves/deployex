@@ -1,7 +1,7 @@
 defmodule DeployexWeb.HotUpgradeLive do
   use DeployexWeb, :live_view
 
-  alias Deployer.Upgrade.Deployex
+  alias Deployer.Upgrade
   alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Progress
@@ -328,24 +328,21 @@ defmodule DeployexWeb.HotUpgradeLive do
                     Remove
                   </button>
                   <.link
+                    :if={!@downloaded_release.error}
                     id={Helper.normalize_id("hotupgrade-#{@downloaded_release.name}")}
                     patch={~p"/hotupgrade/apply"}
                   >
                     <button type="button" class="btn btn-primary">
-                      <%= if @applying_upgrade == nil do %>
-                        <span class="loading loading-spinner loading-sm"></span> Applying...
-                      <% else %>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M5 13l4 4L19 7"
-                          >
-                          </path>
-                        </svg>
-                        Apply Hot Upgrade
-                      <% end %>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M5 13l4 4L19 7"
+                        >
+                        </path>
+                      </svg>
+                      Apply Hot Upgrade
                     </button>
                   </.link>
                 </div>
@@ -357,25 +354,78 @@ defmodule DeployexWeb.HotUpgradeLive do
     </Layouts.app>
 
     <%= cond do %>
-      <% @live_action == :apply and @upgrade_state in [:running, :end] -> %>
+      <% @live_action == :apply and @upgrade_state != :init -> %>
         <Progress.content id={"hotupgrade-progress-modal-#{@downloaded_release.name}"}>
-          <:header>Hot upgrade Progress</:header>
-          <div id="upgrade-progress" class="mt-6 p-4 bg-base-200 rounded-lg">
-            <h3 class="text-base-content font-semibold mb-2">Upgrade Progress</h3>
+          <:header>Hot Upgrade Progress</:header>
 
-            <div class="space-y-1 max-h-48 overflow-y-auto text-sm font-mono">
-              <%= for line <- @upgrade_progress do %>
-                <div class="text-base-content/80">{line}</div>
+          <div id="upgrade-progress" class="mt-6 space-y-4">
+            <!-- Progress Header -->
+            <div class="flex items-center justify-between px-4">
+              <h3 class="text-base-content font-semibold">Upgrade Progress</h3>
+              <%= if @upgrade_state == :running do %>
+                <span class="text-sm text-base-content/60">
+                  Step {length(@upgrade_progress)} of {@total_upgrade_steps}
+                </span>
               <% end %>
             </div>
+            <!-- Progress Log -->
+            <div class="bg-base-200 rounded-lg p-4">
+              <div
+                id="upgrade-progress-log"
+                phx-hook="AutoScroll"
+                class="space-y-2 max-h-48 overflow-y-auto text-sm font-mono"
+              >
+                <%= for line <- @upgrade_progress do %>
+                  <div class="flex items-start gap-2 text-base-content/80">
+                    <span class="text-success mt-0.5 flex-shrink-0">✓</span>
+                    <span class="flex-1">{line}</span>
+                  </div>
+                <% end %>
 
-            <div :if={@upgrade_state != :end} class="mt-2 flex items-center gap-2">
+                <%= if @upgrade_state == :running and length(@upgrade_progress) > 0 do %>
+                  <div class="flex items-center gap-2 text-primary/80">
+                    <span class="loading loading-spinner loading-xs"></span>
+                    <span class="italic">Processing...</span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <!-- Status Message -->
+            <div :if={@upgrade_state not in [:success, :error]} class="px-4 flex items-center gap-2">
               <span class="loading loading-spinner loading-sm text-primary"></span>
-              <span class="text-xs text-base-content/60">Applying hot upgrade…</span>
+              <span class="text-sm text-base-content/60">Applying hot upgrade…</span>
+            </div>
+            <!-- Completion Status -->
+            <div :if={@upgrade_state == :success} class="px-4">
+              <div class="alert alert-success">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>Hot upgrade completed successfully!</span>
+              </div>
+            </div>
+
+            <div :if={@upgrade_state == :error} class="px-4">
+              <div class="alert alert-error">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>Hot upgrade failed!</span>
+              </div>
             </div>
           </div>
 
-          <:footer :if={@upgrade_state == :end}>
+          <:footer :if={@upgrade_state != :running}>
             <Progress.done_button
               id="hotupgrade-progress-done"
               event="hotupgrade-progress-done"
@@ -460,44 +510,35 @@ defmodule DeployexWeb.HotUpgradeLive do
     # Subscribe to system info if needed
     Host.Info.subscribe()
 
-    Phoenix.PubSub.subscribe(DeployexWeb.PubSub, "test")
+    # Subscribe to receive hot upgrade events
+    Upgrade.subscribe_events()
 
-    socket =
-      socket
-      |> assign(:host_info, nil)
-      |> assign(:downloaded_release, nil)
-      |> assign(:applying_upgrade, false)
-      |> assign(:upgrade_progress, [])
-      |> assign(:upgrade_state, :init)
-      |> assign(:current_path, "/hotupgrade")
-      |> assign(:ui_settings, UiSettings.get())
-      |> allow_upload(:hotupgrade,
-        accept: [".gz"],
-        max_entries: 1,
-        max_file_size: 100_000_000,
-        auto_upload: true,
-        progress: &handle_progress/3
-      )
-
-    {:ok, socket}
+    {:ok, default_assigns(socket)}
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:host_info, nil)
-     |> assign(:downloaded_release, nil)
-     |> assign(:applying_upgrade, false)
-     |> assign(:upgrade_progress, [])
-     |> assign(:upgrade_state, :init)
-     |> assign(:current_path, "/hotupgrade")
-     |> assign(:ui_settings, UiSettings.get())
-     |> allow_upload(:hotupgrade,
-       accept: [".gz"],
-       max_entries: 1,
-       max_file_size: 100_000_000
-     )}
+    {:ok, default_assigns(socket)}
+  end
+
+  defp default_assigns(socket) do
+    socket
+    |> assign(:host_info, nil)
+    |> assign(:downloaded_release, nil)
+    |> assign(:applying_upgrade, false)
+    |> assign(:upgrade_progress, [])
+    |> assign(:upgrade_state, :init)
+    |> assign(:total_upgrade_steps, 9)
+    |> assign(:current_path, "/hotupgrade")
+    |> assign(:ui_settings, UiSettings.get())
+    |> assign(:node, Node.self())
+    |> allow_upload(:hotupgrade,
+      accept: [".gz"],
+      max_entries: 1,
+      auto_upload: true,
+      max_file_size: 100_000_000,
+      progress: &handle_progress/3
+    )
   end
 
   @impl true
@@ -546,25 +587,19 @@ defmodule DeployexWeb.HotUpgradeLive do
      |> assign(:downloaded_release, nil)
      |> assign(:applying_upgrade, false)
      |> assign(:upgrade_state, :init)
+     |> assign(:upgrade_progress, [])
      |> push_patch(to: ~p"/hotupgrade")}
   end
 
   def handle_event("hotupgrade-execute", _params, socket) do
-    case apply_hot_upgrade(socket.assigns.downloaded_release) do
-      {:ok, _result} ->
-        {:noreply,
-         socket
-         |> assign(:applying_upgrade, true)
-         |> assign(:upgrade_state, :running)
-         |> assign(:upgrade_progress, [])
-         |> assign(:page_title, "Hot upgrade in progress")}
+    apply_hot_upgrade(socket.assigns.downloaded_release)
 
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> assign(:applying_upgrade, false)
-         |> put_flash(:error, "Failed to apply upgrade: #{inspect(reason)}")}
-    end
+    {:noreply,
+     socket
+     |> assign(:applying_upgrade, true)
+     |> assign(:upgrade_state, :running)
+     |> assign(:upgrade_progress, [])
+     |> assign(:page_title, "Hot upgrade in progress")}
   end
 
   @impl true
@@ -577,24 +612,41 @@ defmodule DeployexWeb.HotUpgradeLive do
      |> assign(:ui_settings, ui_settings)}
   end
 
-  def handle_info({:hot_upgrade_progress, message}, socket) do
+  def handle_info(
+        {:hot_upgrade_progress, source_node, _sname, msg},
+        %{assigns: %{node: node, applying_upgrade: true}} = socket
+      )
+      when source_node == node do
     {:noreply,
      socket
-     |> update(:upgrade_progress, fn logs -> logs ++ [message] end)}
+     |> update(:upgrade_progress, fn logs -> logs ++ [msg] end)}
   end
 
-  def handle_info({:hot_upgrade_complete, :ok}, socket) do
+  def handle_info(
+        {:hot_upgrade_complete, source_node, _sname, :ok, msg},
+        %{assigns: %{node: node, applying_upgrade: true}} = socket
+      )
+      when source_node == node do
     {:noreply,
      socket
-     |> assign(:upgrade_state, :end)
-     |> put_flash(:info, "Hot upgrade applied successfully!")}
+     |> assign(:upgrade_state, :success)
+     |> update(:upgrade_progress, fn logs -> logs ++ [msg] end)}
   end
 
-  def handle_info({:hot_upgrade_complete, {:error, reason}}, socket) do
+  def handle_info(
+        {:hot_upgrade_complete, source_node, _sname, :error, msg},
+        %{assigns: %{node: node, applying_upgrade: true}} = socket
+      )
+      when source_node == node do
     {:noreply,
      socket
-     |> assign(:upgrade_state, :end)
-     |> put_flash(:error, "Upgrade failed: #{reason}")}
+     |> assign(:upgrade_state, :error)
+     |> update(:upgrade_progress, fn logs -> logs ++ [msg] end)}
+  end
+
+  def handle_info({_hot_upgrade_event, _source_node, _sname, _reason}, socket) do
+    # NOTE: Ignore events from other nodes and applying_upgrade == false
+    {:noreply, socket}
   end
 
   defp handle_progress(:hotupgrade, entry, socket) when entry.done? do
@@ -626,7 +678,7 @@ defmodule DeployexWeb.HotUpgradeLive do
 
     # Execute checks
     with true <- String.ends_with?(filename, ".tar.gz"),
-         {:ok, check_data} <- Deployex.hot_upgrade_check(download_path) do
+         {:ok, check_data} <- Upgrade.deployex_check(download_path) do
       {:ok, struct(hotupgrade, Map.from_struct(check_data))}
     else
       false ->
@@ -638,13 +690,15 @@ defmodule DeployexWeb.HotUpgradeLive do
       {:error, _reason} ->
         {:postpone, %{hotupgrade | error: "invalid release"}}
     end
-
-    {:ok, %{hotupgrade | to_version: "2.0.0"}}
   end
 
   defp apply_hot_upgrade(release) do
     Task.start(fn ->
-      apply_hot_upgrade_async(release)
+      # TODO: replace with GenServer
+      with :ok <- Upgrade.deployex_execute(release.download_path),
+           :ok <- Upgrade.deployex_make_permanent(release.download_path) do
+        :ok
+      end
     end)
 
     {:ok, :upgraded}
@@ -662,40 +716,4 @@ defmodule DeployexWeb.HotUpgradeLive do
   defp error_to_string(:not_accepted), do: "File type not accepted"
   defp error_to_string(:too_many_files), do: "Too many files"
   defp error_to_string(error), do: "Upload error: #{inspect(error)}"
-
-  defp apply_hot_upgrade_async(release) do
-    Phoenix.PubSub.broadcast(
-      DeployexWeb.PubSub,
-      "test",
-      {:hot_upgrade_progress, "Starting upgrade for #{release.name}..."}
-    )
-
-    steps = [
-      "Validating release file",
-      "Preparing nodes",
-      "Uploading to remote nodes",
-      "Stopping old beams",
-      "Applying code changes",
-      "Restarting supervisors",
-      "Finalizing"
-    ]
-
-    Enum.each(steps, fn step ->
-      Process.sleep(800)
-
-      Phoenix.PubSub.broadcast(
-        DeployexWeb.PubSub,
-        "test",
-        {:hot_upgrade_progress, step}
-      )
-    end)
-
-    Process.sleep(500)
-
-    Phoenix.PubSub.broadcast(
-      DeployexWeb.PubSub,
-      "test",
-      {:hot_upgrade_complete, :ok}
-    )
-  end
 end

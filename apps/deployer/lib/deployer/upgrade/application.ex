@@ -97,9 +97,9 @@ defmodule Deployer.Upgrade.Application do
          :ok <- install_release(data),
          :ok <- notify_progress(data.sname, "Returning original sys.config file"),
          :ok <- return_original_sys_config(data),
-         :ok <- notify_make_permanent(data.skip_make_permanent, data.to_version),
+         :ok <- notify_make_permanent(data.skip_make_permanent, data.sname, data.to_version),
          :ok <- permfy(data),
-         :ok <- notify_complete_ok(data) do
+         :ok <- notify_complete_ok(data.skip_make_permanent, data.sname) do
       message =
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
 
@@ -548,17 +548,15 @@ defmodule Deployer.Upgrade.Application do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
-      {:hot_upgrade_complete, Node.self(), sname, :ok}
+      {:hot_upgrade_complete, Node.self(), sname, :ok, "Hot upgrade applied successfully!"}
     )
-
-    :ok
   end
 
   def notify_error(sname, result) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
-      {:hot_upgrade_complete, Node.self(), sname, result}
+      {:hot_upgrade_complete, Node.self(), sname, :error, "Upgrade failed: #{inspect(result)}"}
     )
   end
 end
