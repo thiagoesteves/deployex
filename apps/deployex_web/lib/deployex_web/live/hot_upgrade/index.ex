@@ -1,7 +1,7 @@
 defmodule DeployexWeb.HotUpgradeLive do
   use DeployexWeb, :live_view
 
-  alias Deployer.Deployex
+  alias Deployer.Upgrade.Deployex
   alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Progress

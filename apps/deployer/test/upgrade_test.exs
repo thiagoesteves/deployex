@@ -888,7 +888,7 @@ defmodule Deployer.UpgradeAppTest do
         :ok
     end)
 
-    with_mock Node, connect: fn ^node -> true end do
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
       assert :ok =
                UpgradeApp.execute(%Execute{
                  node: node,

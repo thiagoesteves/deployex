@@ -45,6 +45,13 @@ defmodule Deployer.Upgrade do
   @spec execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
   def execute(%Deployer.Upgrade.Execute{} = data), do: default().execute(data)
 
+  @doc """
+  This function subscribes to hotupgrade events
+  """
+  @impl true
+  @spec subscribe_events() :: :ok
+  def subscribe_events, do: default().subscribe_events()
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================

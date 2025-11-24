@@ -8,4 +8,5 @@ defmodule Deployer.Upgrade.Adapter do
   @callback check(Deployer.Upgrade.Check.t()) ::
               {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   @callback execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
+  @callback subscribe_events() :: :ok
 end

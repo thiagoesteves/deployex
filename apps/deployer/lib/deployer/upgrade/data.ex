@@ -10,7 +10,8 @@ defmodule Deployer.Upgrade.Execute do
           current_path: String.t() | nil,
           new_path: String.t() | nil,
           from_version: binary() | charlist() | nil,
-          to_version: binary() | charlist() | nil
+          to_version: binary() | charlist() | nil,
+          skip_make_permanent: boolean()
         }
 
   @derive Jason.Encoder
@@ -22,5 +23,6 @@ defmodule Deployer.Upgrade.Execute do
             current_path: nil,
             new_path: nil,
             from_version: nil,
-            to_version: nil
+            to_version: nil,
+            skip_make_permanent: false
 end

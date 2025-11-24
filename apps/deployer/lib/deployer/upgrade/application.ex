@@ -53,6 +53,7 @@ defmodule Deployer.Upgrade.Application do
   alias Foundation.Rpc
 
   @behaviour Deployer.Upgrade.Adapter
+  @events_topic "deployex::hotupgrade::events"
 
   alias Deployer.Upgrade.Check
   alias Deployer.Upgrade.Execute
@@ -62,6 +63,8 @@ defmodule Deployer.Upgrade.Application do
   ### ==========================================================================
   ### Public APIS
   ### ==========================================================================
+  @impl true
+  def subscribe_events, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @events_topic)
 
   @impl true
   @spec execute(Execute.t()) :: :ok | {:error, any()}
@@ -79,20 +82,34 @@ defmodule Deployer.Upgrade.Application do
   end
 
   def execute(%Execute{from_version: from_version, to_version: to_version} = data) do
+    notify_progress(data.sname, "Starting upgrade for #{data.sname}...")
+
     with {:ok, node} <- connect(data.node),
+         :ok <- notify_progress(data.sname, "Unpacking release"),
          :ok <- unpack_release(data),
+         :ok <- notify_progress(data.sname, "Creating relup file"),
          :ok <- make_relup(data),
+         :ok <- notify_progress(data.sname, "Checking release can be installed"),
          :ok <- check_install_release(data),
+         :ok <- notify_progress(data.sname, "Updating sys.config file"),
          :ok <- update_sys_config_from_installed_version(data),
+         :ok <- notify_progress(data.sname, "Installing release"),
          :ok <- install_release(data),
+         :ok <- notify_progress(data.sname, "Returning original sys.config file"),
          :ok <- return_original_sys_config(data),
-         :ok <- permfy(data) do
+         :ok <- notify_make_permanent(data.skip_make_permanent, data.to_version),
+         :ok <- permfy(data),
+         :ok <- notify_complete_ok(data) do
       message =
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
 
       Logger.info(message)
 
       :ok
+    else
+      error ->
+        notify_error(data.sname, error)
+        error
     end
   end
 
@@ -437,7 +454,7 @@ defmodule Deployer.Upgrade.Application do
   end
 
   @spec permfy(Execute.t()) :: :ok | {:error, any()}
-  def permfy(%Execute{name: "deployex"}) do
+  def permfy(%Execute{skip_make_permanent: true}) do
     # NOTE: Self-upgrade limitation - permify must be executed in a separate sequence.
     #       When DeployEx upgrades itself, including permify in the main upgrade sequence
     #       causes the process to crash after successfully applying the changes. This occurs
@@ -501,5 +518,47 @@ defmodule Deployer.Upgrade.Application do
 
         {:error, :not_connecting}
     end
+  end
+
+  def notify_make_permanent(skip \\ false, sname, version)
+
+  def notify_make_permanent(true, _sname, _version), do: :ok
+
+  def notify_make_permanent(false, sname, version) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      @events_topic,
+      {:hot_upgrade_progress, Node.self(), sname, "Making release #{version} permanent"}
+    )
+  end
+
+  def notify_progress(sname, msg) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      @events_topic,
+      {:hot_upgrade_progress, Node.self(), sname, msg}
+    )
+  end
+
+  def notify_complete_ok(skip \\ false, sname)
+
+  def notify_complete_ok(true, _sname), do: :ok
+
+  def notify_complete_ok(_skip, sname) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      @events_topic,
+      {:hot_upgrade_complete, Node.self(), sname, :ok}
+    )
+
+    :ok
+  end
+
+  def notify_error(sname, result) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      @events_topic,
+      {:hot_upgrade_complete, Node.self(), sname, result}
+    )
   end
 end
