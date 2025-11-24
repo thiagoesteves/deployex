@@ -58,6 +58,14 @@ defmodule DeployexWeb.Components.NavMenu do
       description: "Access terminal"
     },
     %{
+      id: "hotupgrade",
+      path: "/hotupgrade",
+      label: "Hot Upgrade",
+      icon: "hero-arrow-up-circle",
+      color: "warning",
+      description: "Apply hot upgrades"
+    },
+    %{
       id: "docs",
       path: "/applications/deployex/docs",
       label: "Documentation",
