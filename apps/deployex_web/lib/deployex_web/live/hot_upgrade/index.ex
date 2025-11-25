@@ -329,7 +329,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                   </button>
                   <.link
                     :if={!@downloaded_release.error}
-                    id={Helper.normalize_id("hotupgrade-#{@downloaded_release.name}")}
+                    id={Helper.normalize_id("hotupgrade-apply-#{@downloaded_release.name}")}
                     patch={~p"/hotupgrade/apply"}
                   >
                     <button type="button" class="btn btn-primary">

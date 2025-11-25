@@ -553,13 +553,15 @@ defmodule Deployer.HotUpgrade.Application do
   @spec root_dir(node :: node()) :: any()
   def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @rpc_timeout)
 
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+
   @spec notify_make_permanent(skip :: boolean(), sname :: String.t(), version :: String.t()) ::
           :ok
-  def notify_make_permanent(skip \\ false, sname, version)
+  defp notify_make_permanent(true, _sname, _version), do: :ok
 
-  def notify_make_permanent(true, _sname, _version), do: :ok
-
-  def notify_make_permanent(false, sname, version) do
+  defp notify_make_permanent(false, sname, version) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
@@ -568,7 +570,7 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @spec notify_progress(sname :: String.t(), msg :: String.t()) :: :ok
-  def notify_progress(sname, msg) do
+  defp notify_progress(sname, msg) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
@@ -577,11 +579,11 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @spec notify_complete_ok(skip :: boolean(), sname :: String.t()) :: :ok
-  def notify_complete_ok(skip \\ false, sname)
+  defp notify_complete_ok(skip \\ false, sname)
 
-  def notify_complete_ok(true, _sname), do: :ok
+  defp notify_complete_ok(true, _sname), do: :ok
 
-  def notify_complete_ok(_skip, sname) do
+  defp notify_complete_ok(_skip, sname) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
@@ -590,17 +592,13 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @spec notify_error(sname :: String.t(), result :: any()) :: :ok
-  def notify_error(sname, result) do
+  defp notify_error(sname, result) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
       {:hot_upgrade_complete, Node.self(), sname, :error, "Upgrade failed: #{inspect(result)}"}
     )
   end
-
-  ### ==========================================================================
-  ### Private functions
-  ### ==========================================================================
 
   defp check_jellyfish_files(files, from_version, to_version) do
     response =

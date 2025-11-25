@@ -850,7 +850,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
-  test "execute/5 Elixir success", %{
+  test "execute/5 Elixir Application success", %{
     node: node,
     sname: sname,
     app_name: app_name,
@@ -903,7 +903,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
-  test "execute/5 Elixir error", %{
+  test "execute/5 Elixir Application error", %{
     app_name: app_name,
     sname: sname,
     current_path: current_path,
@@ -917,5 +917,449 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                current_path: current_path,
                new_path: new_path
              })
+  end
+
+  test "execute/5 Elixir Deployex success sync operation, make_permanent_async=true", %{
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    node = Node.self()
+    sname = "deployex"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/deployex"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        :ok
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      UpgradeApp.subscribe_events()
+      ref = make_ref()
+      test_pid = self()
+
+      after_asyn_make_permanent = fn ->
+        send(test_pid, {:handle_ref_event, ref})
+      end
+
+      assert :ok =
+               UpgradeApp.execute(%Execute{
+                 node: node,
+                 sname: sname,
+                 name: sname,
+                 language: "elixir",
+                 current_path: current_path,
+                 new_path: new_path,
+                 from_version: from_version,
+                 to_version: to_version,
+                 make_permanent_async: true,
+                 sync_execution: true,
+                 after_asyn_make_permanent: after_asyn_make_permanent
+               })
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Starting upgrade for deployex..."},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Unpacking release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Creating relup file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
+                      "Hot upgrade applied successfully!"},
+                     1_000
+
+      assert_receive {:handle_ref_event, ^ref}, 1_000
+    end
+  end
+
+  test "execute/5 Elixir Deployex success sync operation, make_permanent_async=false", %{
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    node = Node.self()
+    sname = "deployex"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/deployex"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        :ok
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      UpgradeApp.subscribe_events()
+
+      assert :ok =
+               UpgradeApp.execute(%Execute{
+                 node: node,
+                 sname: sname,
+                 name: sname,
+                 language: "elixir",
+                 current_path: current_path,
+                 new_path: new_path,
+                 from_version: from_version,
+                 to_version: to_version,
+                 make_permanent_async: false,
+                 sync_execution: true
+               })
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Starting upgrade for deployex..."},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Unpacking release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Creating relup file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Making release 0.2.0 permanent"},
+                     1_000
+
+      assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
+                      "Hot upgrade applied successfully!"},
+                     1_000
+    end
+  end
+
+  test "execute/5 Elixir Deployex success async operation, make_permanent_async=false", %{
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    node = Node.self()
+    sname = "deployex"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/deployex"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        :ok
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      UpgradeApp.subscribe_events()
+
+      assert :ok =
+               UpgradeApp.execute(%Execute{
+                 node: node,
+                 sname: sname,
+                 name: sname,
+                 language: "elixir",
+                 current_path: current_path,
+                 new_path: new_path,
+                 from_version: from_version,
+                 to_version: to_version,
+                 make_permanent_async: false,
+                 sync_execution: false
+               })
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Starting upgrade for deployex..."},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Unpacking release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Creating relup file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+                     1_000
+
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Making release 0.2.0 permanent"},
+                     1_000
+
+      assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
+                      "Hot upgrade applied successfully!"},
+                     1_000
+    end
+  end
+
+  test "execute/5 Elixir Deployex error async operation, make_permanent_async=false", %{
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    node = Node.self()
+    sname = "deployex"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/deployex"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        {:error, :no_match_versions}
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      assert capture_log(fn ->
+               UpgradeApp.subscribe_events()
+
+               assert :ok =
+                        UpgradeApp.execute(%Execute{
+                          node: node,
+                          sname: sname,
+                          name: sname,
+                          language: "elixir",
+                          current_path: current_path,
+                          new_path: new_path,
+                          from_version: from_version,
+                          to_version: to_version,
+                          make_permanent_async: false,
+                          sync_execution: false
+                        })
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Starting upgrade for deployex..."},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Unpacking release"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Creating relup file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Checking release can be installed"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Returning original sys.config file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Making release 0.2.0 permanent"},
+                              1_000
+
+               assert_receive {:hot_upgrade_complete, ^node, ^sname, :error,
+                               "Upgrade failed: {:error, {:error, :no_match_versions}}"},
+                              1_000
+             end) =~
+               "Error while trying to set a permanent version for 0.2.0, reason: {:error, :no_match_versions}"
+    end
+  end
+
+  test "execute/5 Elixir Deployex error async operation, make_permanent_async=true", %{
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    node = Node.self()
+    sname = "deployex"
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/deployex"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        {:error, :no_match_versions}
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      ref = make_ref()
+      test_pid = self()
+
+      after_asyn_make_permanent = fn ->
+        send(test_pid, {:handle_ref_event, ref})
+      end
+
+      assert capture_log(fn ->
+               UpgradeApp.subscribe_events()
+
+               assert :ok =
+                        UpgradeApp.execute(%Execute{
+                          node: node,
+                          sname: sname,
+                          name: sname,
+                          language: "elixir",
+                          current_path: current_path,
+                          new_path: new_path,
+                          from_version: from_version,
+                          to_version: to_version,
+                          make_permanent_async: true,
+                          sync_execution: false,
+                          after_asyn_make_permanent: after_asyn_make_permanent
+                        })
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Starting upgrade for deployex..."},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Unpacking release"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Creating relup file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Checking release can be installed"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
+                              1_000
+
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Returning original sys.config file"},
+                              1_000
+
+               assert_receive {:hot_upgrade_complete, ^node, ^sname, :error,
+                               "Upgrade failed: {:error, {:error, :no_match_versions}}"},
+                              1_000
+             end) =~
+               "Error while trying to set a permanent version for 0.2.0, reason: {:error, :no_match_versions}"
+    end
   end
 end
