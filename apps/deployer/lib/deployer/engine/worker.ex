@@ -17,10 +17,10 @@ defmodule Deployer.Engine.Worker do
   require Logger
 
   alias Deployer.Engine
+  alias Deployer.HotUpgrade
   alias Deployer.Monitor
   alias Deployer.Release
   alias Deployer.Status
-  alias Deployer.Upgrade
   alias Foundation.Catalog
 
   @type t :: %__MODULE__{
@@ -599,7 +599,7 @@ defmodule Deployer.Engine.Worker do
 
       %{node: node} = Catalog.node_info(sname)
 
-      upgrade_data = %Deployer.Upgrade.Execute{
+      upgrade_data = %Deployer.HotUpgrade.Execute{
         node: node,
         sname: sname,
         name: name,
@@ -610,7 +610,7 @@ defmodule Deployer.Engine.Worker do
         to_version: release.version
       }
 
-      case Upgrade.execute(upgrade_data) do
+      case HotUpgrade.execute(upgrade_data) do
         :ok ->
           Status.set_current_version_map(sname, release, deployment: :hot_upgrade)
 

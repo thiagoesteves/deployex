@@ -11,7 +11,7 @@ defmodule Deployer.ReleaseTest do
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
-  alias Deployer.Upgrade
+  alias Deployer.HotUpgrade
 
   setup do
     FixtureCatalog.cleanup()
@@ -73,7 +73,7 @@ defmodule Deployer.ReleaseTest do
     Deployer.ReleaseMock
     |> expect(:download_release, fn _app_name, ^release_version, _download_path -> :ok end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
     with_mock System, [:passthrough],
@@ -101,7 +101,7 @@ defmodule Deployer.ReleaseTest do
     Deployer.ReleaseMock
     |> expect(:download_release, fn _app_name, _release_version, _download_path -> :ok end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
     with_mock System, [:passthrough],
@@ -134,9 +134,9 @@ defmodule Deployer.ReleaseTest do
     Deployer.ReleaseMock
     |> expect(:download_release, fn _app_name, _release_version, _download_path -> :ok end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> expect(:prepare_new_path, 2, fn _name, _language, _to_version, _new_path -> :ok end)
-    |> expect(:check, fn %Upgrade.Check{
+    |> expect(:check, fn %HotUpgrade.Check{
                            name: ^name,
                            language: "elixir",
                            download_path: _download_path,
@@ -178,9 +178,9 @@ defmodule Deployer.ReleaseTest do
     Deployer.ReleaseMock
     |> expect(:download_release, fn ^name, ^release_version, _download_path -> :ok end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> expect(:prepare_new_path, 2, fn _name, _language, _to_version, _new_path -> :ok end)
-    |> expect(:check, fn %Upgrade.Check{
+    |> expect(:check, fn %HotUpgrade.Check{
                            name: ^name,
                            language: "elixir",
                            download_path: _download_path,

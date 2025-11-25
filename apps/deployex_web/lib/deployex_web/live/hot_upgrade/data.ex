@@ -1,4 +1,4 @@
-defmodule DeployexWeb.HotUpgrade do
+defmodule DeployexWeb.HotUpgrade.Data do
   @moduledoc """
   Structure to handle the hotupgrade data
   """

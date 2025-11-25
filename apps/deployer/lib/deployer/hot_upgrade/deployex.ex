@@ -1,14 +1,12 @@
-defmodule Deployer.Upgrade.Deployex do
+defmodule Deployer.HotUpgrade.Deployex do
   @moduledoc """
   This module contains deployex hot upgrade commands to be 
   used by command line interface (CLI) or UI/UX
   """
 
-  alias Deployer.Upgrade
-  alias Deployer.Upgrade.Check
-  alias Deployer.Upgrade.Execute
-  alias Foundation.Catalog
-  alias Foundation.Rpc
+  alias Deployer.HotUpgrade.Application, as: HotUpgradeApp
+  alias Deployer.HotUpgrade.Check
+  alias Deployer.HotUpgrade.Execute
   alias Host.Commander
 
   require Logger
@@ -39,7 +37,7 @@ defmodule Deployer.Upgrade.Deployex do
 
     with {:ok, _} <-
            Commander.run("tar -xf  #{download_path} -C #{new_path}", [:sync, :stdout, :stderr]),
-         {:ok, :hot_upgrade} <- Upgrade.check(check) do
+         {:ok, :hot_upgrade} <- HotUpgradeApp.check(check) do
       {:ok, check}
     else
       {:ok, type} ->
@@ -54,8 +52,11 @@ defmodule Deployer.Upgrade.Deployex do
     end
   end
 
-  @spec execute(download_path :: String.t()) :: :ok | {:error, any()}
-  def execute(download_path) do
+  @spec execute(download_path :: String.t(), sync_execution :: Keyboard.t()) ::
+          :ok | {:error, any()}
+  def execute(download_path, options) do
+    sync_execution = Keyword.get(options, :sync_execution, true)
+    make_permanent_async = Keyword.get(options, :make_permanent_async, true)
     current_version = Application.spec(:foundation, :vsn)
     to_version = parse_version(download_path)
 
@@ -63,8 +64,15 @@ defmodule Deployer.Upgrade.Deployex do
 
     with {:ok, check} <- check(download_path),
          %Execute{} = upgrade_data <-
-           struct(%Execute{node: Node.self(), skip_make_permanent: true}, Map.from_struct(check)),
-         :ok <- Upgrade.execute(upgrade_data) do
+           struct(
+             %Execute{
+               node: Node.self(),
+               make_permanent_async: make_permanent_async,
+               sync_execution: sync_execution
+             },
+             Map.from_struct(check)
+           ),
+         :ok <- HotUpgradeApp.execute(upgrade_data) do
       Logger.warning("Hot upgrade in #{@deployex_name} installed with success")
       :ok
     else
@@ -72,39 +80,6 @@ defmodule Deployer.Upgrade.Deployex do
         Logger.error("Hot upgrade failed: #{inspect(reason)}")
 
         error
-    end
-  end
-
-  @spec make_permanent(download_path :: String.t()) :: :ok | {:error, any()}
-  def make_permanent(download_path) do
-    node = Node.self()
-    parsed_version = download_path |> parse_version()
-    to_version = parsed_version |> to_charlist
-
-    Upgrade.Application.notify_make_permanent(@deployex_name, parsed_version)
-
-    case Rpc.call(node, :release_handler, :make_permanent, [to_version], :infinity) do
-      :ok ->
-        Catalog.add_version(%Catalog.Version{
-          version: parsed_version,
-          sname: @deployex_name,
-          name: @deployex_name,
-          deployment: :hot_upgrade,
-          inserted_at: NaiveDateTime.utc_now()
-        })
-
-        Upgrade.Application.notify_complete_ok(@deployex_name)
-        Logger.info("Release marked as permanent: #{to_version}")
-        :ok
-
-      reason ->
-        Logger.error(
-          "Error while trying to set a permanent version for #{to_version}, reason: #{inspect(reason)}"
-        )
-
-        Upgrade.Application.notify_error(@deployex_name, reason)
-
-        {:error, reason}
     end
   end
 

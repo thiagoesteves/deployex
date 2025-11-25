@@ -124,7 +124,7 @@ config :deployer, Deployer.Monitor, adapter: Deployer.Monitor.Application
 
 config :deployer, Deployer.Status, adapter: Deployer.Status.Application
 
-config :deployer, Deployer.Upgrade, adapter: Deployer.Upgrade.Application
+config :deployer, Deployer.HotUpgrade, adapter: Deployer.HotUpgrade.Application
 
 # Default GCP credentials are empty
 config :goth, file_credentials: nil

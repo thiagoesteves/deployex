@@ -210,7 +210,7 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> stub(:connect, fn _node -> {:error, :not_connecting} end)
 
     # No info, update needed
@@ -265,7 +265,7 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     # No info, update needed
@@ -321,7 +321,7 @@ defmodule Deployer.Status.ApplicationTest do
     end)
     |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
-    Deployer.UpgradeMock
+    Deployer.HotUpgradeMock
     |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     ghosted_version = "1.1.1"

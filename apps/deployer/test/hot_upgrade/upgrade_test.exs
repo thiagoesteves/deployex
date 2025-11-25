@@ -1,13 +1,13 @@
-defmodule Deployer.UpgradeAppTest do
+defmodule Deployer.HotUpgrade.ApplicationTest do
   use ExUnit.Case, async: false
 
   import Mox
   import Mock
   import ExUnit.CaptureLog
 
-  alias Deployer.Upgrade.Application, as: UpgradeApp
-  alias Deployer.Upgrade.Check
-  alias Deployer.Upgrade.Execute
+  alias Deployer.HotUpgrade.Application, as: UpgradeApp
+  alias Deployer.HotUpgrade.Check
+  alias Deployer.HotUpgrade.Execute
   alias Foundation.Catalog
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
@@ -747,7 +747,7 @@ defmodule Deployer.UpgradeAppTest do
   end
 
   test "permfy/1 Deployex skip execution" do
-    assert :ok = UpgradeApp.permfy(%Execute{name: "deployex"})
+    assert :ok = UpgradeApp.permfy(%Execute{make_permanent_async: true})
   end
 
   test "return_original_sys_config/1 Elixir success", %{

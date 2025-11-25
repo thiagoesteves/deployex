@@ -1,13 +1,13 @@
 defmodule DeployexWeb.HotUpgradeLive do
   use DeployexWeb, :live_view
 
-  alias Deployer.Upgrade
+  alias Deployer.HotUpgrade
   alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Progress
   alias DeployexWeb.Components.SystemBar
   alias DeployexWeb.Helper
-  alias DeployexWeb.HotUpgrade
+  alias DeployexWeb.HotUpgrade.Data
 
   @impl true
   def render(assigns) do
@@ -511,7 +511,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     Host.Info.subscribe()
 
     # Subscribe to receive hot upgrade events
-    Upgrade.subscribe_events()
+    HotUpgrade.subscribe_events()
 
     {:ok, default_assigns(socket)}
   end
@@ -592,7 +592,10 @@ defmodule DeployexWeb.HotUpgradeLive do
   end
 
   def handle_event("hotupgrade-execute", _params, socket) do
-    apply_hot_upgrade(socket.assigns.downloaded_release)
+    # Start Hotupgrade execution
+    HotUpgrade.deployex_execute(socket.assigns.downloaded_release.download_path,
+      sync_execution: false
+    )
 
     {:noreply,
      socket
@@ -670,7 +673,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     download_path = uploads_path <> "/#{filename}"
     File.cp!(path, download_path)
 
-    hotupgrade = %HotUpgrade{
+    hotupgrade = %Data{
       filename: filename,
       size: size,
       download_path: download_path
@@ -678,7 +681,7 @@ defmodule DeployexWeb.HotUpgradeLive do
 
     # Execute checks
     with true <- String.ends_with?(filename, ".tar.gz"),
-         {:ok, check_data} <- Upgrade.deployex_check(download_path) do
+         {:ok, check_data} <- HotUpgrade.deployex_check(download_path) do
       {:ok, struct(hotupgrade, Map.from_struct(check_data))}
     else
       false ->
@@ -690,18 +693,6 @@ defmodule DeployexWeb.HotUpgradeLive do
       {:error, _reason} ->
         {:postpone, %{hotupgrade | error: "invalid release"}}
     end
-  end
-
-  defp apply_hot_upgrade(release) do
-    Task.start(fn ->
-      # TODO: replace with GenServer
-      with :ok <- Upgrade.deployex_execute(release.download_path),
-           :ok <- Upgrade.deployex_make_permanent(release.download_path) do
-        :ok
-      end
-    end)
-
-    {:ok, :upgraded}
   end
 
   defp format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"

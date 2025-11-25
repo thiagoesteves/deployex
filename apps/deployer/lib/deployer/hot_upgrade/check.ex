@@ -1,4 +1,4 @@
-defmodule Deployer.Upgrade.Check do
+defmodule Deployer.HotUpgrade.Check do
   @moduledoc """
   Structure to handle the upgrade check data
   """

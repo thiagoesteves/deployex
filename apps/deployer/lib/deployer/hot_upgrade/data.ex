@@ -1,4 +1,4 @@
-defmodule Deployer.Upgrade.Execute do
+defmodule Deployer.HotUpgrade.Execute do
   @moduledoc """
   Structure to handle the upgrade execute data
   """
@@ -11,7 +11,8 @@ defmodule Deployer.Upgrade.Execute do
           new_path: String.t() | nil,
           from_version: binary() | charlist() | nil,
           to_version: binary() | charlist() | nil,
-          skip_make_permanent: boolean()
+          make_permanent_async: boolean(),
+          sync_execution: boolean()
         }
 
   @derive Jason.Encoder
@@ -24,5 +25,6 @@ defmodule Deployer.Upgrade.Execute do
             new_path: nil,
             from_version: nil,
             to_version: nil,
-            skip_make_permanent: false
+            make_permanent_async: false,
+            sync_execution: true
 end

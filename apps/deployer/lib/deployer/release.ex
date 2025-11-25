@@ -4,7 +4,7 @@ defmodule Deployer.Release do
   """
   require Logger
 
-  alias Deployer.Upgrade
+  alias Deployer.HotUpgrade
   alias Foundation.Catalog
   alias Foundation.Common
 
@@ -77,7 +77,7 @@ defmodule Deployer.Release do
       if is_nil(current_sname) or is_nil(new_sname) do
         {:ok, :full_deployment}
       else
-        %Upgrade.Check{
+        %HotUpgrade.Check{
           sname: current_sname,
           name: name,
           language: language,
@@ -87,7 +87,7 @@ defmodule Deployer.Release do
           from_version: current_version,
           to_version: release_version
         }
-        |> Upgrade.check()
+        |> HotUpgrade.check()
       end
     else
       reason ->
@@ -117,7 +117,7 @@ defmodule Deployer.Release do
     File.mkdir_p(new_path)
 
     with {"", 0} <- System.cmd("tar", ["-x", "-f", download_path, "-C", new_path]),
-         :ok <- Upgrade.prepare_new_path(name, language, release_version, new_path) do
+         :ok <- HotUpgrade.prepare_new_path(name, language, release_version, new_path) do
       :ok
     else
       _ -> {:error, :untar}

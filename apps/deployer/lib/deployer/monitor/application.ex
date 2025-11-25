@@ -78,7 +78,7 @@ defmodule Deployer.Monitor.Application do
     {:reply, :ok, state}
   end
 
-  # This command is available during the hot upgrade. If it fails, the process will
+  # This command is available during the hot HotUpgrade. If it fails, the process will
   # restart and attempt a full deployment.
   def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
     :ok = execute_pre_commands(state, pre_commands, app_bin_service)

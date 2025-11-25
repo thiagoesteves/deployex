@@ -1,4 +1,4 @@
-defmodule Deployer.Upgrade.Application do
+defmodule Deployer.HotUpgrade.Application do
   @moduledoc """
   This module will provide functions to update the application based on the appup.
 
@@ -27,7 +27,7 @@ defmodule Deployer.Upgrade.Application do
 
   4. ATTENTION:
      The sys.config file contains all application configurations and is not loaded during a
-     hot upgrade. For Elixir applications, Config Provider and Runtime are codes that executes
+     hot HotUpgrade. For Elixir applications, Config Provider and Runtime are codes that executes
      when the application is starting and are required for fetching information.
      To address this, several steps are included in this module to load the new
      version of sys.config and utilize the RPC channel to execute runtime.exs and the config
@@ -48,40 +48,95 @@ defmodule Deployer.Upgrade.Application do
   * https://github.com/ausimian/castle/blob/main/lib/castle.ex (elixir oriented)
   """
 
-  @timeout 300_000
-
-  alias Foundation.Rpc
-
-  @behaviour Deployer.Upgrade.Adapter
-  @events_topic "deployex::hotupgrade::events"
-
-  alias Deployer.Upgrade.Check
-  alias Deployer.Upgrade.Execute
-
+  use GenServer
   require Logger
 
-  ### ==========================================================================
-  ### Public APIS
-  ### ==========================================================================
-  @impl true
-  def subscribe_events, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @events_topic)
+  @rpc_timeout 60_000
+  @execute_timeout 300_000
+  @check_timeout 300_000
+  @behaviour Deployer.HotUpgrade.Adapter
+  @events_topic "deployex::hotupgrade::events"
 
-  @impl true
-  @spec execute(Execute.t()) :: :ok | {:error, any()}
-  def execute(%Execute{from_version: from_version, to_version: to_version})
+  alias Deployer.HotUpgrade.Check
+  alias Deployer.HotUpgrade.Execute
+  alias Foundation.Rpc
+
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  @impl GenServer
+  def init(_args) do
+    Logger.info("Initializing HotUpgrade server")
+
+    {:ok, %{}}
+  end
+
+  @impl GenServer
+  def handle_call({:check, params}, _from, state) do
+    response = do_check(params)
+    {:reply, response, state}
+  end
+
+  def handle_call({:execute, params}, _from, state) do
+    response = do_execute(params)
+    {:reply, response, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:execute, params}, state) do
+    do_execute(params)
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info({:make_permanent, params}, state) do
+    case permfy(%{params | make_permanent_async: false}) do
+      :ok ->
+        notify_complete_ok(params.sname)
+
+      reason ->
+        notify_error(params.sname, reason)
+    end
+
+    {:noreply, state}
+  end
+
+  # NOTE: One improvement for these functions is to have a decremetal timeout, where
+  #      the timeout is being update and once it reaches the @execute_timeout it then
+  #      error timeout isntead of having multiples timeouts
+  @impl Deployer.HotUpgrade.Adapter
+  def execute(%Execute{sync_execution: true} = params) do
+    GenServer.call(__MODULE__, {:execute, params}, @execute_timeout)
+  end
+
+  def execute(%Execute{sync_execution: false} = params) do
+    GenServer.cast(__MODULE__, {:execute, params})
+  end
+
+  @impl Deployer.HotUpgrade.Adapter
+  def check(%Check{} = params) do
+    GenServer.call(__MODULE__, {:check, params}, @check_timeout)
+  end
+
+  ### ==========================================================================
+  ### Private and serialized functions
+  ### ==========================================================================
+
+  def do_execute(%Execute{from_version: from_version, to_version: to_version})
       when is_nil(from_version) or is_nil(to_version),
       do: {:error, :invalid_version}
 
-  def execute(%Execute{from_version: from_version, to_version: to_version} = data)
+  def do_execute(%Execute{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
-    execute(%{
+    do_execute(%{
       data
       | from_version: from_version |> to_charlist,
         to_version: to_version |> to_charlist
     })
   end
 
-  def execute(%Execute{from_version: from_version, to_version: to_version} = data) do
+  def do_execute(%Execute{from_version: from_version, to_version: to_version} = data) do
     notify_progress(data.sname, "Starting upgrade for #{data.sname}...")
 
     with {:ok, node} <- connect(data.node),
@@ -97,9 +152,9 @@ defmodule Deployer.Upgrade.Application do
          :ok <- install_release(data),
          :ok <- notify_progress(data.sname, "Returning original sys.config file"),
          :ok <- return_original_sys_config(data),
-         :ok <- notify_make_permanent(data.skip_make_permanent, data.sname, data.to_version),
+         :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
-         :ok <- notify_complete_ok(data.skip_make_permanent, data.sname) do
+         :ok <- notify_complete_ok(data.make_permanent_async, data.sname) do
       message =
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
 
@@ -113,100 +168,16 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec which_releases(node()) :: list()
-  def which_releases(node) do
-    releases = Rpc.call(node, :release_handler, :which_releases, [], @timeout)
-
-    releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
-  end
-
-  @spec update_sys_config_from_installed_version(Execute.t()) :: :ok | {:error, any()}
-  def update_sys_config_from_installed_version(%Execute{
-        node: node,
-        language: "elixir",
-        current_path: current_path,
-        to_version: to_version
-      }) do
-    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
-    sys_config_path = "#{rel_vsn_dir}/sys.config"
-    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
-    # Read the build time config from build.config
-    {:ok, [sys_config]} = :file.consult(sys_config_path)
-    # In this step, it will run the runtime.exs and Config Providers for the current version
-    sys_config =
-      sys_config
-      |> Keyword.get(:elixir)
-      |> Keyword.get(:config_provider_init)
-      |> Map.get(:providers)
-      |> Enum.reduce(sys_config, fn {mod, arg}, cfg ->
-        Rpc.call(node, mod, :load, [cfg, arg], @timeout)
-      end)
-
-    with :ok <- File.rename(sys_config_path, original_sys_config_file),
-         :ok <-
-           File.write(sys_config_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [sys_config])) do
-      :ok
-    else
-      {:error, reason} ->
-        Logger.error(
-          "Error while updating sys.config to: #{to_version}, reason: #{inspect(reason)}"
-        )
-
-        {:error, reason}
-    end
-  end
-
-  def update_sys_config_from_installed_version(_data), do: :ok
-
-  @spec return_original_sys_config(Execute.t()) :: :ok | {:error, any()}
-  def return_original_sys_config(%Execute{
-        language: "elixir",
-        current_path: current_path,
-        to_version: to_version
-      }) do
-    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
-    sys_config_path = "#{rel_vsn_dir}/sys.config"
-    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
-
-    File.rename(original_sys_config_file, sys_config_path)
-  end
-
-  def return_original_sys_config(_data), do: :ok
-
-  @impl true
-  def prepare_new_path(name, "erlang", to_version, new_path) do
-    priv_app_up_file =
-      "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
-
-    ebin_app_up_file =
-      "#{new_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
-
-    if File.exists?(priv_app_up_file) do
-      File.cp(priv_app_up_file, ebin_app_up_file)
-    end
-
-    releases = "#{new_path}/releases"
-
-    if File.exists?("#{releases}/#{name}.rel") do
-      File.rename("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
-    end
-
-    :ok
-  end
-
-  def prepare_new_path(_name, _language, _to_version, _new_path), do: :ok
-
-  @impl true
-  def check(%Check{from_version: from_version, to_version: to_version} = data)
+  def do_check(%Check{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
-    check(%{
+    do_check(%{
       data
       | from_version: from_version |> to_charlist,
         to_version: to_version |> to_charlist
     })
   end
 
-  def check(%Check{
+  def do_check(%Check{
         name: name,
         language: "elixir",
         current_path: current_path,
@@ -242,7 +213,7 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  def check(%Check{
+  def do_check(%Check{
         name: name,
         language: "erlang",
         current_path: current_path,
@@ -276,46 +247,61 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  def check(_data) do
+  def do_check(_data) do
     Logger.warning("HOT UPGRADE version NOT SUPPORTED, full deployment required")
 
     {:ok, :full_deployment}
   end
 
-  defp check_jellyfish_files(files, from_version, to_version) do
-    response =
-      Enum.reduce_while(files, [], fn file, acc ->
-        appup_info = file |> File.read!() |> Jason.decode!()
-        dir = Path.dirname(file)
+  ### ==========================================================================
+  ### Callbacks implementation
+  ### ==========================================================================
 
-        with true <- "#{from_version}" == appup_info["from"],
-             true <- "#{to_version}" == appup_info["to"],
-             [appup] <- Path.wildcard("#{dir}/*.appup"),
-             :ok <- check_app_up(appup, from_version, to_version) do
-          {:cont, acc ++ [appup_info]}
-        else
-          {:error, reason} ->
-            {:halt, {:error, reason}}
+  @impl Deployer.HotUpgrade.Adapter
+  def subscribe_events, do: Phoenix.PubSub.subscribe(Deployer.PubSub, @events_topic)
 
-          false ->
-            {:halt, {:error, :no_match_versions}}
+  @impl Deployer.HotUpgrade.Adapter
+  def prepare_new_path(name, "erlang", to_version, new_path) do
+    priv_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
 
-          _ ->
-            {:halt, []}
-        end
-      end)
+    ebin_app_up_file =
+      "#{new_path}/lib/#{name}-#{to_version}/ebin/#{name}.appup"
 
-    case response do
-      [] ->
-        {:error, :not_found}
+    if File.exists?(priv_app_up_file) do
+      File.cp(priv_app_up_file, ebin_app_up_file)
+    end
 
-      {:error, reason} ->
-        {:error, reason}
+    releases = "#{new_path}/releases"
 
-      jellyfish_info ->
-        {:ok, jellyfish_info}
+    if File.exists?("#{releases}/#{name}.rel") do
+      File.rename("#{releases}/#{name}.rel", "#{releases}/#{name}-#{to_version}.rel")
+    end
+
+    :ok
+  end
+
+  def prepare_new_path(_name, _language, _to_version, _new_path), do: :ok
+
+  @impl Deployer.HotUpgrade.Adapter
+  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  def connect(node) do
+    case Node.connect(node) do
+      true ->
+        {:ok, node}
+
+      reason ->
+        Logger.error(
+          "Error while trying to connect with node: #{inspect(node)} reason: #{inspect(reason)}"
+        )
+
+        {:error, :not_connecting}
     end
   end
+
+  ### ==========================================================================
+  ### Public APIs
+  ### ==========================================================================
 
   @spec check_app_up(binary(), charlist(), charlist()) ::
           :ok | {:error, :error_reading_file | :no_match_versions}
@@ -348,7 +334,7 @@ defmodule Deployer.Upgrade.Application do
   def unpack_release(%Execute{node: node, name: name, to_version: to_version}) do
     release_link = "#{to_version}/#{name}" |> to_charlist
 
-    case Rpc.call(node, :release_handler, :unpack_release, [release_link], @timeout) do
+    case Rpc.call(node, :release_handler, :unpack_release, [release_link], @rpc_timeout) do
       {:ok, version} ->
         Logger.info("Unpacked successfully: #{inspect(version)}")
         :ok
@@ -410,7 +396,7 @@ defmodule Deployer.Upgrade.Application do
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
       ],
-      @timeout
+      @rpc_timeout
     )
     |> case do
       :ok ->
@@ -424,7 +410,7 @@ defmodule Deployer.Upgrade.Application do
 
   @spec check_install_release(Execute.t()) :: :ok | {:error, any()}
   def check_install_release(%Execute{node: node, to_version: to_version}) do
-    case Rpc.call(node, :release_handler, :check_install_release, [to_version], @timeout) do
+    case Rpc.call(node, :release_handler, :check_install_release, [to_version], @rpc_timeout) do
       {:ok, _other, _desc} ->
         :ok
 
@@ -441,7 +427,7 @@ defmodule Deployer.Upgrade.Application do
            :release_handler,
            :install_release,
            [to_version, [{:update_paths, true}]],
-           @timeout
+           @rpc_timeout
          ) do
       {:ok, _, _} ->
         Logger.info("Installed Release: #{inspect(to_version)}")
@@ -454,21 +440,19 @@ defmodule Deployer.Upgrade.Application do
   end
 
   @spec permfy(Execute.t()) :: :ok | {:error, any()}
-  def permfy(%Execute{skip_make_permanent: true}) do
+  def permfy(%Execute{make_permanent_async: true} = params) do
     # NOTE: Self-upgrade limitation - permify must be executed in a separate sequence.
     #       When DeployEx upgrades itself, including permify in the main upgrade sequence
     #       causes the process to crash after successfully applying the changes. This occurs
-    #       when initiated via /bin/deployex rpc or iex. Tests with asynchronous tasks did
-    #       not resolve this issue. The permify step succeeds, but the calling process is
-    #       killed during the make_permanent operation.
+    #       because the module itself was updated after the installation. The solution for this
+    #       case is to run an async message, so when the module is called again, it will use
+    #       the uploaded file
     #
     #       This issue does not occur with managed applications because DeployEx calls each
     #       upgrade step individually from an external process. When upgrading itself, the
     #       calling process is part of the system being upgraded, causing it to be terminated
     #       when permify triggers supervisor restarts.
-    #
-    #       Solution: Split the upgrade into two sequences - complete the upgrade without
-    #       permify, then call permify separately after the upgrade succeeds.
+    send(self(), {:make_permanent, params})
     :ok
   end
 
@@ -479,7 +463,7 @@ defmodule Deployer.Upgrade.Application do
         current_path: current_path,
         to_version: to_version
       }) do
-    case Rpc.call(node, :release_handler, :make_permanent, [to_version], @timeout) do
+    case Rpc.call(node, :release_handler, :make_permanent, [to_version], @rpc_timeout) do
       :ok ->
         Logger.info("Made release permanent: #{to_version}")
 
@@ -501,25 +485,71 @@ defmodule Deployer.Upgrade.Application do
     end
   end
 
-  @spec root_dir(node()) :: any()
-  def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @timeout)
+  @spec which_releases(node()) :: list()
+  def which_releases(node) do
+    releases = Rpc.call(node, :release_handler, :which_releases, [], @rpc_timeout)
 
-  @impl true
-  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
-  def connect(node) do
-    case Node.connect(node) do
-      true ->
-        {:ok, node}
+    releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
+  end
 
-      reason ->
+  @spec update_sys_config_from_installed_version(Execute.t()) :: :ok | {:error, any()}
+  def update_sys_config_from_installed_version(%Execute{
+        node: node,
+        language: "elixir",
+        current_path: current_path,
+        to_version: to_version
+      }) do
+    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{rel_vsn_dir}/sys.config"
+    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
+    # Read the build time config from build.config
+    {:ok, [sys_config]} = :file.consult(sys_config_path)
+    # In this step, it will run the runtime.exs and Config Providers for the current version
+    sys_config =
+      sys_config
+      |> Keyword.get(:elixir)
+      |> Keyword.get(:config_provider_init)
+      |> Map.get(:providers)
+      |> Enum.reduce(sys_config, fn {mod, arg}, cfg ->
+        Rpc.call(node, mod, :load, [cfg, arg], @rpc_timeout)
+      end)
+
+    with :ok <- File.rename(sys_config_path, original_sys_config_file),
+         :ok <-
+           File.write(sys_config_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [sys_config])) do
+      :ok
+    else
+      {:error, reason} ->
         Logger.error(
-          "Error while trying to connect with node: #{inspect(node)} reason: #{inspect(reason)}"
+          "Error while updating sys.config to: #{to_version}, reason: #{inspect(reason)}"
         )
 
-        {:error, :not_connecting}
+        {:error, reason}
     end
   end
 
+  def update_sys_config_from_installed_version(_data), do: :ok
+
+  @spec return_original_sys_config(Execute.t()) :: :ok | {:error, any()}
+  def return_original_sys_config(%Execute{
+        language: "elixir",
+        current_path: current_path,
+        to_version: to_version
+      }) do
+    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{rel_vsn_dir}/sys.config"
+    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
+
+    File.rename(original_sys_config_file, sys_config_path)
+  end
+
+  def return_original_sys_config(_data), do: :ok
+
+  @spec root_dir(node :: node()) :: any()
+  def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @rpc_timeout)
+
+  @spec notify_make_permanent(skip :: boolean(), sname :: String.t(), version :: String.t()) ::
+          :ok
   def notify_make_permanent(skip \\ false, sname, version)
 
   def notify_make_permanent(true, _sname, _version), do: :ok
@@ -532,6 +562,7 @@ defmodule Deployer.Upgrade.Application do
     )
   end
 
+  @spec notify_progress(sname :: String.t(), msg :: String.t()) :: :ok
   def notify_progress(sname, msg) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
@@ -540,6 +571,7 @@ defmodule Deployer.Upgrade.Application do
     )
   end
 
+  @spec notify_complete_ok(skip :: boolean(), sname :: String.t()) :: :ok
   def notify_complete_ok(skip \\ false, sname)
 
   def notify_complete_ok(true, _sname), do: :ok
@@ -552,11 +584,51 @@ defmodule Deployer.Upgrade.Application do
     )
   end
 
+  @spec notify_error(sname :: String.t(), result :: any()) :: :ok
   def notify_error(sname, result) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
       {:hot_upgrade_complete, Node.self(), sname, :error, "Upgrade failed: #{inspect(result)}"}
     )
+  end
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
+
+  defp check_jellyfish_files(files, from_version, to_version) do
+    response =
+      Enum.reduce_while(files, [], fn file, acc ->
+        appup_info = file |> File.read!() |> Jason.decode!()
+        dir = Path.dirname(file)
+
+        with true <- "#{from_version}" == appup_info["from"],
+             true <- "#{to_version}" == appup_info["to"],
+             [appup] <- Path.wildcard("#{dir}/*.appup"),
+             :ok <- check_app_up(appup, from_version, to_version) do
+          {:cont, acc ++ [appup_info]}
+        else
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+
+          false ->
+            {:halt, {:error, :no_match_versions}}
+
+          _ ->
+            {:halt, []}
+        end
+      end)
+
+    case response do
+      [] ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+
+      jellyfish_info ->
+        {:ok, jellyfish_info}
+    end
   end
 end

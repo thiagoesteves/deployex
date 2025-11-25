@@ -1,11 +1,11 @@
-defmodule Deployer.Upgrade do
+defmodule Deployer.HotUpgrade do
   @moduledoc """
    Provides functions for upgrading the application using appup files.
   """
 
-  @behaviour Deployer.Upgrade.Adapter
+  @behaviour Deployer.HotUpgrade.Adapter
 
-  alias Deployer.Upgrade.Deployex
+  alias Deployer.HotUpgrade.Deployex
 
   ### ==========================================================================
   ### Hot upgrade functions for Managed applications
@@ -30,16 +30,16 @@ defmodule Deployer.Upgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(Deployer.Upgrade.Check.t()) ::
+  @spec check(Deployer.HotUpgrade.Check.t()) ::
           {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(%Deployer.Upgrade.Check{} = data), do: default().check(data)
+  def check(%Deployer.HotUpgrade.Check{} = data), do: default().check(data)
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(Deployer.Upgrade.Execute.t()) :: :ok | {:error, any()}
-  def execute(%Deployer.Upgrade.Execute{} = data), do: default().execute(data)
+  @spec execute(Deployer.HotUpgrade.Execute.t()) :: :ok | {:error, any()}
+  def execute(%Deployer.HotUpgrade.Execute{} = data), do: default().execute(data)
 
   @doc """
   This function subscribes to hotupgrade events
@@ -61,7 +61,7 @@ defmodule Deployer.Upgrade do
 
   ## Examples
 
-      iex> Deployer.Upgrade.deployex_check("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
+      iex> Deployer.HotUpgrade.deployex_check("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
       {:ok, %Check{}}
   """
   @spec deployex_check(download_path :: String.t()) :: {:ok, Check.t()} | {:error, any()}
@@ -78,31 +78,12 @@ defmodule Deployer.Upgrade do
 
   ## Examples
 
-      iex> Deployer.Upgrade.deployex_execute("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
+      iex> Deployer.HotUpgrade.deployex_execute("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
       :ok
   """
-  @spec deployex_execute(download_path :: String.t()) :: :ok | {:error, any()}
-  def deployex_execute(download_path), do: Deployex.execute(download_path)
-
-  @doc """
-  Makes a previously installed release permanent.
-
-  This function marks the specified release version as permanent using the Erlang/OTP
-  release handler. A permanent release will be the default version loaded on VM restart.
-
-  For DeployEx self-upgrades, this function must be called separately after `hot_upgrade/1`
-  succeeds. Calling it within the upgrade sequence causes process crashes.
-
-  ## Examples
-
-      iex> Deployer.Upgrade.deployex_make_permanent("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
-      :ok
-      
-      iex> Deployer.Upgrade.deployex_make_permanent("/path/to/invalid-release.tar.gz")
-      {:error, {:no_such_release, '0.8.1'}}
-  """
-  @spec deployex_make_permanent(download_path :: String.t()) :: :ok | {:error, any()}
-  def deployex_make_permanent(download_path), do: Deployex.make_permanent(download_path)
+  @spec deployex_execute(download_path :: String.t(), options :: Keyboard.t()) ::
+          :ok | {:error, any()}
+  def deployex_execute(download_path, options \\ []), do: Deployex.execute(download_path, options)
 
   ### ==========================================================================
   ### Private functions
