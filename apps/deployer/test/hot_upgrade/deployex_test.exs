@@ -49,7 +49,7 @@ defmodule Deployer.HotUpgrade.DeployexTest do
       check: fn _check -> {:ok, :hot_upgrade} end,
       execute: fn _check -> :ok end do
       assert capture_log(fn ->
-               assert :ok = Deployex.execute("/tmp/deployex-1.0.0.tar.gz")
+               assert :ok = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
              end) =~ "Hot upgrade in deployex installed with success"
     end
   end
@@ -63,35 +63,8 @@ defmodule Deployer.HotUpgrade.DeployexTest do
       execute: fn _check -> {:error, :no_match_versions} end do
       assert capture_log(fn ->
                assert {:error, :no_match_versions} =
-                        Deployex.execute("/tmp/deployex-1.0.0.tar.gz")
+                        Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
              end) =~ "Hot upgrade failed: :no_match_versions"
     end
-  end
-
-  test "make_permanent/1 success" do
-    node = Node.self()
-
-    Foundation.RpcMock
-    |> expect(:call, fn ^node, :release_handler, :make_permanent, [~c"90.90.90"], :infinity ->
-      :ok
-    end)
-
-    assert :ok = Deployex.make_permanent("/tmp/deployex-90.90.90.tar.gz")
-
-    assert "90.90.90" == Enum.at(Foundation.Catalog.versions("deployex", []), 0).version
-  end
-
-  test "make_permanent/1 error" do
-    node = Node.self()
-
-    Foundation.RpcMock
-    |> expect(:call, fn ^node, :release_handler, :make_permanent, [~c"1.0.0"], :infinity ->
-      {:error, {:no_such_release, ~c"0.8.1"}}
-    end)
-
-    assert capture_log(fn ->
-             assert {:error, _} = Deployex.make_permanent("/tmp/deployex-1.0.0.tar.gz")
-           end) =~
-             "Error while trying to set a permanent version for 1.0.0, reason: {:error, {:no_such_release, ~c\"0.8.1\"}}"
   end
 end

@@ -118,7 +118,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
      ], :old}
   ]
 
-  @expected_timeout 300_000
+  @expected_timeout 60_000
 
   setup do
     FixtureCatalog.cleanup()

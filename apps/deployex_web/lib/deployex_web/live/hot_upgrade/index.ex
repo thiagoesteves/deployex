@@ -528,7 +528,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     |> assign(:applying_upgrade, false)
     |> assign(:upgrade_progress, [])
     |> assign(:upgrade_state, :init)
-    |> assign(:total_upgrade_steps, 9)
+    |> assign(:total_upgrade_steps, 8)
     |> assign(:current_path, "/hotupgrade")
     |> assign(:ui_settings, UiSettings.get())
     |> assign(:node, Node.self())
