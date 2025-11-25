@@ -12,7 +12,8 @@ defmodule Deployer.HotUpgrade.Execute do
           from_version: binary() | charlist() | nil,
           to_version: binary() | charlist() | nil,
           make_permanent_async: boolean(),
-          sync_execution: boolean()
+          sync_execution: boolean(),
+          after_asyn_make_permanent: mfa() | nil
         }
 
   @derive Jason.Encoder
@@ -26,5 +27,6 @@ defmodule Deployer.HotUpgrade.Execute do
             from_version: nil,
             to_version: nil,
             make_permanent_async: false,
-            sync_execution: true
+            sync_execution: true,
+            after_asyn_make_permanent: nil
 end

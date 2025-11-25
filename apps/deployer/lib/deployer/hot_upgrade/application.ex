@@ -95,6 +95,10 @@ defmodule Deployer.HotUpgrade.Application do
       :ok ->
         notify_complete_ok(params.sname)
 
+        if params.after_asyn_make_permanent do
+          params.after_asyn_make_permanent.()
+        end
+
       reason ->
         notify_error(params.sname, reason)
     end
@@ -102,9 +106,10 @@ defmodule Deployer.HotUpgrade.Application do
     {:noreply, state}
   end
 
-  # NOTE: One improvement for these functions is to have a decremetal timeout, where
-  #      the timeout is being update and once it reaches the @execute_timeout it then
-  #      error timeout isntead of having multiples timeouts
+  # NOTE: One possible improvement for these functions is to use a
+  #       decremental timeout, where the timeout value is updated
+  #       progressively. Once it reaches @execute_timeout, it should
+  #       raise a timeout error instead of triggering multiple timeouts.
   @impl Deployer.HotUpgrade.Adapter
   def execute(%Execute{sync_execution: true} = params) do
     GenServer.call(__MODULE__, {:execute, params}, @execute_timeout)

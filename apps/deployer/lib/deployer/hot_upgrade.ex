@@ -5,7 +5,9 @@ defmodule Deployer.HotUpgrade do
 
   @behaviour Deployer.HotUpgrade.Adapter
 
+  alias Deployer.HotUpgrade.Check
   alias Deployer.HotUpgrade.Deployex
+  alias Deployer.HotUpgrade.Execute
 
   ### ==========================================================================
   ### Hot upgrade functions for Managed applications
@@ -30,16 +32,15 @@ defmodule Deployer.HotUpgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(Deployer.HotUpgrade.Check.t()) ::
-          {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
-  def check(%Deployer.HotUpgrade.Check{} = data), do: default().check(data)
+  @spec check(Check.t()) :: {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
+  def check(%Check{} = data), do: default().check(data)
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(Deployer.HotUpgrade.Execute.t()) :: :ok | {:error, any()}
-  def execute(%Deployer.HotUpgrade.Execute{} = data), do: default().execute(data)
+  @spec execute(Execute.t()) :: :ok | {:error, any()}
+  def execute(%Execute{} = data), do: default().execute(data)
 
   @doc """
   This function subscribes to hotupgrade events
@@ -73,15 +74,16 @@ defmodule Deployer.HotUpgrade do
   This function orchestrates a hot code upgrade by:
   1. Extracting the new release tarball to a temporary directory
   2. Checking if the release supports hot upgrade (via .appup files)
-  3. Executing the hot upgrade sequence (unpack, relup, check, install)
-  4. Skipping the `make_permanent` step (must be called separately for self-upgrades)
+  3. Executing the hot upgrade sequence (unpack, relup, check, install, make_permanent)
+  4. Using options, you can run this function syc or async, as well as make_permanent version
+     async
 
   ## Examples
 
       iex> Deployer.HotUpgrade.deployex_execute("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
       :ok
   """
-  @spec deployex_execute(download_path :: String.t(), options :: Keyboard.t()) ::
+  @spec deployex_execute(download_path :: String.t(), options :: Keyword.t()) ::
           :ok | {:error, any()}
   def deployex_execute(download_path, options \\ []), do: Deployex.execute(download_path, options)
 
