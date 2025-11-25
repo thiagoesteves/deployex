@@ -213,9 +213,9 @@ defmodule DeployexWeb.Components.NavMenu do
         </span>
       </div>
       <!-- Badge for notifications - Only show when expanded -->
-      <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
+      <%!-- <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
         <div class="w-2 h-2 bg-error rounded-full"></div>
-      </div>
+      </div> --%>
     </a>
     """
   end
