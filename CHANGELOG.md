@@ -20,6 +20,7 @@
 ### Enhancements
  * [`ISSUE-188`](https://github.com/thiagoesteves/deployex/issues/188) Add DeployEx Secrets via environment vars
  * [`PULL-189`](https://github.com/thiagoesteves/deployex/pull/189) Adding hot upgrade functionality for DeployEx itself via CLI
+ * [`PULL-193`](https://github.com/thiagoesteves/deployex/pull/193) Adding UI/UX for hotupgrading deployex itself
 
 ## 0.8.0 🚀 (2025-11-20)
 
