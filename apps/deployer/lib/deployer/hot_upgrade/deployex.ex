@@ -63,7 +63,7 @@ defmodule Deployer.HotUpgrade.Deployex do
 
     Logger.info("#{@deployex_name} hot upgrade requested: #{current_version} -> #{to_version}")
 
-    after_asyn_make_permanent = fn ->
+    after_async_make_permanent = fn ->
       Catalog.add_version(%Catalog.Version{
         version: to_version,
         sname: @deployex_name,
@@ -80,7 +80,7 @@ defmodule Deployer.HotUpgrade.Deployex do
                node: Node.self(),
                make_permanent_async: make_permanent_async,
                sync_execution: sync_execution,
-               after_asyn_make_permanent: after_asyn_make_permanent
+               after_async_make_permanent: after_async_make_permanent
              },
              Map.from_struct(check)
            ),

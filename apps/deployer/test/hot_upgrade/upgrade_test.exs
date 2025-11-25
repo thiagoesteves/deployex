@@ -961,7 +961,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ref = make_ref()
       test_pid = self()
 
-      after_asyn_make_permanent = fn ->
+      after_async_make_permanent = fn ->
         send(test_pid, {:handle_ref_event, ref})
       end
 
@@ -977,7 +977,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                  to_version: to_version,
                  make_permanent_async: true,
                  sync_execution: true,
-                 after_asyn_make_permanent: after_asyn_make_permanent
+                 after_async_make_permanent: after_async_make_permanent
                })
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Starting upgrade for deployex..."},
@@ -1309,7 +1309,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ref = make_ref()
       test_pid = self()
 
-      after_asyn_make_permanent = fn ->
+      after_async_make_permanent = fn ->
         send(test_pid, {:handle_ref_event, ref})
       end
 
@@ -1328,7 +1328,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                           to_version: to_version,
                           make_permanent_async: true,
                           sync_execution: false,
-                          after_asyn_make_permanent: after_asyn_make_permanent
+                          after_async_make_permanent: after_async_make_permanent
                         })
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname,

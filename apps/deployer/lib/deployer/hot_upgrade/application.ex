@@ -95,8 +95,8 @@ defmodule Deployer.HotUpgrade.Application do
       :ok ->
         notify_complete_ok(params.sname)
 
-        if params.after_asyn_make_permanent do
-          params.after_asyn_make_permanent.()
+        if params.after_async_make_permanent do
+          params.after_async_make_permanent.()
         end
 
       reason ->
