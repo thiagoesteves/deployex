@@ -156,4 +156,39 @@ defmodule DeployexWeb.Helper do
   end
 
   def format_ms_to_readable(_), do: "N/A"
+
+  @doc """
+  Format bytes to human readable string
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.format_bytes(1000) == "1000 B"
+    ...> assert Helper.format_bytes(1_048_575) == "1024.0 KB"
+    ...> assert Helper.format_bytes(1_073_741_823) == "1024.0 MB"
+    ...> assert Helper.format_bytes(1_073_741_824) == "1.0 GB"
+  """
+  def format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"
+  def format_bytes(bytes) when bytes < 1_048_576, do: "#{Float.round(bytes / 1024, 2)} KB"
+
+  def format_bytes(bytes) when bytes < 1_073_741_824,
+    do: "#{Float.round(bytes / 1_048_576, 2)} MB"
+
+  def format_bytes(bytes), do: "#{Float.round(bytes / 1_073_741_824, 2)} GB"
+
+  @doc """
+  Format error to human readable string
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.error_to_string(:too_large) == "File is too large"
+    ...> assert Helper.error_to_string(:not_accepted) == "File type not accepted"
+    ...> assert Helper.error_to_string(:too_many_files) == "Too many files"
+    ...> assert Helper.error_to_string({:error, :invalid}) == "Upload error: {:error, :invalid}"
+  """
+  def error_to_string(:too_large), do: "File is too large"
+  def error_to_string(:not_accepted), do: "File type not accepted"
+  def error_to_string(:too_many_files), do: "Too many files"
+  def error_to_string(error), do: "Upload error: #{inspect(error)}"
 end

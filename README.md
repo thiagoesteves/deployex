@@ -97,14 +97,15 @@ You can kickstart the setup with the following commands, the default number of r
 ```bash
 mix deps.get
 iex --sname deployex --cookie cookie -S mix phx.server
-Erlang/OTP 27 [erts-15.2.7] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
+Erlang/OTP 28 [erts-16.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
-[info] Initializing Host Memory Server
+[info] Initializing HotUpgrade server                                                                                                            
 [info] Initializing Engine Server for myphoenixapp
+[info] Initializing ConfigWatcher for YAML configuration
 [info] Initializing Watchdog Server
-[info] Running DeployexWeb.Endpoint with Bandit 1.6.11 at 127.0.0.1:5001 (http)
+[info] Running DeployexWeb.Endpoint with Bandit 1.8.0 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
-Interactive Elixir (1.17.0) - press Ctrl+C to exit (type h() ENTER for help)
+Interactive Elixir (1.19.3) - press Ctrl+C to exit (type h() ENTER for help)
 [watch] build finished, watching for changes...
 
 Rebuilding...
@@ -222,7 +223,7 @@ Your application will likely require database commands, such as migrations. Depl
 
 ### 🔐 Secrets Requirements
 
-DeployEx uses Secret Manager (AWS or GCP) to fetch its secrets via the config provider. The following environment variable configuration is expected for Secret Manager:
+DeployEx retrieves its secrets from a Secret Manager (AWS, GCP, or local) through the config provider. The configuration requires specifying the adapter and the secret path. For example:
 
 ```bash
 DEPLOYEX_SECRETS_ADAPTER=gcp

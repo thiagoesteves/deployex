@@ -14,6 +14,7 @@ defmodule Deployer.Application do
         {Phoenix.PubSub, name: Deployer.PubSub},
         Deployer.Monitor.Supervisor,
         Deployer.Engine.Supervisor,
+        Deployer.HotUpgrade.Application,
         {Finch, name: Deployer.Finch},
         {Finch, name: ExAws.Request.Finch},
         Deployer.Github

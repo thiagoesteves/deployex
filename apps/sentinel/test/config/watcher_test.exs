@@ -1463,7 +1463,7 @@ defmodule Sentinel.Config.WatcherTest do
     end
   end
 
-  test "Test non-mocked lod_config" do
+  test "Test non-mocked load_config" do
     assert %Upgradable{} == Upgradable.from_yaml(%Yaml{})
   end
 

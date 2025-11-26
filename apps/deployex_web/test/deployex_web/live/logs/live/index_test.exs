@@ -302,7 +302,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
 
     assert_receive {:handle_ref_event, ^ref, liveview_pid}, 1_000
 
-    # NOTE: Since the update doesn't use the information recevied by the event
+    # NOTE: Since the update doesn't use the information received by the event
     #       this test cannot validate new nodes, only guarantee the handle_info
     #       is properly available
     send(liveview_pid, {:new_deploy, Node.self(), :any})

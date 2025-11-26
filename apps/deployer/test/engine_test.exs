@@ -192,9 +192,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -253,7 +253,7 @@ defmodule Deployer.EngineTest do
         end
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       with_mock System, [:passthrough],
@@ -334,15 +334,15 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
         {:ok, :hot_upgrade}
       end)
-      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
+      |> expect(:execute, 1, fn %Deployer.HotUpgrade.Execute{
                                   from_version: ^from_version,
                                   to_version: ^to_version
                                 } ->
@@ -404,15 +404,15 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
         {:ok, :hot_upgrade}
       end)
-      |> expect(:execute, 1, fn %Deployer.Upgrade.Execute{
+      |> expect(:execute, 1, fn %Deployer.HotUpgrade.Execute{
                                   from_version: ^from_version,
                                   to_version: ^to_version
                                 } ->
@@ -496,9 +496,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -586,9 +586,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -678,7 +678,7 @@ defmodule Deployer.EngineTest do
         end
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       assert capture_log(fn ->
@@ -764,9 +764,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^automatic_version,
                                 to_version: ^manual_version
                               } ->
@@ -851,9 +851,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^manual_version,
                                 to_version: ^automatic_version
                               } ->
@@ -915,7 +915,7 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       with_mock System, [:passthrough],
@@ -996,9 +996,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -1061,7 +1061,7 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
       logs =
@@ -1152,9 +1152,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -1324,9 +1324,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -1454,9 +1454,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -1585,9 +1585,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->
@@ -1698,9 +1698,9 @@ defmodule Deployer.EngineTest do
         :ok
       end)
 
-      Deployer.UpgradeMock
+      Deployer.HotUpgradeMock
       |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
-      |> expect(:check, 1, fn %Deployer.Upgrade.Check{
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
                               } ->

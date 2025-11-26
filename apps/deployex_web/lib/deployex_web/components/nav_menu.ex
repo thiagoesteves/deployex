@@ -58,8 +58,16 @@ defmodule DeployexWeb.Components.NavMenu do
       description: "Access terminal"
     },
     %{
+      id: "hotupgrade",
+      path: "/hotupgrade",
+      label: "Hot Upgrade",
+      icon: "hero-arrow-up-circle",
+      color: "warning",
+      description: "Apply hot upgrades"
+    },
+    %{
       id: "docs",
-      path: "/applications/deployex/docs",
+      path: "/documentation",
       label: "Documentation",
       icon: "hero-book-open",
       color: "success",
@@ -205,9 +213,9 @@ defmodule DeployexWeb.Components.NavMenu do
         </span>
       </div>
       <!-- Badge for notifications - Only show when expanded -->
-      <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
+      <%!-- <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
         <div class="w-2 h-2 bg-error rounded-full"></div>
-      </div>
+      </div> --%>
     </a>
     """
   end

@@ -5,7 +5,7 @@ defmodule DeployexWeb.DocsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :current_path, "/applications/deployex/docs")}
+    {:ok, assign(socket, :current_path, "/documentation")}
   end
 
   @impl true

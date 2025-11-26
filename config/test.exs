@@ -97,7 +97,7 @@ config :deployer, Deployer.Release,
 
 config :deployer, Deployer.Status, adapter: Deployer.StatusMock
 
-config :deployer, Deployer.Upgrade, adapter: Deployer.UpgradeMock
+config :deployer, Deployer.HotUpgrade, adapter: Deployer.HotUpgradeMock
 
 # Config Mocks for Host
 config :host, Host.Commander, adapter: Host.CommanderMock

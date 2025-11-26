@@ -295,7 +295,7 @@ defmodule Deployer.Status.Application do
 
     check_otp_monitored_app = fn
       node, :running ->
-        case Deployer.Upgrade.connect(node) do
+        case Deployer.HotUpgrade.connect(node) do
           {:ok, _} -> :connected
           _ -> :not_connected
         end

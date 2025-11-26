@@ -200,7 +200,7 @@ hot_upgrade_deployex() {
     echo "# Executing hot upgrade via RPC            #"
     echo "# Release file: ${RELEASE_PATH}"
     
-    RESPONSE=$(${DEPLOYEX_OPT_DIR}/bin/deployex rpc "Deployer.Deployex.hot_upgrade(\"${RELEASE_PATH}\")")
+    RESPONSE=$(${DEPLOYEX_OPT_DIR}/bin/deployex rpc "Deployer.HotUpgrade.deployex_execute(\"${RELEASE_PATH}\")")
     EXIT_CODE=$?
     
     echo "$RESPONSE"
@@ -213,28 +213,11 @@ hot_upgrade_deployex() {
     # Check if upgrade was successful by looking for success message
     if echo "$RESPONSE" | grep -q "Hot upgrade in deployex installed with success"; then
         echo "# Hot upgrade completed successfully       #"
-        echo ""
-        echo "# Making upgrade permanent                 #"
-        
-        # Make the upgrade permanent
-        PERM_RESP=$(${DEPLOYEX_OPT_DIR}/bin/deployex rpc "Deployer.Deployex.make_permanent(\"${RELEASE_PATH}\")")
-        PERM_EXIT_CODE=$?
-        
-        echo "$PERM_RESP"
-        
-        if [ $PERM_EXIT_CODE -ne 0 ]; then
-            echo "Warning: make_permanent RPC call failed with exit code ${PERM_EXIT_CODE}"
-            echo "The hot upgrade was applied but may not persist across restarts."
-        else
-            echo "# Upgrade made permanent                   #"
-        fi
     else
         echo "Error: Hot upgrade did not complete successfully"
         echo "Check the output above for details"
         exit 1
     fi
-    
-    echo "#   Deployex hot upgraded successfully     #"
 }
 
 # Initialize variables
