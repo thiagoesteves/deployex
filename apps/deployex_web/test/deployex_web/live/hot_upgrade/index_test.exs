@@ -124,6 +124,23 @@ defmodule DeployexWeb.HotUpgrade.IndexTest do
       assert html =~ "not a .tar.gz file"
       refute html =~ "Apply Hot Upgrade"
     end
+
+    test "displays error when the release is invalid", %{conn: conn} do
+      Deployer.HotUpgradeMock
+      |> expect(:subscribe_events, fn -> :ok end)
+
+      with_mock Deployer.HotUpgrade, [:passthrough],
+        deployex_check: fn _path -> {:error, :invalid} end do
+        {:ok, live, _html} = live(conn, ~p"/hotupgrade")
+
+        download_file(live, "deployex-0.8.0.tar.gz")
+
+        html = render(live)
+
+        assert html =~ "invalid release"
+        refute html =~ "Apply Hot Upgrade"
+      end
+    end
   end
 
   describe "hot upgrade execution" do
@@ -521,6 +538,11 @@ defmodule DeployexWeb.HotUpgrade.IndexTest do
     end
   end
 
+  test "Try to access /hotupgrade/apply without valid release", %{conn: conn} do
+    {:error, {:live_redirect, %{to: "/hotupgrade", flash: %{}}}} =
+      live(conn, ~p"/hotupgrade/apply")
+  end
+
   # Helper functions
 
   defp create_check_data do
@@ -536,15 +558,11 @@ defmodule DeployexWeb.HotUpgrade.IndexTest do
     }
   end
 
-  defp download_file(live, filename) do
-    content =
-      :deployex_web
-      |> :code.priv_dir()
-      |> Path.join("static/images/elixir.png")
-      |> File.read!()
+  defp download_file(liveview, filename) do
+    content = <<137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73>>
 
     avatar =
-      file_input(live, "#upload-form", :hotupgrade, [
+      file_input(liveview, "#upload-form", :hotupgrade, [
         %{
           last_modified: 1_594_171_879_000,
           name: filename,

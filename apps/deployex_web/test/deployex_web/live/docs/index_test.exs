@@ -1,4 +1,4 @@
-defmodule DeployexWeb.Terminal.DocsTest do
+defmodule DeployexWeb.Docs.IndexTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -7,9 +7,14 @@ defmodule DeployexWeb.Terminal.DocsTest do
     :log_in_default_user
   ]
 
-  test "GET /docs", %{conn: conn} do
-    {:ok, _index_live, html} = live(conn, ~p"/applications/deployex/docs")
+  test "GET /documentation", %{conn: conn} do
+    {:ok, index_live, html} = live(conn, ~p"/documentation")
 
     assert html =~ "Deployex Docs"
+
+    # Trigger handle_params by navigating
+    assert index_live
+           |> element("iframe")
+           |> has_element?()
   end
 end

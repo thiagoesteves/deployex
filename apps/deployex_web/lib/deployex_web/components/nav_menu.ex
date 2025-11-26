@@ -67,7 +67,7 @@ defmodule DeployexWeb.Components.NavMenu do
     },
     %{
       id: "docs",
-      path: "/applications/deployex/docs",
+      path: "/documentation",
       label: "Documentation",
       icon: "hero-book-open",
       color: "success",

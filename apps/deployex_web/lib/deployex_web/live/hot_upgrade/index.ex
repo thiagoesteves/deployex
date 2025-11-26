@@ -107,7 +107,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                         <div>
                           <p class="font-medium text-base-content">{entry.client_name}</p>
                           <p class="text-sm text-base-content/60">
-                            {format_bytes(entry.client_size)}
+                            {Helper.format_bytes(entry.client_size)}
                           </p>
                         </div>
                       </div>
@@ -142,7 +142,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                           >
                           </path>
                         </svg>
-                        <span>{error_to_string(err)}</span>
+                        <span>{Helper.error_to_string(err)}</span>
                       </div>
                     <% end %>
                   </div>
@@ -159,7 +159,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                       >
                       </path>
                     </svg>
-                    <span>{error_to_string(err)}</span>
+                    <span>{Helper.error_to_string(err)}</span>
                   </div>
                 <% end %>
               </form>
@@ -238,7 +238,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                       <div>
                         <dt class="text-xs text-base-content/60">Size</dt>
                         <dd class="text-sm text-base-content">
-                          {format_bytes(@downloaded_release.size)}
+                          {Helper.format_bytes(@downloaded_release.size)}
                         </dd>
                       </div>
                     </dl>
@@ -694,17 +694,4 @@ defmodule DeployexWeb.HotUpgradeLive do
         {:postpone, %{hotupgrade | error: "invalid release"}}
     end
   end
-
-  defp format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"
-  defp format_bytes(bytes) when bytes < 1_048_576, do: "#{Float.round(bytes / 1024, 2)} KB"
-
-  defp format_bytes(bytes) when bytes < 1_073_741_824,
-    do: "#{Float.round(bytes / 1_048_576, 2)} MB"
-
-  defp format_bytes(bytes), do: "#{Float.round(bytes / 1_073_741_824, 2)} GB"
-
-  defp error_to_string(:too_large), do: "File is too large"
-  defp error_to_string(:not_accepted), do: "File type not accepted"
-  defp error_to_string(:too_many_files), do: "Too many files"
-  defp error_to_string(error), do: "Upload error: #{inspect(error)}"
 end
