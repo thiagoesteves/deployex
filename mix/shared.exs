@@ -21,6 +21,8 @@ defmodule Mix.Shared do
         Deployer.Monitor.Supervisor,
         Deployer.Engine,
         Deployer.Engine.Supervisor,
+        Deployer.Github,
+        Deployer.HotUpgrade,
         Deployer.Release.Version,
         Deployer.Monitor.Service,
         Deployer.Fixture.Files,
@@ -39,6 +41,7 @@ defmodule Mix.Shared do
         Foundation.Application,
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
+        Foundation.System.Zip,
         # Host
         Host.Info,
         Host.Commander.Local,

@@ -138,7 +138,7 @@ defmodule Foundation.System.FinchStreamTest do
       end
     end
 
-        test "handles redirect but fails on the redirected download" do
+    test "handles redirect but fails on the redirected download" do
       redirect_location = "https://example.com/permanent/file.zip"
 
       with_mock Finch,
@@ -146,8 +146,8 @@ defmodule Foundation.System.FinchStreamTest do
         stream_while: fn _request, _finch, acc, fun ->
           case acc.url do
             @test_url ->
-              {:cont, acc}  = fun.({:status, 301}, acc)
-              {:halt, acc}  = fun.({:headers, [{"location", redirect_location}]}, acc)
+              {:cont, acc} = fun.({:status, 301}, acc)
+              {:halt, acc} = fun.({:headers, [{"location", redirect_location}]}, acc)
               {:error, acc.error, acc}
 
             ^redirect_location ->
@@ -155,7 +155,9 @@ defmodule Foundation.System.FinchStreamTest do
               {:error, :connection_timeout, acc}
           end
         end do
-        assert {:error, error_msg} = FinchStream.download(@test_url, @test_file_path, @test_headers)
+        assert {:error, error_msg} =
+                 FinchStream.download(@test_url, @test_file_path, @test_headers)
+
         assert error_msg =~ "Error downloading"
         assert error_msg =~ "connection_timeout"
       end

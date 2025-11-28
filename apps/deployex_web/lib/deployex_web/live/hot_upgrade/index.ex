@@ -709,7 +709,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     |> assign(:current_path, "/hotupgrade")
     |> assign(:ui_settings, UiSettings.get())
     |> assign(:node, Node.self())
-    |> assign(:upload_method, :github)
+    |> assign(:upload_method, :file)
     |> assign(:github, github_new())
     |> assign(form: to_form(default_form_options()))
     |> allow_upload(:hotupgrade,

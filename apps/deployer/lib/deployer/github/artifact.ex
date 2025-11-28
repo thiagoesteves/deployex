@@ -8,6 +8,7 @@ defmodule Deployer.Github.Artifact do
   require Logger
 
   alias Foundation.System.FinchStream
+  alias Foundation.System.Zip
 
   @github_download_progress "deployex::github::download"
   @github_artifacts_table :deployex_github_table
@@ -89,15 +90,15 @@ defmodule Deployer.Github.Artifact do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  def do_download_artifact(data) do
+  defp do_download_artifact(data) do
     Logger.info("Start Downloading file from: #{data.url}")
 
     data = %{data | downloads_path: "#{:code.priv_dir(:deployer)}/static/downloads"}
 
-    with {:ok, data} <- parse_github_actions_url(data, data.url, data.token),
-         {:ok, data} <- get_artifact_name(data),
-         {:ok, data} <- download_file(data),
-         {:ok, _} <- :zip.unzip(~c"#{data.file_path}", [{:cwd, ~c"#{data.downloads_path}"}]) do
+    with {:ok, %__MODULE__{} = data} <- parse_github_actions_url(data, data.url, data.token),
+         {:ok, %__MODULE__{} = data} <- get_artifact_name(data),
+         {:ok, %__MODULE__{} = data} <- download_file(data),
+         {:ok, _} <- Zip.unzip(~c"#{data.file_path}", [{:cwd, ~c"#{data.downloads_path}"}]) do
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,
         @github_download_progress,
@@ -119,7 +120,7 @@ defmodule Deployer.Github.Artifact do
     :ets.delete(@github_artifacts_table, data.url)
   end
 
-  def parse_github_actions_url(%__MODULE__{} = data, github_url, token) do
+  defp parse_github_actions_url(%__MODULE__{} = data, github_url, token) do
     case String.split(github_url, ["https://github.com", "/"], trim: true) do
       [owner, repo, "actions", "runs", run_id, "artifacts", artifact_id] ->
         headers = build_github_headers(token)
@@ -203,7 +204,7 @@ defmodule Deployer.Github.Artifact do
     end
   end
 
-  def build_github_headers(token) when token != "" and token != nil do
+  defp build_github_headers(token) when token != "" and token != nil do
     [
       {"Accept", "application/vnd.github+json"},
       {"Authorization", "Bearer #{token}"},
@@ -211,7 +212,7 @@ defmodule Deployer.Github.Artifact do
     ]
   end
 
-  def build_github_headers(_token) do
+  defp build_github_headers(_token) do
     [
       {"Accept", "application/vnd.github+json"},
       {"X-GitHub-Api-Version", "2022-11-28"}
