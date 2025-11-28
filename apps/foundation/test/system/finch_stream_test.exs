@@ -30,11 +30,6 @@ defmodule Foundation.System.FinchStreamTest do
           {:ok, acc}
         end do
         assert :ok = FinchStream.download(@test_url, @test_file_path, @test_headers)
-
-        # assert File.exists?(@test_file_path)
-        # assert File.read!(@test_file_path) == file_content
-
-        # assert_called(Finch.build(:get, @test_url, @test_headers))
       end
     end
 

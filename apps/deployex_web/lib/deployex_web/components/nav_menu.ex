@@ -161,7 +161,7 @@ defmodule DeployexWeb.Components.NavMenu do
       <!-- Brand Text - Only show when expanded -->
       <div :if={@collapsed} class="min-w-0 flex-1">
         <h1 class="text-xl font-bold text-base-content tracking-tight">
-          DeployEx with Hotupgrade
+          DeployEx
         </h1>
         <p class="text-sm text-base-content/60 font-medium">
           Management Console
