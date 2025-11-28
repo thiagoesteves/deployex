@@ -118,7 +118,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
        [
          FixtureStatus.deployex(%{
            version: "9.9.9",
-           latest_release: %Github{tag_name: "10.0.0", new_release?: true}
+           latest_release: %Github.Release{tag_name: "10.0.0", new_release?: true}
          })
        ]}
     end)

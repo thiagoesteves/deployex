@@ -26,6 +26,7 @@ usage() {
     echo "                            (default: ${DEFAULT_CONFIG_FILE})"
     echo "  --hot-upgrade <release_path>    Perform hot upgrade with downloaded release tarball"
     echo "                                  [config_file] (default: ${DEFAULT_CONFIG_FILE})"
+    echo "                                  Requires: RELEASE_COOKIE environment variable"
     echo "  --dist <base_url>         Base URL for downloading releases"
     echo "                            (default: ${DEFAULT_DIST_URL})"
     echo "  --help                    Print help"
@@ -50,12 +51,58 @@ usage() {
     echo "    $0 --uninstall"
     echo
     echo "  Hot upgrade with local release file:"
-    echo "    $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz"
+    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz"
     echo
     echo "  Hot upgrade with custom config:"
     echo "    $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz my-config.yaml"
     echo
     exit 1
+}
+
+# Function to check required environment variables for app access commands
+check_app_access_requirements() {
+    local operation=$1
+    local missing_vars=()
+    
+    case $operation in
+        hot-upgrade)
+            if [[ -z "${RELEASE_COOKIE}" ]]; then
+                missing_vars+=("RELEASE_COOKIE")
+            fi
+            ;;
+        # Add more operations here as needed
+        # Example for future commands:
+        # restart-app)
+        #     if [[ -z "${RELEASE_COOKIE}" ]]; then
+        #         missing_vars+=("RELEASE_COOKIE")
+        #     fi
+        #     if [[ -z "${APP_AUTH_TOKEN}" ]]; then
+        #         missing_vars+=("APP_AUTH_TOKEN")
+        #     fi
+        #     ;;
+    esac
+    
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        echo "Error: Operation '--${operation}' requires app access and needs the following environment variable(s):"
+        for var in "${missing_vars[@]}"; do
+            echo "  - ${var}"
+        done
+        echo
+        echo "Please set the required variable(s) before running this command:"
+        echo "  export ${missing_vars[0]}=your_value"
+        if [[ ${#missing_vars[@]} -gt 1 ]]; then
+            for ((i=1; i<${#missing_vars[@]}; i++)); do
+                echo "  export ${missing_vars[$i]}=your_value"
+            done
+        fi
+        echo
+        echo "Then run the command again:"
+        echo "  $0 --${operation} [arguments]"
+        echo
+        echo "Or set it inline:"
+        echo "  ${missing_vars[0]}=your_value $0 --${operation} [arguments]"
+        exit 1
+    fi
 }
 
 DEPLOYEX_SERVICE_NAME=deployex.service
@@ -303,6 +350,9 @@ done
 if [[ -z $operation ]]; then
     usage
 fi
+
+# Check app access requirements BEFORE proceeding
+check_app_access_requirements "$operation"
 
 # Use default config file if not provided
 if [[ -z $config_file ]]; then

@@ -83,29 +83,30 @@ defmodule Deployex.MixProject do
         "README.md",
         "LICENSE.md": [filename: "license", title: "License"],
         "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
-        "guides/examples/aws-elixir/README.md": [filename: "README.md", title: "AWS-Elixir"],
-        "guides/examples/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
-        "guides/examples/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
-        "guides/examples/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
-        "guides/examples/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
-        "guides/examples/local-elixir/README.md": [
+        "guides/docs/aws-elixir/README.md": [filename: "README.md", title: "AWS-Elixir"],
+        "guides/docs/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
+        "guides/docs/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
+        "guides/docs/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
+        "guides/docs/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
+        "guides/docs/local-elixir/README.md": [
           filename: "README.md",
           title: "Local-Elixir-Ecto"
         ],
-        "guides/examples/local-elixir-umbrella/README.md": [
+        "guides/docs/local-elixir-umbrella/README.md": [
           filename: "README.md",
           title: "Local-Elixir-Umbrella"
         ],
-        "guides/examples/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
-        "guides/examples/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"],
-        "guides/examples/yaml-runtime-upgrade/README.md": [filename: "README.md", title: "YAML"]
+        "guides/docs/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
+        "guides/docs/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"],
+        "guides/docs/yaml/README.md": [filename: "README.md", title: "YAML"],
+        "guides/docs/hot-upgrades/README.md": [filename: "README.md", title: "Hot Upgrades"]
       ]
     ]
   end
 
   defp groups_for_extras do
     [
-      "Installation and Deploy": Path.wildcard("guides/examples/*/*.md")
+      "Installation and Deploy": Path.wildcard("guides/docs/*/*.md")
     ]
   end
 
