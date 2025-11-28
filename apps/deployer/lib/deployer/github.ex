@@ -3,17 +3,23 @@ defmodule Deployer.Github do
   This module contains deployex information about the latest release
   """
 
+  alias Deployer.Github.Artifact
+  alias Deployer.Github.Release
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
-  @spec latest_release() :: {:ok, __MODULE__.Release.t()}
-  def latest_release, do: __MODULE__.Release.latest_release()
+  @spec latest_release() :: {:ok, Release.t()}
+  def latest_release, do: Release.latest_release()
 
-  @spec download_artifact(url :: String.t(), token :: String.t()) :: :ok
-  def download_artifact(url, token), do: __MODULE__.Artifacts.download_artifact(url, token)
+  @spec download_artifact(url :: String.t(), token :: String.t()) :: :ok | {:error, any()}
+  def download_artifact(url, token), do: Artifact.download_artifact(url, token)
 
-  @spec subscribe_download_events() :: :ok
-  def subscribe_download_events, do: __MODULE__.Artifacts.subscribe_download_events()
+  @spec subscribe_download_events() :: :ok | {:error, term}
+  def subscribe_download_events, do: Artifact.subscribe_download_events()
+
+  @spec stop_download_artifact(url :: String.t()) :: :ok
+  def stop_download_artifact(url), do: Artifact.stop_download_artifact(url)
 
   ### ==========================================================================
   ### Private functions

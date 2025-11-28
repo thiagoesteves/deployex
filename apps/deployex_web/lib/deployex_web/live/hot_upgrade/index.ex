@@ -196,8 +196,7 @@ defmodule DeployexWeb.HotUpgradeLive do
               </form>
             </div>
           </div>
-          
-    <!-- GitHub URL Section -->
+          <!-- GitHub URL Section -->
           <div :if={@upload_method == :github} class="card bg-base-100 shadow-sm mb-6">
             <div class="card-body">
               <h2 class="card-title text-xl mb-4">
@@ -221,7 +220,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                   <input
                     type="text"
                     name="github_url"
-                    value={@github_url}
+                    value={@form.params["github_url"]}
                     placeholder="https://github.com/user/repo/actions/runs/123/artifacts/456"
                     class="input input-bordered w-full"
                     required
@@ -240,7 +239,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                   <input
                     type="password"
                     name="github_token"
-                    value={@github_token}
+                    value={@form.params["github_token"]}
                     placeholder="ghp_xxxxxxxxxxxx"
                     class="input input-bordered w-full font-mono text-sm"
                   />
@@ -251,12 +250,36 @@ defmodule DeployexWeb.HotUpgradeLive do
                   </label>
                 </div>
 
-                <div :if={@download_status == :downloading} class="alert alert-info">
-                  <span class="loading loading-spinner loading-sm"></span>
-                  <span>Downloading from GitHub...</span>
+                <div
+                  :if={@github.download_status == :downloading}
+                  class="alert alert-info flex-col items-stretch"
+                >
+                  <div class="flex justify-between items-center w-full">
+                    <span>Downloading from GitHub...</span>
+                  </div>
+                  <div class="flex justify-between items-center w-full">
+                    <progress
+                      class="progress progress-primary w-full"
+                      value={@github.download_progress}
+                      max="100"
+                    >
+                    </progress>
+
+                    <div class="flex items-center gap-3 ml-3 w-20">
+                      <span class="text-sm font-semibold">{@github.download_progress}%</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      phx-click="cancel-github-download"
+                      class="btn btn-sm btn-error"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
 
-                <div :if={@download_error} class="alert alert-error">
+                <div :if={@github.download_error} class="alert alert-error">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -265,14 +288,15 @@ defmodule DeployexWeb.HotUpgradeLive do
                       d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span>{@download_error}</span>
+                  <span>{@github.download_error}</span>
                 </div>
 
                 <div class="flex gap-3 justify-end">
                   <button
+                    :if={@form.params["github_url"] != ""}
                     type="submit"
                     class="btn btn-primary"
-                    disabled={@download_status == :downloading}
+                    disabled={@github.download_status == :downloading}
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -315,8 +339,7 @@ defmodule DeployexWeb.HotUpgradeLive do
               </div>
             </div>
           </div>
-          
-    <!-- Validated Release Section -->
+          <!-- Validated Release Section -->
           <%= if @downloaded_release do %>
             <div
               class="card bg-base-100 shadow-sm mb-6"
@@ -687,12 +710,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     |> assign(:ui_settings, UiSettings.get())
     |> assign(:node, Node.self())
     |> assign(:upload_method, :github)
-    |> assign(:download_status, nil)
-    |> assign(:download_error, nil)
-    |> assign(:github_url, "")
-    |> assign(:github_token, "")
-    |> assign(:github_downloading, false)
-    |> assign(:github_download_error, nil)
+    |> assign(:github, github_new())
     |> assign(form: to_form(default_form_options()))
     |> allow_upload(:hotupgrade,
       accept: [".gz"],
@@ -704,6 +722,14 @@ defmodule DeployexWeb.HotUpgradeLive do
   end
 
   defp default_form_options, do: %{"github_url" => "", "github_token" => ""}
+
+  defp github_new(status \\ nil) do
+    %{
+      download_status: status,
+      download_progress: 0,
+      download_error: nil
+    }
+  end
 
   @impl true
   def handle_params(params, _url, socket) do
@@ -742,28 +768,34 @@ defmodule DeployexWeb.HotUpgradeLive do
      |> assign(form: to_form(%{"github_token" => github_token, "github_url" => github_url}))}
   end
 
-  def handle_event("switch-upload-mode", %{"mode" => mode}, socket) do
-    upload_mode = if mode == "github", do: :github, else: :file
+  def handle_event("switch-upload-method", %{"method" => method}, socket) do
+    upload_method = if method == "github", do: :github, else: :file
 
     {:noreply,
      socket
-     |> assign(:upload_mode, upload_mode)
-     |> assign(:github_download_error, nil)}
+     |> assign(:upload_method, upload_method)
+     |> assign(:github, github_new())}
   end
 
-  def handle_event("download-from-github", %{"github_url" => url} = params, socket) do
-    github_token = Map.get(params, "github_token", "")
+  def handle_event("download-from-github", _params, %{assigns: %{form: form}} = socket) do
+    url = form.params["github_url"]
+    github_token = form.params["github_token"]
 
-    socket =
-      socket
-      |> assign(:github_downloading, true)
-      |> assign(:github_download_error, nil)
-      |> assign(:github_url, url)
-      |> assign(:github_token, github_token)
-      |> assign(:download_status, :downloading)
+    :ok = Deployer.Github.download_artifact(url, github_token)
 
-    Deployer.Github.download_artifact(url, github_token)
+    {:noreply, assign(socket, :github, github_new(:downloading))}
+  end
 
+  def handle_event(
+        "cancel-github-download",
+        _params,
+        %{assigns: %{form: form, github: %{download_status: :downloading}}} = socket
+      ) do
+    Deployer.Github.stop_download_artifact(form.params["github_url"])
+    {:noreply, assign(socket, :github, github_new())}
+  end
+
+  def handle_event("cancel-github-download", _params, socket) do
     {:noreply, socket}
   end
 
@@ -847,35 +879,30 @@ defmodule DeployexWeb.HotUpgradeLive do
   end
 
   def handle_info(
-        {:github_download_progress, source_node, _file_path, :downloading, progress},
-        %{assigns: %{node: node}} = socket
+        {:github_download_artifact, source_node,
+         %{file_path: file_path, artifact_name: artifact_name}, :ok},
+        %{assigns: %{node: node, github: %{download_status: :downloading}}} = socket
       )
       when source_node == node do
-    Logger.info("#{progress}%")
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:github_download_complete, {:ok, {path, filename, size}}}, socket) do
-    downloaded_release = handle_release(path, filename, size)
+    {:postpone, downloaded_release} = handle_release(file_path, artifact_name, 200)
 
     {:noreply,
      socket
-     |> assign(:downloaded_release, downloaded_release)
-     |> assign(:github_downloading, false)
-     |> assign(:github_download_error, nil)
-     |> assign(:upload_mode, :file)}
+     |> assign(:github, github_new())
+     |> assign(:downloaded_release, downloaded_release)}
   end
 
-  def handle_info({:github_download_complete, {:error, reason}}, socket) do
+  def handle_info(
+        {:github_download_artifact, source_node, _data, {:downloading, progress}},
+        %{assigns: %{node: node, github: %{download_status: :downloading} = github}} = socket
+      )
+      when source_node == node do
     {:noreply,
      socket
-     |> assign(:github_downloading, false)
-     |> assign(:github_download_error, format_github_error(reason))}
+     |> assign(:github, %{github | download_progress: progress})}
   end
 
-  def handle_info({_hot_upgrade_event, _source_node, _sname, _reason}, socket) do
-    # NOTE: Ignore events from other nodes and applying_upgrade == false
+  def handle_info(_event, socket) do
     {:noreply, socket}
   end
 
@@ -921,21 +948,4 @@ defmodule DeployexWeb.HotUpgradeLive do
         {:postpone, %{hotupgrade | error: "invalid release"}}
     end
   end
-
-  defp format_github_error(:invalid_url),
-    do:
-      "Invalid GitHub URL format. Expected: https://github.com/user/repo/actions/runs/xxx/artifacts/xxx"
-
-  defp format_github_error(:artifact_not_found),
-    do: "Artifact not found. It may have expired or been deleted."
-
-  defp format_github_error(:unauthorized),
-    do: "Unauthorized. Please provide a valid GitHub token for private repositories."
-
-  defp format_github_error(:no_redirect), do: "Failed to get download URL from GitHub."
-
-  defp format_github_error({:http_error, status_code}),
-    do: "HTTP error: #{status_code}"
-
-  defp format_github_error(reason), do: "Download failed: #{inspect(reason)}"
 end

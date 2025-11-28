@@ -11,7 +11,8 @@ defmodule Foundation.FinchStream do
           size: non_neg_integer() | nil,
           processed: non_neg_integer() | nil,
           file_pid: pid() | nil,
-          status_fun: mfa(),
+          notify_callback: mfa(),
+          keep_downloading_callback: mfa(),
           error: String.t() | nil
         }
 
@@ -22,42 +23,54 @@ defmodule Foundation.FinchStream do
             size: 0,
             processed: 0,
             file_pid: nil,
-            status_fun: nil,
+            notify_callback: nil,
+            keep_downloading_callback: nil,
             error: nil
 
   ### ==========================================================================
   ### Public APIs
   ### ==========================================================================
 
+  @spec download(url :: String.t(), headers :: list(), Keyword.t()) :: :ok | {:error, any()}
   def download(url, file_path, headers, options \\ []) do
     file_pid = Keyword.get(options, :file_pid) || File.open!(file_path, [:write, :binary])
-    status_fun = Keyword.get(options, :status_fun)
+    notify_callback = Keyword.get(options, :notify_callback)
+    keep_downloading_callback = Keyword.get(options, :keep_downloading_callback)
 
-    response =
-      do_download(%__MODULE__{
-        url: url,
-        headers: headers,
-        file_path: file_path,
-        file_pid: file_pid,
-        status_fun: status_fun
-      })
+    data = %__MODULE__{
+      url: url,
+      headers: headers,
+      file_path: file_path,
+      file_pid: file_pid,
+      notify_callback: notify_callback,
+      keep_downloading_callback: keep_downloading_callback
+    }
+
+    response = do_download(data)
 
     _ = File.close(file_pid)
 
     case response do
-      {:ok, %__MODULE__{error: reason}} when reason != nil ->
-        {:error, reason}
-
-      {:ok, %__MODULE__{}} ->
+      {:ok, %__MODULE__{error: nil}} ->
+        notify(data, :ok)
         :ok
 
-      error ->
-        error
+      {:ok, %__MODULE__{error: reason}} ->
+        response = {:error, reason}
+        notify(data, response)
+        response
+
+      {:error, reason, _acc} ->
+        response = {:error, reason}
+        notify(data, response)
+        response
     end
   end
 
-  def do_download(%__MODULE__{} = params) do
-    # the HTTP stream request
+  ### ==========================================================================
+  ### Private APIs
+  ### ==========================================================================
+  defp do_download(%__MODULE__{} = params) do
     Finch.build(:get, params.url, params.headers)
     |> Finch.stream_while(Deployer.Finch, params, fn
       {:status, status}, acc ->
@@ -68,15 +81,11 @@ defmodule Foundation.FinchStream do
       {:headers, headers}, acc ->
         handle_headers(headers, acc)
 
-      # Write the chunk into the file and print out the current progress.
+      # Write the received chunk into the file
       {:data, data}, acc ->
         handle_data(data, acc)
     end)
   end
-
-  ### ==========================================================================
-  ### Private APIs
-  ### ==========================================================================
 
   defp handle_headers(headers, %__MODULE__{status: status} = params)
        when status in [301, 302, 303, 307, 308] do
@@ -90,8 +99,8 @@ defmodule Foundation.FinchStream do
           {:ok, _} ->
             {:cont, params}
 
-          {:error, reason} ->
-            {:halt, %{params | error: "Error downloading, reason #{inspect(reason)}"}}
+          {:error, reason, params} ->
+            {:halt, %{params | error: "Error downloading, reason: #{inspect(reason)}"}}
         end
     end
   end
@@ -114,23 +123,49 @@ defmodule Foundation.FinchStream do
            processed: processed,
            size: size,
            file_path: file_path,
-           file_pid: file_pid,
-           status_fun: status_fun
+           file_pid: file_pid
          } = params
        ) do
-    case IO.binwrite(file_pid, data) do
-      :ok ->
-        processed = processed + byte_size(data)
+    if keep_downloading(params) do
+      :ok = IO.binwrite(file_pid, data)
+      new_params = %{params | processed: processed + byte_size(data), size: size}
+      notify(new_params, :downloading)
 
-        if status_fun != nil and size > 0 do
-          progress = Float.round(processed * 100 / size, 1)
-          status_fun.(file_path, :downloading, progress)
-        end
-
-        {:cont, %{params | processed: processed, size: size}}
-
-      {:error, reason} ->
-        {:halt, %{params | error: "Error writing file #{file_path}, reason #{inspect(reason)}"}}
+      {:cont, new_params}
+    else
+      {:halt, %{params | error: "Download for file #{file_path} was cancelled"}}
     end
+  end
+
+  def notify(%__MODULE__{notify_callback: nil}, _status), do: :ok
+
+  def notify(
+        %__MODULE__{
+          notify_callback: notify_callback,
+          file_path: file_path,
+          processed: processed,
+          size: size
+        },
+        :downloading
+      )
+      when size > 0 do
+    progress = Float.round(processed * 100 / size, 1)
+    notify_callback.(file_path, {:downloading, progress})
+  end
+
+  def notify(%__MODULE__{notify_callback: notify_callback, file_path: file_path}, :ok) do
+    notify_callback.(file_path, :ok)
+  end
+
+  def notify(%__MODULE__{notify_callback: notify_callback, file_path: file_path}, error) do
+    notify_callback.(file_path, error)
+  end
+
+  def notify(_data, _status), do: :ok
+
+  def keep_downloading(%__MODULE__{keep_downloading_callback: nil}), do: true
+
+  def keep_downloading(%__MODULE__{keep_downloading_callback: keep_downloading_callback}) do
+    keep_downloading_callback.()
   end
 end
