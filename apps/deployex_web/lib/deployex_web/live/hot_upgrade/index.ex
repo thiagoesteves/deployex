@@ -1,6 +1,8 @@
 defmodule DeployexWeb.HotUpgradeLive do
   use DeployexWeb, :live_view
 
+  require Logger
+
   alias Deployer.Github
   alias Deployer.HotUpgrade
   alias DeployexWeb.Cache.UiSettings
@@ -9,8 +11,6 @@ defmodule DeployexWeb.HotUpgradeLive do
   alias DeployexWeb.Components.SystemBar
   alias DeployexWeb.Helper
   alias DeployexWeb.HotUpgrade.Data
-
-  require Logger
 
   @impl true
   def render(assigns) do
@@ -709,7 +709,7 @@ defmodule DeployexWeb.HotUpgradeLive do
     |> assign(:current_path, "/hotupgrade")
     |> assign(:ui_settings, UiSettings.get())
     |> assign(:node, Node.self())
-    |> assign(:upload_method, :github)
+    |> assign(:upload_method, :file)
     |> assign(:github, github_new())
     |> assign(form: to_form(default_form_options()))
     |> allow_upload(:hotupgrade,
@@ -880,16 +880,26 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   def handle_info(
         {:github_download_artifact, source_node,
-         %{file_path: file_path, artifact_name: artifact_name}, :ok},
+         %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok},
         %{assigns: %{node: node, github: %{download_status: :downloading}}} = socket
       )
       when source_node == node do
-    {:postpone, downloaded_release} = handle_release(file_path, artifact_name, 200)
+    with {:ok, %File.Stat{size: size}} <- File.stat(artifact_path),
+         {:ok, downloaded_release} <- handle_release(artifact_path, artifact_name, size) do
+      {:noreply,
+       socket
+       |> assign(:github, github_new())
+       |> assign(:downloaded_release, downloaded_release)}
+    else
+      error ->
+        msg = "Error while handling file: #{artifact_name}"
+        Logger.error(msg <> ", reason: #{inspect(error)}")
 
-    {:noreply,
-     socket
-     |> assign(:github, github_new())
-     |> assign(:downloaded_release, downloaded_release)}
+        {:noreply,
+         socket
+         |> assign(:github, github_new())
+         |> put_flash(:error, msg)}
+    end
   end
 
   def handle_info(

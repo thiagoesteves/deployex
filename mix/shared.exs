@@ -1,5 +1,5 @@
 defmodule Mix.Shared do
-  def version, do: "0.8.1-rc2"
+  def version, do: "0.8.1-rc1"
 
   def elixir, do: "~> 1.16"
 
@@ -21,6 +21,8 @@ defmodule Mix.Shared do
         Deployer.Monitor.Supervisor,
         Deployer.Engine,
         Deployer.Engine.Supervisor,
+        Deployer.Github,
+        Deployer.HotUpgrade,
         Deployer.Release.Version,
         Deployer.Monitor.Service,
         Deployer.Fixture.Files,
@@ -39,6 +41,7 @@ defmodule Mix.Shared do
         Foundation.Application,
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
+        Foundation.System.Zip,
         # Host
         Host.Info,
         Host.Commander.Local,
