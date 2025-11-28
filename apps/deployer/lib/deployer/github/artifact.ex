@@ -7,7 +7,7 @@ defmodule Deployer.Github.Artifact do
 
   require Logger
 
-  alias Foundation.FinchStream
+  alias Foundation.System.FinchStream
 
   @github_download_progress "deployex::github::download"
   @github_artifacts_table :deployex_github_table

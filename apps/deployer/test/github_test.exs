@@ -8,7 +8,7 @@ defmodule Deployer.GithubTest do
 
   describe "start_link/1" do
     test "Check the GenServer with default name was started" do
-      assert Process.whereis(Github.Release)
+      assert Process.whereis(Release)
     end
 
     test "starts the GenServer with custom name" do

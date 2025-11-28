@@ -1,4 +1,4 @@
-defmodule Foundation.FinchStream do
+defmodule Foundation.System.FinchStream do
   @moduledoc false
 
   require Logger
@@ -115,7 +115,9 @@ defmodule Foundation.FinchStream do
     end
   end
 
-  defp handle_headers(_, _acc), do: {:halt, :bad_status}
+  defp handle_headers(_, params) do
+    {:halt, %{params | error: "Bad handler status"}}
+  end
 
   defp handle_data(
          data,
@@ -160,8 +162,6 @@ defmodule Foundation.FinchStream do
   def notify(%__MODULE__{notify_callback: notify_callback, file_path: file_path}, error) do
     notify_callback.(file_path, error)
   end
-
-  def notify(_data, _status), do: :ok
 
   def keep_downloading(%__MODULE__{keep_downloading_callback: nil}), do: true
 
