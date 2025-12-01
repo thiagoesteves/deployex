@@ -17,7 +17,8 @@ defmodule Deployer.Application do
         Deployer.HotUpgrade.Application,
         {Finch, name: Deployer.Finch},
         {Finch, name: ExAws.Request.Finch},
-        Deployer.Github
+        Deployer.Github.Release,
+        Deployer.Github.Artifact
       ] ++ application_servers() ++ gcp_app_credentials()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
