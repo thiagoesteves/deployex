@@ -891,6 +891,15 @@ defmodule DeployexWeb.HotUpgradeLive do
        |> assign(:github, github_new())
        |> assign(:downloaded_release, downloaded_release)}
     else
+      {:postpone, %Data{error: error}} ->
+        msg = "Error while handling file: #{artifact_name}, reason: #{error}"
+        Logger.error(msg)
+
+        {:noreply,
+         socket
+         |> assign(:github, github_new())
+         |> put_flash(:error, msg)}
+
       error ->
         msg = "Error while handling file: #{artifact_name}"
         Logger.error(msg <> ", reason: #{inspect(error)}")
