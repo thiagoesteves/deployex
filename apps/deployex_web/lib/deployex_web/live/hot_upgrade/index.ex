@@ -11,6 +11,7 @@ defmodule DeployexWeb.HotUpgradeLive do
   alias DeployexWeb.Components.SystemBar
   alias DeployexWeb.Helper
   alias DeployexWeb.HotUpgrade.Data
+  alias Foundation.Common
 
   @impl true
   def render(assigns) do
@@ -413,6 +414,12 @@ defmodule DeployexWeb.HotUpgradeLive do
                         <dt class="text-xs text-base-content/60">Size</dt>
                         <dd class="text-sm text-base-content">
                           {Helper.format_bytes(@downloaded_release.size)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt class="text-xs text-base-content/60">Sha256</dt>
+                        <dd class="text-sm text-base-content">
+                          {@downloaded_release.sha256}
                         </dd>
                       </div>
                     </dl>
@@ -961,8 +968,9 @@ defmodule DeployexWeb.HotUpgradeLive do
 
     # Execute checks
     with true <- String.ends_with?(filename, ".tar.gz"),
-         {:ok, check_data} <- HotUpgrade.deployex_check(download_path) do
-      {:ok, struct(hotupgrade, Map.from_struct(check_data))}
+         {:ok, check_data} <- HotUpgrade.deployex_check(download_path),
+         sha256 <- Common.sha256(download_path) do
+      {:ok, struct(%{hotupgrade | sha256: sha256}, Map.from_struct(check_data))}
     else
       false ->
         {:postpone, %{hotupgrade | error: " not a .tar.gz file"}}

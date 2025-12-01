@@ -218,6 +218,29 @@ defmodule Foundation.Common do
   end
 
   @doc """
+  Generates a sha256 for a file
+
+  ## Examples
+
+    iex> alias Foundation.Common
+    ...> file_path = Path.join("/tmp", "binary.bin")
+    ...> binary_data = <<0, 1, 2, 3, 255, 254, 253>>
+    ...> File.write(file_path, binary_data)
+    ...> expected = :crypto.hash(:sha256, binary_data) |> Base.encode16(case: :lower)
+    ...> assert Common.sha256(file_path) == expected
+    ...> File.rm(file_path)
+
+  """
+  @spec sha256(Path.t()) :: String.t()
+  def sha256(file_path) do
+  file_path
+  |> File.stream!(2048, [])
+  |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1))
+  |> :crypto.hash_final()
+  |> Base.encode16(case: :lower)
+  end
+
+  @doc """
   Generates a random, version 4 UUID.
 
   Copied/Modified from https://github.com/elixir-ecto/ecto/blob/0746c94cc0a63c350732aa10ba661bcc0d9bd648/lib/ecto/uuid.ex#L190
