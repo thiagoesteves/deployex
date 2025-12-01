@@ -233,11 +233,11 @@ defmodule Foundation.Common do
   """
   @spec sha256(Path.t()) :: String.t()
   def sha256(file_path) do
-  file_path
-  |> File.stream!(2048, [])
-  |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1))
-  |> :crypto.hash_final()
-  |> Base.encode16(case: :lower)
+    file_path
+    |> File.stream!(2048, [])
+    |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1))
+    |> :crypto.hash_final()
+    |> Base.encode16(case: :lower)
   end
 
   @doc """
