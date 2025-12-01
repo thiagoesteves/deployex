@@ -723,8 +723,9 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   defp default_form_options, do: %{"github_url" => "", "github_token" => ""}
 
-  defp github_new(status \\ nil) do
+  defp github_new(id \\ nil, status \\ nil) do
     %{
+      download_id: id,
       download_status: status,
       download_progress: 0,
       download_error: nil
@@ -781,17 +782,18 @@ defmodule DeployexWeb.HotUpgradeLive do
     url = form.params["github_url"]
     github_token = form.params["github_token"]
 
-    :ok = Deployer.Github.download_artifact(url, github_token)
+    {:ok, id} = Github.download_artifact(url, github_token)
 
-    {:noreply, assign(socket, :github, github_new(:downloading))}
+    {:noreply, assign(socket, :github, github_new(id, :downloading))}
   end
 
   def handle_event(
         "cancel-github-download",
         _params,
-        %{assigns: %{form: form, github: %{download_status: :downloading}}} = socket
-      ) do
-    Deployer.Github.stop_download_artifact(form.params["github_url"])
+        %{assigns: %{github: %{download_status: :downloading, download_id: id}}} = socket
+      )
+      when id != nil do
+    Github.stop_download_artifact(id)
     {:noreply, assign(socket, :github, github_new())}
   end
 
@@ -880,10 +882,15 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   def handle_info(
         {:github_download_artifact, source_node,
-         %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok},
-        %{assigns: %{node: node, github: %{download_status: :downloading}}} = socket
+         %{artifact_path: artifact_path, artifact_name: artifact_name, id: id}, :ok},
+        %{
+          assigns: %{
+            node: node,
+            github: %{download_status: :downloading, download_id: download_id}
+          }
+        } = socket
       )
-      when source_node == node do
+      when source_node == node and id == download_id do
     with {:ok, %File.Stat{size: size}} <- File.stat(artifact_path),
          {:ok, downloaded_release} <- handle_release(artifact_path, artifact_name, size) do
       {:noreply,
