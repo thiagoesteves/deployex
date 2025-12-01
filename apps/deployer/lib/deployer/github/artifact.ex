@@ -7,6 +7,7 @@ defmodule Deployer.Github.Artifact do
 
   require Logger
 
+  alias Foundation.Common
   alias Foundation.System.FinchStream
   alias Foundation.System.Zip
 
@@ -14,6 +15,7 @@ defmodule Deployer.Github.Artifact do
   @github_artifacts_table :deployex_github_table
 
   @type t :: %__MODULE__{
+          id: String.t() | nil,
           owner: String.t() | nil,
           repo: String.t() | nil,
           headers: list(),
@@ -29,7 +31,8 @@ defmodule Deployer.Github.Artifact do
           request_pid: pid()
         }
 
-  defstruct owner: nil,
+  defstruct id: nil,
+            owner: nil,
             repo: nil,
             headers: [],
             rund_id: nil,
@@ -68,12 +71,18 @@ defmodule Deployer.Github.Artifact do
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
-  @spec download_artifact(url :: String.t(), token :: String.t()) :: :ok | {:error, any()}
+  @spec download_artifact(url :: String.t(), token :: String.t()) ::
+          {:ok, binary()} | {:error, any()}
   def download_artifact(url, token) do
-    GenServer.cast(
-      __MODULE__,
-      {:download_artifact, %__MODULE__{url: url, token: token, request_pid: self()}}
-    )
+    id = Common.uuid4()
+
+    :ok =
+      GenServer.cast(
+        __MODULE__,
+        {:download_artifact, %__MODULE__{id: id, url: url, token: token, request_pid: self()}}
+      )
+
+    {:ok, id}
   end
 
   @spec subscribe_download_events() :: :ok | {:error, term}
@@ -81,9 +90,9 @@ defmodule Deployer.Github.Artifact do
     Phoenix.PubSub.subscribe(Deployer.PubSub, @github_download_progress)
   end
 
-  @spec stop_download_artifact(url :: String.t()) :: :ok
-  def stop_download_artifact(url) do
-    _ = :ets.insert(@github_artifacts_table, {url, :stop})
+  @spec stop_download_artifact(id :: binary()) :: :ok
+  def stop_download_artifact(id) do
+    _ = :ets.insert(@github_artifacts_table, {id, :stop})
     :ok
   end
 
@@ -91,9 +100,9 @@ defmodule Deployer.Github.Artifact do
   ### Private functions
   ### ==========================================================================
   defp do_download_artifact(data) do
-    Logger.info("Start Downloading file from: #{data.url}")
+    Logger.info("Start Downloading file from: #{data.url} with id: #{data.id}")
 
-    data = %{data | downloads_path: "#{:code.priv_dir(:deployer)}/static/downloads"}
+    data = %{data | downloads_path: "#{:code.priv_dir(:deployer)}/static/downloads/#{data.id}"}
 
     with {:ok, %__MODULE__{} = data} <- parse_github_actions_url(data, data.url, data.token),
          {:ok, %__MODULE__{} = data} <- get_artifact_name(data),
@@ -114,10 +123,12 @@ defmodule Deployer.Github.Artifact do
           {:github_download_artifact, Node.self(), data, error}
         )
 
-        Logger.error("Error while trying to download url #{data.url}, reason: #{inspect(error)}")
+        Logger.error(
+          "Error while trying to download url: #{data.url} id: #{data.id}, reason: #{inspect(error)}"
+        )
     end
 
-    :ets.delete(@github_artifacts_table, data.url)
+    :ets.delete(@github_artifacts_table, data.id)
   end
 
   defp parse_github_actions_url(%__MODULE__{} = data, github_url, token) do
@@ -161,19 +172,17 @@ defmodule Deployer.Github.Artifact do
            artifact_name: artifact_name,
            download_url: download_url,
            downloads_path: downloads_path,
-           url: url
+           id: id
          } = params
        ) do
     # Cleanup and preparation
     File.mkdir_p!(downloads_path)
     file_path = "#{downloads_path}/#{artifact_name}.zip"
-    File.rm(file_path)
     artifact_path = "#{downloads_path}/#{artifact_name}"
-    File.rm(artifact_path)
 
     new_params = %{params | file_path: file_path, artifact_path: artifact_path}
 
-    :ets.insert(@github_artifacts_table, {url, :run})
+    :ets.insert(@github_artifacts_table, {id, :run})
 
     notify_callback = fn
       _file_path, :ok ->
@@ -191,7 +200,7 @@ defmodule Deployer.Github.Artifact do
     end
 
     keep_downloading_callback = fn ->
-      [{_, status}] = :ets.lookup(@github_artifacts_table, url)
+      [{_, status}] = :ets.lookup(@github_artifacts_table, id)
       Process.alive?(params.request_pid) and status == :run
     end
 

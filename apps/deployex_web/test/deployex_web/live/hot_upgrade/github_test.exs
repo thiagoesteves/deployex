@@ -6,6 +6,9 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
   import Mox
   import Mock
 
+  alias Deployer.Github.Artifact
+  alias Foundation.Common
+
   setup [
     :set_mox_global,
     :verify_on_exit!,
@@ -88,7 +91,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       with_mock Deployer.Github, [:passthrough],
         download_artifact: fn url, token ->
           send(test_pid, {:download_started, url, token})
-          :ok
+          {:ok, Common.uuid4()}
         end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
@@ -128,7 +131,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       with_mock Deployer.Github, [:passthrough],
         download_artifact: fn _url, _token ->
           send(test_pid, :download_started)
-          :ok
+          {:ok, Common.uuid4()}
         end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
@@ -165,6 +168,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
 
     test "cancels github download", %{conn: conn} do
       test_pid = self()
+      download_id = Common.uuid4()
 
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -172,10 +176,10 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       with_mock Deployer.Github, [:passthrough],
         download_artifact: fn _url, _token ->
           send(test_pid, :download_started)
-          :ok
+          {:ok, download_id}
         end,
-        stop_download_artifact: fn url ->
-          send(test_pid, {:download_cancelled, url})
+        stop_download_artifact: fn id ->
+          send(test_pid, {:download_cancelled, id})
           :ok
         end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
@@ -200,9 +204,10 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
         |> element("button", "Cancel")
         |> render_click()
 
-        assert_receive {:download_cancelled, ^url}, 1_000
+        assert_receive {:download_cancelled, ^download_id}, 1_000
 
         %{socket: socket} = :sys.get_state(live.pid)
+        assert socket.assigns.github.download_id == nil
         assert socket.assigns.github.download_status == nil
         assert socket.assigns.github.download_progress == 0
       end
@@ -210,6 +215,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
 
     test "handles successful github download completion", %{conn: conn} do
       test_pid = self()
+      download_id = Common.uuid4()
 
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -225,7 +231,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
          [
            download_artifact: fn _url, _token ->
              send(test_pid, :download_started)
-             :ok
+             {:ok, download_id}
            end
          ]}
       ]) do
@@ -255,7 +261,8 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
         send(
           live.pid,
           {:github_download_artifact, Node.self(),
-           %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok}
+           %Artifact{artifact_path: artifact_path, artifact_name: artifact_name, id: download_id},
+           :ok}
         )
 
         html = render(live)
@@ -265,6 +272,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
         assert html =~ check_data.to_version
 
         %{socket: socket} = :sys.get_state(live.pid)
+        assert socket.assigns.github.download_id == nil
         assert socket.assigns.github.download_status == nil
         assert socket.assigns.downloaded_release != nil
         assert socket.assigns.downloaded_release.filename == artifact_name
@@ -276,6 +284,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
 
     test "handles github download completion with invalid file", %{conn: conn} do
       test_pid = self()
+      download_id = Common.uuid4()
 
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -284,7 +293,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
                with_mock Deployer.Github, [:passthrough],
                  download_artifact: fn _url, _token ->
                    send(test_pid, :download_started)
-                   :ok
+                   {:ok, download_id}
                  end do
                  {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
@@ -312,7 +321,11 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
                  send(
                    live.pid,
                    {:github_download_artifact, Node.self(),
-                    %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok}
+                    %Artifact{
+                      artifact_path: artifact_path,
+                      artifact_name: artifact_name,
+                      id: download_id
+                    }, :ok}
                  )
 
                  html = render(live)
@@ -330,6 +343,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
 
     test "handles github download completion with check error", %{conn: conn} do
       test_pid = self()
+      download_id = Common.uuid4()
 
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -344,7 +358,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
                   [
                     download_artifact: fn _url, _token ->
                       send(test_pid, :download_started)
-                      :ok
+                      {:ok, download_id}
                     end
                   ]}
                ]) do
@@ -373,7 +387,11 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
                  send(
                    live.pid,
                    {:github_download_artifact, Node.self(),
-                    %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok}
+                    %Artifact{
+                      artifact_path: artifact_path,
+                      artifact_name: artifact_name,
+                      id: download_id
+                    }, :ok}
                  )
 
                  html = render(live)
@@ -398,7 +416,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       with_mock Deployer.Github, [:passthrough],
         download_artifact: fn _url, _token ->
           send(test_pid, :download_started)
-          :ok
+          {:ok, Common.uuid4()}
         end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
@@ -453,7 +471,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       with_mock Deployer.Github, [:passthrough],
         download_artifact: fn _url, _token ->
           send(test_pid, :download_started)
-          :ok
+          {:ok, Common.uuid4()}
         end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 

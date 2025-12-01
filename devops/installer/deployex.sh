@@ -166,8 +166,9 @@ DEPLOYEX_SYSTEMD_FILE="
   WantedBy=multi-user.target
 "
     echo "#          Installing Deployex             #"
-    mkdir ${DEPLOYEX_OPT_DIR}
     useradd  -c "Deployer User" -d  /var/deployex -s  /usr/sbin/nologin --user-group --no-create-home deployex
+    mkdir ${DEPLOYEX_OPT_DIR}
+    chown deployex:deployex ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_VAR_LIB}
     chown deployex:deployex ${DEPLOYEX_VAR_LIB}
     mkdir ${DEPLOYEX_LOG_PATH}/
@@ -234,6 +235,8 @@ update_deployex() {
     mkdir ${DEPLOYEX_OPT_DIR}
     cd ${DEPLOYEX_OPT_DIR}
     tar xf /tmp/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+    echo "# Set ownership of extracted files         #"
+    chown -R deployex:deployex ${DEPLOYEX_OPT_DIR}
     echo "# Start systemd                            #"
     echo "# Start new service                        #"
     systemctl daemon-reload

@@ -9,6 +9,7 @@ defmodule DeployexWeb.HotUpgrade.Data do
           size: non_neg_integer(),
           from_version: binary() | charlist() | nil,
           to_version: binary() | charlist() | nil,
+          sha256: String.t(),
           error: String.t() | nil
         }
 
@@ -20,5 +21,6 @@ defmodule DeployexWeb.HotUpgrade.Data do
             size: 0,
             from_version: nil,
             to_version: nil,
+            sha256: nil,
             error: nil
 end

@@ -36,11 +36,11 @@ defmodule Deployer.Github.ArtifactTest do
 
   describe "stop_download_artifact/1" do
     test "inserts stop status into ETS table" do
-      url = "https://github.com/owner/repo/actions/runs/123/artifacts/456"
+      id = Foundation.Common.uuid4()
 
-      assert :ok = Artifact.stop_download_artifact(url)
+      assert :ok = Artifact.stop_download_artifact(id)
 
-      assert [{^url, :stop}] = :ets.lookup(@github_artifacts_table, url)
+      assert [{^id, :stop}] = :ets.lookup(@github_artifacts_table, id)
     end
   end
 
@@ -404,8 +404,8 @@ defmodule Deployer.Github.ArtifactTest do
          ]}
       ] do
         Artifact.subscribe_download_events()
-        Artifact.download_artifact(@test_url, @test_token)
-        Artifact.stop_download_artifact(@test_url)
+        {:ok, id} = Artifact.download_artifact(@test_url, @test_token)
+        Artifact.stop_download_artifact(id)
 
         # Should receive error notification
         assert_receive {:github_download_artifact, _node, _data,

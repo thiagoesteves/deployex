@@ -11,6 +11,7 @@ defmodule DeployexWeb.HotUpgradeLive do
   alias DeployexWeb.Components.SystemBar
   alias DeployexWeb.Helper
   alias DeployexWeb.HotUpgrade.Data
+  alias Foundation.Common
 
   @impl true
   def render(assigns) do
@@ -415,6 +416,12 @@ defmodule DeployexWeb.HotUpgradeLive do
                           {Helper.format_bytes(@downloaded_release.size)}
                         </dd>
                       </div>
+                      <div>
+                        <dt class="text-xs text-base-content/60">Sha256</dt>
+                        <dd class="text-sm text-base-content">
+                          {@downloaded_release.sha256}
+                        </dd>
+                      </div>
                     </dl>
                   </div>
                   <!-- Upgrade Details -->
@@ -723,8 +730,9 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   defp default_form_options, do: %{"github_url" => "", "github_token" => ""}
 
-  defp github_new(status \\ nil) do
+  defp github_new(id \\ nil, status \\ nil) do
     %{
+      download_id: id,
       download_status: status,
       download_progress: 0,
       download_error: nil
@@ -781,17 +789,18 @@ defmodule DeployexWeb.HotUpgradeLive do
     url = form.params["github_url"]
     github_token = form.params["github_token"]
 
-    :ok = Deployer.Github.download_artifact(url, github_token)
+    {:ok, id} = Github.download_artifact(url, github_token)
 
-    {:noreply, assign(socket, :github, github_new(:downloading))}
+    {:noreply, assign(socket, :github, github_new(id, :downloading))}
   end
 
   def handle_event(
         "cancel-github-download",
         _params,
-        %{assigns: %{form: form, github: %{download_status: :downloading}}} = socket
-      ) do
-    Deployer.Github.stop_download_artifact(form.params["github_url"])
+        %{assigns: %{github: %{download_status: :downloading, download_id: id}}} = socket
+      )
+      when id != nil do
+    Github.stop_download_artifact(id)
     {:noreply, assign(socket, :github, github_new())}
   end
 
@@ -880,10 +889,15 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   def handle_info(
         {:github_download_artifact, source_node,
-         %{artifact_path: artifact_path, artifact_name: artifact_name}, :ok},
-        %{assigns: %{node: node, github: %{download_status: :downloading}}} = socket
+         %{artifact_path: artifact_path, artifact_name: artifact_name, id: id}, :ok},
+        %{
+          assigns: %{
+            node: node,
+            github: %{download_status: :downloading, download_id: download_id}
+          }
+        } = socket
       )
-      when source_node == node do
+      when source_node == node and id == download_id do
     with {:ok, %File.Stat{size: size}} <- File.stat(artifact_path),
          {:ok, downloaded_release} <- handle_release(artifact_path, artifact_name, size) do
       {:noreply,
@@ -954,8 +968,9 @@ defmodule DeployexWeb.HotUpgradeLive do
 
     # Execute checks
     with true <- String.ends_with?(filename, ".tar.gz"),
-         {:ok, check_data} <- HotUpgrade.deployex_check(download_path) do
-      {:ok, struct(hotupgrade, Map.from_struct(check_data))}
+         {:ok, check_data} <- HotUpgrade.deployex_check(download_path),
+         sha256 <- Common.sha256(download_path) do
+      {:ok, struct(%{hotupgrade | sha256: sha256}, Map.from_struct(check_data))}
     else
       false ->
         {:postpone, %{hotupgrade | error: " not a .tar.gz file"}}
