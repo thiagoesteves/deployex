@@ -1,4 +1,4 @@
-defmodule DeployexWeb.HotUpgrade.IndexTest do
+defmodule DeployexWeb.HotUpgrade.UploadTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
