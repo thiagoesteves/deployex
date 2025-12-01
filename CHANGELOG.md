@@ -1,6 +1,5 @@
 # CHANGELOG (0.8.X)
 
-
 ## 0.8.1 ()
 
 ### Backwards incompatible changes for 0.8.0
