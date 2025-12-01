@@ -93,7 +93,7 @@ defmodule Deployer.Github.Artifact do
   defp do_download_artifact(data) do
     Logger.info("Start Downloading file from: #{data.url}")
 
-    data = %{data | downloads_path: "#{:code.priv_dir(:deployer)}/static/downloads"}
+    data = %{data | downloads_path: "/tmp/github/downloads"}
 
     with {:ok, %__MODULE__{} = data} <- parse_github_actions_url(data, data.url, data.token),
          {:ok, %__MODULE__{} = data} <- get_artifact_name(data),

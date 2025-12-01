@@ -130,7 +130,7 @@ defmodule DeployexWeb.Components.Confirm do
       class="btn btn-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 rounded-lg px-8 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl ring-2 ring-red-500/20 hover:ring-red-600/30"
       phx-click={@event}
       phx-value-id={@value}
-      phx-disable-with="Terminating..."
+      phx-disable-with="Executing..."
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
