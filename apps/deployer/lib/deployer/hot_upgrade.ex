@@ -62,7 +62,7 @@ defmodule Deployer.HotUpgrade do
 
   ## Examples
 
-      iex> Deployer.HotUpgrade.deployex_check("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
+      iex> Deployer.HotUpgrade.deployex_check("/tmp/hotupgrade/deployex-0.9.0.tar.gz")
       {:ok, %Check{}}
   """
   @spec deployex_check(download_path :: String.t()) :: {:ok, Check.t()} | {:error, any()}
@@ -80,7 +80,7 @@ defmodule Deployer.HotUpgrade do
 
   ## Examples
 
-      iex> Deployer.HotUpgrade.deployex_execute("/tmp/hotupgrade/deployex-0.8.1.tar.gz")
+      iex> Deployer.HotUpgrade.deployex_execute("/tmp/hotupgrade/deployex-0.9.0.tar.gz")
       :ok
   """
   @spec deployex_execute(download_path :: String.t(), options :: Keyword.t()) ::
