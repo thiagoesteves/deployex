@@ -31,12 +31,12 @@ Then choose one of the following methods:
 
 Use the installer script with a local release file:
 ```bash
-./deployex.sh --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz /tmp/deployex.yaml
+./deployex.sh --hot-upgrade /tmp/deployex-0.9.0-rc2.tar.gz /tmp/deployex.yaml
 
 # Executing hot upgrade via RPC            #
-# Release file: /tmp/hotupgrade/download/deployex-0.8.1-rc2.tar.gz
+# Release file: /tmp/hotupgrade/download/deployex-0.9.0-rc2.tar.gz
 
-11:21:30.373 [info] deployex hot upgrade requested: 0.8.1-rc1 -> 0.8.1-rc2
+11:21:30.373 [info] deployex hot upgrade requested: 0.9.0-rc1 -> 0.9.0-rc2
 
 11:21:42.745 [warning] Hot upgrade in deployex installed with success
 # Hot upgrade completed successfully       #

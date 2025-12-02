@@ -51,10 +51,10 @@ usage() {
     echo "    $0 --uninstall"
     echo
     echo "  Hot upgrade with local release file:"
-    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz"
+    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade /tmp/deployex-0.9.0-rc2.tar.gz"
     echo
     echo "  Hot upgrade with custom config:"
-    echo "    $0 --hot-upgrade /tmp/deployex-0.8.1-rc2.tar.gz my-config.yaml"
+    echo "    $0 --hot-upgrade /tmp/deployex-0.9.0-rc2.tar.gz my-config.yaml"
     echo
     exit 1
 }
@@ -167,6 +167,7 @@ DEPLOYEX_SYSTEMD_FILE="
 "
     echo "#          Installing Deployex             #"
     useradd  -c "Deployer User" -d  /var/deployex -s  /usr/sbin/nologin --user-group --no-create-home deployex
+    rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
     chown deployex:deployex ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_VAR_LIB}

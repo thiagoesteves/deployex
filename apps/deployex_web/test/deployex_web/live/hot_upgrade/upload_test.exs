@@ -117,7 +117,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
 
       {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
-      download_file(live, "deployex-0.9.0.gz")
+      download_file(live, "deployex-0.1.0.gz")
 
       html = render(live)
 
@@ -133,7 +133,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
         deployex_check: fn _path -> {:error, :invalid} end do
         {:ok, live, _html} = live(conn, ~p"/hotupgrade")
 
-        download_file(live, "deployex-0.8.0.tar.gz")
+        download_file(live, "deployex-0.2.0.tar.gz")
 
         html = render(live)
 
