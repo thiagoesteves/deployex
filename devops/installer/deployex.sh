@@ -167,6 +167,7 @@ DEPLOYEX_SYSTEMD_FILE="
 "
     echo "#          Installing Deployex             #"
     useradd  -c "Deployer User" -d  /var/deployex -s  /usr/sbin/nologin --user-group --no-create-home deployex
+    rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
     chown deployex:deployex ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_VAR_LIB}
