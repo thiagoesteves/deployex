@@ -31,7 +31,7 @@ Then choose one of the following methods:
 
 Use the installer script with a local release file:
 ```bash
-./deployex.sh --hot-upgrade /tmp/deployex-0.9.0-rc2.tar.gz /tmp/deployex.yaml
+./deployex.sh --hot-upgrade /tmp/deployex-0.9.0-rc2.tar.gz
 
 # Executing hot upgrade via RPC            #
 # Release file: /tmp/hotupgrade/download/deployex-0.9.0-rc2.tar.gz
@@ -41,14 +41,26 @@ Use the installer script with a local release file:
 11:21:42.745 [warning] Hot upgrade in deployex installed with success
 # Hot upgrade completed successfully       #
 ```
-### Method 2: UI/UX Release Upload
 
-Use the DeployEx web interface:
+### Method 2: UI Release Upload
+
+Use the DeployEx web interface to upload a release file:
 
 1. Open the Hot-Upgrade page in DeployEx
-2. Upload the release file (DeployEx automatically validates the release)
-3. Click Apply
+2. Upload the release file (DeployEx automatically validates it)
+3. Click **Apply**
 4. Monitor the progress modal until the hot-upgrade completes successfully
+
+### Method 3: GitHub Actions Release Download
+
+Use the DeployEx web interface to download a release from GitHub:
+
+1. Open the Hot-Upgrade page in DeployEx
+2. Click **GitHub URL**
+3. Enter the artifact URL
+4. Enter your GitHub personal access token and click **Download** (DeployEx automatically validates the release)
+5. Click **Apply**
+6. Monitor the progress modal until the hot-upgrade completes successfully
 
 ## Hot-Upgrading Monitored Applications
 
