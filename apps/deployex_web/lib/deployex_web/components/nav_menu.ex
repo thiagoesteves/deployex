@@ -161,7 +161,7 @@ defmodule DeployexWeb.Components.NavMenu do
       <!-- Brand Text - Only show when expanded -->
       <div :if={@collapsed} class="min-w-0 flex-1">
         <h1 class="text-xl font-bold text-base-content tracking-tight">
-          DeployEx with HotUpgrade
+          DeployEx
         </h1>
         <p class="text-sm text-base-content/60 font-medium">
           Management Console
@@ -213,9 +213,9 @@ defmodule DeployexWeb.Components.NavMenu do
         </span>
       </div>
       <!-- Badge for notifications - Only show when expanded -->
-      <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
+      <%!-- <div :if={@item.id == "live-logs" and @collapsed} class="flex-shrink-0">
         <div class="w-2 h-2 bg-error rounded-full"></div>
-      </div>
+      </div> --%>
     </a>
     """
   end
