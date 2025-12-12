@@ -30,14 +30,13 @@ defmodule DeployexWeb.Components.Dashboard do
     ~H"""
     <div>
       <!-- Tab Navigation -->
-      <div class="tabs tabs-box bg-base-200 p-1 mb-6 ">
-        <button
+      <div class="tabs tabs-lift bg-base-200 p-1 mb-6 ">
+        <a
           id="tab-deployex"
           phx-click="swicth-app-tab"
           phx-value-tab="deployex"
-          type="button"
           class={[
-            "tab transition-all duration-200",
+            "tab tab-lg",
             if(@active_tab == "deployex", do: "tab-active", else: "")
           ]}
         >
@@ -54,7 +53,7 @@ defmodule DeployexWeb.Components.Dashboard do
           <div :if={@pending_config_changes} class="badge badge-warning badge-sm ml-2">
             {@pending_config_changes.changes_count}
           </div>
-        </button>
+        </a>
         <div class="tab-content bg-base-100 border-base-300 p-6">
           <DeployexCard.content
             :if={@deployex}
@@ -66,13 +65,12 @@ defmodule DeployexWeb.Components.Dashboard do
         </div>
 
         <%= for monitored_app  <- @monitored_apps do %>
-          <button
+          <a
             id={"tab-application-#{monitored_app.name}"}
             phx-click="swicth-app-tab"
             phx-value-tab={monitored_app.name}
-            type="button"
             class={[
-              "tab transition-all duration-200",
+              "tab tab-lg",
               if(@active_tab == monitored_app.name, do: "tab-active", else: "")
             ]}
           >
@@ -89,7 +87,7 @@ defmodule DeployexWeb.Components.Dashboard do
             <%!-- <div class="badge badge-primary badge-sm ml-2">
             {length(@monitored_apps)}
           </div> --%>
-          </button>
+          </a>
           <div class="tab-content bg-base-100 border-base-300 p-6">
             <ApplicationDashboard.content monitored_app={monitored_app} metrics={@metrics} />
           </div>

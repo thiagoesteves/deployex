@@ -64,7 +64,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
           </div>
         </div>
         <!-- Configuration Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-6  gap-6">
           <!-- Mode Section -->
           <div class="bg-base-200 border border-base-300 rounded-lg p-4">
             <.mode
@@ -109,61 +109,6 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
               </button>
             </div>
           </div>
-          <!-- Last Ghosted Section -->
-          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-            <%= if @monitored_app.config.last_ghosted_version && @monitored_app.config.last_ghosted_version != "-/-" do %>
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <svg
-                    class="w-4 h-4 text-warning"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    >
-                    </path>
-                  </svg>
-                  <span class="text-sm font-medium text-base-content">Last Ghosted</span>
-                </div>
-                <div class="bg-warning/30 border border-warning/20 rounded-lg px-3 py-2">
-                  <span class="text-sm font-mono text-warning-content">
-                    {@monitored_app.config.last_ghosted_version}
-                  </span>
-                </div>
-              </div>
-            <% else %>
-              <div class="space-y-3">
-                <div class="flex items-center gap-2">
-                  <svg
-                    class="w-4 h-4 text-base-content/40"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    >
-                    </path>
-                  </svg>
-                  <span class="text-sm font-medium text-base-content/60">Last Ghosted</span>
-                </div>
-                <div class="bg-base-100 border border-base-300 rounded-lg px-3 py-2">
-                  <span class="text-sm text-base-content/60 italic">No ghosted versions</span>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        </div>
-        <!-- Additional Configuration Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           <!-- Replicas Section -->
           <div class="bg-base-200 border border-base-300 rounded-lg p-4 hover:bg-base-100/30 transition-colors">
             <div class="flex items-center gap-2 mb-2">
@@ -238,6 +183,58 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             <div class="text-xs text-base-content/60 mt-1 font-mono">
               {@monitored_app.deploy_schedule_interval_ms}ms
             </div>
+          </div>
+          <!-- Last Ghosted Section -->
+          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
+            <%= if @monitored_app.config.last_ghosted_version && @monitored_app.config.last_ghosted_version != "-/-" do %>
+              <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                  <svg
+                    class="w-4 h-4 text-warning"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    >
+                    </path>
+                  </svg>
+                  <span class="text-sm font-medium text-base-content">Last Ghosted</span>
+                </div>
+                <div class="bg-warning/30 border border-warning/20 rounded-lg px-3 py-2">
+                  <span class="text-sm font-mono text-warning-content">
+                    {@monitored_app.config.last_ghosted_version}
+                  </span>
+                </div>
+              </div>
+            <% else %>
+              <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                  <svg
+                    class="w-4 h-4 text-base-content/40"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    >
+                    </path>
+                  </svg>
+                  <span class="text-sm font-medium text-base-content/60">Last Ghosted</span>
+                </div>
+                <div class="bg-base-100 border border-base-300 rounded-lg px-3 py-2">
+                  <span class="text-sm text-base-content/60 italic">No ghosted versions</span>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
 
