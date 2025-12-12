@@ -26,7 +26,7 @@ defmodule Foundation.Common do
     ...> assert Common.random_small_alphanum(n) |> String.length() == n
     ...> assert Common.random_small_alphanum() |> String.length() == 6
   """
-  @spec random_small_alphanum(integer()) :: String.t()
+  @spec random_small_alphanum(n :: integer()) :: String.t()
   def random_small_alphanum(n \\ @deploy_ref_size) do
     Enum.map(1..n, fn _ ->
       Enum.concat(?0..?9, ?a..?z)
@@ -46,7 +46,7 @@ defmodule Foundation.Common do
     ...> assert Common.random_number(1,100) >= 1
     ...> assert Common.random_number(1,100) <= 100
   """
-  @spec random_number(non_neg_integer(), non_neg_integer()) :: non_neg_integer()
+  @spec random_number(from :: non_neg_integer(), to :: non_neg_integer()) :: non_neg_integer()
   def random_number(from, to) do
     Enum.random(from..to)
   end
@@ -126,6 +126,7 @@ defmodule Foundation.Common do
     ...> start_time = System.monotonic_time() - (:timer.hours(24 * 35) * 1000000)
     ...> assert Common.uptime_to_string(start_time) == "1m ago"
   """
+  @spec uptime_to_string(start_time :: integer() | nil) :: String.t()
   def uptime_to_string(nil), do: "-/-"
 
   def uptime_to_string(start_time) do
@@ -160,7 +161,8 @@ defmodule Foundation.Common do
     ...> assert Common.call_gen_server(valid_name, "any-message") == :ok
     ...> assert Common.call_gen_server(%{}, "any-message") == {:error, :rescued}
   """
-  @spec call_gen_server(pid() | map() | atom(), any()) :: :ok | {:ok, any()} | {:error, any()}
+  @spec call_gen_server(key :: pid() | map() | atom(), message :: any()) ::
+          :ok | {:ok, any()} | {:error, any()}
   def call_gen_server(key, message) when is_pid(key) or is_atom(key) do
     try do
       GenServer.call(key, message)
@@ -192,6 +194,7 @@ defmodule Foundation.Common do
     ...> %Catalog.Config{mode: :automatic, manual_version: nil} = Common.cast_schema_fields(nil, %Catalog.Config{}, atoms: [:mode])
     ...> %Catalog.Config{mode: :automatic, manual_version: nil} = Common.cast_schema_fields(nil, %Catalog.Config{})
   """
+  @spec cast_schema_fields(data :: map(), struct :: struct(), attrs :: Keyword.t()) :: struct()
   def cast_schema_fields(data, struct, attrs \\ [])
 
   def cast_schema_fields(nil, struct, _attrs) do
@@ -231,7 +234,7 @@ defmodule Foundation.Common do
     ...> File.rm(file_path)
 
   """
-  @spec sha256(Path.t()) :: String.t()
+  @spec sha256(file_path :: Path.t()) :: String.t()
   def sha256(file_path) do
     file_path
     |> File.stream!(2048, [])

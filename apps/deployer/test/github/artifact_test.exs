@@ -67,11 +67,11 @@ defmodule Deployer.Github.ArtifactTest do
          [
            download: fn _url, file_path, _headers, opts ->
              # Call the notify callback if provided
-             notify_callback = Keyword.get(opts, :notify_callback)
+             handle_progress = Keyword.get(opts, :handle_progress)
 
-             if notify_callback do
-               notify_callback.(file_path, {:downloading, 50.0})
-               notify_callback.(file_path, {:downloading, 100.0})
+             if handle_progress do
+               handle_progress.(file_path, {:downloading, 50.0})
+               handle_progress.(file_path, {:downloading, 100.0})
              end
 
              :ok
@@ -96,7 +96,7 @@ defmodule Deployer.Github.ArtifactTest do
     end
 
     @tag :capture_log
-    test "skips :ok notification from notify_callback during download" do
+    test "skips :ok notification from handle_progress during download" do
       artifact_name = "test-artifact"
 
       with_mocks [
@@ -117,12 +117,12 @@ defmodule Deployer.Github.ArtifactTest do
         {FinchStream, [],
          [
            download: fn _url, file_path, _headers, opts ->
-             notify_callback = Keyword.get(opts, :notify_callback)
+             handle_progress = Keyword.get(opts, :handle_progress)
 
-             if notify_callback do
-               # This :ok should be skipped by the notify_callback
-               notify_callback.(file_path, :ok)
-               notify_callback.(file_path, {:downloading, 100.0})
+             if handle_progress do
+               # This :ok should be skipped by the handle_progress
+               handle_progress.(file_path, :ok)
+               handle_progress.(file_path, {:downloading, 100.0})
              end
 
              :ok
@@ -135,7 +135,7 @@ defmodule Deployer.Github.ArtifactTest do
         # Should receive downloading notification
         assert_receive {:github_download_artifact, _node, _data, {:downloading, 100.0}}
 
-        # Should receive final :ok from do_download_artifact, not from notify_callback
+        # Should receive final :ok from do_download_artifact, not from handle_progress
         assert_receive {:github_download_artifact, _node, _data, :ok}, 1000
       end
     end
@@ -389,14 +389,14 @@ defmodule Deployer.Github.ArtifactTest do
         {FinchStream, [],
          [
            download: fn _url, file_path, _headers, opts ->
-             # Simulate download with keep_downloading_callback check
-             notify_callback = Keyword.get(opts, :notify_callback)
+             # Simulate download with handle_continue check
+             handle_progress = Keyword.get(opts, :handle_progress)
 
              File.mkdir_p!(Path.dirname(file_path))
 
              # Simulate initial progress
-             if notify_callback do
-               notify_callback.(file_path, {:downloading, 25.0})
+             if handle_progress do
+               handle_progress.(file_path, {:downloading, 25.0})
              end
 
              {:error, "Download was cancelled"}
@@ -435,10 +435,10 @@ defmodule Deployer.Github.ArtifactTest do
         {FinchStream, [],
          [
            download: fn _url, _file_path, _headers, opts ->
-             keep_downloading_callback = Keyword.get(opts, :keep_downloading_callback)
+             handle_continue = Keyword.get(opts, :handle_continue)
 
              # Verify keep_downloading returns true
-             assert keep_downloading_callback.() == true
+             assert handle_continue.() == true
 
              :ok
            end

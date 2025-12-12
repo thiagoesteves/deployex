@@ -15,7 +15,7 @@ defmodule Deployer.Deployex do
   systemd service, it will automatically restart. This function has not effect
   when running locally.
   """
-  @spec force_terminate(non_neg_integer()) :: :ok
+  @spec force_terminate(sleep_time :: non_neg_integer()) :: :ok
   def force_terminate(sleep_time) do
     Logger.warning("Deployex was requested to terminate, see you soon!!!")
 

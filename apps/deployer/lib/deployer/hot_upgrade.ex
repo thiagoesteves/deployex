@@ -17,14 +17,19 @@ defmodule Deployer.HotUpgrade do
   This function tries to connetc the respective node to the OTP distribution
   """
   @impl true
-  @spec connect(node()) :: {:error, :not_connecting} | {:ok, node()}
+  @spec connect(node :: node()) :: {:error, :not_connecting} | {:ok, node()}
   def connect(node), do: default().connect(node)
 
   @doc """
   This function acts like a hook for any modification before starting the app
   """
   @impl true
-  @spec prepare_new_path(String.t(), String.t(), String.t(), String.t()) :: :ok
+  @spec prepare_new_path(
+          name :: String.t(),
+          language :: String.t(),
+          to_version :: String.t(),
+          new_path :: String.t()
+        ) :: :ok
   def prepare_new_path(name, language, to_version, new_path),
     do: default().prepare_new_path(name, language, to_version, new_path)
 
@@ -32,14 +37,14 @@ defmodule Deployer.HotUpgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(Check.t()) :: {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
+  @spec check(data :: Check.t()) :: {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
   def check(%Check{} = data), do: default().check(data)
 
   @doc """
   This function triggers the hot code reloading process
   """
   @impl true
-  @spec execute(Execute.t()) :: :ok | {:error, any()}
+  @spec execute(data :: Execute.t()) :: :ok | {:error, any()}
   def execute(%Execute{} = data), do: default().execute(data)
 
   @doc """

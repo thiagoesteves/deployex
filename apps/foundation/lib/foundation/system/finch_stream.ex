@@ -1,5 +1,101 @@
 defmodule Foundation.System.FinchStream do
-  @moduledoc false
+  @moduledoc """
+  Downloads files using Finch with streaming support.
+
+  ## Usage
+
+  Basic download without callbacks:
+
+      FinchStream.download(url, file_path, headers)
+
+  ## Callbacks
+
+  You can provide optional callbacks to track progress and control the download.
+
+  ### handle_progress
+
+  A function that receives progress updates during the download. It will be called with:
+  - `file_path` - The path of the file being downloaded
+  - `status` - One of:
+    - `{:downloading, progress}` - Progress as a float (0.0 to 100.0)
+    - `:ok` - Download completed successfully
+    - `{:error, reason}` - Download failed
+
+  Example:
+
+      handle_progress = fn file_path, status ->
+        case status do
+          {:downloading, progress} ->
+            IO.puts("Downloading \#{file_path}: \#{progress}%")
+          
+          :ok ->
+            IO.puts("✓ Completed: \#{file_path}")
+          
+          {:error, reason} ->
+            IO.puts("✗ Failed: \#{file_path} - \#{inspect(reason)}")
+        end
+      end
+
+      FinchStream.download(url, file_path, headers, handle_progress: handle_progress)
+
+  ### handle_continue
+
+  A function that determines whether the download should continue. Called before 
+  processing each data chunk. Return `true` to continue, `false` to cancel.
+
+  Example:
+
+      handle_continue = fn ->
+        # Cancel if user requested it
+        !Process.get(:cancel_download, false)
+      end
+
+      FinchStream.download(url, file_path, headers, handle_continue: handle_continue)
+
+  ## Full Example
+
+      defmodule MyApp.Downloader do
+        def download_with_tracking(url, file_path) do
+          # Track progress in process dictionary
+          Process.put(:download_progress, 0)
+          
+          handle_progress = fn _file_path, status ->
+            case status do
+              {:downloading, progress} ->
+                Process.put(:download_progress, progress)
+                Phoenix.PubSub.broadcast(
+                  MyApp.PubSub,
+                  "downloads",
+                  {:progress, file_path, progress}
+                )
+              
+              :ok ->
+                Logger.info("Download completed: \#{file_path}")
+              
+              {:error, reason} ->
+                Logger.error("Download failed: \#{file_path} - \#{inspect(reason)}")
+            end
+          end
+          
+          handle_continue = fn ->
+            # Stop if cancelled or if progress hasn't changed in too long
+            !Process.get(:cancel_download, false)
+          end
+          
+          Foundation.System.FinchStream.download(
+            url,
+            file_path,
+            [],
+            handle_progress: handle_progress,
+            handle_continue: handle_continue
+          )
+        end
+        
+        def cancel_download do
+          Process.put(:cancel_download, true)
+        end
+      end
+  """
 
   require Logger
 
@@ -11,8 +107,8 @@ defmodule Foundation.System.FinchStream do
           size: non_neg_integer() | nil,
           processed: non_neg_integer() | nil,
           file_pid: pid() | nil,
-          notify_callback: mfa(),
-          keep_downloading_callback: mfa(),
+          handle_progress: mfa(),
+          handle_continue: mfa(),
           error: String.t() | nil
         }
 
@@ -23,8 +119,8 @@ defmodule Foundation.System.FinchStream do
             size: 0,
             processed: 0,
             file_pid: nil,
-            notify_callback: nil,
-            keep_downloading_callback: nil,
+            handle_progress: nil,
+            handle_continue: nil,
             error: nil
 
   ### ==========================================================================
@@ -34,16 +130,16 @@ defmodule Foundation.System.FinchStream do
   @spec download(url :: String.t(), headers :: list(), Keyword.t()) :: :ok | {:error, any()}
   def download(url, file_path, headers, options \\ []) do
     file_pid = Keyword.get(options, :file_pid) || File.open!(file_path, [:write, :binary])
-    notify_callback = Keyword.get(options, :notify_callback)
-    keep_downloading_callback = Keyword.get(options, :keep_downloading_callback)
+    handle_progress = Keyword.get(options, :handle_progress)
+    handle_continue = Keyword.get(options, :handle_continue)
 
     data = %__MODULE__{
       url: url,
       headers: headers,
       file_path: file_path,
       file_pid: file_pid,
-      notify_callback: notify_callback,
-      keep_downloading_callback: keep_downloading_callback
+      handle_progress: handle_progress,
+      handle_continue: handle_continue
     }
 
     response = do_download(data)
@@ -52,17 +148,17 @@ defmodule Foundation.System.FinchStream do
 
     case response do
       {:ok, %__MODULE__{error: nil}} ->
-        notify(data, :ok)
+        do_handle_progress(data, :ok)
         :ok
 
       {:ok, %__MODULE__{error: reason}} ->
         response = {:error, reason}
-        notify(data, response)
+        do_handle_progress(data, response)
         response
 
       {:error, reason, _acc} ->
         response = {:error, reason}
-        notify(data, response)
+        do_handle_progress(data, response)
         response
     end
   end
@@ -128,10 +224,10 @@ defmodule Foundation.System.FinchStream do
            file_pid: file_pid
          } = params
        ) do
-    if keep_downloading(params) do
+    if do_handle_continue(params) do
       :ok = IO.binwrite(file_pid, data)
       new_params = %{params | processed: processed + byte_size(data), size: size}
-      notify(new_params, :downloading)
+      do_handle_progress(new_params, :downloading)
 
       {:cont, new_params}
     else
@@ -139,33 +235,39 @@ defmodule Foundation.System.FinchStream do
     end
   end
 
-  def notify(%__MODULE__{notify_callback: nil}, _status), do: :ok
+  defp do_handle_progress(%__MODULE__{handle_progress: nil}, _status), do: :ok
 
-  def notify(
-        %__MODULE__{
-          notify_callback: notify_callback,
-          file_path: file_path,
-          processed: processed,
-          size: size
-        },
-        :downloading
-      )
-      when size > 0 do
+  defp do_handle_progress(
+         %__MODULE__{
+           handle_progress: handle_progress,
+           file_path: file_path,
+           processed: processed,
+           size: size
+         },
+         :downloading
+       )
+       when size > 0 do
     progress = Float.round(processed * 100 / size, 1)
-    notify_callback.(file_path, {:downloading, progress})
+    handle_progress.(file_path, {:downloading, progress})
   end
 
-  def notify(%__MODULE__{notify_callback: notify_callback, file_path: file_path}, :ok) do
-    notify_callback.(file_path, :ok)
+  defp do_handle_progress(
+         %__MODULE__{handle_progress: handle_progress, file_path: file_path},
+         :ok
+       ) do
+    handle_progress.(file_path, :ok)
   end
 
-  def notify(%__MODULE__{notify_callback: notify_callback, file_path: file_path}, error) do
-    notify_callback.(file_path, error)
+  defp do_handle_progress(
+         %__MODULE__{handle_progress: handle_progress, file_path: file_path},
+         error
+       ) do
+    handle_progress.(file_path, error)
   end
 
-  def keep_downloading(%__MODULE__{keep_downloading_callback: nil}), do: true
+  def do_handle_continue(%__MODULE__{handle_continue: nil}), do: true
 
-  def keep_downloading(%__MODULE__{keep_downloading_callback: keep_downloading_callback}) do
-    keep_downloading_callback.()
+  def do_handle_continue(%__MODULE__{handle_continue: handle_continue}) do
+    handle_continue.()
   end
 end

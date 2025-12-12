@@ -34,7 +34,7 @@ defmodule DeployexWeb.Helper do
     ...> assert Helper.log_message_color("NOTICE", "stdout") == "#FDBA74"
     ...> assert Helper.log_message_color("any", "stdout") == "#E5E5E5"
   """
-  @spec log_message_color(String.t(), String.t()) :: String.t()
+  @spec log_message_color(message :: String.t(), log_type :: String.t()) :: String.t()
   def log_message_color(_message, "stderr"), do: "#F87171"
 
   def log_message_color(message, _log_type) do
@@ -66,7 +66,11 @@ defmodule DeployexWeb.Helper do
   into a normalized format containing expected attributes such as color, service 
   identifiers, and categorization.
   """
-  @spec normalize_logs(list(Message.t()), String.t(), String.t()) :: list(map())
+  @spec normalize_logs(
+          messages :: list(Message.t()),
+          service :: String.t(),
+          log_type :: String.t()
+        ) :: list(map())
   def normalize_logs(messages, service, log_type) do
     Enum.reduce(messages, [], fn message, acc ->
       acc ++ normalize_log(message, service, log_type)
@@ -82,7 +86,7 @@ defmodule DeployexWeb.Helper do
     ...> assert Helper.normalize_id(:"my_app-1@host") == "my-app-1-host"
     ...> assert Helper.normalize_id("my_app-2@host") == "my-app-2-host"
   """
-  @spec normalize_id(atom() | String.t()) :: String.t()
+  @spec normalize_id(node :: atom() | String.t()) :: String.t()
   def normalize_id(node) when is_atom(node) do
     node |> Atom.to_string() |> normalize_id()
   end
@@ -94,7 +98,7 @@ defmodule DeployexWeb.Helper do
   @doc """
   This function return the node from a node_info request
   """
-  @spec sname_to_node(String.t()) :: atom()
+  @spec sname_to_node(sname :: String.t()) :: atom()
   def sname_to_node(sname) do
     %{node: node} = Catalog.node_info(sname)
     node
@@ -115,7 +119,8 @@ defmodule DeployexWeb.Helper do
   This function takes a Message struct and breaks it down into individual log entries,
   splitting on newlines and applying the appropriate formatting and metadata to each line.
   """
-  @spec normalize_log(Message.t(), String.t(), String.t()) :: list(map())
+  @spec normalize_log(message :: Message.t(), service :: String.t(), log_type :: String.t()) ::
+          list(map())
   def normalize_log(%Message{log: log, timestamp: timestamp}, service, log_type) do
     log
     |> String.split(["\n", "\r"], trim: true)
@@ -145,7 +150,7 @@ defmodule DeployexWeb.Helper do
     ...> assert Helper.format_ms_to_readable(100) == "100ms"
     ...> assert Helper.format_ms_to_readable(nil) == "N/A"
   """
-  @spec format_ms_to_readable(integer() | any()) :: String.t()
+  @spec format_ms_to_readable(ms :: integer()) :: String.t()
   def format_ms_to_readable(ms) when is_integer(ms) do
     cond do
       ms >= 3_600_000 -> "#{Float.round(ms / 3_600_000, 1)}h"
@@ -168,6 +173,7 @@ defmodule DeployexWeb.Helper do
     ...> assert Helper.format_bytes(1_073_741_823) == "1024.0 MB"
     ...> assert Helper.format_bytes(1_073_741_824) == "1.0 GB"
   """
+  @spec format_bytes(bytes :: non_neg_integer()) :: String.t()
   def format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"
   def format_bytes(bytes) when bytes < 1_048_576, do: "#{Float.round(bytes / 1024, 2)} KB"
 

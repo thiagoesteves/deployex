@@ -184,7 +184,7 @@ defmodule Deployer.Github.Artifact do
 
     :ets.insert(@github_artifacts_table, {id, :run})
 
-    notify_callback = fn
+    handle_progress = fn
       _file_path, :ok ->
         # Skip the initial :ok message.
         # This module still needs to unzip the download before notifying
@@ -199,15 +199,15 @@ defmodule Deployer.Github.Artifact do
         )
     end
 
-    keep_downloading_callback = fn ->
+    handle_continue = fn ->
       [{_, status}] = :ets.lookup(@github_artifacts_table, id)
       Process.alive?(params.request_pid) and status == :run
     end
 
     with :ok <-
            FinchStream.download(download_url, file_path, headers,
-             notify_callback: notify_callback,
-             keep_downloading_callback: keep_downloading_callback
+             handle_progress: handle_progress,
+             handle_continue: handle_continue
            ) do
       {:ok, new_params}
     end

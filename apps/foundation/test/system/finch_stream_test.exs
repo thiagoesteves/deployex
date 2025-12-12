@@ -200,7 +200,7 @@ defmodule Foundation.System.FinchStreamTest do
     test "handles error set in accumulator during streaming" do
       test_pid = self()
 
-      notify_callback = fn file_path, status ->
+      handle_progress = fn file_path, status ->
         send(test_pid, {:notify, file_path, status})
       end
 
@@ -209,12 +209,12 @@ defmodule Foundation.System.FinchStreamTest do
         stream_while: fn _request, _finch, acc, fun ->
           {:cont, acc} = fun.({:status, 200}, acc)
           {:cont, acc} = fun.({:headers, [{"content-length", "100"}]}, acc)
-          # Simulate an error being set in the accumulator (e.g., from keep_downloading_callback)
+          # Simulate an error being set in the accumulator (e.g., from handle_continue)
           {:ok, %{acc | error: "Download was cancelled"}}
         end do
         assert {:error, "Download was cancelled"} =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   notify_callback: notify_callback
+                   handle_progress: handle_progress
                  )
 
         assert_received {:notify, @test_file_path, {:error, "Download was cancelled"}}
@@ -223,11 +223,11 @@ defmodule Foundation.System.FinchStreamTest do
   end
 
   describe "download/4 - callbacks" do
-    test "calls notify_callback during download progress" do
+    test "calls handle_progress during download progress" do
       test_pid = self()
       file_content = "test content for progress"
 
-      notify_callback = fn file_path, status ->
+      handle_progress = fn file_path, status ->
         send(test_pid, {:notify, file_path, status})
       end
 
@@ -241,7 +241,7 @@ defmodule Foundation.System.FinchStreamTest do
         end do
         assert :ok =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   notify_callback: notify_callback
+                   handle_progress: handle_progress
                  )
 
         assert_received {:notify, @test_file_path, {:downloading, 100.0}}
@@ -249,10 +249,10 @@ defmodule Foundation.System.FinchStreamTest do
       end
     end
 
-    test "calls notify_callback on error" do
+    test "calls handle_progress on error" do
       test_pid = self()
 
-      notify_callback = fn file_path, status ->
+      handle_progress = fn file_path, status ->
         send(test_pid, {:notify, file_path, status})
       end
 
@@ -263,17 +263,17 @@ defmodule Foundation.System.FinchStreamTest do
         end do
         assert {:error, :connection_failed} =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   notify_callback: notify_callback
+                   handle_progress: handle_progress
                  )
 
         assert_received {:notify, @test_file_path, {:error, :connection_failed}}
       end
     end
 
-    test "respects keep_downloading_callback returning false" do
+    test "respects handle_continue returning false" do
       test_pid = self()
 
-      keep_downloading_callback = fn ->
+      handle_continue = fn ->
         send(test_pid, :keep_downloading_check)
         false
       end
@@ -288,17 +288,17 @@ defmodule Foundation.System.FinchStreamTest do
         end do
         assert {:error, "Download for file " <> _} =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   keep_downloading_callback: keep_downloading_callback
+                   handle_continue: handle_continue
                  )
 
         assert_received :keep_downloading_check
       end
     end
 
-    test "continues downloading when keep_downloading_callback returns true" do
+    test "continues downloading when handle_continue returns true" do
       test_pid = self()
 
-      keep_downloading_callback = fn ->
+      handle_continue = fn ->
         send(test_pid, :keep_downloading_check)
         true
       end
@@ -315,7 +315,7 @@ defmodule Foundation.System.FinchStreamTest do
         end do
         assert :ok =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   keep_downloading_callback: keep_downloading_callback
+                   handle_continue: handle_continue
                  )
 
         assert_received :keep_downloading_check
@@ -327,7 +327,7 @@ defmodule Foundation.System.FinchStreamTest do
       test_pid = self()
       chunk_size = 25
 
-      notify_callback = fn file_path, status ->
+      handle_progress = fn file_path, status ->
         send(test_pid, {:notify, file_path, status})
       end
 
@@ -344,7 +344,7 @@ defmodule Foundation.System.FinchStreamTest do
         end do
         assert :ok =
                  FinchStream.download(@test_url, @test_file_path, @test_headers,
-                   notify_callback: notify_callback
+                   handle_progress: handle_progress
                  )
 
         assert_received {:notify, @test_file_path, {:downloading, 25.0}}
