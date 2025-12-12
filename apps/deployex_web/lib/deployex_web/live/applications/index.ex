@@ -39,6 +39,7 @@ defmodule DeployexWeb.ApplicationsLive do
             applications={@monitoring_apps_data}
             metrics={@metrics}
             pending_config_changes={@yaml_config.pending_config_changes}
+            active_tab={@active_app_tab}
           />
         </div>
       </div>
@@ -335,6 +336,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:monitoring_apps_data, monitoring_apps_data)
       |> assign(:selected_name, nil)
       |> assign(:selected_sname, nil)
+      |> assign(:active_app_tab, "deployex")
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
@@ -354,6 +356,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_name, nil)
      |> assign(:selected_sname, nil)
+     |> assign(:active_app_tab, "deployex")
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
@@ -654,6 +657,10 @@ defmodule DeployexWeb.ApplicationsLive do
        |> assign(:mode_confirmation, %{name: name, mode_or_version: mode_or_version})
        |> push_patch(to: ~p"/applications")}
     end
+  end
+
+  def handle_event("swicth-app-tab", %{"tab" => selected_tab}, socket) do
+    {:noreply, assign(socket, :active_app_tab, selected_tab)}
   end
 
   defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do
