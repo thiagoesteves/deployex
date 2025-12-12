@@ -46,7 +46,8 @@ defmodule Deployer.Monitor do
   Starts monitor service for an specific service
   """
   @impl true
-  @spec start_service(Monitor.Service.t()) :: {:ok, pid} | {:error, pid(), :already_started}
+  @spec start_service(service :: Monitor.Service.t()) ::
+          {:ok, pid} | {:error, pid(), :already_started}
   def start_service(%Monitor.Service{} = service) do
     default().start_service(service)
   end
@@ -55,28 +56,32 @@ defmodule Deployer.Monitor do
   Stops a monitor service for an specific name/sname
   """
   @impl true
-  @spec stop_service(String.t() | nil, String.t() | nil) :: :ok
+  @spec stop_service(name :: String.t() | nil, sname :: String.t() | nil) :: :ok
   def stop_service(name, sname), do: default().stop_service(name, sname)
 
   @doc """
   This function forces a restart of the application
   """
   @impl true
-  @spec restart(String.t()) :: :ok | {:error, :application_is_not_running}
+  @spec restart(sname :: String.t()) :: :ok | {:error, :application_is_not_running}
   def restart(sname), do: default().restart(sname)
 
   @doc """
   Retrieve the expected current version for the application
   """
   @impl true
-  @spec state(String.t()) :: Deployer.Monitor.t()
+  @spec state(sname :: String.t()) :: Deployer.Monitor.t()
   def state(sname), do: default().state(sname)
 
   @doc """
   Download and unpack the application
   """
   @impl true
-  @spec run_pre_commands(String.t(), list(), Monitor.Adapter.bin_path()) ::
+  @spec run_pre_commands(
+          sname :: String.t(),
+          pre_commands :: list(),
+          app_bin_path :: Monitor.Adapter.bin_path()
+        ) ::
           {:ok, list()} | {:error, :rescued}
   def run_pre_commands(sname, pre_commands, app_bin_path),
     do: default().run_pre_commands(sname, pre_commands, app_bin_path)
@@ -89,7 +94,7 @@ defmodule Deployer.Monitor do
   def list, do: default().list()
 
   @impl true
-  @spec list(Keyword.t()) :: list()
+  @spec list(options :: Keyword.t()) :: list()
   def list(options), do: default().list(options)
 
   @doc """

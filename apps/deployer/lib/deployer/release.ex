@@ -33,7 +33,7 @@ defmodule Deployer.Release do
   @doc """
   Retrieve the expected current version for the application
   """
-  @spec get_current_version_map(String.t()) :: Deployer.Release.Version.t()
+  @spec get_current_version_map(app_name :: String.t()) :: Deployer.Release.Version.t()
   def get_current_version_map(app_name) do
     # Check if the manual or automatic mode is enabled
     case Catalog.config(app_name) do

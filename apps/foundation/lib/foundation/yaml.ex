@@ -179,7 +179,7 @@ defmodule Foundation.Yaml do
     * `DEPLOYEX_CONFIG_YAML_PATH` - Required. Full path to the Deployex YAML configuration file.
 
   """
-  @spec load(t() | nil) :: {:ok, t()} | {:error, any()}
+  @spec load(existing_config :: t() | nil) :: {:ok, t()} | {:error, any()}
   def load(existing_config \\ nil) do
     # NOTE: The configuration path is read from an environment variable instead of
     # application config because this function must be callable during the config

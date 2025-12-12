@@ -70,14 +70,14 @@ defmodule Deployer.Status do
   Retrieve the current version set for the monitored application
   """
   @impl true
-  @spec current_version(String.t()) :: String.t() | nil
+  @spec current_version(sname :: String.t()) :: String.t() | nil
   def current_version(sname), do: default().current_version(sname)
 
   @doc """
   Retrieve the current version map set for the monitored application
   """
   @impl true
-  @spec current_version_map(String.t() | nil) :: Catalog.Version.t()
+  @spec current_version_map(sname :: String.t() | nil) :: Catalog.Version.t()
   def current_version_map(sname), do: default().current_version_map(sname)
 
   @doc """
@@ -91,7 +91,11 @@ defmodule Deployer.Status do
   Set the current version map
   """
   @impl true
-  @spec set_current_version_map(String.t(), Release.Version.t(), Keyword.t()) :: :ok
+  @spec set_current_version_map(
+          sname :: String.t(),
+          release :: Release.Version.t(),
+          attrs :: Keyword.t()
+        ) :: :ok
   def set_current_version_map(sname, release, attrs),
     do: default().set_current_version_map(sname, release, attrs)
 
@@ -99,28 +103,28 @@ defmodule Deployer.Status do
   Add a ghosted version in the list
   """
   @impl true
-  @spec add_ghosted_version(Catalog.Version.t()) :: {:ok, list()}
+  @spec add_ghosted_version(version_map :: Catalog.Version.t()) :: {:ok, list()}
   def add_ghosted_version(version_map), do: default().add_ghosted_version(version_map)
 
   @doc """
   Retrieve the ghosted version list
   """
   @impl true
-  @spec ghosted_version_list(String.t()) :: list()
+  @spec ghosted_version_list(name :: String.t()) :: list()
   def ghosted_version_list(name), do: default().ghosted_version_list(name)
 
   @doc """
   Retrieve the history version list by name
   """
   @impl true
-  @spec history_version_list(String.t(), Keyword.t()) :: list()
+  @spec history_version_list(name :: String.t(), options :: Keyword.t()) :: list()
   def history_version_list(name, options), do: default().history_version_list(name, options)
 
   @doc """
   Retrieve the list of installed apps by name
   """
   @impl true
-  @spec list_installed_apps(String.t()) :: list()
+  @spec list_installed_apps(name :: String.t()) :: list()
   def list_installed_apps(name), do: default().list_installed_apps(name)
 
   @doc """
@@ -128,14 +132,15 @@ defmodule Deployer.Status do
   to previous and new to current.
   """
   @impl true
-  @spec update(String.t()) :: :ok
+  @spec update(sname :: String.t()) :: :ok
   def update(sname), do: default().update(sname)
 
   @doc """
   Set the configuration mode
   """
   @impl true
-  @spec set_mode(String.t(), :automatic | :manual, String.t()) :: {:ok, map()}
+  @spec set_mode(name :: String.t(), mode :: :automatic | :manual, version :: String.t()) ::
+          {:ok, map()}
   def set_mode(name, mode, version), do: default().set_mode(name, mode, version)
 
   ### ==========================================================================
