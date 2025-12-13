@@ -8,12 +8,27 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
 
   attr :monitored_app, :map, required: true
   attr :metrics, :map, required: true
+  attr :active_sname_tab, :string, required: true
 
   def content(assigns) do
+    # Check if the selected sname still exists
+    active_sname_tab =
+      Enum.reduce_while(assigns.monitored_app.children, nil, fn %{sname: sname}, acc ->
+        cond do
+          sname == assigns.active_sname_tab -> {:halt, sname}
+          is_nil(acc) -> {:cont, sname}
+          true -> {:cont, acc}
+        end
+      end)
+
+    assigns =
+      assigns
+      |> assign(:active_sname_tab, active_sname_tab)
+
     ~H"""
     <div>
       <!-- Modern Header -->
-      <div class="bg-base-100 border border-base-300 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-200 mt-6">
+      <div class="bg-base-100  rounded-xl  transition-all duration-200 mt-2">
         <!-- App Header -->
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center gap-4">
@@ -239,16 +254,42 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
         </div>
 
         <div class="mt-3 bg-base-300 rounded-lg">
-          <%= for child_app <- @monitored_app.children do %>
-            <div class="p-6 ">
-              <ApplicationCard.content
-                application={child_app}
-                monitoring={@monitored_app.monitoring}
-                metrics={@metrics}
-                restart_path={~p"/applications/#{child_app.name}/#{child_app.sname}/restart"}
-              />
-            </div>
-          <% end %>
+          <div class="tabs tabs-lift bg-base-200 p-1 mb-6 ">
+            <%= for child_app <- @monitored_app.children do %>
+              <a
+                id={"tab-application-#{child_app.sname}"}
+                phx-click="swicth-app-tab"
+                phx-value-name={@monitored_app.name}
+                phx-value-sname={child_app.sname}
+                class={[
+                  "tab tab-lg",
+                  if(@active_sname_tab == child_app.sname, do: "tab-active", else: "")
+                ]}
+              >
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  >
+                  </path>
+                </svg>
+                {child_app.sname}
+                <%!-- <div class="badge badge-primary badge-sm ml-2">
+            {length(@monitored_apps)}
+          </div> --%>
+              </a>
+              <div class="tab-content bg-base-100 border-base-300 p-6">
+                <ApplicationCard.content
+                  application={child_app}
+                  monitoring={@monitored_app.monitoring}
+                  metrics={@metrics}
+                  restart_path={~p"/applications/#{child_app.name}/#{child_app.sname}/restart"}
+                />
+              </div>
+            <% end %>
+          </div>
         </div>
       </div>
     </div>

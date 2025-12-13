@@ -39,7 +39,8 @@ defmodule DeployexWeb.ApplicationsLive do
             applications={@monitoring_apps_data}
             metrics={@metrics}
             pending_config_changes={@yaml_config.pending_config_changes}
-            active_tab={@active_app_tab}
+            active_name_tab={@active_name_tab}
+            active_sname_tab={@active_sname_tab}
           />
         </div>
       </div>
@@ -336,7 +337,8 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:monitoring_apps_data, monitoring_apps_data)
       |> assign(:selected_name, nil)
       |> assign(:selected_sname, nil)
-      |> assign(:active_app_tab, "deployex")
+      |> assign(:active_name_tab, "deployex")
+      |> assign(:active_sname_tab, %{})
       |> assign(:terminal_message, nil)
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
@@ -356,7 +358,8 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_name, nil)
      |> assign(:selected_sname, nil)
-     |> assign(:active_app_tab, "deployex")
+     |> assign(:active_name_tab, "deployex")
+     |> assign(:active_sname_tab, %{})
      |> assign(:terminal_message, nil)
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
@@ -659,8 +662,16 @@ defmodule DeployexWeb.ApplicationsLive do
     end
   end
 
-  def handle_event("swicth-app-tab", %{"tab" => selected_tab}, socket) do
-    {:noreply, assign(socket, :active_app_tab, selected_tab)}
+  def handle_event(
+        "swicth-app-tab",
+        %{"name" => name, "sname" => sname},
+        %{assigns: %{active_sname_tab: active_sname_tab}} = socket
+      ) do
+    {:noreply, assign(socket, :active_sname_tab, Map.put(active_sname_tab, name, sname))}
+  end
+
+  def handle_event("swicth-app-tab", %{"name" => name}, socket) do
+    {:noreply, assign(socket, :active_name_tab, name)}
   end
 
   defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do

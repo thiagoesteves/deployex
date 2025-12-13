@@ -9,7 +9,8 @@ defmodule DeployexWeb.Components.Dashboard do
   attr :applications, :list, required: true
   attr :metrics, :map, required: true
   attr :pending_config_changes, :map, default: nil
-  attr :active_tab, :string, required: true
+  attr :active_name_tab, :string, required: true
+  attr :active_sname_tab, :string, required: true
 
   def content(assigns) do
     {deployex, monitored_apps} =
@@ -34,10 +35,10 @@ defmodule DeployexWeb.Components.Dashboard do
         <a
           id="tab-deployex"
           phx-click="swicth-app-tab"
-          phx-value-tab="deployex"
+          phx-value-name="deployex"
           class={[
             "tab tab-lg",
-            if(@active_tab == "deployex", do: "tab-active", else: "")
+            if(@active_name_tab == "deployex", do: "tab-active", else: "")
           ]}
         >
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,10 +69,10 @@ defmodule DeployexWeb.Components.Dashboard do
           <a
             id={"tab-application-#{monitored_app.name}"}
             phx-click="swicth-app-tab"
-            phx-value-tab={monitored_app.name}
+            phx-value-name={monitored_app.name}
             class={[
               "tab tab-lg",
-              if(@active_tab == monitored_app.name, do: "tab-active", else: "")
+              if(@active_name_tab == monitored_app.name, do: "tab-active", else: "")
             ]}
           >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,7 +90,11 @@ defmodule DeployexWeb.Components.Dashboard do
           </div> --%>
           </a>
           <div class="tab-content bg-base-100 border-base-300 p-6">
-            <ApplicationDashboard.content monitored_app={monitored_app} metrics={@metrics} />
+            <ApplicationDashboard.content
+              monitored_app={monitored_app}
+              metrics={@metrics}
+              active_sname_tab={@active_sname_tab[monitored_app.name]}
+            />
           </div>
         <% end %>
       </div>
