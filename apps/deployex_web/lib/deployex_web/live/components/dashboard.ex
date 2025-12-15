@@ -5,6 +5,7 @@ defmodule DeployexWeb.Components.Dashboard do
   use Phoenix.Component
   alias DeployexWeb.Components.ApplicationDashboard
   alias DeployexWeb.Components.DeployexCard
+  alias DeployexWeb.Helper
 
   attr :applications, :list, required: true
   attr :metrics, :map, required: true
@@ -85,9 +86,12 @@ defmodule DeployexWeb.Components.Dashboard do
               </path>
             </svg>
             {monitored_app.name}
-            <%!-- <div class="badge badge-primary badge-sm ml-2">
-            {length(@monitored_apps)}
-          </div> --%>
+            <% all_running? = Enum.all?(monitored_app.children, &(&1.status == :running)) %>
+            <%= if all_running? do %>
+              <div class={["w-3 h-3 ml-2 rounded-full", Helper.status_color(:running)]}></div>
+            <% else %>
+              <div class={["w-3 h-3 ml-2 rounded-full", Helper.status_color(:starting)]}></div>
+            <% end %>
           </a>
           <div class="tab-content bg-base-100 border-base-300 p-6">
             <ApplicationDashboard.content

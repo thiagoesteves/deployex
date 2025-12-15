@@ -276,9 +276,8 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                   </path>
                 </svg>
                 {child_app.sname}
-                <%!-- <div class="badge badge-primary badge-sm ml-2">
-            {length(@monitored_apps)}
-          </div> --%>
+                <div class={["w-3 h-3 ml-2 rounded-full", Helper.status_color(child_app.status)]}>
+                </div>
               </a>
               <div class="tab-content bg-base-100 border-base-300 p-6">
                 <ApplicationCard.content

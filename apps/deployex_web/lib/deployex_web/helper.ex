@@ -12,6 +12,23 @@ defmodule DeployexWeb.Helper do
   ### ==========================================================================
 
   @doc """
+  Return the expected color for status badge
+
+  ## Examples
+
+    iex> alias DeployexWeb.Helper
+    ...> assert Helper.status_color(:running) == "bg-success border-b border-success/20"
+    ...> assert Helper.status_color(:starting) == "bg-warning border-b border-warning/20"
+    ...> assert Helper.status_color(:pre_commands) == "bg-info border-b border-info/20"
+    ...> assert Helper.status_color(:any) == "bg-neutral border-b border-neutral/20"
+  """
+  @spec status_color(status :: atom()) :: String.t()
+  def status_color(:running), do: "bg-success border-b border-success/20"
+  def status_color(:starting), do: "bg-warning border-b border-warning/20"
+  def status_color(:pre_commands), do: "bg-info border-b border-info/20"
+  def status_color(_), do: "bg-neutral border-b border-neutral/20"
+
+  @doc """
   Return the expected background color for the respective message type
 
   PS: It wasn't possible to use bg-color-[value] since the table wasn't working
