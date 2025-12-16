@@ -168,7 +168,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     assert html =~ "Listing Applications"
     assert html =~ "Version not set"
-    assert html =~ "bg-base-200/50 border-b border-base-200"
+    assert html =~ "bg-neutral-200/50 border-b border-neutral-200"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -198,7 +198,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     html = render(view)
     assert html =~ "Pre-commands"
-    assert html =~ "bg-warning/10 border-b border-warning/20"
+    assert html =~ "bg-info/10 border-b border-info/20"
 
     new_state = [
       FixtureStatus.deployex(),
@@ -234,7 +234,7 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     assert html =~ "Listing Applications"
     assert html =~ "Version not set"
-    assert html =~ "bg-base-200/50 border-b border-base-200"
+    assert html =~ "bg-neutral-200/50 border-b border-neutral-200"
 
     new_state = [
       FixtureStatus.deployex(),

@@ -408,10 +408,10 @@ defmodule DeployexWeb.Components.ApplicationCard do
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :pre_commands -> %>
-        <div class="flex items-center justify-between p-4 bg-warning/10 border-b border-warning/20 rounded-t-lg">
+        <div class="flex items-center justify-between p-4 bg-info/10 border-b border-info/20 rounded-t-lg">
           <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
-            <span class="text-sm font-semibold text-warning">Pre-commands</span>
+            <div class="w-2 h-2 bg-info rounded-full animate-pulse"></div>
+            <span class="text-sm font-semibold text-info">Pre-commands</span>
           </div>
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
@@ -425,10 +425,10 @@ defmodule DeployexWeb.Components.ApplicationCard do
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% true -> %>
-        <div class="flex items-center justify-center p-4 bg-base-200/50 border-b border-base-200 rounded-t-lg">
+        <div class="flex items-center justify-center p-4 bg-neutral-200/50 border-b border-neutral-200 rounded-t-lg">
           <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-base-content/30 rounded-full animate-pulse"></div>
-            <span class="text-sm font-medium text-base-content/60">Version not set</span>
+            <div class="w-2 h-2 bg-neutral-content/30 rounded-full animate-pulse"></div>
+            <span class="text-sm font-medium text-neutral">Version not set</span>
           </div>
         </div>
     <% end %>
