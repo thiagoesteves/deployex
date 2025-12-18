@@ -606,10 +606,23 @@ defmodule Deployer.HotUpgrade.Application do
         appup_info = file |> File.read!() |> Jason.decode!()
         dir = Path.dirname(file)
 
-        with true <- "#{from_version}" == appup_info["from"],
-             true <- "#{to_version}" == appup_info["to"],
+        IO.inspect appup_info
+
+        # NOTE: Check if it is a project update or a dependency. For dependencies, there 
+        # isn't enough info to check from -> to versions
+        {from, to} =
+          case appup_info["type"] do
+            "dependency" ->
+              {to_charlist(appup_info["from"]), to_charlist(appup_info["to"])}
+
+            _ ->
+              {from_version, to_version}
+          end
+
+        with true <- "#{from}" == appup_info["from"],
+             true <- "#{to}" == appup_info["to"],
              [appup] <- Path.wildcard("#{dir}/*.appup"),
-             :ok <- check_app_up(appup, from_version, to_version) do
+             :ok <- check_app_up(appup, from, to) do
           {:cont, acc ++ [appup_info]}
         else
           {:error, reason} ->
