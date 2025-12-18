@@ -197,8 +197,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -339,8 +339,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :hot_upgrade}
+                              } = check ->
+        {:ok, %{check | deploy: :hot_upgrade}}
       end)
       |> expect(:execute, 1, fn %Deployer.HotUpgrade.Execute{
                                   from_version: ^from_version,
@@ -409,8 +409,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :hot_upgrade}
+                              } = check ->
+        {:ok, %{check | deploy: :hot_upgrade}}
       end)
       |> expect(:execute, 1, fn %Deployer.HotUpgrade.Execute{
                                   from_version: ^from_version,
@@ -501,8 +501,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -591,8 +591,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -769,8 +769,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^automatic_version,
                                 to_version: ^manual_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -856,8 +856,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^manual_version,
                                 to_version: ^automatic_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -1001,8 +1001,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -1157,8 +1157,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       with_mock System, [:passthrough],
@@ -1329,8 +1329,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       assert capture_log(fn ->
@@ -1459,8 +1459,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       assert capture_log(fn ->
@@ -1590,8 +1590,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       assert capture_log(fn ->
@@ -1703,8 +1703,8 @@ defmodule Deployer.EngineTest do
       |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{
                                 from_version: ^from_version,
                                 to_version: ^to_version
-                              } ->
-        {:ok, :full_deployment}
+                              } = check ->
+        {:ok, %{check | deploy: :full_deployment}}
       end)
 
       assert capture_log(fn ->

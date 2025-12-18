@@ -38,11 +38,11 @@ defmodule Deployer.HotUpgrade.Deployex do
 
     with {:ok, _} <-
            Commander.run("tar -xf  #{download_path} -C #{new_path}", [:sync, :stdout, :stderr]),
-         {:ok, :hot_upgrade} <- HotUpgradeApp.check(check) do
+         {:ok, %Check{deploy: :hot_upgrade} = check} <- HotUpgradeApp.check(check) do
       {:ok, check}
     else
-      {:ok, type} ->
-        {:error, type}
+      {:ok, %Check{deploy: :full_deployment}} ->
+        {:error, :full_deployment}
 
       reason ->
         Logger.warning(

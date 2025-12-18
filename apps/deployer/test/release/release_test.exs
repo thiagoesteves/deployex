@@ -144,8 +144,8 @@ defmodule Deployer.ReleaseTest do
                            new_path: ^new_path_1,
                            from_version: ^current_version,
                            to_version: ^release_version
-                         } ->
-      {:ok, :hot_upgrade}
+                         } = check ->
+      {:ok, %{check | deploy: :hot_upgrade}}
     end)
 
     with_mock System, [:passthrough],
@@ -188,8 +188,8 @@ defmodule Deployer.ReleaseTest do
                            new_path: ^new_path_1,
                            from_version: ^current_version,
                            to_version: ^release_version
-                         } ->
-      {:ok, :full_deployment}
+                         } = check ->
+      {:ok, %{check | deploy: :full_deployment}}
     end)
 
     with_mock System, [:passthrough],

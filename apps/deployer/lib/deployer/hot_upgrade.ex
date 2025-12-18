@@ -37,7 +37,7 @@ defmodule Deployer.HotUpgrade do
   This function check the release package type
   """
   @impl true
-  @spec check(data :: Check.t()) :: {:ok, :full_deployment | :hot_upgrade} | {:error, any()}
+  @spec check(data :: Check.t()) :: {:ok, Check.t()} | {:error, any()}
   def check(%Check{} = data), do: default().check(data)
 
   @doc """

@@ -59,6 +59,7 @@ defmodule Deployer.HotUpgrade.Application do
 
   alias Deployer.HotUpgrade.Check
   alias Deployer.HotUpgrade.Execute
+  alias Deployer.HotUpgrade.Jellyfish
   alias Foundation.Rpc
 
   def start_link(args) do
@@ -182,15 +183,17 @@ defmodule Deployer.HotUpgrade.Application do
     })
   end
 
-  def do_check(%Check{
-        name: name,
-        language: "elixir",
-        current_path: current_path,
-        new_path: new_path,
-        download_path: download_path,
-        from_version: from_version,
-        to_version: to_version
-      }) do
+  def do_check(
+        %Check{
+          name: name,
+          language: "elixir",
+          current_path: current_path,
+          new_path: new_path,
+          download_path: download_path,
+          from_version: from_version,
+          to_version: to_version
+        } = check
+      ) do
     # NOTE: Single file for single elixir app or multiple files for umbrella
     jellyfish_files = Path.wildcard("#{new_path}/lib/*-*/ebin/jellyfish.json")
 
@@ -207,26 +210,28 @@ defmodule Deployer.HotUpgrade.Application do
 
         File.cp!(download_path, "#{dest_dir}/#{name}.tar.gz")
 
-        {:ok, :hot_upgrade}
+        {:ok, %{check | deploy: :hot_upgrade, jellyfish_info: jellyfish_info}}
 
       {:error, reason} ->
         Logger.warning(
           "HOT UPGRADE version NOT DETECTED, full deployment required, reason: #{inspect(reason)}"
         )
 
-        {:ok, :full_deployment}
+        {:ok, %{check | deploy: :full_deployment}}
     end
   end
 
-  def do_check(%Check{
-        name: name,
-        language: "erlang",
-        current_path: current_path,
-        new_path: new_path,
-        download_path: download_path,
-        from_version: from_version,
-        to_version: to_version
-      }) do
+  def do_check(
+        %Check{
+          name: name,
+          language: "erlang",
+          current_path: current_path,
+          new_path: new_path,
+          download_path: download_path,
+          from_version: from_version,
+          to_version: to_version
+        } = check
+      ) do
     with [file_path] <-
            Path.wildcard("#{new_path}/lib/#{name}-*/ebin/*.appup"),
          :ok <- check_app_up(file_path, from_version, to_version) do
@@ -241,21 +246,21 @@ defmodule Deployer.HotUpgrade.Application do
 
       File.cp!(download_path, "#{dest_dir}/#{name}.tar.gz")
 
-      {:ok, :hot_upgrade}
+      {:ok, %{check | deploy: :hot_upgrade}}
     else
       result ->
         Logger.warning(
           "HOT UPGRADE version NOT DETECTED, full deployment required, result: #{inspect(result)}"
         )
 
-        {:ok, :full_deployment}
+        {:ok, %{check | deploy: :full_deployment}}
     end
   end
 
-  def do_check(_data) do
+  def do_check(check) do
     Logger.warning("HOT UPGRADE version NOT SUPPORTED, full deployment required")
 
-    {:ok, :full_deployment}
+    {:ok, %{check | deploy: :full_deployment}}
   end
 
   ### ==========================================================================
@@ -603,13 +608,26 @@ defmodule Deployer.HotUpgrade.Application do
   defp check_jellyfish_files(files, from_version, to_version) do
     response =
       Enum.reduce_while(files, [], fn file, acc ->
-        appup_info = file |> File.read!() |> Jason.decode!()
+        appup_info = Jellyfish.decode_jellyfish_file(file)
         dir = Path.dirname(file)
 
-        with true <- "#{from_version}" == appup_info["from"],
-             true <- "#{to_version}" == appup_info["to"],
+        # Determine version validation strategy based on upgrade type
+        # For project upgrades, use the provided versions
+        # For dependency upgrades, use versions from metadata (dependencies have
+        # independent versioning from the main project)
+        {from, to} =
+          case appup_info.type do
+            "dependency" ->
+              {to_charlist(appup_info.from), to_charlist(appup_info.to)}
+
+            _ ->
+              {from_version, to_version}
+          end
+
+        with true <- "#{from}" == appup_info.from,
+             true <- "#{to}" == appup_info.to,
              [appup] <- Path.wildcard("#{dir}/*.appup"),
-             :ok <- check_app_up(appup, from_version, to_version) do
+             :ok <- check_app_up(appup, from, to) do
           {:cont, acc ++ [appup_info]}
         else
           {:error, reason} ->

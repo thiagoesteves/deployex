@@ -25,10 +25,10 @@ Upon deployment, the following dashboard becomes available, providing easy acces
   - `gleam export` for Gleam.
   - `rebar3 as prod tar` for Erlang.
 - Supports hot code reloading for:
-  - Elixir application using the [Jellyfish][jyf] library.
-  - Elixir umbrella applications using the [Jellyfish][jyf] library.
+  - Elixir application (and libraries) using the [Jellyfish][jyf] library.
+  - Elixir umbrella applications (and libraries) using the [Jellyfish][jyf] library.
   - Erlang application using the [rebar3_appup_plugin](https://github.com/lrascao/rebar3_appup_plugin) plugin.
-  - DeployEx itself (Isn't that awesome?)
+  - DeployEx (and libraries) itself (Isn't that awesome?)
 - Supports the following cloud providers (with terraform files):
   - Amazon Web Services (AWS)
   - Google Cloud Platform (GCP)

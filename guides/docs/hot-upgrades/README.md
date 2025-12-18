@@ -3,10 +3,12 @@
 DeployEx supports hot-upgrades for both monitored applications and DeployEx itself. There are many considerations before using hot-upgrades, and the decision of when to apply them is up to each project. DeployEx uses [Jellyfish][jyf] to generate appup files automatically, which can be modified or created manually if you want to add more actions. Sometimes it's better to start by looking at what you cannot hot-upgrade, then analyze the other changes in the release. The `Jellyfish + DeployEx` package has some limitations that may change over time, so stay tuned for these recommendations.
 
 **DO NOT HOT-UPGRADE if:**
- * The new release is updating Elixir and/or Erlang OTP
- * The new release is updating/adding/removing libraries (there is a feature in progress in Jellyfish for updating specific libraries)
- * The new release changed the `runtime.exs` file
- * The new release changed config_provider files
+ * The new release is updating Erlang OTP
+ * The new release modified/deleted/added the `runtime.exs` file
+ * The new release modified/deleted/added config_provider files
+
+> [!WARNING]
+> [Jellyfish][jyf] allows you to hot-upgrade dependencies, but before performing a hot-upgrade for any dependency, treat it with the same caution as your own application code. Check if the dependency officially supports hot-upgrades between the specific versions you're upgrading, review the changelog for breaking changes or structural modifications (e.g., process state changes, supervision tree changes, API changes), and pay special attention to stateful processes like GenServers, Agents, and ETS tables that may require special handling or coordinated state migration.
 
 Keep in mind that most of your releases will not require full deployment. You don't update OTP or libraries frequently, but you can combine hot-upgrades with migrations to avoid downtime, and much more. This topic is very vast, and we encourage you to apply and learn. High availability is a feature that doesn't come for free and require learning process.
 
