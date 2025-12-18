@@ -10,7 +10,9 @@ defmodule Deployer.HotUpgrade.Check do
           current_path: String.t() | nil,
           new_path: String.t() | nil,
           from_version: binary() | charlist() | nil,
-          to_version: binary() | charlist() | nil
+          to_version: binary() | charlist() | nil,
+          deploy: :hot_upgrade | :full_deployment,
+          jellyfish_info: map() | nil
         }
 
   @derive Jason.Encoder
@@ -22,5 +24,7 @@ defmodule Deployer.HotUpgrade.Check do
             current_path: nil,
             new_path: nil,
             from_version: nil,
-            to_version: nil
+            to_version: nil,
+            deploy: :full_deployment,
+            jellyfish_info: nil
 end

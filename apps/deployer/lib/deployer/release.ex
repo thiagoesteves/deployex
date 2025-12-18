@@ -77,17 +77,20 @@ defmodule Deployer.Release do
       if is_nil(current_sname) or is_nil(new_sname) do
         {:ok, :full_deployment}
       else
-        %HotUpgrade.Check{
-          sname: current_sname,
-          name: name,
-          language: language,
-          download_path: download_path,
-          current_path: current_sname_current_path,
-          new_path: current_sname_new_path,
-          from_version: current_version,
-          to_version: release_version
-        }
-        |> HotUpgrade.check()
+        {:ok, %HotUpgrade.Check{deploy: deploy}} =
+          %HotUpgrade.Check{
+            sname: current_sname,
+            name: name,
+            language: language,
+            download_path: download_path,
+            current_path: current_sname_current_path,
+            new_path: current_sname_new_path,
+            from_version: current_version,
+            to_version: release_version
+          }
+          |> HotUpgrade.check()
+
+        {:ok, deploy}
       end
     else
       reason ->

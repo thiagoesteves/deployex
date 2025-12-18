@@ -10,6 +10,7 @@ defmodule DeployexWeb.HotUpgrade.Data do
           from_version: binary() | charlist() | nil,
           to_version: binary() | charlist() | nil,
           sha256: String.t(),
+          jellyfish_info: map() | nil,
           error: String.t() | nil
         }
 
@@ -22,5 +23,6 @@ defmodule DeployexWeb.HotUpgrade.Data do
             from_version: nil,
             to_version: nil,
             sha256: nil,
+            jellyfish_info: nil,
             error: nil
 end

@@ -21,6 +21,15 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     }
   """
 
+  @valid_jellyfish_library_file """
+    {
+      "name": "cowboy",
+      "type": "dependency",
+      "from": "0.1.0",
+      "to": "0.2.0"
+    }
+  """
+
   @invalid_jellyfish_version """
     {
       "name": "testapp",
@@ -164,7 +173,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     to_version: to_version
   } do
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -196,7 +205,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.write("#{var_path}/#{app_name}-#{to_version}.tar.gz", "")
 
     assert capture_log(fn ->
-             assert {:ok, :hot_upgrade} =
+             assert {:ok, %Check{deploy: :hot_upgrade}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -209,7 +218,43 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                       })
 
              assert File.exists?("#{current_releases_path}/#{app_name}.tar.gz")
-           end) =~ "HOT UPGRADE version DETECTED - [%{\"from\" => \"0.1.0\""
+           end) =~
+             "HOT UPGRADE version DETECTED - [%Deployer.HotUpgrade.Jellyfish{name: \"testapp\", type: \"project\", from: \"0.1.0\", to: \"0.2.0\"}]"
+  end
+
+  test "check/1 Elixir valid appup with library update, return hot upgrade detected", %{
+    sname: sname,
+    app_name: app_name,
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version,
+    var_path: var_path
+  } do
+    new_lib_ebin_path = "#{new_path}/lib/#{app_name}-#{to_version}/ebin"
+    current_releases_path = "#{current_path}/releases/#{to_version}"
+    File.mkdir_p!(new_lib_ebin_path)
+    File.mkdir_p!(current_releases_path)
+    File.write("#{new_lib_ebin_path}/#{app_name}.appup", @valid_appup_file)
+    File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_library_file)
+    File.write("#{var_path}/#{app_name}-#{to_version}.tar.gz", "")
+
+    assert capture_log(fn ->
+             assert {:ok, %Check{deploy: :hot_upgrade}} =
+                      UpgradeApp.check(%Check{
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        download_path: "#{var_path}/#{app_name}-#{to_version}.tar.gz",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
+
+             assert File.exists?("#{current_releases_path}/#{app_name}.tar.gz")
+           end) =~
+             "HOT UPGRADE version DETECTED - [%Deployer.HotUpgrade.Jellyfish{name: \"cowboy\", type: \"dependency\", from: \"0.1.0\", to: \"0.2.0\"}]"
   end
 
   test "check/1 Elixir invalid appup version, return hot upgrade not detected", %{
@@ -226,7 +271,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -255,7 +300,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.write("#{new_lib_ebin_path}/jellyfish.json", @invalid_jellyfish_version)
 
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -284,7 +329,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.write("#{new_lib_ebin_path}/jellyfish.json", @valid_jellyfish_file)
 
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -314,7 +359,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert capture_log(fn ->
              assert :ok = UpgradeApp.prepare_new_path(app_name, "elixir", to_version, new_path)
 
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -338,7 +383,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     to_version: to_version
   } do
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -378,7 +423,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert capture_log(fn ->
              assert :ok = UpgradeApp.prepare_new_path(app_name, "erlang", to_version, new_path)
 
-             assert {:ok, :hot_upgrade} =
+             assert {:ok, %Check{deploy: :hot_upgrade}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
@@ -405,7 +450,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     to_version: to_version
   } do
     assert capture_log(fn ->
-             assert {:ok, :full_deployment} =
+             assert {:ok, %Check{deploy: :full_deployment}} =
                       UpgradeApp.check(%Check{
                         sname: sname,
                         name: app_name,
