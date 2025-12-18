@@ -2,6 +2,9 @@ defmodule Deployer.HotUpgrade.Check do
   @moduledoc """
   Structure to handle the upgrade check data
   """
+
+  alias Deployer.HotUpgrade.Jellyfish
+
   @type t :: %__MODULE__{
           sname: String.t() | nil,
           name: String.t() | nil,
@@ -12,7 +15,7 @@ defmodule Deployer.HotUpgrade.Check do
           from_version: binary() | charlist() | nil,
           to_version: binary() | charlist() | nil,
           deploy: :hot_upgrade | :full_deployment,
-          jellyfish_info: map() | nil
+          jellyfish_info: list(Jellyfish.t())
         }
 
   @derive Jason.Encoder
@@ -26,5 +29,5 @@ defmodule Deployer.HotUpgrade.Check do
             from_version: nil,
             to_version: nil,
             deploy: :full_deployment,
-            jellyfish_info: nil
+            jellyfish_info: []
 end

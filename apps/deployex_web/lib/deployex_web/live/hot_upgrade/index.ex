@@ -370,7 +370,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                   Uploaded release
                 </h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <!-- Release Info -->
                   <div class="bg-base-200 border border-base-300 rounded-lg p-4">
                     <div class="flex items-center gap-2 mb-3">
@@ -470,6 +470,57 @@ defmodule DeployexWeb.HotUpgradeLive do
                         </dd>
                       </div>
                     </dl>
+                  </div>
+
+                  <div class="bg-base-200 border border-base-300 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                      <svg
+                        class="w-5 h-5 text-info"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        >
+                        </path>
+                      </svg>
+                      <h3 class="font-semibold text-base-content">Applications info</h3>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                      <table class="table table-xs">
+                        <thead>
+                          <tr>
+                            <th class="text-base-content/60">Name</th>
+                            <th class="text-base-content/60">Type</th>
+                            <th class="text-base-content/60">From</th>
+                            <th class="text-base-content/60">To</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <%= for app <- @downloaded_release.jellyfish_info || [] do %>
+                            <tr class="hover">
+                              <td class="font-mono text-xs font-medium">{app.name}</td>
+                              <td>
+                                <span class="badge badge-sm badge-outline">{app.type}</span>
+                              </td>
+                              <td class="font-mono text-xs text-base-content/70">{app.from}</td>
+                              <td class="font-mono text-xs text-primary font-medium">{app.to}</td>
+                            </tr>
+                          <% end %>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <%= if is_nil(@downloaded_release.jellyfish_info) || @downloaded_release.jellyfish_info == [] do %>
+                      <div class="text-center py-4 text-base-content/40 text-sm">
+                        No application info available
+                      </div>
+                    <% end %>
                   </div>
                 </div>
                 <!-- Warning Banner -->
