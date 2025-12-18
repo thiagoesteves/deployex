@@ -79,16 +79,17 @@ defmodule DeployexWeb.UserAuth do
   end
 
   defp ensure_user_token(conn) do
-    if token = get_session(conn, :user_token) do
-      {token, conn}
-    else
-      conn = fetch_cookies(conn, signed: [@remember_me_cookie])
+    case get_session(conn, :user_token) do
+      nil ->
+        conn = fetch_cookies(conn, signed: [@remember_me_cookie])
 
-      if token = conn.cookies[@remember_me_cookie] do
-        {token, put_token_in_session(conn, token)}
-      else
-        {nil, conn}
-      end
+        case conn.cookies[@remember_me_cookie] do
+          nil -> {nil, conn}
+          token -> {token, put_token_in_session(conn, token)}
+        end
+
+      token ->
+        {token, conn}
     end
   end
 
