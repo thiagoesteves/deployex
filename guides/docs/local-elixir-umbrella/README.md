@@ -255,6 +255,7 @@ For this scenario, the project must first be compiled to the current version and
 
 1. Since the application is already compiled for `0.1.1`, change the `mix.exs` to `0.1.2`, apply any other changes if you want to test and execute the command:
 ```bash
+MIX_ENV=prod mix deps.get # optional, in case you had updated any dependency
 MIX_ENV=prod mix assets.deploy
 MIX_ENV=prod mix compile --force
 MIX_ENV=prod mix release
