@@ -175,7 +175,10 @@ DeployEx application typically requires a few environment variables to be define
 | **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV      | Yaml configuration for Deployex and Monitored application |
 | **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV      | If using mTLS, the certificate PATH is needed             |
 
-Once DeployEx runs, it fetches the configuration from the YAML file described in the session [YAML Management](guides/docs/yaml/README.md). For local testing, these variables are not expected or set to default values.
+Once DeployEx runs, it fetches the configuration from the YAML file described in the session [YAML Management](guides/docs/yaml/README.md).
+
+> [!NOTE]
+> For local testing, these variables are not expected or set to default values.
 
 ### ☁️ Cloud Providers
 
@@ -201,11 +204,12 @@ Your application will likely require database commands, such as migrations. Depl
 
 ### 🔐 Secrets Requirements
 
-DeployEx retrieves its secrets from a Secret Manager (AWS, GCP, or local) through the config provider. The configuration requires specifying the adapter and the secret path. For example:
+DeployEx retrieves its secrets from a Secret Manager (AWS, GCP, or local) through the config provider. The configuration requires specifying the adapter and the secret path. These information is set via the [YAML File](guides/docs/yaml/README.md), For example:
 
-```bash
-DEPLOYEX_SECRETS_ADAPTER=gcp
-DEPLOYEX_SECRETS_PATH=deployex-myapp-prod-secrets
+```yaml
+# Secrets Management
+secrets_adapter: "aws"                                   # Secrets adapter: aws, gcp or env
+secrets_path: "deployex-myphoenixapp-prod-secrets"       # Secret path to retrieve from
 ```
 
 Within the secrets, the following key-value pairs are required:
@@ -332,12 +336,18 @@ DeployEx operates by monitoring applications and versions using folders and file
 
 ## 🗨️ Getting involved
 
-☎️ **Contact us:**
-Feel free to contact me on [Linkedin](https://www.linkedin.com/in/thiago-cesar-calori-esteves-972368115/).
+We'd love to have you contribute to the project! Follow **@deployex** on social media to stay updated:
+
+[<img src="https://img.shields.io/badge/Linkedin-0077B5?style=for-the-badge&logo=linkedIn&logoColor=white" />](https://www.linkedin.com/company/deployex) [<img src="https://img.shields.io/badge/Instagram-%23E4405F.svg?style=for-the-badge&logo=Instagram&logoColor=white" />](https://instagram.com/deployex) [<img src = "https://img.shields.io/badge/bluesky-%231877F2.svg?&style=for-the-badge&logo=bluesky&logoColor=white">](https://bsky.app/profile/deployex.bsky.social) [<img src = "https://img.shields.io/badge/x-%231DA1F2.svg?&style=for-the-badge&logo=x&logoColor=white">](https://x.com/deployex) [<img src = "https://img.shields.io/badge/Youtube-EA3324?style=for-the-badge&logo=youtube&logoColor=white">](https://www.youtube.com/@deployex) [<img src = "https://img.shields.io/badge/Reddit-%23FF4500.svg?style=for-the-badge&logo=Reddit&logoColor=white">](https://www.reddit.com/user/deployex)
+
+You can also follow the creator/mantainer **Thiago Esteves**:
+
+[<img src="https://img.shields.io/badge/Linkedin-0077B5?style=for-the-badge&logo=linkedIn&logoColor=white" />](https://www.linkedin.com/in/thiago-cesar-calori-esteves-972368115/)
+
 
 ## ©️ Copyright and License
 
-Copyright (c) 2024, Thiago Esteves.
+Copyright (c) 2024-2026, Thiago Esteves.
 
 DeployEx source code is licensed under the [MIT License](LICENSE.md).
 
