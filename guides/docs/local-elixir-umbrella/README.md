@@ -196,11 +196,7 @@ iex --sname deployex --cookie cookie -S mix phx.server
 iex(deployex@hostname)1>
 ```
 
-You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, the dashboard should look like this:
-
-![No mTLS Dashboard](../../static/deployex_monitoring_app_no_tls.png)
-
-Note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
+You should then visit the application and check it is running [localhost:5001](http://localhost:5001/). Since you are not using mTLS, note that the __OTP-Nodes are connected__, but the __mTLS is not supported__. The __mTLS__ can be enabled and it will be covered ahead. Leave this terminal running and open a new one to compile and release the monitored app.
 
 ## 8. Updating the application
 
