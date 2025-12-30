@@ -8,7 +8,6 @@ defmodule Foundation.Common do
   @sec_in_minute 60
   @sec_in_hour 3_600
   @sec_in_day 86_400
-  @sec_in_months 2_628_000
 
   @deploy_ref_size 6
 
@@ -124,7 +123,7 @@ defmodule Foundation.Common do
     ...> start_time = System.monotonic_time() - (:timer.hours(24) * 1000000)
     ...> assert Common.uptime_to_string(start_time) == "1d ago"
     ...> start_time = System.monotonic_time() - (:timer.hours(24 * 35) * 1000000)
-    ...> assert Common.uptime_to_string(start_time) == "1m ago"
+    ...> assert Common.uptime_to_string(start_time) == "35d ago"
   """
   @spec uptime_to_string(start_time :: integer() | nil) :: String.t()
   def uptime_to_string(nil), do: "-/-"
@@ -137,8 +136,7 @@ defmodule Foundation.Common do
       uptime when uptime < @sec_in_minute -> "<1m ago"
       uptime when uptime < @sec_in_hour -> "#{trunc(uptime / @sec_in_minute)}m ago"
       uptime when uptime < @sec_in_day -> "#{trunc(uptime / @sec_in_hour)}h ago"
-      uptime when uptime <= @sec_in_months -> "#{trunc(uptime / @sec_in_day)}d ago"
-      uptime -> "#{trunc(uptime / @sec_in_months)}m ago"
+      uptime -> "#{trunc(uptime / @sec_in_day)}d ago"
     end
   end
 
