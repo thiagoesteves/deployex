@@ -62,27 +62,25 @@ defmodule Deployer.Github.Release do
       |> Finch.build(@deployex_latest_tag, [], [])
       |> Finch.request(Deployer.Finch)
 
-    case response do
-      {:ok, %{body: body}} ->
-        info = Jason.decode!(body)
+    with {:ok, %{body: body}} <- response,
+         {:ok, info} <- Jason.decode(body) do
+      tag_name = info["tag_name"]
+      prerelease = info["prerelease"]
+      current_version = Application.spec(:foundation, :vsn) |> to_string
 
-        tag_name = info["tag_name"]
-        prerelease = info["prerelease"]
-        current_version = Application.spec(:foundation, :vsn) |> to_string
+      new_release? =
+        tag_name != nil and prerelease == false and new_release?(current_version, tag_name)
 
-        new_release? =
-          tag_name != nil and prerelease == false and new_release?(current_version, tag_name)
-
-        %__MODULE__{
-          tag_name: tag_name,
-          prerelease: prerelease,
-          new_release?: new_release?,
-          created_at: info["created_at"],
-          updated_at: info["updated_at"],
-          published_at: info["published_at"]
-        }
-
-      {:error, _reason} ->
+      %__MODULE__{
+        tag_name: tag_name,
+        prerelease: prerelease,
+        new_release?: new_release?,
+        created_at: info["created_at"],
+        updated_at: info["updated_at"],
+        published_at: info["published_at"]
+      }
+    else
+      _any ->
         # NOTE: Keep the latest state, since the application may not have acceess to
         #       network or GitHub is not available
         state

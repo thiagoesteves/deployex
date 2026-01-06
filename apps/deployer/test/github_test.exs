@@ -163,23 +163,6 @@ defmodule Deployer.GithubTest do
     end
   end
 
-  test "handles invalid JSON response" do
-    previous_state = %Release{tag_name: "1.0.0"}
-
-    with_mock Finch, [:passthrough],
-      request: fn %Finch.Request{
-                    host: "api.github.com",
-                    path: "/repos/thiagoesteves/deployex/releases/latest"
-                  },
-                  _module ->
-        {:ok, %{body: "invalid json {"}}
-      end do
-      assert_raise Jason.DecodeError, fn ->
-        Release.update_github_info(previous_state)
-      end
-    end
-  end
-
   # Helper functions
   defp build_mock_response(overrides \\ %{}) do
     Map.merge(
