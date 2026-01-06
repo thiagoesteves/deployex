@@ -9,7 +9,7 @@ defmodule Deployer.Github do
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
-  @spec latest_release() :: {:ok, Release.t()}
+  @spec latest_release() :: Release.t()
   def latest_release, do: Release.latest_release()
 
   @spec download_artifact(url :: String.t(), token :: String.t()) ::

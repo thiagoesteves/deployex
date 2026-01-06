@@ -90,9 +90,16 @@ defmodule Deployer.Github.Release do
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
-  @spec latest_release(module :: module()) :: {:ok, __MODULE__.t()}
+  @spec latest_release(module :: module()) :: __MODULE__.t()
   def latest_release(module \\ __MODULE__) do
-    Common.call_gen_server(module, :latest_release)
+    case Common.call_gen_server(module, :latest_release) do
+      {:ok, release} ->
+        release
+
+      {:error, reason} ->
+        Logger.error("Error while trying to get latest release, reason: #{inspect(reason)}")
+        %__MODULE__{}
+    end
   end
 
   ### ==========================================================================

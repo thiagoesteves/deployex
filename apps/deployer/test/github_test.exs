@@ -33,7 +33,7 @@ defmodule Deployer.GithubTest do
         end do
         assert {:ok, pid} = Release.start_link(name: custom_name)
 
-        assert {:ok, state} = Release.latest_release(custom_name)
+        assert state = Release.latest_release(custom_name)
         assert state.tag_name == "1.0.0"
         assert state.prerelease == false
         assert state.created_at == "2024-01-01T10:00:00Z"
@@ -144,7 +144,7 @@ defmodule Deployer.GithubTest do
   end
 
   test "fetch latest version from default module" do
-    assert {:ok, %Release{}} = Release.latest_release()
+    assert %Release{} = Release.latest_release()
   end
 
   test "handles timeout error" do
