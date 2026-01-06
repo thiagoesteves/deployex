@@ -17,7 +17,7 @@
  ```
 
 ### Bug fixes
- * None
+ * [`ISSUE-203`](https://github.com/thiagoesteves/deployex/issues/203) DeployEx restarted after Github returned 504
 
 ### Enhancements
  * [`ISSUE-188`](https://github.com/thiagoesteves/deployex/issues/188) Add DeployEx Secrets via environment vars
