@@ -255,7 +255,8 @@ defmodule Deployer.Status.Application do
     end
 
     uptime = Common.uptime_to_string(Application.get_env(:foundation, :booted_at))
-    {:ok, deployex_latest_release} = Github.Release.latest_release()
+
+    deployex_latest_release = Github.Release.latest_release()
 
     %Status{
       name: name,
