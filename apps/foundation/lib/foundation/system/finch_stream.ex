@@ -2,6 +2,9 @@ defmodule Foundation.System.FinchStream do
   @moduledoc """
   Downloads files using Finch with streaming support.
 
+  References:
+  https://dev.to/ndrean/notes-on-streaming-downloads-with-progress-in-elixir-4nk7
+
   ## Usage
 
   Basic download without callbacks:
