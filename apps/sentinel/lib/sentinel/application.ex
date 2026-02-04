@@ -25,6 +25,7 @@ defmodule Sentinel.Application do
     defp application_servers do
       [
         Sentinel.Watchdog,
+        Sentinel.Logs.Async.Registry,
         {Sentinel.Logs.Server,
          data_retention_period: Application.fetch_env!(:foundation, :logs_retention_time_ms)}
       ]
