@@ -326,7 +326,7 @@ In order to improve security, mutual TLS (`mTLS` for short) can be employed to e
 
 1. Generate the necessary certificates, DeployEx has a good examples of how to create self-signed tls certificates:
 ```bash
-cd deployex
+cd deployex/devops/scripts/certificates/otp-28/
 ./tls-distribution-certs
 ```
 

@@ -80,7 +80,8 @@ DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
 Create the TLS certificates for OTP distribution using the [Following script][tls], changing the appropriate names and regions inside it.
 
 ```bash
-make tls-distribution-certs
+cd deployex/devops/scripts/certificates/otp-28/
+./tls-distribution-certs
 ```
 
 The command will generate three files: `ca.crt`, `deployex.key` and `deployex.crt`. Click in each secret in AWS, then select "Retrieve Secret Value" and edit the secret by adding them as plain text, For guidance, you can refer to this [eaxample](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-ranger-tls-certificates.html).
@@ -269,6 +270,6 @@ systemctl reload nginx
 > [!NOTE]
 > After the changes, It may require a reboot.
 
-[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/tls-distribution-certs[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/tls-distribution-certs
+[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
 [main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir/terraform/environments/prod/main_example.tf_
 [var]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir/terraform/modules/standard-account/variables.tf
