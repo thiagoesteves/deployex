@@ -18,6 +18,7 @@
 
 ### Bug fixes
  * [`ISSUE-203`](https://github.com/thiagoesteves/deployex/issues/203) DeployEx restarted after Github returned 504
+ * [`PULL-208`](https://github.com/thiagoesteves/deployex/pull/208) Disabling mouse on tmux due to issues between tmux and xterm
 
 ### Enhancements
  * [`ISSUE-188`](https://github.com/thiagoesteves/deployex/issues/188) Add DeployEx Secrets via environment vars
