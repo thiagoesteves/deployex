@@ -1,0 +1,57 @@
+#!/usr/bin/env elixir
+# Generate certificates
+#
+
+Mix.install([
+  {:x509, "~> 0.9"}
+])
+
+defmodule Script do
+  def run do
+    # Where we put certs.
+    certdir = "."
+
+    # Define domains
+    commonName = "deployex"
+    primary_domain = "deployex.pro"
+    subdomains = ["www.#{primary_domain}"]
+
+    ## Generate a "snake oil" CA Certificate
+    ca_subject = "/C=BR/ST=Sao Paulo/L=Sao Paulo/O=Acme/CN=ECDSA Root CA"
+    ca_key = X509.PrivateKey.new_ec(:secp256r1)
+    ca_crt = X509.Certificate.self_signed(ca_key, ca_subject, template: :root_ca)
+
+    out_crt = Path.join(certdir, "ca.crt")
+
+    File.write!(out_crt, X509.Certificate.to_pem(ca_crt))
+
+    key_size = 2048
+    # 1 year, plus a 30 days grace period
+    validity_days = 365 + 30
+
+    key = X509.PrivateKey.new_rsa(key_size)
+    subject = X509.Certificate.Extension.subject_alt_name([primary_domain] ++ subdomains)
+
+    now = DateTime.truncate(DateTime.utc_now(), :second)
+    expires_at = DateTime.add(now, validity_days * 86_400, :second)
+    validity = X509.Certificate.Validity.new(now, expires_at)
+
+    cert = X509.Certificate.self_signed(
+      key,
+      "/CN=#{primary_domain}",
+      template: :server,
+      validity: validity,
+      extensions: [subject_alt_name: subject]
+    )
+    
+    out_key = Path.join(certdir, "#{commonName}.key")
+    out_cert = Path.join(certdir, "#{commonName}.crt")
+
+    File.write!(out_key, X509.PrivateKey.to_pem(key))
+
+    File.write!(out_cert, X509.Certificate.to_pem(cert))
+
+  end
+end
+
+Script.run()
