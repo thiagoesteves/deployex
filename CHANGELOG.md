@@ -25,6 +25,7 @@
  * [`PULL-189`](https://github.com/thiagoesteves/deployex/pull/189) Adding hot upgrade functionality for DeployEx itself via CLI
  * [`PULL-193`](https://github.com/thiagoesteves/deployex/pull/193) Adding UI/UX for hotupgrading deployex itself
  * [`PULL-201`](https://github.com/thiagoesteves/deployex/pull/201) Adding support for hotupgrading libraries
+ * [`PULL-211`](https://github.com/thiagoesteves/deployex/pull/211) Adding self-signed certificate generation depending on the OTP release
 
 # Host Binaries Available
 
