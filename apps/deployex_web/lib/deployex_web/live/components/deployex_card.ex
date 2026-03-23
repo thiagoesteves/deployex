@@ -151,7 +151,7 @@ defmodule DeployexWeb.Components.DeployexCard do
                   </svg>
                   <div class="text-xs font-medium text-base-content/60">mTLS</div>
                 </div>
-                <.supported? status={@deployex.tls} />
+                <.supported? tls={@deployex.tls} sname={@deployex.sname} />
               </div>
 
               <div
@@ -323,17 +323,37 @@ defmodule DeployexWeb.Components.DeployexCard do
 
   defp supported?(assigns) do
     ~H"""
-    <%= if @status == :supported do %>
-      <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-success rounded-full"></div>
-        <span class="text-sm font-medium text-success">Supported</span>
-      </div>
-    <% else %>
-      <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-error rounded-full"></div>
-        <span class="text-sm font-medium text-error">Not Supported</span>
-      </div>
-    <% end %>
+    <div class="flex items-center justify-between gap-1">
+      <%= if @tls do %>
+        <div class="flex items-center gap-1">
+          <div class="w-2 h-2 bg-success rounded-full"></div>
+          <span class="text-sm font-medium text-success">Supported</span>
+        </div>
+        <button
+          phx-click="show-tls-certificate"
+          phx-value-sname={@sname}
+          type="button"
+          class="btn btn-xs btn-circle bg-success/10 border-success/20 text-success 
+                 hover:bg-success/20 hover:scale-110 transition-all duration-200 tooltip"
+          data-tip="View certificate details"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                 a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        </button>
+      <% else %>
+        <div class="flex items-center gap-1">
+          <div class="w-2 h-2 bg-error rounded-full"></div>
+          <span class="text-sm font-medium text-error">Not Supported</span>
+        </div>
+      <% end %>
+    </div>
     """
   end
 

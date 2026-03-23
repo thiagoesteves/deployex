@@ -273,7 +273,7 @@ defmodule Deployer.Status.Application do
       deploy_schedule_interval_ms: 0,
       version: current_version(name),
       otp: check_otp_deployex.(),
-      tls: Common.check_mtls(),
+      tls: mtls_certificate(),
       last_deployment: current_version_map(name).deployment,
       status: :running,
       uptime: uptime,
@@ -312,7 +312,7 @@ defmodule Deployer.Status.Application do
       ports: ports,
       version: current_version(sname),
       otp: check_otp_monitored_app.(node, status),
-      tls: Common.check_mtls(),
+      tls: mtls_certificate(),
       last_deployment: current_version_map(sname).deployment,
       status: status,
       crash_restart_count: crash_restart_count,
@@ -321,5 +321,20 @@ defmodule Deployer.Status.Application do
       language: language,
       monitoring: monitoring
     }
+  end
+
+  # Caches the mTLS certificate in the process dictionary on first access,
+  # since the certificate doesn't change during the application's lifetime.
+  # Returns the %Foundation.Certificate{} struct or nil if mTLS is not supported.
+  defp mtls_certificate do
+    case Process.get(:mtls_certificate, :unchecked) do
+      :unchecked ->
+        cert = Common.mtls_certificate()
+        Process.put(:mtls_certificate, cert)
+        cert
+
+      cert ->
+        cert
+    end
   end
 end
