@@ -9,6 +9,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.Cache.UiSettings
+  alias DeployexWeb.Components.CertificateModal
   alias DeployexWeb.Components.ConfigChangesModal
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Dashboard
@@ -104,6 +105,14 @@ defmodule DeployexWeb.ApplicationsLive do
         pending_changes={@yaml_config.pending_config_changes}
         on_cancel="confirm-close-modal"
         on_apply="config-changes-apply"
+      />
+    <% end %>
+
+    <%= if @mtls_certificate.show_modal do %>
+      <CertificateModal.modal
+        id="certificate"
+        certificate={@mtls_certificate.certificate}
+        on_cancel="confirm-close-modal"
       />
     <% end %>
 
@@ -343,6 +352,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
       |> assign(:yaml_config, yaml_config)
+      |> assign(:mtls_certificate, default_mtls_certificate())
       |> assign(:current_path, "/applications")
 
     {:ok, socket}
@@ -364,6 +374,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
      |> assign(:yaml_config, default_yaml_config())
+     |> assign(:mtls_certificate, default_mtls_certificate())
      |> assign(:current_path, "/applications")}
   end
 
@@ -620,6 +631,28 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
+  def handle_event(
+        "show-tls-certificate",
+        %{"sname" => "deployex"},
+        %{
+          assigns: %{
+            mtls_certificate: mtls_certificate,
+            monitoring_apps_data: monitoring_apps_data
+          }
+        } = socket
+      ) do
+    deployex = Enum.find(monitoring_apps_data, &(&1.name == "deployex"))
+
+    {:noreply,
+     socket
+     |> assign(:mtls_certificate, %{
+       mtls_certificate
+       | show_modal: true,
+         certificate: deployex.tls
+     })
+     |> push_patch(to: ~p"/applications")}
+  end
+
   def handle_event("config-changes-apply", _any, socket) do
     Watcher.apply_changes()
 
@@ -630,11 +663,16 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event("confirm-close-modal", _, %{assigns: %{yaml_config: yaml_config}} = socket) do
+  def handle_event(
+        "confirm-close-modal",
+        _,
+        %{assigns: %{yaml_config: yaml_config, mtls_certificate: mtls_certificate}} = socket
+      ) do
     {:noreply,
      socket
      |> assign(:mode_confirmation, nil)
      |> assign(:yaml_config, %{yaml_config | show_modal: false})
+     |> assign(:mtls_certificate, %{mtls_certificate | show_modal: false})
      |> push_patch(to: ~p"/applications")}
   end
 
@@ -703,6 +741,13 @@ defmodule DeployexWeb.ApplicationsLive do
     %{
       show_modal: false,
       pending_config_changes: nil
+    }
+  end
+
+  defp default_mtls_certificate do
+    %{
+      show_modal: false,
+      certificate: nil
     }
   end
 end

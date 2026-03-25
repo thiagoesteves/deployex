@@ -5,6 +5,8 @@ defmodule Foundation.Common do
 
   import Foundation.Macros
 
+  alias Foundation.Certificate
+
   @sec_in_minute 60
   @sec_in_hour 3_600
   @sec_in_day 86_400
@@ -56,14 +58,18 @@ defmodule Foundation.Common do
   ## Examples
 
     iex> alias Foundation.Common
-    ...> assert Common.check_mtls == :not_supported
+    ...> refute Common.mtls_certificate()
   """
-  @spec check_mtls() :: :supported | :not_supported
-  def check_mtls do
-    if :init.get_arguments()[:ssl_dist_optfile] do
-      :supported
+  @spec mtls_certificate() :: Certificate.t() | nil
+  def mtls_certificate do
+    with [inet_tls_path] <- :init.get_arguments()[:ssl_dist_optfile],
+         {:ok, [config]} <- :file.consult(inet_tls_path),
+         certfile <- config[:server][:certfile],
+         certificate_path when certificate_path != "" <- to_string(certfile) do
+      Certificate.decode(certificate_path)
     else
-      :not_supported
+      _ ->
+        nil
     end
   end
 

@@ -329,7 +329,7 @@ defmodule Deployer.Monitor.Application do
       |> build_export_command()
 
     ssl_options =
-      if Common.check_mtls() == :supported do
+      if Common.mtls_certificate() do
         "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
       else
         ""
@@ -365,7 +365,7 @@ defmodule Deployer.Monitor.Application do
       |> build_export_command()
 
     ssl_options =
-      if Common.check_mtls() == :supported do
+      if Common.mtls_certificate() do
         "-proto_dist inet_tls -ssl_dist_optfile /tmp/inet_tls.conf"
       else
         ""

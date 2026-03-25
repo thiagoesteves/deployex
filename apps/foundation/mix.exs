@@ -34,6 +34,8 @@ defmodule Foundation.MixProject do
       {:plug_crypto, "~> 2.1.0"},
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix_pubsub, "~> 2.0"},
+      # Certificate handling
+      {:x509, "~> 0.9"},
       # Used by Config Provider only
       {:configparser_ex, "~> 4.0"},
       {:ex_aws, "~> 2.1"},
