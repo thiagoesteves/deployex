@@ -61,7 +61,7 @@ defmodule Foundation.Common do
     ...> refute Common.mtls_certificate()
   """
 
-  @spec mtls_certificate() :: %Certificate{} | nil
+  @spec mtls_certificate() :: Certificate.t() | nil
   def mtls_certificate do
     with [inet_tls_path] <- :init.get_arguments()[:ssl_dist_optfile],
          {:ok, [config]} <- :file.consult(inet_tls_path),
