@@ -7,8 +7,8 @@ defmodule Foundation.Certificate do
           serial: String.t() | nil,
           version: String.t() | nil,
           public_key_type: [String.t()] | nil,
-          public_key_size: String.t() | nil,
-          expires_in_days: String.t() | nil,
+          public_key_size: integer() | nil,
+          expires_in_days: integer() | nil,
           domains: list()
         }
 

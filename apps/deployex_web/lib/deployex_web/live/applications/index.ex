@@ -110,7 +110,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
     <%= if @mtls_certificate.show_modal do %>
       <CertificateModal.modal
-        id="yaml"
+        id="certificate"
         certificate={@mtls_certificate.certificate}
         on_cancel="confirm-close-modal"
       />

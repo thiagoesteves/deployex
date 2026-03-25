@@ -334,6 +334,7 @@ defmodule DeployexWeb.Components.DeployexCard do
           <span class="text-sm font-medium text-success">Supported</span>
         </div>
         <button
+          id="show-tls-certificate-id"
           phx-click="show-tls-certificate"
           phx-value-sname={@sname}
           type="button"

@@ -12,7 +12,7 @@ defmodule DeployexWeb.Components.CertificateModal do
   def modal(assigns) do
     ~H"""
     <div
-      id={"#{@id}-certificate-modal"}
+      id={"#{@id}-modal"}
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       phx-window-keydown={@on_cancel}
       phx-key="escape"

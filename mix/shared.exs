@@ -41,6 +41,7 @@ defmodule Mix.Shared do
         Foundation.Application,
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
+        Foundation.Certificate,
         Foundation.System.Zip,
         # Host
         Host.Info,
