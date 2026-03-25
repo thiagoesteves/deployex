@@ -151,7 +151,7 @@ defmodule DeployexWeb.Components.DeployexCard do
                   </svg>
                   <div class="text-xs font-medium text-base-content/60">mTLS</div>
                 </div>
-                <.supported? tls={@deployex.tls} sname={@deployex.sname} />
+                <.supported? certificate={@deployex.tls} sname={@deployex.sname} />
               </div>
 
               <div
@@ -321,10 +321,14 @@ defmodule DeployexWeb.Components.DeployexCard do
     """
   end
 
+  attr :warn_tls_exp_days, :integer, default: 30
+  attr :certificate, :map, required: true
+  attr :sname, :string, required: true
+
   defp supported?(assigns) do
     ~H"""
     <div class="flex items-center justify-between gap-1">
-      <%= if @tls do %>
+      <%= if @certificate do %>
         <div class="flex items-center gap-1">
           <div class="w-2 h-2 bg-success rounded-full"></div>
           <span class="text-sm font-medium text-success">Supported</span>
@@ -333,9 +337,18 @@ defmodule DeployexWeb.Components.DeployexCard do
           phx-click="show-tls-certificate"
           phx-value-sname={@sname}
           type="button"
-          class="btn btn-xs btn-circle bg-success/10 border-success/20 text-success 
-                 hover:bg-success/20 hover:scale-110 transition-all duration-200 tooltip"
-          data-tip="View certificate details"
+          class={[
+            "btn btn-xs btn-circle transition-all duration-200 tooltip hover:scale-110",
+            if(@certificate.expires_in_days <= @warn_tls_exp_days,
+              do: "bg-error/10 border-error/20 text-error hover:bg-error/20",
+              else: "bg-success/10 border-success/20 text-success hover:bg-success/20"
+            )
+          ]}
+          data-tip={
+            if @certificate.expires_in_days <= @warn_tls_exp_days,
+              do: "Certificate expires in #{@certificate.expires_in_days} days!",
+              else: "View certificate details"
+          }
         >
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
