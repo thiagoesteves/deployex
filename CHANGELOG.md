@@ -6,7 +6,7 @@
  * None
 
 ### Bug fixes
- * [`PULL-xxx`](https://github.com/thiagoesteves/deployex/pull/xxx) Updating due to vulnerabilities
+ * [`PULL-217`](https://github.com/thiagoesteves/deployex/pull/217) Updating due to vulnerabilities
 
 ### Enhancements
  * None
