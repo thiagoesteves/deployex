@@ -1,17 +1,28 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.0 🚀 (2026-04-01)
+## 0.9.1 🚀 (2026-05-15)
+
+### Backwards incompatible changes from 0.9.1
+ * None
+
+### Bug fixes
+ * [`PULL-xxx`](https://github.com/thiagoesteves/deployex/pull/xxx) Updating due to vulnerabilities
+
+### Enhancements
+ * None
+
+## 0.9.1 🚀 (2026-04-01)
 
 ### Backwards incompatible changes from 0.8.0
 
 ### Hotupgrade
- * Hotupgrade from 0.8.0 to 0.9.0 is not viable since the previous version doesn't support it.
+ * Hotupgrade from 0.8.0 to 0.9.1 is not viable since the previous version doesn't support it.
 
 ### Installer Actions
  1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation, hotupgrades and changing folder for log directories.
  ```bash
  rm deployex.sh
- wget https://github.com/thiagoesteves/deployex/releases/download/0.9.0/deployex.sh
+ wget https://github.com/thiagoesteves/deployex/releases/download/0.9.1/deployex.sh
  chmod a+x deployex.sh
  ./deployex.sh --install
  ```
