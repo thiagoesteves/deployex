@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.0 🚀 (2026-05-15)
+
+### Backwards incompatible changes from 0.9.0
+ * None
+
+### Bug fixes
+ * [`PULL-xxx`](https://github.com/thiagoesteves/deployex/pull/xxx) Updating due to vulnerabilities
+
+### Enhancements
+ * None
+
 ## 0.9.0 🚀 (2026-04-01)
 
 ### Backwards incompatible changes from 0.8.0
