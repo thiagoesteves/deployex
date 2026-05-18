@@ -4,7 +4,6 @@ defmodule Deployer.Status.Application do
   """
 
   use GenServer
-  require Logger
 
   @behaviour Deployer.Status.Adapter
 

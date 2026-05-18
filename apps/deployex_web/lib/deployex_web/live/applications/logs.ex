@@ -1,8 +1,6 @@
 defmodule DeployexWeb.ApplicationsLive.Logs do
   use DeployexWeb, :live_component
 
-  require Logger
-
   alias DeployexWeb.Helper
   alias Foundation.Catalog
   alias Host.Terminal

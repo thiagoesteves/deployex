@@ -2,7 +2,6 @@ defmodule Deployer.Engine.Supervisor do
   @moduledoc false
 
   use DynamicSupervisor
-  require Logger
 
   alias Deployer.Engine.Worker
 

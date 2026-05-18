@@ -1,54 +1,31 @@
-# CHANGELOG (0.9.X)
+# CHANGELOG (0.10.X)
 
-## 0.9.1 🚀 (2026-05-15)
+## 0.10.0 ()
 
-### Backwards incompatible changes from 0.9.0
+From this version onwards the OTP-27 won't be supported in favor of the new OTP-29 version
+
+### Backwards incompatible changes from 0.9.1
  * None
 
 ### Bug fixes
- * [`PULL-217`](https://github.com/thiagoesteves/deployex/pull/217) Updating due to vulnerabilities
+ * None
 
 ### Enhancements
  * None
-
-## 0.9.0 🚀 (2026-04-01)
-
-### Backwards incompatible changes from 0.8.0
-
-### Hotupgrade
- * Hotupgrade from 0.8.0 to 0.9.0 is not viable since the previous version doesn't support it.
-
-### Installer Actions
- 1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation, hotupgrades and changing folder for log directories.
- ```bash
- rm deployex.sh
- wget https://github.com/thiagoesteves/deployex/releases/download/0.9.1/deployex.sh
- chmod a+x deployex.sh
- ./deployex.sh --install
- ```
-
-### Bug fixes
- * [`ISSUE-203`](https://github.com/thiagoesteves/deployex/issues/203) DeployEx restarted after Github returned 504
- * [`PULL-208`](https://github.com/thiagoesteves/deployex/pull/208) Disabling mouse on tmux due to issues between tmux and xterm
-
-### Enhancements
- * [`ISSUE-188`](https://github.com/thiagoesteves/deployex/issues/188) Add DeployEx Secrets via environment vars
- * [`PULL-189`](https://github.com/thiagoesteves/deployex/pull/189) Adding hot upgrade functionality for DeployEx itself via CLI
- * [`PULL-193`](https://github.com/thiagoesteves/deployex/pull/193) Adding UI/UX for hotupgrading deployex itself
- * [`PULL-201`](https://github.com/thiagoesteves/deployex/pull/201) Adding support for hotupgrading libraries
- * [`PULL-211`](https://github.com/thiagoesteves/deployex/pull/211) Adding self-signed certificate generation depending on the OTP release
- * [`PULL-214`](https://github.com/thiagoesteves/deployex/pull/214) Adding mTLS information for checking the certificates and show in the UI
 
 # Host Binaries Available
 
 This release includes binaries for the following Ubuntu versions:
 
- * Ubuntu 24.04 with OTP 27 - [deployex-ubuntu-24.04-otp-27.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-27/.tool-versions)
  * Ubuntu 24.04 with OTP 28 - [deployex-ubuntu-24.04-otp-28.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-28/.tool-versions)
+ * Ubuntu 24.04 with OTP 29 - [deployex-ubuntu-24.04-otp-29.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-29/.tool-versions)
 
  You can use these pre-built binaries, or you can build your own if preferred.
 
 # Previous Releases
+
+ * [0.9.1 🚀 (2026-05-15)](https://github.com/thiagoesteves/deployex/blob/0.9.1/CHANGELOG.md)
+ * [0.9.0 🚀 (2026-04-01)](https://github.com/thiagoesteves/deployex/blob/0.9.0/CHANGELOG.md)
  * [0.8.0 🚀 (2025-11-20)](https://github.com/thiagoesteves/deployex/blob/0.8.0/CHANGELOG.md)
  * [0.7.3 🚀 (2025-10-28)](https://github.com/thiagoesteves/deployex/blob/0.7.3/CHANGELOG.md)
  * [0.7.2 🚀 (2025-10-16)](https://github.com/thiagoesteves/deployex/blob/0.7.2/CHANGELOG.md)

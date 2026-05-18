@@ -5,8 +5,6 @@ defmodule Foundation.ConfigProvider.Secrets.Aws do
   @behaviour Foundation.ConfigProvider.Secrets.Adapter
   @behaviour ExAws.Request.HttpClient
 
-  require Logger
-
   alias ExAws.Operation.JSON
 
   @doc """

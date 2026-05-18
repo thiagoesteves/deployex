@@ -78,19 +78,9 @@ Check out this must-watch video:
 
 Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP Major version to prevent compatibility issues and system malfunctions. DeployEx releases will contain binaries for the following OTP versions:
 
-| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
+| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> | <img src="https://img.shields.io/badge/OTP-29-green.svg"/> |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [**0.9.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.1) | **27.3.4.9**                                               | **28.4.1**                                                 |
-| [**0.9.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.0) | **27.3.4.9**                                               | **28.4.1**                                                 |
-| [**0.8.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.8.0) | **27.3.4.3**                                               | **28.1.1**                                                 |
-| [**0.7.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.3) | **27.3.4.3**                                               | **28.1.1** [1]                                             |
-| [**0.7.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.2) | **27.3.4.3**                                               | **28.1** [1]                                               |
-| [**0.7.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.1) | **27.3.4.3**                                               | **28.1** [1]                                               |
-| [**0.7.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.0) | **27.3.4.3**                                               | **28.1** [1]                                               |
-| [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | **27.3.4.2**                                               | **28.0.2** [1]                                             |
-| [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | **27.3.4.2**                                               | **28.0.2** [1]                                             |
-
-- **[1]** - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4)
+| [**0.10.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.1) | **28.4.1**                                                | **29.0**                                                   |
 
 ### Running the application
 
