@@ -7,8 +7,6 @@ defmodule Sentinel.Config.Upgradable do
   they require system-level changes.
   """
 
-  require Logger
-
   alias Foundation.Yaml
 
   defstruct logs_retention_time_ms: nil,

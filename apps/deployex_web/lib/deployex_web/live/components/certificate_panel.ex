@@ -6,7 +6,6 @@ defmodule DeployexWeb.Components.CertificatePanel do
   `name` is passed as phx-name-id to identify which cert to show in the modal.
   """
   use DeployexWeb, :html
-  use Phoenix.Component
 
   @warn_days 30
 

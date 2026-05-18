@@ -11,8 +11,6 @@ defmodule Foundation.Catalog.Local do
 
   @behaviour Foundation.Catalog.Adapter
 
-  require Logger
-
   @token_table :tokens
   @deployex_name "deployex"
   @deployex_sname "deployex"

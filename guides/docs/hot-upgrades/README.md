@@ -382,7 +382,7 @@ Use the DeployEx web interface to download a release from GitHub:
 
 ### Choosing the right release file
 
-Each release publishes one artifact per OTP line, `deployex-ubuntu-24.04-otp-27.tar.gz` and `deployex-ubuntu-24.04-otp-28.tar.gz`.
+Each release publishes one artifact per OTP line, `deployex-ubuntu-24.04-otp-28.tar.gz` and `deployex-ubuntu-24.04-otp-29.tar.gz`.
 The file has to match the `otp_version` the installation runs, which is the one in its `deployex.yaml`.
 Picking the wrong one is the easiest way to hit the first entry of [When NOT to hot-upgrade](#when-not-to-hot-upgrade), updating Erlang OTP, without meaning to.
 
@@ -393,7 +393,7 @@ The wrong file is refused while the release is validated, before anything is unp
 
 ```bash
 [error] Hot upgrade refused, this release was built for a different OTP. deployex runs
-OTP 27 with erts 15.2.7.11 and the release brings erts 16.4.0.4. A hot upgrade cannot
+OTP 28 with erts 16.4.0.6 and the release brings erts 17.0.6. A hot upgrade cannot
 replace the runtime under a running system. Use the artifact matching the otp_version
 this installation runs, or apply it as a full deployment.
 ```

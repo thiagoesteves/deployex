@@ -3,7 +3,6 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   Modal component for displaying pending configuration changes in a human-readable format.
   """
   use DeployexWeb, :html
-  use Phoenix.Component
 
   alias DeployexWeb.Helper
 
