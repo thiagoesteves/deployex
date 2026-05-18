@@ -2,7 +2,7 @@
 
 ## 0.9.1 🚀 (2026-05-15)
 
-### Backwards incompatible changes from 0.9.1
+### Backwards incompatible changes from 0.9.0
  * None
 
 ### Bug fixes
@@ -11,12 +11,12 @@
 ### Enhancements
  * None
 
-## 0.9.1 🚀 (2026-04-01)
+## 0.9.0 🚀 (2026-04-01)
 
 ### Backwards incompatible changes from 0.8.0
 
 ### Hotupgrade
- * Hotupgrade from 0.8.0 to 0.9.1 is not viable since the previous version doesn't support it.
+ * Hotupgrade from 0.8.0 to 0.9.0 is not viable since the previous version doesn't support it.
 
 ### Installer Actions
  1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation, hotupgrades and changing folder for log directories.
