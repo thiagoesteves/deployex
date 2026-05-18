@@ -4,7 +4,6 @@ defmodule DeployexWeb.Components.CertificateModal do
   Accepts a normalized certificate map (see ApplicationsLive.normalize_certificate/1).
   """
   use DeployexWeb, :html
-  use Phoenix.Component
 
   attr :id, :string, required: true
   attr :certificate, :map, required: true

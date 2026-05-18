@@ -4,8 +4,6 @@ defmodule Foundation.ConfigProvider.Secrets.Env do
   """
   @behaviour Foundation.ConfigProvider.Secrets.Adapter
 
-  require Logger
-
   @secrets [
     "DEPLOYEX_ADMIN_HASHED_PASSWORD",
     "DEPLOYEX_SECRET_KEY_BASE",

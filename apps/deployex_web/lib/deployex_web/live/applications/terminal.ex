@@ -16,8 +16,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
   @terminal_timeout :timer.minutes(15)
 
-  require Logger
-
   @impl true
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do

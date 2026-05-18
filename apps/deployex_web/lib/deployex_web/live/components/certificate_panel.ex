@@ -6,7 +6,6 @@ defmodule DeployexWeb.Components.CertificatePanel do
   `name` is passed as phx-name-id to identify which cert to show in the modal.
   """
   use DeployexWeb, :html
-  use Phoenix.Component
 
   @warn_days 30
 
@@ -72,8 +71,8 @@ defmodule DeployexWeb.Components.CertificatePanel do
             View details
           </button>
         </div>
-        
-    <!-- Summary fields -->
+
+        <!-- Summary fields -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div class="bg-base-100 border border-base-300 rounded-lg p-2.5">
             <div class="text-xs text-base-content/60 mb-1">Issuer</div>
