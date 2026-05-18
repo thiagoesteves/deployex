@@ -92,7 +92,7 @@ defmodule Deployex.MixProject do
         "guides/docs/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
         "guides/docs/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
         "guides/docs/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
-        "guides/docs/local-elixir/README.md": [
+        "guides/docs/local-elixir-ecto/README.md": [
           filename: "README.md",
           title: "Local-Elixir-Ecto"
         ],
@@ -124,6 +124,7 @@ defmodule Deployex.MixProject do
       {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mock, "~> 0.3.0", only: :test},
+      {:meck, "~> 1.2", only: :test, override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:jellyfish, "~> 0.2.0"}
