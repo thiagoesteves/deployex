@@ -1,5 +1,5 @@
 defmodule Foundation.CatalogTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Foundation.Accounts.UserToken
   alias Foundation.Catalog

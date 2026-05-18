@@ -26,8 +26,7 @@ defmodule DeployexWeb.ObserverLive do
                   src={~p"/observer/tracing?iframe=true"}
                   class="w-full min-h-[90vh] border-0"
                   title="Observer Web"
-                >
-                </iframe>
+                ></iframe>
                 <!-- Loading Overlay (optional) -->
                 <div
                   class="absolute inset-0 bg-base-100/80 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300"

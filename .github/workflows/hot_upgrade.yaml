@@ -6,11 +6,11 @@ on:
       otp:
         description: "OTP version"
         required: true
-        default: "28"
+        default: "29"
         type: choice
         options:
-          - "27"
           - "28"
+          - "29"
       from_version:
         description: "Version to upgrade from (tag only)"
         required: true

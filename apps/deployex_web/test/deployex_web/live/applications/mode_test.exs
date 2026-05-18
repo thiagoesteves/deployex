@@ -48,7 +48,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     refute html =~ "1.0.39"
     refute html =~ "1.0.40"
 
-    assert html =~ "<option selected=\"selected\" value=\"automatic\">automatic</option>"
+    assert html =~ ~r/<option(?=[^>]*selected)(?=[^>]*value="automatic")[^>]*>automatic<\/option>/
   end
 
   @tag :capture_log
@@ -81,7 +81,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     refute has_element?(index_live, "#cancel-button-mode")
 
     assert render(index_live) =~
-             "<option selected=\"selected\" value=\"automatic\">automatic</option>"
+             ~r/<option(?=[^>]*selected)(?=[^>]*value="automatic")[^>]*>automatic<\/option>/
   end
 
   @tag :capture_log
@@ -197,7 +197,7 @@ defmodule DeployexWeb.Applications.ModeTest do
 
     {:ok, _index_live, html} = live(conn, ~p"/applications")
 
-    assert html =~ "<option selected=\"selected\" value=\"1.0.2\">1.0.2</option>"
+    assert html =~ ~r/<option(?=[^>]*selected)(?=[^>]*value="1\.0\.2")[^>]*>1\.0\.2<\/option>/
   end
 
   @tag :capture_log

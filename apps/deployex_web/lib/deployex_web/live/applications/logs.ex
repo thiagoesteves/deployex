@@ -1,8 +1,6 @@
 defmodule DeployexWeb.ApplicationsLive.Logs do
   use DeployexWeb, :live_component
 
-  require Logger
-
   alias DeployexWeb.Helper
   alias Foundation.Catalog
   alias Host.Terminal
@@ -26,8 +24,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
               <span
                 class="w-[5px] rounded ml-1 mr-1"
                 style={"background-color: #{log_message.color};"}
-              >
-              </span>
+              ></span>
               <div class="font-mono text-xs text-base-content/90 w-1/2 ">
                 <details>
                   <summary class="cursor-pointer truncate">

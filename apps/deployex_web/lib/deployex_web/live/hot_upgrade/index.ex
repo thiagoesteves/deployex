@@ -263,8 +263,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                       class="progress progress-primary w-full"
                       value={@github.download_progress}
                       max="100"
-                    >
-                    </progress>
+                    ></progress>
 
                     <div class="flex items-center gap-3 ml-3 w-20">
                       <span class="text-sm font-semibold">{@github.download_progress}%</span>

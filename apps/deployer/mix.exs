@@ -35,7 +35,7 @@ defmodule Deployer.MixProject do
       {:ex_aws, "~> 2.1"},
       {:ex_aws_s3, "~> 2.0"},
       {:goth, "~> 1.4"},
-      {:briefly, "~> 0.4.1"},
+      {:briefly, "~> 0.5"},
       # Static Analysis
       {:mox, "~> 1.0", only: :test},
       {:mock, "~> 0.3.0", only: :test},

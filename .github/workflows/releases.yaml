@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp: [27, 28]
+        otp: [28, 29]
     env:
       ARTIFACT_NAME: deployex-ubuntu-24.04-otp-${{ matrix.otp }}.tar.gz
     steps:
