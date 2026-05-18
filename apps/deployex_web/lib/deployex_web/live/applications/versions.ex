@@ -1,8 +1,6 @@
 defmodule DeployexWeb.ApplicationsLive.Versions do
   use DeployexWeb, :live_component
 
-  require Logger
-
   alias Deployer.Status
 
   attr :name, :string, required: true

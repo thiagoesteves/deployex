@@ -14,8 +14,6 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   alias Host.Commander
   alias Host.Terminal
 
-  require Logger
-
   @impl true
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do

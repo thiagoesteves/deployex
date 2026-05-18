@@ -100,8 +100,6 @@ defmodule Foundation.System.FinchStream do
       end
   """
 
-  require Logger
-
   @type t :: %__MODULE__{
           url: String.t() | nil,
           file_path: String.t() | nil,
