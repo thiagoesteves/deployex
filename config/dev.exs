@@ -114,7 +114,34 @@ config :foundation,
           warning_threshold_percent: 75,
           restart_threshold_percent: 90
         }
-      ]
+      ],
+      certificates: []
+      # NOTE: Enable for certificate testing
+      # certificates: [
+      #   %{
+      #     type: :domains,
+      #     domains: ["*.example.com", "hub.example.com"],
+      #     certificate_check_interval_ms: 86_400_000,
+      #     dns_propagation_timeout_ms: 120_000,
+      #     dns_check_interval_ms: 5000,
+      #     renew_before_days: 30,
+      #     dns_provider: Foundation.Certificates.DNSProvider.Route53,
+      #     dns_options: %{
+      #       ttl: 60,
+      #       zone: "zone"
+      #     },
+      #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+      #     acme_options: %{
+      #       contact_email: "myapp@mydomain.com",
+      #       url: "https://acme-v02.api.letsencrypt.org/directory",
+      #       key_size: 2048
+      #     },
+      #     importer: Foundation.Certificates.Importer.Route53,
+      #     importer_options: %{
+      #       certificate_arn: "add::certificate::arn"
+      #     }
+      #   }
+      # ]
     }
   ]
 

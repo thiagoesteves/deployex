@@ -41,7 +41,27 @@ defmodule Sentinel.Config.WatcherTest do
     replicas: 1,
     env: [],
     monitoring: [],
-    replica_ports: []
+    replica_ports: [],
+    certificates: []
+  }
+
+  @default_certificate %Foundation.Yaml.Certificate{
+    type: :acme,
+    domains: ["example.com"],
+    certificate_check_interval_ms: 86_400_000,
+    dns_propagation_timeout_ms: 120_000,
+    dns_check_interval_ms: 5000,
+    renew_before_days: 30,
+    dns_provider: Foundation.Certificates.DNSProvider.Route53,
+    dns_options: %Foundation.Yaml.Certificate.DnsOptions{ttl: 60, zone: "example.com"},
+    acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+    acme_options: %Foundation.Yaml.Certificate.AcmeOptions{
+      contact_email: "admin@example.com",
+      url: "https://acme-v02.api.letsencrypt.org/directory",
+      key_size: 2048
+    },
+    importer: nil,
+    importer_options: nil
   }
 
   describe "start_link/1" do
@@ -1479,6 +1499,451 @@ defmodule Sentinel.Config.WatcherTest do
         assert state.pending_config == nil
 
         {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_changes)
+      end
+    end
+  end
+
+  describe "certificate changes detection" do
+    @tag :capture_log
+    test "detects added certificate to application" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [@default_application]
+
+      new_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_cert_added, check_interval_ms: 10)
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_added)
+
+        app_changes = changes.summary.applications.details["my_new_app"]
+        assert app_changes.status == :modified
+
+        cert_detail = app_changes.changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :added
+        assert cert_detail.details[:acme].config == @default_certificate
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "detects removed certificate from application" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_applications = [@default_application]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_cert_removed, check_interval_ms: 10)
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_removed)
+
+        app_changes = changes.summary.applications.details["my_new_app"]
+        assert app_changes.status == :modified
+
+        cert_detail = app_changes.changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :removed
+        assert cert_detail.details[:acme].config == @default_certificate
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "detects modified certificate domains" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [
+            Map.merge(@default_certificate, %{domains: ["example.com", "www.example.com"]})
+          ]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} =
+              Watcher.start_link(name: :test_cert_modified_domains, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_modified_domains)
+
+        app_changes = changes.summary.applications.details["my_new_app"]
+        assert app_changes.status == :modified
+
+        cert_detail = app_changes.changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :modified
+        assert cert_detail.details[:acme].config.domains == ["example.com", "www.example.com"]
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "detects modified certificate acme_options" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_acme_options = %Foundation.Yaml.Certificate.AcmeOptions{
+        contact_email: "new-admin@example.com",
+        url: "https://acme-v02.api.letsencrypt.org/directory",
+        key_size: 4096
+      }
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [Map.merge(@default_certificate, %{acme_options: new_acme_options})]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} =
+              Watcher.start_link(name: :test_cert_modified_acme, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_modified_acme)
+
+        app_changes = changes.summary.applications.details["my_new_app"]
+        assert app_changes.status == :modified
+
+        cert_detail = app_changes.changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :modified
+
+        assert cert_detail.details[:acme].config.acme_options.contact_email ==
+                 "new-admin@example.com"
+
+        assert cert_detail.details[:acme].config.acme_options.key_size == 4096
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "detects modified certificate dns_options" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [
+            Map.merge(@default_certificate, %{
+              dns_options: %Foundation.Yaml.Certificate.DnsOptions{ttl: 120, zone: "example.com"}
+            })
+          ]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_cert_modified_dns, check_interval_ms: 10)
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_modified_dns)
+
+        app_changes = changes.summary.applications.details["my_new_app"]
+        assert app_changes.status == :modified
+
+        cert_detail = app_changes.changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :modified
+        assert cert_detail.details[:acme].config.dns_options.ttl == 120
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "no changes when certificates are identical" do
+      test_pid = self()
+      ref = make_ref()
+
+      applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               config_checksum: "new_checksum",
+               applications: applications
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             send(test_pid, {:handle_ref_event, ref})
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        {:ok, _pid} = Watcher.start_link(name: :test_cert_no_change, check_interval_ms: 10)
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        state = :sys.get_state(:test_cert_no_change)
+        assert state.pending_config == nil
+
+        {:error, :no_pending_changes} = Watcher.get_pending_changes(:test_cert_no_change)
+      end
+    end
+
+    @tag :capture_log
+    test "detects changes across multiple certificate types" do
+      test_pid = self()
+      ref = make_ref()
+
+      importer_cert = %Foundation.Yaml.Certificate{
+        type: :importer,
+        domains: ["api.example.com"],
+        certificate_check_interval_ms: 86_400_000,
+        dns_propagation_timeout_ms: 120_000,
+        dns_check_interval_ms: 5000,
+        renew_before_days: 30,
+        dns_provider: nil,
+        dns_options: nil,
+        acme_provider: nil,
+        acme_options: nil,
+        importer: Foundation.Certificates.Importer.Route53,
+        importer_options: %Foundation.Yaml.Certificate.ImporterOptions{
+          certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/old"
+        }
+      }
+
+      old_applications = [
+        Map.merge(@default_application, %{
+          certificates: [@default_certificate, importer_cert]
+        })
+      ]
+
+      # acme cert gets a new domain, importer cert gets a new ARN, both change
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [
+            Map.merge(@default_certificate, %{domains: ["example.com", "www.example.com"]}),
+            Map.merge(importer_cert, %{
+              importer_options: %Foundation.Yaml.Certificate.ImporterOptions{
+                certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/new"
+              }
+            })
+          ]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} = Watcher.start_link(name: :test_cert_multi, check_interval_ms: 10)
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_multi)
+
+        cert_detail = changes.summary.applications.details["my_new_app"].changes.certificates
+        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.details[:acme].status == :modified
+        assert cert_detail.details[:importer].status == :modified
+        assert cert_detail.details[:acme].config.domains == ["example.com", "www.example.com"]
+
+        assert cert_detail.details[:importer].config.importer_options.certificate_arn ==
+                 "arn:aws:acm:us-east-1:123456789012:certificate/new"
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "apply_strategies include :full_deploy when certificates changed" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [Map.merge(@default_certificate, %{renew_before_days: 60})]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        capture_log(fn ->
+          {:ok, _pid} = Watcher.start_link(name: :test_cert_strategy, check_interval_ms: 10)
+          assert_receive {:handle_ref_event, ^ref}, 1_000
+        end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_strategy)
+
+        app_detail = changes.summary.applications.details["my_new_app"]
+        assert :full_deploy in app_detail.apply_strategies
       end
     end
   end

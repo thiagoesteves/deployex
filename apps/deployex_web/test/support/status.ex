@@ -5,7 +5,7 @@ defmodule DeployexWeb.Fixture.Status do
 
   alias Deployer.Status
   alias Foundation.Catalog.Version
-  alias Foundation.Certificate
+  alias Foundation.Certificates.PublicKey
 
   def version(attrs \\ %{}) do
     name = "testapp"
@@ -53,7 +53,7 @@ defmodule DeployexWeb.Fixture.Status do
       sname: "deployex",
       version: "1.2.3",
       otp: :connected,
-      tls: default_certificate(),
+      tls: default_public_key(),
       status: :running,
       uptime: "short time",
       ports: [%{key: "PORT", base: 8765}]
@@ -91,7 +91,7 @@ defmodule DeployexWeb.Fixture.Status do
       node: String.to_atom("#{sname}@#{hostname}"),
       version: "4.5.6",
       otp: :connected,
-      tls: default_certificate(),
+      tls: default_public_key(),
       last_deployment: :full_deployment,
       status: :running,
       crash_restart_count: 0,
@@ -114,8 +114,8 @@ defmodule DeployexWeb.Fixture.Status do
     [deployex(), application()]
   end
 
-  def default_certificate do
-    %Certificate{
+  def default_public_key do
+    %PublicKey{
       issuer: "issuer",
       serial: "123456789",
       version: "v3",
@@ -127,6 +127,6 @@ defmodule DeployexWeb.Fixture.Status do
   end
 
   def certificate(attrs \\ %{}) do
-    struct(%Certificate{}, attrs)
+    struct(%PublicKey{}, attrs)
   end
 end

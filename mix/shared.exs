@@ -41,7 +41,11 @@ defmodule Mix.Shared do
         Foundation.Application,
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
-        Foundation.Certificate,
+        Foundation.Certificates.ACMEProvider,
+        Foundation.Certificates.DNSProvider,
+        Foundation.Certificates.DNSProvider.Mock,
+        Foundation.Certificates.Importer,
+        Foundation.Certificates.Importer.Mock,
         Foundation.System.Zip,
         # Host
         Host.Info,

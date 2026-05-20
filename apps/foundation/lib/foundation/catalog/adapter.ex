@@ -30,4 +30,7 @@ defmodule Foundation.Catalog.Adapter do
   @callback get_user_session_token_by_token(String.t()) :: Accounts.UserToken.t() | nil
   @callback config(String.t()) :: Catalog.Config.t()
   @callback config_update(String.t(), Catalog.Config.t()) :: {:ok, Catalog.Config.t()}
+  @callback certificate(String.t()) :: Catalog.Certificate.t()
+  @callback certificate_update(String.t(), Catalog.Certificate.t()) ::
+              {:ok, Catalog.Certificate.t()}
 end

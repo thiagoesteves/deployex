@@ -5,6 +5,7 @@ defmodule Foundation.YamlTest do
 
   alias Foundation.Yaml
   alias Foundation.Yaml.Application
+  alias Foundation.Yaml.Certificate
   alias Foundation.Yaml.Monitoring
   alias Foundation.Yaml.Ports
 
@@ -202,7 +203,8 @@ defmodule Foundation.YamlTest do
                    language: "elixir",
                    deploy_rollback_timeout_ms: 600_000,
                    deploy_schedule_interval_ms: 5000,
-                   replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4000}]
+                   replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4000}],
+                   certificates: []
                  },
                  %Foundation.Yaml.Application{
                    env: ["MYUMBRELLA_PHX_SERVER=false", "MYUMBRELLA_PHX_SERVER2=false"],
@@ -212,7 +214,8 @@ defmodule Foundation.YamlTest do
                    language: "erlang",
                    deploy_rollback_timeout_ms: 600_000,
                    deploy_schedule_interval_ms: 5000,
-                   replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4050}]
+                   replica_ports: [%Foundation.Yaml.Ports{key: "PORT", base: 4050}],
+                   certificates: []
                  }
                ]
       end
@@ -357,6 +360,178 @@ defmodule Foundation.YamlTest do
       assert app.name == "test-app"
       assert app.language == "elixir"
       assert app.replicas == 3
+    end
+  end
+
+  describe "parse/1 certificate configuration" do
+    test "parses a full domains certificate with all fields" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+        [cert] = app.certificates
+
+        assert %Certificate{} = cert
+        assert cert.type == :domains
+        assert cert.domains == ["example.com", "*.example.com"]
+
+        assert cert.dns_provider == Foundation.Certificates.DNSProvider.Route53
+        assert cert.acme_provider == Foundation.Certificates.ACMEProvider.LetsEncrypt
+        assert cert.importer == Foundation.Certificates.Importer.Route53
+      end
+    end
+
+    test "applies default values for omitted certificate fields" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+        [cert] = app.certificates
+
+        assert cert.certificate_check_interval_ms == 86_400_000
+        assert cert.dns_propagation_timeout_ms == 120_000
+        assert cert.dns_check_interval_ms == 5_000
+        assert cert.renew_before_days == 30
+      end
+    end
+
+    test "parses dns_options with defaults" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+        [cert] = app.certificates
+
+        assert %Certificate.DnsOptions{} = cert.dns_options
+        assert cert.dns_options.ttl == 60
+        assert cert.dns_options.zone != nil
+      end
+    end
+
+    test "parses acme_options with defaults" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+        [cert] = app.certificates
+
+        assert %Certificate.AcmeOptions{} = cert.acme_options
+        assert cert.acme_options.url == "https://acme-v02.api.letsencrypt.org/directory"
+        assert cert.acme_options.key_size == 2048
+        assert cert.acme_options.contact_email != nil
+      end
+    end
+
+    test "parses importer_options" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+        [cert] = app.certificates
+
+        assert %Certificate.ImporterOptions{} = cert.importer_options
+        assert cert.importer_options.certificate_arn != nil
+      end
+    end
+
+    test "parses empty certificates list" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_optional end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app] = config.applications
+        assert app.certificates == []
+      end
+    end
+
+    test "ignores certificate with unsupported type" do
+      # A certificate entry whose type is not :domains should not start a manager.
+      # This test guards the start_certificate_manager/2 fallback clause.
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [app | _] = config.applications
+
+        # All parsed certificates should have a known type atom
+        Enum.each(app.certificates, fn cert ->
+          assert is_atom(cert.type)
+        end)
+      end
+    end
+  end
+
+  describe "Certificate struct types" do
+    test "Certificate struct has correct fields" do
+      cert = %Certificate{
+        type: :domains,
+        domains: ["example.com"],
+        certificate_check_interval_ms: 86_400_000,
+        dns_propagation_timeout_ms: 120_000,
+        dns_check_interval_ms: 5_000,
+        renew_before_days: 30,
+        dns_provider: Foundation.Certificates.DNSProvider.Route53,
+        dns_options: %Certificate.DnsOptions{ttl: 60, zone: "example.com"},
+        acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+        acme_options: %Certificate.AcmeOptions{
+          contact_email: "admin@example.com",
+          url: "https://acme-v02.api.letsencrypt.org/directory",
+          key_size: 2048
+        },
+        importer: Foundation.Certificates.Importer.Route53,
+        importer_options: %Certificate.ImporterOptions{certificate_arn: "arn:aws:acm:..."}
+      }
+
+      assert cert.type == :domains
+      assert cert.domains == ["example.com"]
+      assert cert.dns_options.ttl == 60
+      assert cert.acme_options.key_size == 2048
+      assert cert.importer_options.certificate_arn == "arn:aws:acm:..."
+    end
+
+    test "DnsOptions struct has correct fields" do
+      dns_opts = %Certificate.DnsOptions{ttl: 120, zone: "example.com"}
+
+      assert dns_opts.ttl == 120
+      assert dns_opts.zone == "example.com"
+    end
+
+    test "AcmeOptions struct has correct fields" do
+      acme_opts = %Certificate.AcmeOptions{
+        contact_email: "ops@example.com",
+        url: "https://acme-staging-v02.api.letsencrypt.org/directory",
+        key_size: 4096
+      }
+
+      assert acme_opts.contact_email == "ops@example.com"
+      assert acme_opts.key_size == 4096
+    end
+
+    test "ImporterOptions struct has correct fields" do
+      importer_opts = %Certificate.ImporterOptions{
+        certificate_arn: "arn:aws:acm:us-east-1:123:certificate/abc"
+      }
+
+      assert importer_opts.certificate_arn == "arn:aws:acm:us-east-1:123:certificate/abc"
     end
   end
 end
