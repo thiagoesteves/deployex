@@ -17,6 +17,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     :verify_on_exit!
   ]
 
+  @tag :capture_log
   test "start_link/1" do
     Deployer.MonitorMock
     |> expect(:list, fn -> [] end)
@@ -25,6 +26,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert {:ok, _pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
   end
 
+  @tag :capture_log
   test "handle_info/2 - update system info - valid source" do
     memory_free = 5_000
     memory_total = 100_000
@@ -45,6 +47,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_deployex_memory_data()
   end
 
+  @tag :capture_log
   test "handle_info/2 - update system info - invalid source" do
     memory_free = 5_000
     memory_total = 100_000
@@ -63,6 +66,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %Data{} = Watchdog.get_deployex_memory_data()
   end
 
+  @tag :capture_log
   test "handle_info/2 - update application statistics - valid source" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -111,6 +115,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert [{_, 1_000_000}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
   end
 
+  @tag :capture_log
   test "handle_info/2 - application statistics - reset config" do
     sname = Catalog.create_sname("myelixir")
     %{node: node, name: name} = Catalog.node_info(sname)
@@ -160,6 +165,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert [{_, nil}] = :ets.lookup(@watchdog_data, {node, :data, :total_memory})
   end
 
+  @tag :capture_log
   test "handle_info/2 - update application statistics - invalid source" do
     fake_sname = Catalog.create_sname("mygleam")
     %{node: fake_node} = Catalog.node_info(fake_sname)
@@ -213,6 +219,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     end)
   end
 
+  @tag :capture_log
   test "Monitore application - No warning if the statistic is inside the threshold" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -252,6 +259,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_app_config(node, :process)
   end
 
+  @tag :capture_log
   test "Monitore application - statistic warning" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -322,6 +330,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_app_config(node, :process)
   end
 
+  @tag :capture_log
   test "Monitore application - ignore nil data" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -356,6 +365,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_app_config(node, :process)
   end
 
+  @tag :capture_log
   test "Monitore application - restart" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -413,6 +423,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     end)
   end
 
+  @tag :capture_log
   test "Node Up doesn't change any status" do
     sname = Catalog.create_sname("myelixir")
     %{node: node} = Catalog.node_info(sname)
@@ -447,6 +458,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     end)
   end
 
+  @tag :capture_log
   test "Deployex memory - No warning if the consumed memory is inside the threshold" do
     memory_free = 900_000
     memory_total = 1_000_000
@@ -484,6 +496,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
   end
 
+  @tag :capture_log
   test "Deployex memory - Warning if the consumed memory is above the warning threshold" do
     memory_free = 890_000
     memory_total = 1_000_000
@@ -539,6 +552,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
   end
 
+  @tag :capture_log
   test "Deployex memory - Restart if the consumed memory is above the restart threshold" do
     memory_free = 790_000
     memory_total = 1_000_000
@@ -626,6 +640,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_1} ..."
   end
 
+  @tag :capture_log
   test "Deployex memory - Don't Restart if the consumed memory is above the restart threshold and node memory is not available" do
     memory_free = 790_000
     memory_total = 1_000_000

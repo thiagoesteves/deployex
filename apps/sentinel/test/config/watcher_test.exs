@@ -45,6 +45,7 @@ defmodule Sentinel.Config.WatcherTest do
   }
 
   describe "start_link/1" do
+    @tag :capture_log
     test "starts the GenServer with default name" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         assert {:error, {:already_started, pid}} = Watcher.start_link()
@@ -52,6 +53,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "starts the GenServer with custom name" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         assert {:ok, pid} = Watcher.start_link(name: :custom_watcher)
@@ -62,6 +64,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "starts with custom check interval" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         assert {:ok, pid} =
@@ -73,6 +76,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "init/1" do
+    @tag :capture_log
     test "initializes with configuration from config loader" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         assert {:ok, _pid} = Watcher.start_link(name: :custom_watcher)
@@ -85,6 +89,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "schedules first config check" do
       test_pid = self()
       ref = make_ref()
@@ -111,6 +116,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "Upgradable from_app_env/0" do
+    @tag :capture_log
     test "Check default values for test target" do
       assert %Upgradable{
                applications: _,
@@ -129,6 +135,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "get_pending_changes/1" do
+    @tag :capture_log
     test "returns error when no pending changes" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_no_pending)
@@ -137,6 +144,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "returns pending config when changes exist" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_with_pending)
@@ -158,6 +166,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "apply_changes/1" do
+    @tag :capture_log
     test "returns error when no pending changes" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_no_pending)
@@ -166,6 +175,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "applies pending changes successfully (Empty changes)" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_success)
@@ -284,6 +294,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+    @tag :capture_log
     test "broadcasts config change when applying" do
       with_mock Upgradable, from_app_env: fn -> @default_upgradable end do
         {:ok, pid} = Watcher.start_link(name: :test_apply_broadcast)
@@ -315,6 +326,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "subscribe/0" do
+      @tag :capture_log
     test "subscribes to new config change notifications" do
       assert :ok = Watcher.subscribe_new_config()
       node = Node.self()
@@ -329,6 +341,7 @@ defmodule Sentinel.Config.WatcherTest do
       assert_receive {:watcher_config_new, ^node, %{test: :data}}, 1000
     end
 
+      @tag :capture_log
     test "subscribes to apply new config change notifications" do
       assert :ok = Watcher.subscribe_apply_new_config()
       node = Node.self()
@@ -345,6 +358,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "handle_info(:check_config)" do
+      @tag :capture_log
     test "reschedules check after handling - no changes" do
       test_pid = self()
       ref = make_ref()
@@ -370,6 +384,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "detects yaml file not found" do
       test_pid = self()
       ref = make_ref()
@@ -514,6 +529,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "updates checksum when no upgradable changes detected" do
       test_pid = self()
       ref = make_ref()
@@ -826,6 +842,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "no changes when monitoring is identical" do
       test_pid = self()
       ref = make_ref()
@@ -956,6 +973,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "No changes in the application" do
       test_pid = self()
       ref = make_ref()
@@ -1320,6 +1338,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "no changes when application is identical" do
       test_pid = self()
       ref = make_ref()
@@ -1425,6 +1444,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
+      @tag :capture_log
     test "Ignore new timeouts values with nil values" do
       test_pid = self()
       ref = make_ref()
@@ -1463,10 +1483,12 @@ defmodule Sentinel.Config.WatcherTest do
     end
   end
 
+    @tag :capture_log
   test "Test non-mocked load_config" do
     assert %Upgradable{} == Upgradable.from_yaml(%Yaml{})
   end
 
+    @tag :capture_log
   test "Improve coverage" do
     assert {:error, :no_pending_changes} == Watcher.get_pending_changes()
     assert {:error, :no_pending_changes} == Watcher.apply_changes()
