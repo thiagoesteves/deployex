@@ -6,6 +6,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
   alias Foundation.ConfigProvider.Secrets.Gcp
   alias Foundation.ConfigProvider.Secrets.Manager
 
+  @tag :capture_log
   test "secrets/3 with success" do
     pid = self()
 
@@ -60,6 +61,7 @@ defmodule Foundation.ConfigProvider.Secrets.GcpTest do
     end
   end
 
+  @tag :capture_log
   test "secrets/3 with Finch error" do
     pid = self()
 

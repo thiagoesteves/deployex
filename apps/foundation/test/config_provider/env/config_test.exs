@@ -17,10 +17,12 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_gcp_release_error "#{@file_paths}/deployex-gcp-release-error.yaml"
   @yaml_gcp_secrets_error "#{@file_paths}/deployex-gcp-secrets-error.yaml"
 
+  @tag :capture_log
   test "init/1 with success" do
     assert Config.init(:any) == []
   end
 
+    @tag :capture_log
   test "load/3 with success for AWS" do
     with_mocks([
       {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
@@ -125,6 +127,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with success for AWS for secrets from environment" do
     with_mock System, [:passthrough],
       get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_local_env end do
@@ -228,6 +231,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with success for AWS - Monitoring for a single app" do
     with_mocks([
       {System, [:passthrough],
@@ -314,6 +318,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with success for AWS - Monitoring for a multiple applications" do
     with_mocks([
       {System, [:passthrough],
@@ -418,6 +423,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with success for GCP" do
     with_mocks([
       {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_gcp_path end]}
@@ -503,6 +509,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with error for invalid release" do
     with_mocks([
       {System, [:passthrough],
@@ -532,6 +539,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 - Optional fields are initialized with default values from YAML" do
     with_mocks([
       {System, [:passthrough],
@@ -596,6 +604,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+    @tag :capture_log
   test "load/3 with error for invalid secrets" do
     with_mocks([
       {System, [:passthrough],

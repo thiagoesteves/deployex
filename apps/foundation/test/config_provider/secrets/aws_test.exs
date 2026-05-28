@@ -6,6 +6,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
   alias Foundation.ConfigProvider.Secrets.Aws
   alias Foundation.ConfigProvider.Secrets.Manager
 
+  @tag :capture_log
   test "secrets/3 with success" do
     with_mocks([
       {ExAws, [],
@@ -53,6 +54,7 @@ defmodule Foundation.ConfigProvider.Secrets.AwsTest do
     end
   end
 
+  @tag :capture_log
   test "secrets/3 with request error" do
     with_mocks([
       {ExAws, [],
