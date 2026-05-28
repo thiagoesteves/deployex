@@ -14,6 +14,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
     assert Manager.init(:any) == []
   end
 
+  @tag :capture_log
   test "load/2 with non-local config and non setting cookie" do
     SecretsMock
     |> stub(:secrets, fn _config, _path, _options ->
@@ -57,6 +58,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
              )
   end
 
+  @tag :capture_log
   test "load/2 with non-local config and set cookie" do
     SecretsMock
     |> stub(:secrets, fn _config, _path, _options ->
@@ -104,6 +106,7 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
     end
   end
 
+  @tag :capture_log
   test "load/2 with local config" do
     assert [
              {:foundation,

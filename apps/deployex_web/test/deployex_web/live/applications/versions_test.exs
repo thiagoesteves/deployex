@@ -15,6 +15,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /versions full list", %{conn: conn} do
     name = "myelixir"
     %{sname: sname_1, suffix: suffix_1} = name |> Catalog.create_sname() |> Catalog.node_info()
@@ -63,6 +64,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     refute html =~ "0.3456702894.2351693834"
   end
 
+  @tag :capture_log
   test "GET /versions list by sname", %{conn: conn} do
     name = "myelixir"
     name_id = Helper.normalize_id(name)
@@ -111,6 +113,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
     refute html =~ "0.3456702894.2351693834"
   end
 
+  @tag :capture_log
   test "Deployex - Validate version and Github releases", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->

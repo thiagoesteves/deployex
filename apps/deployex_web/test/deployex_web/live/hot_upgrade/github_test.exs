@@ -16,6 +16,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
   ]
 
   describe "github download" do
+    @tag :capture_log
     test "switches to github upload method", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -35,6 +36,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       assert socket.assigns.upload_method == :github
     end
 
+    @tag :capture_log
     test "switches back to file upload method", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -57,6 +59,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       assert socket.assigns.upload_method == :file
     end
 
+    @tag :capture_log
     test "updates github form fields", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -82,6 +85,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       assert socket.assigns.form.params["github_token"] == token
     end
 
+    @tag :capture_log
     test "initiates github download", %{conn: conn} do
       test_pid = self()
 
@@ -122,6 +126,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "shows download progress", %{conn: conn} do
       test_pid = self()
 
@@ -166,6 +171,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "cancels github download", %{conn: conn} do
       test_pid = self()
       download_id = Common.uuid4()
@@ -213,6 +219,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "handles successful github download completion", %{conn: conn} do
       test_pid = self()
       download_id = Common.uuid4()
@@ -282,6 +289,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "handles github download completion with invalid file", %{conn: conn} do
       test_pid = self()
       download_id = Common.uuid4()
@@ -341,6 +349,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
              end) =~ "Error while handling file: deployex-2.0.0.zip, reason:  not a .tar.gz file"
     end
 
+    @tag :capture_log
     test "handles github download completion with check error", %{conn: conn} do
       test_pid = self()
       download_id = Common.uuid4()
@@ -407,6 +416,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
              end) =~ "Error while handling file: deployex-2.0.0.tar.gz, reason: invalid release"
     end
 
+    @tag :capture_log
     test "ignores github download events from other nodes", %{conn: conn} do
       test_pid = self()
 
@@ -448,6 +458,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "ignores github download events when not downloading", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -462,6 +473,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       assert socket.assigns.github.download_progress == 0
     end
 
+    @tag :capture_log
     test "disables download button while downloading", %{conn: conn} do
       test_pid = self()
 
@@ -496,6 +508,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       end
     end
 
+    @tag :capture_log
     test "download button not shown when URL is empty", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -510,6 +523,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
       refute html =~ "Download Release"
     end
 
+    @tag :capture_log
     test "Cancel download when not downloading", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -520,6 +534,7 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
                DeployexWeb.HotUpgradeLive.handle_event("cancel-github-download", nil, "nosocket")
     end
 
+    @tag :capture_log
     test "shows download button when URL is provided", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)

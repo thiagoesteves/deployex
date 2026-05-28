@@ -12,6 +12,7 @@ defmodule DeployexWeb.Applications.FullRestartTest do
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
+  @tag :capture_log
   test "Click restart Button, but cancel the operation - applications", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -28,6 +29,7 @@ defmodule DeployexWeb.Applications.FullRestartTest do
     refute has_element?(index_live, "#cancel-button-full-restart-cancel")
   end
 
+  @tag :capture_log
   test "Click restart Button, confirm the operation - applications", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

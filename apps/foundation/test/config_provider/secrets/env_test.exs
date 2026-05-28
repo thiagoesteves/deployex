@@ -6,6 +6,7 @@ defmodule Foundation.ConfigProvider.Secrets.EnvTest do
   alias Foundation.ConfigProvider.Secrets.Env
   alias Foundation.ConfigProvider.Secrets.Manager
 
+  @tag :capture_log
   test "secrets/3 with success" do
     with_mock System, [:passthrough],
       fetch_env!: fn
@@ -52,6 +53,7 @@ defmodule Foundation.ConfigProvider.Secrets.EnvTest do
     end
   end
 
+  @tag :capture_log
   test "secrets/3 with request error" do
     with_mock System, [:passthrough], fetch_env!: fn _secret -> raise "secret not defined" end do
       assert_raise RuntimeError, fn ->

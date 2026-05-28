@@ -13,6 +13,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications Configuration button is available when pending changes are available",
        %{conn: conn} do
     Deployer.StatusMock
@@ -31,6 +32,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     assert html =~ "4 configuration change(s) pending"
   end
 
+  @tag :capture_log
   test "GET /applications Review pending changes and click cancel button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -53,6 +55,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     assert html =~ "4 configuration change(s) pending"
   end
 
+  @tag :capture_log
   test "GET /applications Review pending changes and click escape button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -75,6 +78,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     assert html =~ "4 configuration change(s) pending"
   end
 
+  @tag :capture_log
   test "GET /applications Review pending changes and apply changes", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -97,6 +101,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     refute liveview |> element("#deployex-config-changes") |> has_element?()
   end
 
+  @tag :capture_log
   test "GET /applications ignore changes from other nodes", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

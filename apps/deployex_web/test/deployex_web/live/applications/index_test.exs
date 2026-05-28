@@ -12,6 +12,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -31,6 +32,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "Running"
   end
 
+  @tag :capture_log
   test "GET /applications deployment: hot-upgrade", %{conn: conn} do
     topic = "test-topic"
 
@@ -58,6 +60,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert render(view) =~ "Hot Upgrade"
   end
 
+  @tag :capture_log
   test "GET /applications restarts (crash and force)", %{conn: conn} do
     topic = "test-topic"
 
@@ -94,6 +97,7 @@ defmodule DeployexWeb.Applications.IndexTest do
              "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-error rounded-full animate-pulse\"></div><span class=\"text-sm font-semibold text-error\">1"
   end
 
+  @tag :capture_log
   test "GET /applications OTP not connected", %{conn: conn} do
     topic = "test-topic"
 
@@ -122,6 +126,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert render(view) =~ "Disconnected"
   end
 
+  @tag :capture_log
   test "GET /applications TLS not supported", %{conn: conn} do
     topic = "test-topic"
 
@@ -150,6 +155,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert render(view) =~ "Not Supported"
   end
 
+  @tag :capture_log
   test "GET /applications application states", %{conn: conn} do
     topic = "test-topic"
 
@@ -216,6 +222,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "bg-success/10 border-b border-success/20"
   end
 
+  @tag :capture_log
   test "GET /applications with no updates when receiving from other nodes", %{conn: conn} do
     topic = "test-topic"
 
@@ -251,6 +258,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute html =~ "Starting"
   end
 
+  @tag :capture_log
   test "GET /applications with monitoring enabled", %{conn: conn} do
     topic = "test-topic"
 
@@ -296,6 +304,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     4 => %{metric: :memory}
   }
   |> Enum.each(fn {element, %{metric: metric}} ->
+    @tag :capture_log
     test "#{element} - GET /applications with monitoring enabled and validating thresholds for metric: #{metric}",
          %{
            conn: conn

@@ -14,6 +14,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications check button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -27,6 +28,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
            |> render_click()
   end
 
+  @tag :capture_log
   test "GET /terminal", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -46,6 +48,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Send Character to Terminal server", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -74,6 +77,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     end
   end
 
+  @tag :capture_log
   test "Send Character to Terminal Index Liveview from erlexec", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -96,6 +100,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Terminal server timed out", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()

@@ -9,12 +9,14 @@ defmodule DeployexWeb.Terminal.ObserverTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /embedded-observer", %{conn: conn} do
     {:ok, _index_live, html} = live(conn, ~p"/embedded-observer")
 
     assert html =~ "Observer Web"
   end
 
+  @tag :capture_log
   test "GET /embedded-observer host info", %{conn: conn} do
     host = "macOS"
     description = "15.1.1"

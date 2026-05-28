@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.2 ()
+
+### Backwards incompatible changes from 0.9.1
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-220`](https://github.com/thiagoesteves/deployex/pull/220) Changing log level to INFO when running unit tests
+
 ## 0.9.1 🚀 (2026-05-15)
 
 ### Backwards incompatible changes from 0.9.0

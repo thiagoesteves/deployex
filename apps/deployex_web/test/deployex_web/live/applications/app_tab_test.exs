@@ -12,6 +12,7 @@ defmodule DeployexWeb.Applications.AppTabTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "Select applications",
        %{
          conn: conn

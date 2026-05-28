@@ -12,6 +12,7 @@ defmodule DeployexWeb.Applications.SystemTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications with system info", %{conn: conn} do
     test_pid_process = self()
     host = "macOS"

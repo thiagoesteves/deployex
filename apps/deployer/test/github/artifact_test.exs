@@ -45,6 +45,7 @@ defmodule Deployer.Github.ArtifactTest do
   end
 
   describe "download_artifact/2 - successful flow" do
+    @tag :capture_log
     test "successfully downloads and unzips artifact" do
       artifact_name = "test-artifact"
 
@@ -259,6 +260,7 @@ defmodule Deployer.Github.ArtifactTest do
   end
 
   describe "download_artifact/2 - header variations" do
+    @tag :capture_log
     test "builds headers with valid token" do
       artifact_name = "test-artifact"
 
@@ -331,7 +333,7 @@ defmodule Deployer.Github.ArtifactTest do
       end
     end
 
-    @tag :capture_string
+    @tag :capture_log
     test "builds headers without token when token is empty string" do
       artifact_name = "test-artifact"
 
@@ -414,6 +416,7 @@ defmodule Deployer.Github.ArtifactTest do
       end
     end
 
+    @tag :capture_log
     test "continues download when both process is alive and status is :run" do
       artifact_name = "test-artifact"
 

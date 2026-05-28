@@ -4,6 +4,7 @@ defmodule DeployexWeb.PageControllerTest do
   import Mox
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
+  @tag :capture_log
   test "GET / redirect to /users/log_in if not authenticated", %{conn: conn} do
     Deployer.StatusMock
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
@@ -16,6 +17,7 @@ defmodule DeployexWeb.PageControllerTest do
   describe "" do
     setup :log_in_default_user
 
+    @tag :capture_log
     test "GET / redirect to /applications if authenticated", %{conn: conn} do
       Deployer.StatusMock
       |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)

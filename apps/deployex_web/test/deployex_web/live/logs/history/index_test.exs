@@ -16,6 +16,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     :create_history_logs
   ]
 
+  @tag :capture_log
   test "GET /applications check button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -29,6 +30,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
            |> render_click()
   end
 
+  @tag :capture_log
   test "GET /logs/history", %{conn: conn} do
     sname = Catalog.create_sname("test_app")
 
@@ -44,6 +46,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert html =~ "History Logs"
   end
 
+  @tag :capture_log
   test "Add Service + Stdout", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
@@ -82,6 +85,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
+  @tag :capture_log
   test "Add Stdout + Service", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
@@ -120,6 +124,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     assert render(index_live) =~ "[info] log 5"
   end
 
+  @tag :capture_log
   test "Add/Remove Service + Stdout", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
@@ -168,6 +173,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
+  @tag :capture_log
   test "Add/Remove Stdout + Service", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
@@ -216,6 +222,7 @@ defmodule DeployexWeb.Logs.History.IndexTest do
     refute render(index_live) =~ "[info] log 5"
   end
 
+  @tag :capture_log
   test "Start Time select button", %{conn: conn, logs: logs} do
     log_type = "stdout"
     test_pid_process = self()
