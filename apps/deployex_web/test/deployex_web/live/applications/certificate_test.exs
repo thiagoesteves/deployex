@@ -12,6 +12,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications certificate modal is not visible on load", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -23,6 +24,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     refute liveview |> element("#certificate-modal") |> has_element?()
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal opens on mTLS button click", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -39,6 +41,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert render(liveview) =~ "mTLS Certificate Details"
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal displays all certificate fields", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -57,6 +60,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert html =~ "Expires In"
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal displays certificate values from fixture", %{
     conn: conn
   } do
@@ -80,6 +84,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert html =~ cert.public_key_type
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal displays covered domains", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -97,6 +102,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     Enum.each(deployex.tls.domains, &assert(html =~ &1))
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal highlights expiry when within 30 days", %{conn: conn} do
     topic = "test-topic"
 
@@ -128,6 +134,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert html =~ "border-error/50"
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal does not highlight expiry when more than 30 days", %{
     conn: conn
   } do
@@ -141,6 +148,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert html =~ "bg-success/10 border-success/20 text-success hover:bg-success/20"
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal does highlight expiry when less than 30 days", %{
     conn: conn
   } do
@@ -162,6 +170,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     assert html =~ "bg-error/10 border-error/20 text-error hover:bg-error/20"
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal closes on cancel button click", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -178,6 +187,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     refute liveview |> element("#certificate-modal") |> has_element?()
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal closes on backdrop click", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -194,6 +204,7 @@ defmodule DeployexWeb.Applications.CertificateTest do
     refute liveview |> element("#certificate-modal") |> has_element?()
   end
 
+  @tag :capture_log
   test "GET /applications certificate modal is not shown when TLS is not supported", %{
     conn: conn
   } do

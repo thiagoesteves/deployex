@@ -19,6 +19,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
   alias Foundation.Catalog
   alias Host.Fixture.Terminal, as: FixtureTerminal
 
+  @tag :capture_log
   test "Access to terminal for Deployex", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -49,6 +50,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Access to terminal for Elixir apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -89,6 +91,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Access to terminal for Gleam apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -131,6 +134,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Access to terminal for Erlang apps", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -173,6 +177,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Invalid cookie", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -212,6 +217,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
              "Error while trying to run the commands for node: #{node} - :iex_terminal, reason: {:error, :invalid_cookie}"
   end
 
+  @tag :capture_log
   test "Send Character to iex terminal", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -256,6 +262,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Try to execute without binary file", %{conn: conn} do
     name = "myelixir"
     name_id = Helper.normalize_id(name)
@@ -278,6 +285,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
              "Bin: Binary not found"
   end
 
+  @tag :capture_log
   test "Terminal timed out", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -322,12 +330,14 @@ defmodule DeployexWeb.Applications.TerminalTest do
     refute render(index_live) =~ "Bin: "
   end
 
+  @tag :capture_log
   test "Coverage only - Ignore keys until it is connected" do
     socket = %{assigns: %{terminal_process: nil}}
 
     assert {:noreply, ^socket} = Terminal.handle_event("key", :any, socket)
   end
 
+  @tag :capture_log
   test "Error when :nocookie is set", %{conn: conn} do
     name = "myelixir"
     name_id = Helper.normalize_id(name)

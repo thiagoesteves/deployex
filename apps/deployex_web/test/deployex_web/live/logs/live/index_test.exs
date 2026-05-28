@@ -15,6 +15,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications check button", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -28,6 +29,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
            |> render_click()
   end
 
+  @tag :capture_log
   test "GET /logs/live", %{conn: conn} do
     sname = Catalog.create_sname("test_app")
 
@@ -43,6 +45,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert html =~ "Live Logs"
   end
 
+  @tag :capture_log
   test "Add Service + Stdout", %{conn: conn} do
     log_type = "stdout"
     test_pid_process = self()
@@ -79,6 +82,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Add Stdout + Service", %{conn: conn} do
     log_type = "stdout"
     test_pid_process = self()
@@ -115,6 +119,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Add/Remove Service + Stdout", %{conn: conn} do
     log_type = "stdout"
     test_pid_process = self()
@@ -160,6 +165,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Add/Remove Stdout + Service", %{conn: conn} do
     log_type = "stdout"
     test_pid_process = self()
@@ -220,6 +226,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     12 => %{type: "none", color: "#E5E5E5"}
   }
   |> Enum.each(fn {element, %{type: type, color: color}} ->
+    @tag :capture_log
     test "#{element} - Send Stdout #{type} message from erlexec server", %{
       conn: conn
     } do
@@ -267,6 +274,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     end
   end)
 
+  @tag :capture_log
   test "New deploy requested must update the nodes availables", %{conn: conn} do
     log_type = "stdout"
     test_pid_process = self()
@@ -311,6 +319,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     assert html =~ "Live Logs"
   end
 
+  @tag :capture_log
   test "Reset Stream button", %{conn: conn} do
     message = "[debug]"
     log_type = "stdout"
@@ -359,6 +368,7 @@ defmodule DeployexWeb.Logs.Live.IndexTest do
     refute render(index_live) =~ message
   end
 
+  @tag :capture_log
   test "Check long messages are being printed", %{
     conn: conn
   } do

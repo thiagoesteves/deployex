@@ -5,12 +5,14 @@ defmodule DeployexWeb.UserLoginLiveTest do
   import DeployexWeb.AccountsFixtures
 
   describe "Log in page" do
+    @tag :capture_log
     test "renders log in page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log_in")
 
       assert html =~ "Login to your account"
     end
 
+    @tag :capture_log
     test "redirects if already logged in", %{conn: conn} do
       result =
         conn
@@ -23,6 +25,7 @@ defmodule DeployexWeb.UserLoginLiveTest do
   end
 
   describe "user login" do
+    @tag :capture_log
     test "redirects if user login with valid credentials", %{conn: conn} do
       password = "deployex"
       user = user_fixture()
@@ -39,6 +42,7 @@ defmodule DeployexWeb.UserLoginLiveTest do
       assert redirected_to(conn) == ~p"/applications"
     end
 
+    @tag :capture_log
     test "redirects to login page with a flash error if there are no valid credentials", %{
       conn: conn
     } do

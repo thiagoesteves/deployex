@@ -14,6 +14,7 @@ defmodule DeployexWeb.Applications.ModeTest do
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
+  @tag :capture_log
   test "Check all versions are available", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -50,6 +51,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     assert html =~ "<option selected=\"selected\" value=\"automatic\">automatic</option>"
   end
 
+  @tag :capture_log
   test "Set manual mode - cancel operation", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -82,6 +84,7 @@ defmodule DeployexWeb.Applications.ModeTest do
              "<option selected=\"selected\" value=\"automatic\">automatic</option>"
   end
 
+  @tag :capture_log
   test "Set manual mode - confirm operation", %{conn: conn} do
     ref = make_ref()
     pid = self()
@@ -128,6 +131,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     refute has_element?(index_live, "#confirm-button-mode")
   end
 
+  @tag :capture_log
   test "Set automatic mode - confirm operation", %{conn: conn} do
     ref = make_ref()
     pid = self()
@@ -174,6 +178,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     refute has_element?(index_live, "#confirm-button-mode")
   end
 
+  @tag :capture_log
   test "Check manual mode is set", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -195,6 +200,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     assert html =~ "<option selected=\"selected\" value=\"1.0.2\">1.0.2</option>"
   end
 
+  @tag :capture_log
   test "Check setting the same version is not possible", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->
@@ -219,6 +225,7 @@ defmodule DeployexWeb.Applications.ModeTest do
            }) =~ "Are you sure you want to set to 1.0.2"
   end
 
+  @tag :capture_log
   test "Check setting the same mode is not possible", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn ->

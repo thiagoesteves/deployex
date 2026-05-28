@@ -7,6 +7,7 @@ defmodule DeployexWeb.Docs.IndexTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /documentation", %{conn: conn} do
     {:ok, index_live, html} = live(conn, ~p"/documentation")
 

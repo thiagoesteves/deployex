@@ -16,6 +16,7 @@ defmodule DeployexWeb.Applications.LogsTest do
   alias Foundation.Catalog
   alias Host.Fixture.Terminal, as: FixtureTerminal
 
+  @tag :capture_log
   test "Access to stdout logs by sname", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -56,6 +57,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Access to stderr logs by sname", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -96,6 +98,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Redirect received string to JS [stdout]", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -142,6 +145,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Redirect received string to JS [stderr]", %{conn: conn} do
     ref = make_ref()
     test_pid_process = self()
@@ -188,6 +192,7 @@ defmodule DeployexWeb.Applications.LogsTest do
     assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
+  @tag :capture_log
   test "Error accessing deployex logs [this logs are available only in production]", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

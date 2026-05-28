@@ -13,6 +13,7 @@ defmodule DeployexWeb.Applications.RestartTest do
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
 
+  @tag :capture_log
   test "Click restart Button, but cancel the operation - applications", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -29,6 +30,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     refute has_element?(index_live, "#cancel-button-test-app-abc123")
   end
 
+  @tag :capture_log
   test "Click restart Button, confirm the operation - applications", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -50,6 +52,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     refute has_element?(index_live, "#cancel-button-test-app-abc123")
   end
 
+  @tag :capture_log
   test "Click restart Button, but cancel the operation - deployex", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -66,6 +69,7 @@ defmodule DeployexWeb.Applications.RestartTest do
     refute has_element?(index_live, "#cancel-button-deployex")
   end
 
+  @tag :capture_log
   test "Click restart Button, confirm the operation - deployex", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

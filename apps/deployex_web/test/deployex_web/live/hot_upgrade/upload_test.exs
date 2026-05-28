@@ -12,6 +12,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   ]
 
   describe "mount and render" do
+    @tag :capture_log
     test "GET /hotupgrade renders the hot upgrade manager page", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -24,6 +25,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       assert html =~ "Drop your .tar.gz file here or"
     end
 
+    @tag :capture_log
     test "initializes with correct default assigns", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -42,6 +44,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "file upload validation" do
+    @tag :capture_log
     test "handles validate-upload event", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -52,6 +55,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
              |> render_hook("validate-upload", %{})
     end
 
+    @tag :capture_log
     test "cancels file upload", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -66,6 +70,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "release management" do
+    @tag :capture_log
     @tag :capture_log
     test "remove-release event clears downloaded release", %{conn: conn} do
       Deployer.HotUpgradeMock
@@ -89,6 +94,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       assert socket.assigns.downloaded_release == nil
     end
 
+    @tag :capture_log
     test "displays uploaded release information", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -111,6 +117,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "displays error when release has error", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -125,6 +132,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       refute html =~ "Apply Hot Upgrade"
     end
 
+    @tag :capture_log
     test "displays error when the release is invalid", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -144,6 +152,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "hot upgrade execution" do
+    @tag :capture_log
     test "navigates to apply action when Apply button clicked", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -165,6 +174,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "shows confirmation modal on apply action", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -188,6 +198,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "cancels hot upgrade from confirmation modal", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -213,6 +224,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "executes hot upgrade when confirmed", %{conn: conn} do
       test_pid = self()
 
@@ -250,6 +262,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "hot upgrade progress events" do
+    @tag :capture_log
     test "handles hot_upgrade_progress message", %{conn: conn} do
       test_pid = self()
 
@@ -293,6 +306,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "handles hot_upgrade_complete with success", %{conn: conn} do
       test_pid = self()
 
@@ -332,6 +346,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "handles hot_upgrade_complete with error", %{conn: conn} do
       test_pid = self()
 
@@ -371,6 +386,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "ignores hot upgrade events from other nodes", %{conn: conn} do
       test_pid = self()
 
@@ -411,6 +427,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "ignores hot upgrade events when not applying upgrade", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)
@@ -426,6 +443,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "progress modal" do
+    @tag :capture_log
     test "shows progress modal during upgrade", %{conn: conn} do
       test_pid = self()
 
@@ -460,6 +478,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       end
     end
 
+    @tag :capture_log
     test "hotupgrade-progress-done event resets state", %{conn: conn} do
       test_pid = self()
 
@@ -507,6 +526,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
   end
 
   describe "system info updates" do
+    @tag :capture_log
     test "handles update_system_info message", %{conn: conn} do
       test_pid = self()
 
@@ -538,6 +558,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
     end
   end
 
+  @tag :capture_log
   test "Try to access /hotupgrade/apply without valid release", %{conn: conn} do
     {:error, {:live_redirect, %{to: "/hotupgrade", flash: %{}}}} =
       live(conn, ~p"/hotupgrade/apply")

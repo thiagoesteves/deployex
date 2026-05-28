@@ -13,6 +13,7 @@ defmodule DeployexWeb.NavMenuTest do
     :log_in_default_user
   ]
 
+  @tag :capture_log
   test "GET /applications", %{conn: conn} do
     Cache.UiSettings.set(%Cache.UiSettings{})
 
