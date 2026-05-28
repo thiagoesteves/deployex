@@ -1,5 +1,5 @@
 defmodule Foundation.Certificates.Importer.Route53Test do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
   import Mock
