@@ -326,7 +326,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "subscribe/0" do
-      @tag :capture_log
+    @tag :capture_log
     test "subscribes to new config change notifications" do
       assert :ok = Watcher.subscribe_new_config()
       node = Node.self()
@@ -341,7 +341,7 @@ defmodule Sentinel.Config.WatcherTest do
       assert_receive {:watcher_config_new, ^node, %{test: :data}}, 1000
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "subscribes to apply new config change notifications" do
       assert :ok = Watcher.subscribe_apply_new_config()
       node = Node.self()
@@ -358,7 +358,7 @@ defmodule Sentinel.Config.WatcherTest do
   end
 
   describe "handle_info(:check_config)" do
-      @tag :capture_log
+    @tag :capture_log
     test "reschedules check after handling - no changes" do
       test_pid = self()
       ref = make_ref()
@@ -384,7 +384,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "detects yaml file not found" do
       test_pid = self()
       ref = make_ref()
@@ -529,7 +529,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "updates checksum when no upgradable changes detected" do
       test_pid = self()
       ref = make_ref()
@@ -842,7 +842,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "no changes when monitoring is identical" do
       test_pid = self()
       ref = make_ref()
@@ -973,7 +973,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "No changes in the application" do
       test_pid = self()
       ref = make_ref()
@@ -1338,7 +1338,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "no changes when application is identical" do
       test_pid = self()
       ref = make_ref()
@@ -1444,7 +1444,7 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
 
-      @tag :capture_log
+    @tag :capture_log
     test "Ignore new timeouts values with nil values" do
       test_pid = self()
       ref = make_ref()
@@ -1483,12 +1483,12 @@ defmodule Sentinel.Config.WatcherTest do
     end
   end
 
-    @tag :capture_log
+  @tag :capture_log
   test "Test non-mocked load_config" do
     assert %Upgradable{} == Upgradable.from_yaml(%Yaml{})
   end
 
-    @tag :capture_log
+  @tag :capture_log
   test "Improve coverage" do
     assert {:error, :no_pending_changes} == Watcher.get_pending_changes()
     assert {:error, :no_pending_changes} == Watcher.apply_changes()

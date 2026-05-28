@@ -10,12 +10,14 @@ defmodule Host.InfoTest do
   alias Host.Info.Server, as: InfoServer
   alias Host.Info.Uptime
 
+  @tag :capture_log
   test "start_link/1 for Windows (Not Implemented yet)" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
     assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
   end
 
+  @tag :capture_log
   test "System Info Notification for Linux" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
     os_description = "20.04.6 LTS (Focal Fossa)"
@@ -82,6 +84,7 @@ defmodule Host.InfoTest do
                    1_000
   end
 
+  @tag :capture_log
   test "System Info Notification for Linux when commands fail" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
@@ -106,6 +109,7 @@ defmodule Host.InfoTest do
                    1_000
   end
 
+  @tag :capture_log
   test "System Info Notification for Linux with invalid value in the cpu_sum text" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
     os_description = "20.04.6 LTS (Focal Fossa)"
@@ -167,6 +171,7 @@ defmodule Host.InfoTest do
                    1_000
   end
 
+  @tag :capture_log
   test "System Info Notification for MacOs" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
     os_description = "15.1.1"
@@ -242,6 +247,7 @@ defmodule Host.InfoTest do
                    1_000
   end
 
+  @tag :capture_log
   test "System Info Notification for MacOs when commands fail" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
@@ -266,6 +272,7 @@ defmodule Host.InfoTest do
                    1_000
   end
 
+  @tag :capture_log
   test "System Info Notification for Windows" do
     name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
 
@@ -279,6 +286,7 @@ defmodule Host.InfoTest do
     assert_receive {:update_system_info, %Host.Info{host: "Windows"}}, 1_000
   end
 
+  @tag :capture_log
   test "Host Uptime variations" do
     Host.CommanderMock
     |> stub(:run, fn "cat /proc/uptime", [:stdout, :sync] ->

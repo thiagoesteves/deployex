@@ -10,6 +10,7 @@ defmodule Host.TerminalTest do
   alias Host.Terminal
 
   describe "Initialisation tests" do
+    @tag :capture_log
     test "Check initializatioon with passed options" do
       ref = make_ref()
       test_pid_process = self()
@@ -44,6 +45,7 @@ defmodule Host.TerminalTest do
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end
 
+    @tag :capture_log
     test "Check initializatioon with empty options" do
       ref = make_ref()
       test_pid_process = self()
@@ -80,6 +82,7 @@ defmodule Host.TerminalTest do
   end
 
   describe "Running application" do
+    @tag :capture_log
     test "Timeout" do
       ref = make_ref()
       test_pid_process = self()
@@ -111,6 +114,7 @@ defmodule Host.TerminalTest do
       assert_receive {:handle_ref_event, ^ref}, 1_000
     end
 
+    @tag :capture_log
     test "Receiving a text from the OS process" do
       ref = make_ref()
       test_pid_process = self()
