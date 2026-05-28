@@ -150,12 +150,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     }
   end
 
+  @tag :capture_log
   test "connect/1 success connecting to the monitored app", %{node: node} do
     with_mock Node, connect: fn ^node -> true end do
       assert {:ok, ^node} = UpgradeApp.connect(node)
     end
   end
 
+  @tag :capture_log
   test "connect/1 error while trying to connect to the monitored app", %{node: node} do
     with_mock Node, connect: fn ^node -> false end do
       assert capture_log(fn ->
@@ -164,6 +166,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
   test "check/1 Elixir full deployment", %{
     sname: sname,
     app_name: app_name,
@@ -187,6 +190,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, reason"
   end
 
+  @tag :capture_log
   test "check/1 Elixir valid appup, return hot upgrade detected", %{
     sname: sname,
     app_name: app_name,
@@ -222,6 +226,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version DETECTED - [%Deployer.HotUpgrade.Jellyfish{name: \"testapp\", type: \"project\", from: \"0.1.0\", to: \"0.2.0\"}]"
   end
 
+  @tag :capture_log
   test "check/1 Elixir valid appup with library update, return hot upgrade detected", %{
     sname: sname,
     app_name: app_name,
@@ -257,6 +262,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version DETECTED - [%Deployer.HotUpgrade.Jellyfish{name: \"cowboy\", type: \"dependency\", from: \"0.1.0\", to: \"0.2.0\"}]"
   end
 
+  @tag :capture_log
   test "check/1 Elixir invalid appup version, return hot upgrade not detected", %{
     sname: sname,
     app_name: app_name,
@@ -286,6 +292,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
   end
 
+  @tag :capture_log
   test "check/1 Elixir invalid jellyfish version, return hot upgrade not detected", %{
     sname: sname,
     app_name: app_name,
@@ -315,6 +322,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :no_match_versions"
   end
 
+  @tag :capture_log
   test "check/1 Elixir invalid appup file, return hot upgrade not detected", %{
     sname: sname,
     app_name: app_name,
@@ -344,6 +352,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :error_reading_file"
   end
 
+  @tag :capture_log
   test "check/1 Elixir appup file not found, return hot upgrade not detected", %{
     sname: sname,
     app_name: app_name,
@@ -374,6 +383,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "HOT UPGRADE version NOT DETECTED, full deployment required, reason: :not_found"
   end
 
+  @tag :capture_log
   test "check/1 Erlang full deployment", %{
     sname: sname,
     app_name: app_name,
@@ -397,6 +407,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "HOT UPGRADE version NOT DETECTED, full deployment required, result"
   end
 
+  @tag :capture_log
   test "check/1 Erlang valid appup, return hot upgrade detected", %{
     sname: sname,
     app_name: app_name,
@@ -441,6 +452,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "HOT UPGRADE version DETECTED, from: #{from_version} to: #{to_version}"
   end
 
+  @tag :capture_log
   test "check/1 Gleam full deployment", %{
     sname: sname,
     app_name: app_name,
@@ -464,6 +476,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "HOT UPGRADE version NOT SUPPORTED, full deployment required"
   end
 
+  @tag :capture_log
   test "which_releases/1", %{node: node} do
     Foundation.RpcMock
     |> expect(:call, fn ^node, :release_handler, :which_releases, [], @expected_timeout ->
@@ -473,6 +486,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert [permanent: ~c"0.2.0", old: ~c"0.1.0"] = UpgradeApp.which_releases(node)
   end
 
+  @tag :capture_log
   test "make_relup/1 Elixir success", %{
     node: node,
     sname: sname,
@@ -505,6 +519,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "make_relup/1 Elixir error", %{
     node: node,
     sname: sname,
@@ -539,6 +554,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "systools:make_relup failed, reason: :badrpc"
   end
 
+  @tag :capture_log
   test "make_relup/1 Erlang success", %{
     node: node,
     sname: sname,
@@ -586,6 +602,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     refute File.exists?("#{current_releases_path}/#{app_name}.rel")
   end
 
+  @tag :capture_log
   test "unpack_release/1 success", %{node: node, app_name: app_name, to_version: to_version} do
     release_link = "#{to_version}/#{app_name}" |> to_charlist
 
@@ -606,6 +623,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "unpack_release/1 error", %{
     node: node,
     app_name: app_name,
@@ -632,6 +650,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "Error while unpacking the release #{to_version}, reason: :badrpc"
   end
 
+  @tag :capture_log
   test "check_install_release/1 success", %{node: node, to_version: to_version} do
     Foundation.RpcMock
     |> expect(:call, fn ^node,
@@ -649,6 +668,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "check_install_release/1 error", %{node: node, to_version: to_version} do
     Foundation.RpcMock
     |> expect(:call, fn ^node,
@@ -668,6 +688,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "release_handler:check_install_release failed, reason: :badrpc"
   end
 
+  @tag :capture_log
   test "install_release/1 success", %{node: node, to_version: to_version} do
     Foundation.RpcMock
     |> expect(:call, fn ^node,
@@ -685,6 +706,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "install_release/1 error", %{node: node, to_version: to_version} do
     Foundation.RpcMock
     |> expect(:call, fn ^node,
@@ -704,6 +726,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
            end) =~ "release_handler:install_release failed, reason: :badrpc"
   end
 
+  @tag :capture_log
   test "permfy/1 Elixir success", %{
     node: node,
     app_name: app_name,
@@ -729,6 +752,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "permfy/1 Elixir error", %{
     node: node,
     app_name: app_name,
@@ -757,6 +781,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              "Error while trying to set a permanent version for #{to_version}, reason: :badrpc"
   end
 
+  @tag :capture_log
   test "permfy/1 Erlang success", %{
     node: node,
     app_name: app_name,
@@ -791,10 +816,12 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert File.exists?("#{current_bin_path}/#{app_name}")
   end
 
+  @tag :capture_log
   test "permfy/1 Deployex skip execution" do
     assert :ok = UpgradeApp.permfy(%Execute{make_permanent_async: true})
   end
 
+  @tag :capture_log
   test "return_original_sys_config/1 Elixir success", %{
     current_path: current_path,
     to_version: to_version
@@ -828,6 +855,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "update_sys_config_from_installed_version/1 Elixir success", %{
     node: node,
     current_path: current_path,
@@ -895,6 +923,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Application success", %{
     node: node,
     sname: sname,
@@ -964,6 +993,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex success sync operation, make_permanent_async=true", %{
     current_path: current_path,
     new_path: new_path,
@@ -1054,6 +1084,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex success sync operation, make_permanent_async=false", %{
     current_path: current_path,
     new_path: new_path,
@@ -1138,6 +1169,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex success async operation, make_permanent_async=false", %{
     current_path: current_path,
     new_path: new_path,
@@ -1222,6 +1254,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex error async operation, make_permanent_async=false", %{
     current_path: current_path,
     new_path: new_path,
@@ -1313,6 +1346,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex error async operation, make_permanent_async=true", %{
     current_path: current_path,
     new_path: new_path,

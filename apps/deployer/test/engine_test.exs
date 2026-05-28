@@ -18,6 +18,7 @@ defmodule Deployer.EngineTest do
   end
 
   describe "Initialization tests" do
+    @tag :capture_log
     test "init/1" do
       name = "myelixir"
       language = "elixir"
@@ -45,6 +46,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Initialization with version not configured" do
       name = "myelixir"
       language = "elixir"
@@ -93,6 +95,7 @@ defmodule Deployer.EngineTest do
              end) =~ "No versions set yet for myelixir"
     end
 
+    @tag :capture_log
     test "Initialization with version configured" do
       name = "myelixir"
       language = "elixir"
@@ -135,6 +138,7 @@ defmodule Deployer.EngineTest do
   end
 
   describe "Checking deployment" do
+    @tag :capture_log
     test "Check for new version - full deployment - no pre-commands" do
       name = "myelixir"
       language = "elixir"
@@ -215,6 +219,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Check for new version - ignore ghosted version" do
       name = "myelixir"
       language = "elixir"
@@ -271,6 +276,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Check for new version - hotupgrade - pre-commands" do
       name = "myelixir"
       language = "elixir"
@@ -437,6 +443,7 @@ defmodule Deployer.EngineTest do
   end
 
   describe "Deployment Status" do
+    @tag :capture_log
     test "Check deployment succeed and move to the next instance" do
       name = "myelixir"
       language = "elixir"
@@ -527,6 +534,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Check deployment won't move to the next instance with invalid notification" do
       name = "myelixir"
       language = "elixir"
@@ -704,6 +712,7 @@ defmodule Deployer.EngineTest do
   end
 
   describe "Deployment manual version" do
+    @tag :capture_log
     test "Configure Manual version from automatic" do
       name = "myelixir"
       language = "elixir"
@@ -787,6 +796,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Configure Automatic version from manual" do
       name = "myelixir"
       language = "elixir"
@@ -937,6 +947,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Invalid rollback message" do
       name = "myelixir"
       language = "elixir"
@@ -1093,6 +1104,7 @@ defmodule Deployer.EngineTest do
   end
 
   describe "Config updates" do
+    @tag :capture_log
     test "Check restart deployments requested" do
       name = "myelixir"
       language = "elixir"
@@ -1207,6 +1219,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Update value" do
       name = "myelixir"
       language = "elixir"
@@ -1265,6 +1278,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    @tag :capture_log
     test "Check Add replicas (Without replica_ports)" do
       name = "myelixir"
       language = "elixir"
@@ -1395,6 +1409,7 @@ defmodule Deployer.EngineTest do
              end) =~ "Adding new replicas for myelixir"
     end
 
+    @tag :capture_log
     test "Check Add replicas (With replica_ports)" do
       name = "myelixir"
       language = "elixir"
@@ -1526,6 +1541,7 @@ defmodule Deployer.EngineTest do
              end) =~ "Adding new replicas for myelixir"
     end
 
+    @tag :capture_log
     test "Check Remove replicas (With replica_ports)" do
       name = "myelixir"
       language = "elixir"

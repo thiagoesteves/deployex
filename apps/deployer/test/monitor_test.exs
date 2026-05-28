@@ -775,6 +775,7 @@ defmodule Deployer.MonitorTest do
              end) =~ "Restart requested for sname: #{sname}"
     end
 
+    @tag :capture_log
     test "Ignore cleanup beam command", %{elixir_name: name, elixir_sname: sname, ports: ports} do
       test_event_ref = make_ref()
       test_pid_process = self()
