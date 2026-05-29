@@ -434,13 +434,13 @@ defmodule Sentinel.Config.Watcher do
               Certificate.stop_certificate_manager(name)
 
             {name, %{status: :modified, changes: changes}} ->
+              # credo:disable-for-lines:3
               Enum.each(changes, fn
-                {:certificates, %{old: _old, new: _new, details: details}} ->
-                  # credo:disable-for-lines:5
-                  if details.domains.status in [:removed, :modified] do
-                    Logger.warning("ConfigWatcher: Removing certificate manager for #{name}")
-                    Certificate.stop_certificate_manager(name)
-                  end
+                {:certificates, %{details: %{domains: %{status: status}}}}
+                when status in [:removed, :modified] ->
+                  # credo:disable-for-lines:2
+                  Logger.warning("ConfigWatcher: Removing certificate manager for #{name}")
+                  Certificate.stop_certificate_manager(name)
 
                   :ok
 
@@ -479,26 +479,23 @@ defmodule Sentinel.Config.Watcher do
                 value, acc ->
                   [value] ++ acc
               end)
-              |> Enum.each(fn {app_change_key, %{old: _old, new: new} = diff} ->
-                # credo:disable-for-lines:10
-                case app_change_key do
-                  :monitoring ->
-                    Sentinel.Watchdog.reset_app_statistics(name)
-                    :ok
+              # credo:disable-for-lines:5
+              |> Enum.each(fn
+                {:monitoring, _diff} ->
+                  Sentinel.Watchdog.reset_app_statistics(name)
+                  :ok
 
-                  :certificates ->
-                    if diff.details.domains.status in [:added, :modified] do
-                      Certificate.start_certificate_manager(name, [diff.details.domains.config])
-                    end
+                {:certificates, %{details: %{domains: %{status: status, config: config}}}}
+                when status in [:added, :modified] ->
+                  Certificate.start_certificate_manager(name, [config])
 
-                    :ok
+                  :ok
 
-                  field ->
-                    # NOTE: the application restat occurs based on the field change
-                    Engine.Worker.updated_state_values(name, Map.put(%{}, field, new))
+                {field, %{old: _old, new: new}} ->
+                  # NOTE: the application restat occurs based on the field change
+                  Engine.Worker.updated_state_values(name, Map.put(%{}, field, new))
 
-                    :ok
-                end
+                  :ok
               end)
 
               :ok
