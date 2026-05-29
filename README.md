@@ -184,7 +184,8 @@ Once DeployEx runs, it fetches the configuration from the YAML file described in
 
 DeployEx offers a comprehensive set of Terraform examples for programmatically deploying in AWS and GCP, including detailed step-by-step setup instructions:
 
-- [AWS deployment for Elixir](guides/docs/aws-elixir/README.md)
+- [AWS deployment for Elixir (without ecto)](guides/docs/aws-elixir/README.md)
+- [AWS deployment for Elixir (with ecto and certificate manager)](guides/docs/aws-elixir-db-certificate/README.md)
 - [GCP deployment for Elixir](guides/docs/gcp-elixir/README.md)
 - [AWS deployment for Gleam](guides/docs/aws-gleam/README.md)
 

@@ -1,6 +1,6 @@
-# AWS Deployment for Elixir with certificate manager using Terraform
+# AWS Deployment for Elixir+Database+Certificate manager using Terraform
 
-This guide demonstrates how to deploy DeployEx in Amazon Web Services (AWS) using Terraform to programmatically set up the environment.
+This guide demonstrates how to deploy DeployEx (when the application requires a DB and certificate manager) in Amazon Web Services (AWS) using Terraform to programmatically set up the environment.
 
 ## 1. Requirements
 
@@ -11,7 +11,7 @@ To begin, ensure the following applications are installed:
 
 ## 2. SSH Key Pair
 
-Create an SSH key pair named, e. g. `myappname-web-ec2` by visiting the [AWS Key Pair page](https://sa-east-1.console.aws.amazon.com/ec2/home?region=sa-east-1#KeyPairs:). Save the private key in your local SSH folder (`~/.ssh`). The name `myappname-web-ec2` will be used by this file `devops/terraform/modules/standard-account/variables.tf` within terraform templates.
+Create an SSH key pair named, e. g. `myappname-key` by visiting the [AWS Key Pair page](https://sa-east-1.console.aws.amazon.com/ec2/home?region=sa-east-1#KeyPairs:). Save the private key in your local SSH folder (`~/.ssh`). The name `myappname-key` will be used by this file [variables.tf][var] for `bastion_key_name` variable.
 
 ## 3. Environment Secrets
 
@@ -30,9 +30,19 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 
 ## 4. Variables Configuration
 
-Rename the file [main\_example.tf\_][main] to `main.tf` and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file][var]. These variables will be utilized across all Terraform templates to ensure correct setup.
+Check the file [main.tf][main] and configure the [variables][var] according to your specific environment. These variables will be utilized across all Terraform templates to ensure correct setup.
 
 ## 5. Provisioning the Environment
+
+Create manually the S3 bucket that will contain the terraform state, the name must follow the name defined in [main.tf][main]:
+
+```bash
+  backend "s3" {
+    bucket = "myproject-myapp-terraform-state" <<<<<------ Create a S3 with this name
+    key    = "terraform.tfstate"
+    region = "us-east-2"
+  }
+```
 
 Check you have the correct credentials to create/update resources in aws:
 ```bash
@@ -45,6 +55,7 @@ aws_secret_access_key=secret_access_key
 Once the key is configured, proceed with provisioning the environment. Navigate to the `./environments/prod` folder and execute the following commands:
 
 ```bash
+terraform init # ONLY at first time
 terraform plan # Check if the templates are configured correctly
 terraform apply # Apply the configurations to create the environment
 ```
@@ -55,17 +66,26 @@ Wait for the environment to be created. Once the provisioning is complete, you c
 
 Navigate to [AWS Secrets Manager](https://console.aws.amazon.com/secretsmanager/listsecrets), locate and update the following secrets:
 
- *  *__myappname-prod-secrets__*:
+ *  *__prod/myappname/secret-key-base__*:
 
-Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs: (You may need to configure additional secrets if your application requires them)
+Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs:
 
 ```bash
-# Update the secrets
 MYAPPNAME_SECRET_KEY_BASE=xxxxxxxxxx
+```
+
+ *  *__prod/myappname/erlang-cookie__*:
+
+Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs: 
+
+```bash
 MYAPPNAME_ERLANG_COOKIE=xxxxxxxxxx
 ```
 
-* *__deployex-myappname-prod-secrets__*
+> [!ATTENTION]
+> You may need to configure additional secrets if your application requires them.
+
+ *  *__prod/myappname/deployex/secrets__*
 
 Click on the secret, then select "Retrieve Secret Value" and edit the secret by adding the new key/value pairs:
 
@@ -75,7 +95,7 @@ DEPLOYEX_ERLANG_COOKIE=xxxxxxxxxx
 DEPLOYEX_ADMIN_HASHED_PASSWORD=xxxxxxxxxx
 ```
 
- *  *__myappname-stage-otp-tls-ca__*, *__myappname-stage-otp-tls-key__*, *__myappname-stage-otp-tls-crt__*:
+ *  *__prod/myappname/deployex/otp-tls-ca__*, *__prod/myappname/deployex/otp-tls-key__*, *__prod/myappname/deployex/otp-tls-crt__*:
 
 Create the TLS certificates for OTP distribution using the [Following script][tls], changing the appropriate names and regions inside it.
 
@@ -91,7 +111,7 @@ The command will generate three files: `ca.crt`, `deployex.key` and `deployex.cr
 
 ## 6. EC2 Provisioning (Manual Steps)
 
-When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets, including certificates and other sensitive information, are updated, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention.
+When running Terraform for the first time, AWS secrets are not yet created. Consequently, attempts to execute deployex or certificates installation will fail. Once these AWS secrets are configured, including certificates and other sensitive information, subsequent iterations of Terraform's EC2 destroy/create process will no longer require manual intervention and you can skip the next steps.
 
 For initial installations or updates to deployex, follow these steps:
 
@@ -182,7 +202,7 @@ The release version file __MUST__ be formatted in JSON and include the following
 {
   "version": "0.1.0-9cad9cd",
   "hash": "9cad9cd3581c69fdd02ff60765e1c7dd4599d84a",
-  "pre_commands": []
+  "pre_commands": [\"eval Ectoapp.Migrator.create\", \"eval Ectoapp.Migrator.migrate\"] # once the DB is created for the first time, you can remove the create command
 }
 ```
 
@@ -200,76 +220,6 @@ Here are some useful resources with suggestions on how to automate the upload of
  * [Guthub Actions - S3 Downloader/Uploader](https://github.com/marketplace/actions/s3-cp)
  * [Calori Webserver Example with AWS](https://github.com/thiagoesteves/calori/tree/main/devops/aws/terraform)
 
-## 8. Setting Up HTTPS Certificates with Let's Encrypt
-
-> [!IMPORTANT]
-> Before proceeding, make sure that the DNS is correctly configured to point to the AWS instance.
-
-
- For HTTPS, you can use free certificates from [Let's encrypt](https://letsencrypt.org/getting-started/). In this example, we'll use [cert bot for ubuntu](https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal) to obtain and configure the certificates:
-
-```bash
-sudo su
-apt update
-apt install snapd
-snap install --classic certbot
-ln -s /snap/bin/certbot /usr/bin/certbot
-```
-
-Before installing the certificate, make a backup of the current Nginx configuration file located at `/etc/nginx/sites-available/default`. Certbot may modify this file, so keeping a local copy ensures you can restore it if needed. Once the backup is created, run the following command:
-```bash
-certbot --nginx
-```
-
-This command will install Certbot and automatically configure Nginx to use the obtained certificates. After Nginx is configured, the certificate paths will be set up and will look something like this:
-
-```bash
-vi /etc/nginx/sites-available/default
- ...
-           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
-           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
-           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-```
-
-Update your configuration file to include the Let's Encrypt certificate paths. Find the section where it mentions:
-
-```bash
-           # Add here the letsencrypt paths
-```
-replace this comment with the actual certificate paths:
-```bash
-               proxy_set_header Upgrade $http_upgrade;
-               proxy_set_header Connection "upgrade";
-
-               proxy_pass http://deployex;
-           }
-           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
-           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
-           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-       }
-```
-
-Also, ensure that port 443 is enabled for both servers. For example:
-
-```bash
-      server {
-          listen 443 ssl; # managed by Certbot
-```
-
-After modifying the configuration file, save the changes and restart Nginx:
-
-```bash
-sudo su
-vi /etc/nginx/sites-available/default
-# modify and save file
-systemctl reload nginx
-```
-
-> [!NOTE]
-> After the changes, It may require a reboot.
-
 [tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
-[main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir/terraform/environments/prod/main_example.tf_
-[var]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir/terraform/modules/standard-account/variables.tf
+[main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/main.tf
+[var]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/variables.tf

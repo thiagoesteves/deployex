@@ -129,7 +129,7 @@ config :foundation,
       #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
       #     dns_options: %{
       #       ttl: 60,
-      #       zone: "zone",
+      #       zone: "Z6767676776I8",
       #       propagation_timeout_ms: 120000,
       #       check_interval_ms: 2000
       #     },
