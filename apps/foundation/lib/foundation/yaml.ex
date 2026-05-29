@@ -76,12 +76,14 @@ defmodule Foundation.Yaml do
 
     defmodule AcmeOptions do
       @moduledoc false
-      defstruct [:contact_email, :url, :key_size]
+      defstruct [:contact_email, :url, :key_size, :propagation_timeout_ms, :check_interval_ms]
 
       @type t :: %__MODULE__{
               contact_email: String.t() | nil,
               url: String.t() | nil,
-              key_size: non_neg_integer() | nil
+              key_size: non_neg_integer() | nil,
+              propagation_timeout_ms: non_neg_integer() | nil,
+              check_interval_ms: non_neg_integer() | nil
             }
     end
 

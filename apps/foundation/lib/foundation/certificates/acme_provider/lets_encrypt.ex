@@ -93,9 +93,10 @@ defmodule Foundation.Certificates.ACMEProvider.LetsEncrypt do
   end
 
   @impl ACMEProvider
-  def wait_for_validation(app_name, challenges, account_key, timeout_ms \\ 120_000) do
+  def wait_for_validation(app_name, challenges, account_key, options) do
     name = server_name(app_name)
-    poll_interval = 2_000
+    timeout_ms = options[:propagation_timeout_ms]
+    poll_interval = options[:check_interval_ms]
     max_attempts = div(timeout_ms, poll_interval)
 
     wait_for_challenges_completion(app_name, name, challenges, account_key, max_attempts)

@@ -22,6 +22,7 @@ defmodule Foundation.Certificates.Manager do
   use GenServer
 
   alias Foundation.Catalog
+  alias Foundation.Network
 
   require Logger
 
@@ -173,7 +174,7 @@ defmodule Foundation.Certificates.Manager do
          :ok <- upsert_dns_records(cert_config, challenges),
          :ok <- wait_for_dns_propagation(cert_config, challenges),
          :ok <- acme_provider.start_challenge_validation(app_name, challenges, account_key),
-         :ok <- acme_provider.wait_for_validation(app_name, challenges, account_key),
+         :ok <- acme_provider.wait_for_validation(app_name, challenges, account_key, acme_options),
          {:ok, cert_chain_pem, private_key_pem} <-
            acme_provider.finalize_certificate(app_name, order, account_key, acme_options) do
       {:ok, cert_chain_pem, private_key_pem}
@@ -287,7 +288,7 @@ defmodule Foundation.Certificates.Manager do
     lookup_name = String.trim_trailing(name, ".")
     domain_charlist = String.to_charlist(lookup_name)
 
-    case :inet_res.lookup(domain_charlist, :in, :txt) do
+    case Network.lookup(domain_charlist, :in, :txt) do
       [] ->
         {:error, :not_propagated}
 
@@ -311,9 +312,6 @@ defmodule Foundation.Certificates.Manager do
     end)
   end
 
-  defp normalize_record(record) when is_list(record) do
-    List.to_string(record)
-  rescue
-    _ -> inspect(record)
-  end
+  defp normalize_record(record) when is_list(record), do: List.to_string(record)
+  defp normalize_record(record), do: inspect(record)
 end

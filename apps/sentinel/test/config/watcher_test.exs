@@ -58,7 +58,9 @@ defmodule Sentinel.Config.WatcherTest do
     acme_options: %Foundation.Yaml.Certificate.AcmeOptions{
       contact_email: "admin@example.com",
       url: "https://acme-v02.api.letsencrypt.org/directory",
-      key_size: 2048
+      key_size: 2048,
+      propagation_timeout_ms: 120_000,
+      check_interval_ms: 2000
     },
     importer: nil,
     importer_options: nil

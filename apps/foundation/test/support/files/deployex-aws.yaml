@@ -45,6 +45,8 @@ applications:
           contact_email: "myapp@mydomain.com"
           url: "https://acme-v02.api.letsencrypt.org/directory"
           key_size: 2048
+          propagation_timeout_ms: 120000
+          check_interval_ms: 2000
         importer: "route53"
         importer_options:
           certificate_arn: "add::certificate::arn"

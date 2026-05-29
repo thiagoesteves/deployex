@@ -46,6 +46,8 @@ defmodule Mix.Shared do
         Foundation.Certificates.DNSProvider.Mock,
         Foundation.Certificates.Importer,
         Foundation.Certificates.Importer.Mock,
+        Foundation.Fixture.Stubs.FailingACMEProvider,
+        Foundation.Network,
         Foundation.System.Zip,
         # Host
         Host.Info,

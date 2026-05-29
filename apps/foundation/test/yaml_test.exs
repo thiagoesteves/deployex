@@ -431,6 +431,8 @@ defmodule Foundation.YamlTest do
         assert cert.acme_options.url == "https://acme-v02.api.letsencrypt.org/directory"
         assert cert.acme_options.key_size == 2048
         assert cert.acme_options.contact_email != nil
+        assert cert.acme_options.propagation_timeout_ms == nil
+        assert cert.acme_options.check_interval_ms == nil
       end
     end
 
@@ -495,7 +497,9 @@ defmodule Foundation.YamlTest do
         acme_options: %Certificate.AcmeOptions{
           contact_email: "admin@example.com",
           url: "https://acme-v02.api.letsencrypt.org/directory",
-          key_size: 2048
+          key_size: 2048,
+          propagation_timeout_ms: 120_000,
+          check_interval_ms: 2000
         },
         importer: Foundation.Certificates.Importer.Route53,
         importer_options: %Certificate.ImporterOptions{certificate_arn: "arn:aws:acm:..."}
@@ -519,11 +523,15 @@ defmodule Foundation.YamlTest do
       acme_opts = %Certificate.AcmeOptions{
         contact_email: "ops@example.com",
         url: "https://acme-staging-v02.api.letsencrypt.org/directory",
-        key_size: 4096
+        key_size: 4096,
+        propagation_timeout_ms: 10_000,
+        check_interval_ms: 1_000
       }
 
       assert acme_opts.contact_email == "ops@example.com"
       assert acme_opts.key_size == 4096
+      assert acme_opts.propagation_timeout_ms == 10_000
+      assert acme_opts.check_interval_ms == 1_000
     end
 
     test "ImporterOptions struct has correct fields" do

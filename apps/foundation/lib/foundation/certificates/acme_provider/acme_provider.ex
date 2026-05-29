@@ -99,7 +99,7 @@ defmodule Foundation.Certificates.ACMEProvider do
   and correlation.
   - `challenges`: List of challenges to wait for
   - `account_key`: The ACME account key
-  - `timeout_ms`: Maximum time to wait in milliseconds
+  - `options`: Client-specific options (e.g., propagation_timeout_ms)
 
   ## Returns
   - `:ok`: All challenges validated successfully
@@ -109,7 +109,7 @@ defmodule Foundation.Certificates.ACMEProvider do
               app_name :: String.t(),
               challenges :: [challenge()],
               account_key :: account_key(),
-              timeout_ms :: non_neg_integer()
+              options :: map()
             ) :: :ok | {:error, any()}
 
   @doc """
