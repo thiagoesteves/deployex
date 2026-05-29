@@ -1547,7 +1547,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert app_changes.status == :modified
 
         cert_detail = app_changes.changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :added
         assert cert_detail.details[:acme].config == @default_certificate
 
@@ -1596,7 +1596,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert app_changes.status == :modified
 
         cert_detail = app_changes.changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :removed
         assert cert_detail.details[:acme].config == @default_certificate
 
@@ -1653,7 +1653,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert app_changes.status == :modified
 
         cert_detail = app_changes.changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :modified
         assert cert_detail.details[:acme].config.domains == ["example.com", "www.example.com"]
 
@@ -1714,7 +1714,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert app_changes.status == :modified
 
         cert_detail = app_changes.changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :modified
 
         assert cert_detail.details[:acme].config.acme_options.contact_email ==
@@ -1775,7 +1775,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert app_changes.status == :modified
 
         cert_detail = app_changes.changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :modified
         assert cert_detail.details[:acme].config.dns_options.ttl == 120
 
@@ -1892,7 +1892,7 @@ defmodule Sentinel.Config.WatcherTest do
         {:ok, changes} = Watcher.get_pending_changes(:test_cert_multi)
 
         cert_detail = changes.summary.applications.details["my_new_app"].changes.certificates
-        assert cert_detail.apply_strategy == :full_deploy
+        assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :modified
         assert cert_detail.details[:importer].status == :modified
         assert cert_detail.details[:acme].config.domains == ["example.com", "www.example.com"]
@@ -1945,7 +1945,7 @@ defmodule Sentinel.Config.WatcherTest do
         {:ok, changes} = Watcher.get_pending_changes(:test_cert_strategy)
 
         app_detail = changes.summary.applications.details["my_new_app"]
-        assert :full_deploy in app_detail.apply_strategies
+        assert :immediate in app_detail.apply_strategies
       end
     end
   end

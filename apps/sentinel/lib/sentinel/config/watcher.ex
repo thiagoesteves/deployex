@@ -26,6 +26,7 @@ defmodule Sentinel.Config.Watcher do
   alias Deployer.Monitor
   alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
   alias Foundation.Catalog.Local
+  alias Foundation.Certificate
   alias Foundation.Yaml
   alias Sentinel.Config.Changes
   alias Sentinel.Config.Upgradable
@@ -414,7 +415,7 @@ defmodule Sentinel.Config.Watcher do
     |> add_replica_ports_changes(old_app, new_app, :full_deploy)
     |> add_env_changes(old_app, new_app, :next_deploy)
     |> add_monitoring_changes(old_app, new_app, :immediate)
-    |> add_certificates_changes(old_app, new_app, :full_deploy)
+    |> add_certificates_changes(old_app, new_app, :immediate)
   end
 
   defp apply_pre_config_changes(summary) do
@@ -430,9 +431,22 @@ defmodule Sentinel.Config.Watcher do
               Logger.warning("ConfigWatcher: Removing application: #{name}")
               EngineSupervisor.stop_deployment(name)
               MonitorSupervisor.stop(name)
+              Certificate.stop_certificate_manager(name)
 
-            _ ->
-              nil
+            {name, %{status: :modified, changes: changes}} ->
+              # credo:disable-for-lines:3
+              Enum.each(changes, fn
+                {:certificates, %{details: %{domains: %{status: status}}}}
+                when status in [:removed, :modified] ->
+                  # credo:disable-for-lines:2
+                  Logger.warning("ConfigWatcher: Removing certificate manager for #{name}")
+                  Certificate.stop_certificate_manager(name)
+
+                  :ok
+
+                _others ->
+                  :ok
+              end)
           end)
 
           :ok
@@ -452,6 +466,7 @@ defmodule Sentinel.Config.Watcher do
               application = Enum.find(change.new, &(&1.name == name))
               Monitor.init_monitor_supervisor(name)
               Engine.init_worker(application)
+              Certificate.start_certificate_manager(name, application.certificates)
               :ok
 
             {name, %{status: :modified, changes: changes}} ->
@@ -464,18 +479,23 @@ defmodule Sentinel.Config.Watcher do
                 value, acc ->
                   [value] ++ acc
               end)
-              |> Enum.each(fn {app_change_key, %{old: _old, new: new}} ->
-                # credo:disable-for-lines:1
-                case app_change_key do
-                  :monitoring ->
-                    Sentinel.Watchdog.reset_app_statistics(name)
-                    :ok
+              # credo:disable-for-lines:5
+              |> Enum.each(fn
+                {:monitoring, _diff} ->
+                  Sentinel.Watchdog.reset_app_statistics(name)
+                  :ok
 
-                  field ->
-                    Engine.Worker.updated_state_values(name, Map.put(%{}, field, new))
+                {:certificates, %{details: %{domains: %{status: status, config: config}}}}
+                when status in [:added, :modified] ->
+                  Certificate.start_certificate_manager(name, [config])
 
-                    :ok
-                end
+                  :ok
+
+                {field, %{old: _old, new: new}} ->
+                  # NOTE: the application restat occurs based on the field change
+                  Engine.Worker.updated_state_values(name, Map.put(%{}, field, new))
+
+                  :ok
               end)
 
               :ok

@@ -8,6 +8,7 @@ defmodule Sentinel.Config.WatcherApplyTest do
   alias Deployer.Engine.Supervisor, as: EngineSupervisor
   alias Deployer.Monitor
   alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
+  alias Foundation.Certificate
   alias Sentinel.Config.Upgradable
   alias Sentinel.Config.Watcher
   alias Sentinel.Fixture.Watcher, as: FixtureWatcher
@@ -27,6 +28,8 @@ defmodule Sentinel.Config.WatcherApplyTest do
       {EngineSupervisor, [], [stop_deployment: fn _name -> :ok end]},
       {Monitor, [], [init_monitor_supervisor: fn _name -> :ok end]},
       {MonitorSupervisor, [], [stop: fn _name -> :ok end]},
+      {Certificate, [], [start_certificate_manager: fn _name, _certificates -> :ok end]},
+      {Certificate, [], [stop_certificate_manager: fn _name -> :ok end]},
       {Engine.Worker, [], [updated_state_values: fn _name, _map_values -> :ok end]},
       {Sentinel.Watchdog, [], [reset_app_statistics: fn _name -> :ok end]},
       {Sentinel.Logs, [], [update_data_retention_period: fn _new_value -> :ok end]},
