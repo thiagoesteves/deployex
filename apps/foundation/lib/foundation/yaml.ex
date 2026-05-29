@@ -65,7 +65,7 @@ defmodule Foundation.Yaml do
     """
 
     defmodule DnsOptions do
-      @moduledoc false
+      @moduledoc "DNS provider options for certificate configuration."
       defstruct [:ttl, :zone]
 
       @type t :: %__MODULE__{
@@ -75,7 +75,7 @@ defmodule Foundation.Yaml do
     end
 
     defmodule AcmeOptions do
-      @moduledoc false
+      @moduledoc "ACME client options for certificate provisioning."
       defstruct [:contact_email, :url, :key_size, :propagation_timeout_ms, :check_interval_ms]
 
       @type t :: %__MODULE__{
@@ -88,7 +88,7 @@ defmodule Foundation.Yaml do
     end
 
     defmodule ImporterOptions do
-      @moduledoc false
+      @moduledoc "Options for importing externally managed certificates."
       defstruct [:certificate_arn]
 
       @type t :: %__MODULE__{
@@ -119,11 +119,11 @@ defmodule Foundation.Yaml do
             dns_check_interval_ms: non_neg_integer() | nil,
             renew_before_days: non_neg_integer() | nil,
             dns_provider: atom() | nil,
-            dns_options: DnsOptions.t() | nil,
+            dns_options: __MODULE__.DnsOptions.t() | nil,
             acme_provider: atom() | nil,
-            acme_options: AcmeOptions.t() | nil,
+            acme_options: __MODULE__.AcmeOptions.t() | nil,
             importer: atom() | nil,
-            importer_options: ImporterOptions.t() | nil
+            importer_options: __MODULE__.ImporterOptions.t() | nil
           }
   end
 
