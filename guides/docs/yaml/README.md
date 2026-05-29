@@ -130,6 +130,29 @@ applications:
         warning_threshold_percent: 75
         restart_threshold_percent: 90
 
+    # Application-Level Certificates configuration
+    certificates: 
+      - type: "domains"
+        domains: ["*.calori.com.br" , "*.hub.calori.com.br" ] # Domains included in the certificate
+        certificate_check_interval_ms: 86400000               # Periodic renewal check interval
+        dns_propagation_timeout_ms: 120000                    # DNS propagation configuration  
+        dns_check_interval_ms: 5000
+        renew_before_days: 30                                 # Renew certificate before expiration
+        dns_provider: "route53"                               # DNS provider implementation 
+        dns_options: 
+          ttl: 60 
+          zone: "Z0123456789ABCDEFG"
+        acme_provider: "lets_encrypt"                         # ACME provider implementation
+        acme_options: 
+          contact_email: "myapp@mydomain.com" 
+          url: "https://acme-v02.api.letsencrypt.org/directory" 
+          key_size: 2048
+          propagation_timeout_ms: 120000
+          check_interval_ms: 2000
+        importer: "route53"                                   # Certificate deployment/import strategy
+        importer_options: 
+          certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
+
   # --------------------------------------------------------------------------
   # Application: myapp
   # --------------------------------------------------------------------------
@@ -173,12 +196,17 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 
 #### Application Level (Runtime Upgradable)
 - `monitoring` - Application monitoring settings (atom, process, port thresholds)
+- `certificates` - Application certificate settings (acme, dns provider, importer)
 - `language` - Application language (Elixir, Erlang, Gleam)
 - `replicas` - Number of application instances
 - `deploy_rollback_timeout_ms` - Deployment rollback timeout
 - `deploy_schedule_interval_ms` - Deployment check interval
 - `replica_ports` - Port configuration for replicas
 - `env` - Environment variables
+
+#### Application Certificates
+
+DeployEx supports automatic TLS certificate provisioning, renewal, and deployment using ACME providers such as Let's Encrypt. Certificates are configured per application through the certificates field. This allows applications to manage HTTPS certificates without requiring external automation.
 
 ### Non-Upgradable Configuration Fields
 

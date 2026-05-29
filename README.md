@@ -32,6 +32,12 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Supports the following cloud providers (with terraform files):
   - Amazon Web Services (AWS)
   - Google Cloud Platform (GCP)
+- Supports automatic TLS certificate provisioning, deployment, and renewal:
+  - Supports Let's Encrypt ACME v2 with DNS-01 challenge validation.
+  - Supports fully automated per-application certificate lifecycle management directly from the YAML configuration.
+  - Supports wildcard domain certificates (e.g. `*.example.com`) through configurable DNS providers.
+  - Supports automatic certificate import/export workflows for cloud providers such as AWS ACM/Route53.
+  - Automatically renews certificates before expiration with configurable renewal thresholds and validation intervals.
 - Supports local environments for non-cloud deployments
 - Provides rollback functionality if a monitored app version remains unstable for 10 minutes (time configurable).
 - Rolled-back monitored app versions are ghosted, preventing their redeployment.
@@ -61,14 +67,6 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 > [!NOTE]
 > All examples and deployments in this project use NGINX as a reverse proxy and load balancer. However, DeployEx does not depend on NGINX; it is used here purely for convenience.
-
-## 🚀 **New Monitoring Feature!**
-
-Your application is now better protected from crashes caused by excessive memory usage, port/atom exhaustion, or too many processes.
-
-🧠 Curious why monitoring memory is essential?  
-Check out this must-watch video:  
-▶️ [Battling Memory Leaks: Tales from the Trenches at WhatsApp](https://youtu.be/NCgsTBeQbc8)
 
 ## ⚠️ What is coming next? 
 
