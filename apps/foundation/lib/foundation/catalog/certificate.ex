@@ -41,7 +41,7 @@ defmodule Foundation.Catalog.Certificate do
           valid_from: %DateTime{} = valid_from,
           valid_until: %DateTime{} = valid_until
         },
-        threshold_days \\ 30
+        threshold_days
       ) do
     now = DateTime.utc_now()
 
@@ -51,6 +51,8 @@ defmodule Foundation.Catalog.Certificate do
       DateTime.after?(valid_until, now) and
       DateTime.after?(valid_until, renewal_threshold)
   end
+
+  def valid?(_certificate, _threshold_days), do: false
 
   @doc """
   Extracts metadata from a certificate PEM string.

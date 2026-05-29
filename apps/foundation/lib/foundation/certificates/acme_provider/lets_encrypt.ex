@@ -106,12 +106,13 @@ defmodule Foundation.Certificates.ACMEProvider.LetsEncrypt do
   def finalize_certificate(app_name, order, account_key, options) do
     name = server_name(app_name)
     key_size = options[:key_size]
+    order_attempts = options[:order_attempts] || 30
     private_key = X509.PrivateKey.new_rsa(key_size)
     {:ok, csr} = ExAcme.Order.to_csr(order, private_key)
 
     with {:ok, finalized_order} <-
            ExAcme.finalize_order(order, csr, account_key, name),
-         :ok <- wait_until_order_valid(name, finalized_order, account_key),
+         :ok <- wait_until_order_valid(name, finalized_order, account_key, order_attempts),
          {:ok, cert_url} <- get_certificate_url(name, finalized_order, account_key),
          {:ok, cert_chain_pem} <- fetch_certificate_chain(name, cert_url, account_key) do
       {:ok, cert_chain_pem, X509.PrivateKey.to_pem(private_key)}
@@ -238,8 +239,6 @@ defmodule Foundation.Certificates.ACMEProvider.LetsEncrypt do
   defp wait_for_challenges_completion(_app_name, _name, _challenges, _account_key, 0) do
     {:error, :challenge_timeout}
   end
-
-  defp wait_until_order_valid(name, order, account_key, attempts \\ 30)
 
   defp wait_until_order_valid(name, order, account_key, attempts) when attempts > 0 do
     case ExAcme.fetch_order(order.url, account_key, name) do

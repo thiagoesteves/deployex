@@ -8,7 +8,7 @@ defmodule Foundation.Certificates.DNSProvider.Route53Test do
 
   @name "_acme-challenge.example.com."
   @txt_value "some-acme-challenge-token"
-  @options [ttl: 60, zone: "HOSTED_ZONE_ID"]
+  @options %{ttl: 60, zone: "HOSTED_ZONE_ID"}
 
   describe "upsert_txt_record/3" do
     @tag :capture_log

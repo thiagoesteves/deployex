@@ -123,7 +123,7 @@ defmodule Foundation.Certificates.Manager do
         generate_and_store_acme_certificate(state, cert)
 
       {cert, false} ->
-        if Catalog.Certificate.valid?(cert) do
+        if Catalog.Certificate.valid?(cert, state.renew_before_days) do
           Logger.info(
             "Using existing valid certificate for app: #{state.app_name} - #{inspect(state.domains)}"
           )

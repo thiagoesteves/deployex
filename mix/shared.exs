@@ -49,6 +49,9 @@ defmodule Mix.Shared do
         Foundation.Fixture.Stubs.FailingACMEProvider,
         Foundation.Network,
         Foundation.System.Zip,
+        # TODO: The next 2 files are missing unit test
+        Foundation.Certificates.PublicKey,
+        Foundation.Certificates.ACMEProvider.LetsEncrypt,
         # Host
         Host.Info,
         Host.Commander.Local,

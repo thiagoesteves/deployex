@@ -58,7 +58,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Catalog.Certificate, [],
          [
-           valid?: fn ^existing -> true end
+           valid?: fn ^existing, _threshold_days -> true end
          ]}
       ]) do
         assert {:ok, ^existing} = Manager.request_and_import_certificate(base_config())
@@ -140,7 +140,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Catalog.Certificate, [],
          [
-           valid?: fn ^existing -> false end,
+           valid?: fn ^existing, _threshold_days -> false end,
            metadata_from_cert_pem: fn _pem ->
              {:ok,
               %{
@@ -220,7 +220,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Catalog.Certificate, [],
          [
-           valid?: fn ^existing -> true end
+           valid?: fn ^existing, _threshold_days -> true end
          ]}
       ]) do
         log =
@@ -285,7 +285,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Catalog.Certificate, [],
          [
-           valid?: fn _cert -> true end
+           valid?: fn _cert, _threshold_days -> true end
          ]}
       ]) do
         config = base_config(certificate_check_interval_ms: 60_000)
@@ -307,7 +307,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Catalog.Certificate, [],
          [
-           valid?: fn _cert -> true end
+           valid?: fn _cert, _threshold_days -> true end
          ]}
       ]) do
         log =

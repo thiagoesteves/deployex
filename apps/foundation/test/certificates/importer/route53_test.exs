@@ -11,7 +11,7 @@ defmodule Foundation.Certificates.Importer.Route53Test do
   @chain_pem "-----BEGIN CERTIFICATE-----\nMIIBchain\n-----END CERTIFICATE-----\n"
   @private_key_pem "-----BEGIN RSA PRIVATE KEY-----\nMIIBkey\n-----END RSA PRIVATE KEY-----\n"
   @certificate_arn "arn:aws:acm:us-east-1:123456789:certificate/abc-123"
-  @options [certificate_arn: @certificate_arn]
+  @options %{certificate_arn: @certificate_arn}
 
   describe "export_certificate/5" do
     @tag :capture_log
