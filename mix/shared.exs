@@ -41,8 +41,17 @@ defmodule Mix.Shared do
         Foundation.Application,
         Foundation.Catalog.Version,
         Foundation.Catalog.Node,
-        Foundation.Certificate,
+        Foundation.Certificates.ACMEProvider,
+        Foundation.Certificates.DNSProvider,
+        Foundation.Certificates.DNSProvider.Mock,
+        Foundation.Certificates.Importer,
+        Foundation.Certificates.Importer.Mock,
+        Foundation.Fixture.Stubs.FailingACMEProvider,
+        Foundation.Network,
         Foundation.System.Zip,
+        # TODO: The next 2 files are missing unit test
+        Foundation.Certificates.PublicKey,
+        Foundation.Certificates.ACMEProvider.LetsEncrypt,
         # Host
         Host.Info,
         Host.Commander.Local,

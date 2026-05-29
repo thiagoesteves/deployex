@@ -8,14 +8,27 @@ defmodule Sentinel.Config.Changes do
   @type string_change :: %{old: String.t(), new: String.t(), apply_strategy: apply_strategy()}
   @type list_change :: %{old: list(), new: list(), apply_strategy: apply_strategy()}
 
+  @type cert_status ::
+          %{status: :added, config: map()}
+          | %{status: :removed, config: map()}
+          | %{status: :modified, config: map()}
+
+  @type certificate_change :: %{
+          old: [map()],
+          new: [map()],
+          details: %{atom() => cert_status()},
+          apply_strategy: apply_strategy()
+        }
+
   @type app_diff :: %{
-          :language => string_change,
-          optional(:replicas) => numeric_change,
-          optional(:deploy_rollback_timeout_ms) => numeric_change,
-          optional(:deploy_schedule_interval_ms) => numeric_change,
-          optional(:replica_ports) => list_change,
-          optional(:env) => list_change,
-          optional(:monitoring) => list_change
+          optional(:language) => string_change(),
+          optional(:replicas) => numeric_change(),
+          optional(:deploy_rollback_timeout_ms) => numeric_change(),
+          optional(:deploy_schedule_interval_ms) => numeric_change(),
+          optional(:replica_ports) => list_change(),
+          optional(:env) => list_change(),
+          optional(:monitoring) => list_change(),
+          optional(:certificates) => certificate_change()
         }
 
   @type app_status ::

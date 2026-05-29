@@ -84,6 +84,10 @@ defmodule Deployex.MixProject do
         "LICENSE.md": [filename: "license", title: "License"],
         "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
         "guides/docs/aws-elixir/README.md": [filename: "README.md", title: "AWS-Elixir"],
+        "guides/docs/aws-elixir-db-certificate/README.md": [
+          filename: "README.md",
+          title: "AWS-Elixir-DB-CertManager"
+        ],
         "guides/docs/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
         "guides/docs/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
         "guides/docs/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],

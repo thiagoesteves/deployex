@@ -114,7 +114,36 @@ config :foundation,
           warning_threshold_percent: 75,
           restart_threshold_percent: 90
         }
-      ]
+      ],
+      certificates: []
+      # NOTE: Enable for certificate testing
+      # certificates: [
+      #   %{
+      #     type: :domains,
+      #     domains: ["*.calori.com.br"],
+      #     certificate_check_interval_ms: 86_400_000,
+      #     dns_propagation_timeout_ms: 120_000,
+      #     dns_check_interval_ms: 5_000,
+      #     renew_before_days: 30,
+      #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
+      #     dns_options: %{
+      #       ttl: 60,
+      #       zone: "Z6767676776I8",
+      #     },
+      #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+      #     acme_options: %{
+      #       contact_email: "myapp@mydomain.com",
+      #       url: "https://acme-v02.api.letsencrypt.org/directory",
+      #       key_size: 2048,
+      #       propagation_timeout_ms: 120_000,
+      #       check_interval_ms: 2_000
+      #     },
+      #     importer: Foundation.Certificates.Importer.Mock,
+      #     importer_options: %{
+      #       certificate_arn: "add::certificate::arn"
+      #     }
+      #   }
+      # ]
     }
   ]
 

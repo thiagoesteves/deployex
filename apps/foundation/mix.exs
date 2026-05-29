@@ -36,11 +36,15 @@ defmodule Foundation.MixProject do
       {:phoenix_pubsub, "~> 2.0"},
       # Certificate handling
       {:x509, "~> 0.9"},
+      {:ex_aws_acm, "~> 1.0"},
+      {:ex_aws_route53, "~> 2.1"},
       # Used by Config Provider only
       {:configparser_ex, "~> 4.0"},
       {:ex_aws, "~> 2.1"},
       {:goth, "~> 1.4"},
       {:yaml_elixir, "~> 2.0"},
+      # Certificates
+      {:ex_acme, "~> 0.6"},
       # Static Analysis
       {:mox, "~> 1.0", only: :test},
       {:mock, "~> 0.3.0", only: :test}

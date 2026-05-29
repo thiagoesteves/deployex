@@ -272,6 +272,33 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
+  defp render_change_section(%{field: :certificates} = assigns) do
+    ~H"""
+    <div class="bg-base-200 rounded-lg p-4 border border-base-300">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            >
+            </path>
+          </svg>
+          <h3 class="text-lg font-bold text-base-content">Certificates</h3>
+        </div>
+        <.strategy_badge strategy={@change_data.apply_strategy} />
+      </div>
+      <div class="space-y-3">
+        <%= for {type, status} <- @change_data.details do %>
+          <.render_certificate_change type={type} status={status} />
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   defp render_change_section(%{field: field} = assigns) do
     field_name = format_field_name(field)
 
@@ -447,6 +474,57 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
         <span class="text-error line-through">{format_metric(@old)}</span>
         <span class="text-base-content/50">→</span>
         <span class="text-base-content">{format_metric(@new)}</span>
+      </div>
+    </div>
+    """
+  end
+
+  attr :type, :atom, required: true
+  attr :status, :map, required: true
+
+  defp render_certificate_change(%{status: %{status: :added}} = assigns) do
+    ~H"""
+    <div class="bg-success/10 border-l-4 border-success rounded-lg p-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 bg-success rounded-full"></div>
+        <span class="font-semibold text-success">
+          Added: {String.upcase(to_string(@type))}
+        </span>
+      </div>
+      <div class="text-sm text-base-content/70 ml-4 mt-1">
+        {Enum.join(@status.config.domains, ", ")}
+      </div>
+    </div>
+    """
+  end
+
+  defp render_certificate_change(%{status: %{status: :modified}} = assigns) do
+    ~H"""
+    <div class="bg-warning/10 border-l-4 border-warning rounded-lg p-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 bg-warning rounded-full"></div>
+        <span class="font-semibold text-warning">
+          Modified: {String.upcase(to_string(@type))}
+        </span>
+      </div>
+      <div class="text-sm text-base-content/70 ml-4 mt-1">
+        {Enum.join(@status.config.domains, ", ")}
+      </div>
+    </div>
+    """
+  end
+
+  defp render_certificate_change(%{status: %{status: :removed}} = assigns) do
+    ~H"""
+    <div class="bg-error/10 border-l-4 border-error rounded-lg p-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 bg-error rounded-full"></div>
+        <span class="font-semibold text-error">
+          Removed: {String.upcase(to_string(@type))}
+        </span>
+      </div>
+      <div class="text-sm text-base-content/70 ml-4 mt-1">
+        {Enum.join(@status.config.domains, ", ")}
       </div>
     </div>
     """

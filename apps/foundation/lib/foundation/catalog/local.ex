@@ -18,6 +18,7 @@ defmodule Foundation.Catalog.Local do
   @deployex_sname "deployex"
   @nohost_sname "nonode"
   @config_key_file "config.term"
+  @certificate_key_file "certificate.term"
 
   ### ==========================================================================
   ### GenServer callback functions
@@ -90,6 +91,7 @@ defmodule Foundation.Catalog.Local do
   @impl true
   def setup_new_app(name) do
     File.mkdir_p!(config_path(name))
+    File.mkdir_p!(certificate_path(name))
     File.mkdir_p!(history_version_path(name))
     File.mkdir_p!(ghosted_version_path(name))
 
@@ -345,6 +347,22 @@ defmodule Foundation.Catalog.Local do
     {:ok, config}
   end
 
+  @impl true
+  def certificate(name) do
+    name
+    |> certificate_path()
+    |> get_by_key(@certificate_key_file)
+  end
+
+  @impl true
+  def certificate_update(name, certificate) do
+    name
+    |> certificate_path()
+    |> insert_by_key(@certificate_key_file, certificate)
+
+    {:ok, certificate}
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
@@ -353,6 +371,9 @@ defmodule Foundation.Catalog.Local do
 
   defp config_path(name),
     do: "#{var_path()}/storage/#{name}/deployex/config"
+
+  defp certificate_path(name),
+    do: "#{var_path()}/storage/#{name}/certificate"
 
   defp history_version_path(@deployex_name),
     do: "#{var_path()}/storage/#{@deployex_name}/deployex/history"

@@ -46,3 +46,22 @@ applications:
         enable_restart: true
         warning_threshold_percent: 75
         restart_threshold_percent: 90
+    certificates:
+      - type: "domains"
+        domains: ["*.example.com", "hub.example.com"]
+        certificate_check_interval_ms: 86_400_000
+        dns_propagation_timeout_ms: 120_000
+        dns_check_interval_ms: 5000
+        renew_before_days: 30
+        dns_provider: "route53"
+        dns_options:
+          ttl: 60
+          zone: "zone"
+        acme_provider: "lets_encrypt"
+        acme_options:
+          contact_email: "myapp@mydomain.com"
+          url: "https://acme-v02.api.letsencrypt.org/directory"
+          key_size: 2048
+        importer: "route53"
+        importer_options:
+          certificate_arn: "add::certificate::arn" 

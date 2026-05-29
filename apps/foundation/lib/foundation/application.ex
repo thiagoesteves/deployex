@@ -7,10 +7,13 @@ defmodule Foundation.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      {Phoenix.PubSub, name: Foundation.PubSub},
-      Foundation.Catalog.Local
-    ]
+    children =
+      [
+        {Phoenix.PubSub, name: Foundation.PubSub},
+        Foundation.Catalog.Local,
+        Foundation.Certificates.Manager.Supervisor,
+        Foundation.Certificate
+      ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

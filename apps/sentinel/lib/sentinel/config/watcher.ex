@@ -414,6 +414,7 @@ defmodule Sentinel.Config.Watcher do
     |> add_replica_ports_changes(old_app, new_app, :full_deploy)
     |> add_env_changes(old_app, new_app, :next_deploy)
     |> add_monitoring_changes(old_app, new_app, :immediate)
+    |> add_certificates_changes(old_app, new_app, :full_deploy)
   end
 
   defp apply_pre_config_changes(summary) do
@@ -532,4 +533,61 @@ defmodule Sentinel.Config.Watcher do
       Map.get(old_map, key) != Map.get(new_map, key)
     end)
   end
+
+  defp add_certificates_changes(acc, old_app, new_app, strategy) do
+    diff = diff_certificates(old_app.certificates, new_app.certificates)
+
+    if diff != %{} do
+      Map.put(acc, :certificates, %{
+        old: old_app.certificates,
+        new: new_app.certificates,
+        details: diff,
+        apply_strategy: strategy
+      })
+    else
+      acc
+    end
+  end
+
+  defp diff_certificates(old_list, new_list) do
+    old_map = Map.new(old_list, &{&1.type, &1})
+    new_map = Map.new(new_list, &{&1.type, &1})
+
+    all_types = (Map.keys(old_map) ++ Map.keys(new_map)) |> Enum.uniq()
+
+    Enum.reduce(all_types, %{}, fn type, acc ->
+      old_cert = Map.get(old_map, type)
+      new_cert = Map.get(new_map, type)
+
+      cond do
+        old_cert == nil ->
+          Map.put(acc, type, %{status: :added, config: new_cert})
+
+        new_cert == nil ->
+          Map.put(acc, type, %{status: :removed, config: old_cert})
+
+        normalize(old_cert) != normalize(new_cert) ->
+          Map.put(acc, type, %{status: :modified, config: new_cert})
+
+        true ->
+          acc
+      end
+    end)
+  end
+
+  defp normalize(value) when is_struct(value) do
+    value
+    |> Map.from_struct()
+    |> Enum.into(%{}, fn {k, v} -> {k, normalize(v)} end)
+  end
+
+  defp normalize(value) when is_map(value) do
+    Enum.into(value, %{}, fn {k, v} -> {k, normalize(v)} end)
+  end
+
+  defp normalize(value) when is_list(value) do
+    Enum.map(value, &normalize/1)
+  end
+
+  defp normalize(value), do: value
 end

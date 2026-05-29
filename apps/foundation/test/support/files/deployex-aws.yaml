@@ -29,6 +29,27 @@ applications:
         value: false
       - key: NUMBER_VALUE
         value: 123
+    certificates:
+      - type: "domains"
+        domains: ["example.com", "*.example.com"]
+        certificate_check_interval_ms: 86400000
+        dns_propagation_timeout_ms: 120000
+        dns_check_interval_ms: 5000
+        renew_before_days: 30
+        dns_provider: "route53"
+        dns_options:
+          ttl: 60
+          zone: "Z8787878787878712234"
+        acme_provider: "lets_encrypt"
+        acme_options:
+          contact_email: "myapp@mydomain.com"
+          url: "https://acme-v02.api.letsencrypt.org/directory"
+          key_size: 2048
+          propagation_timeout_ms: 120000
+          check_interval_ms: 2000
+        importer: "route53"
+        importer_options:
+          certificate_arn: "add::certificate::arn"
   - name: "myumbrella"
     language: "erlang"
     replicas: 2

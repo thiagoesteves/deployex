@@ -6,7 +6,7 @@ defmodule Deployer.Status do
   alias Deployer.Github
   alias Deployer.Release
   alias Foundation.Catalog
-  alias Foundation.Certificate
+  alias Foundation.Certificates.PublicKey
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
@@ -19,7 +19,7 @@ defmodule Deployer.Status do
           deploy_rollback_timeout_ms: non_neg_integer(),
           deploy_schedule_interval_ms: non_neg_integer(),
           otp: :connected | :not_connected,
-          tls: %Certificate{} | nil,
+          tls: %PublicKey{} | nil,
           last_deployment: :full_deployment | :hot_upgrade,
           status: :idle | :running | :starting,
           crash_restart_count: non_neg_integer(),

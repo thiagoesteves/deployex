@@ -330,6 +330,21 @@ defmodule Foundation.Catalog do
           {:ok, Foundation.Catalog.Config.t()}
   def config_update(name, config), do: default().config_update(name, config)
 
+  @doc """
+  Retrieve the application certificate
+  """
+  @impl true
+  @spec certificate(String.t()) :: Foundation.Catalog.Certificate.t()
+  def certificate(name), do: default().certificate(name) || %Foundation.Catalog.Certificate{}
+
+  @doc """
+  Update the application certificate
+  """
+  @impl true
+  @spec certificate_update(String.t(), Foundation.Catalog.Certificate.t()) ::
+          {:ok, Foundation.Catalog.Certificate.t()}
+  def certificate_update(name, certificate), do: default().certificate_update(name, certificate)
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================

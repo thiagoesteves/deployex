@@ -19,6 +19,15 @@ defmodule Foundation.Yaml do
   @default_var_path "/var/lib/deployex"
   @default_log_path "/var/log/deployex"
   @default_monitored_app_log_path "/var/log/monitored-apps"
+  @default_certificate_renew_before_days 30
+  @default_certificate_check_interval_ms 86_400_000
+  @default_certificate_dns_propagation_timeout_ms 120_000
+  @default_certificate_dns_check_interval_ms 5_000
+  @default_certificate_acme_client_url "https://acme-v02.api.letsencrypt.org/directory"
+  @default_certificate_acme_key_size 2048
+  @default_certificate_acme_propagation_timeout_ms 120_000
+  @default_certificate_acme_check_interval_ms 2_000
+  @default_certificate_dns_ttl 60
 
   defmodule Monitoring do
     @moduledoc """
@@ -51,6 +60,74 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule Certificate do
+    @moduledoc """
+    Provides structure to define Certificate feature
+    """
+
+    defmodule DnsOptions do
+      @moduledoc "DNS provider options for certificate configuration."
+      defstruct [:ttl, :zone]
+
+      @type t :: %__MODULE__{
+              ttl: non_neg_integer() | nil,
+              zone: String.t() | nil
+            }
+    end
+
+    defmodule AcmeOptions do
+      @moduledoc "ACME client options for certificate provisioning."
+      defstruct [:contact_email, :url, :key_size, :propagation_timeout_ms, :check_interval_ms]
+
+      @type t :: %__MODULE__{
+              contact_email: String.t() | nil,
+              url: String.t() | nil,
+              key_size: non_neg_integer() | nil,
+              propagation_timeout_ms: non_neg_integer() | nil,
+              check_interval_ms: non_neg_integer() | nil
+            }
+    end
+
+    defmodule ImporterOptions do
+      @moduledoc "Options for importing externally managed certificates."
+      defstruct [:certificate_arn]
+
+      @type t :: %__MODULE__{
+              certificate_arn: String.t() | nil
+            }
+    end
+
+    defstruct [
+      :type,
+      :domains,
+      :certificate_check_interval_ms,
+      :dns_propagation_timeout_ms,
+      :dns_check_interval_ms,
+      :renew_before_days,
+      :dns_provider,
+      :dns_options,
+      :acme_provider,
+      :acme_options,
+      :importer,
+      :importer_options
+    ]
+
+    @type t :: %__MODULE__{
+            type: atom(),
+            domains: [String.t()],
+            certificate_check_interval_ms: non_neg_integer() | nil,
+            dns_propagation_timeout_ms: non_neg_integer() | nil,
+            dns_check_interval_ms: non_neg_integer() | nil,
+            renew_before_days: non_neg_integer() | nil,
+            dns_provider: atom() | nil,
+            dns_options: __MODULE__.DnsOptions.t() | nil,
+            acme_provider: atom() | nil,
+            acme_options: __MODULE__.AcmeOptions.t() | nil,
+            importer: atom() | nil,
+            importer_options: __MODULE__.ImporterOptions.t() | nil
+          }
+  end
+
   defmodule Application do
     @moduledoc """
     Provides structure to define Application feature
@@ -64,7 +141,8 @@ defmodule Foundation.Yaml do
       :deploy_schedule_interval_ms,
       :replica_ports,
       :env,
-      :monitoring
+      :monitoring,
+      :certificates
     ]
 
     @type t :: %__MODULE__{
@@ -75,7 +153,8 @@ defmodule Foundation.Yaml do
             deploy_schedule_interval_ms: non_neg_integer() | nil,
             replica_ports: [Foundation.Yaml.Ports.t()],
             env: [String.t()],
-            monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}]
+            monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}],
+            certificates: [Foundation.Yaml.Certificate.t()]
           }
   end
 
@@ -294,7 +373,8 @@ defmodule Foundation.Yaml do
         data["deploy_schedule_interval_ms"] || @default_deploy_schedule_interval_ms,
       replica_ports: parse_ports(data["replica_ports"]),
       env: parse_env(data["env"]),
-      monitoring: parse_monitoring_list(data["monitoring"])
+      monitoring: parse_monitoring_list(data["monitoring"]),
+      certificates: parse_certificates(data["certificates"])
     }
   end
 
@@ -315,5 +395,70 @@ defmodule Foundation.Yaml do
     Enum.map(env_list, fn %{"key" => key, "value" => value} ->
       "#{key}=#{value}"
     end)
+  end
+
+  defp parse_certificates(nil), do: []
+
+  defp parse_certificates(certs) do
+    Enum.map(certs, &parse_certificate/1)
+  end
+
+  defp parse_certificate(data) do
+    %Foundation.Yaml.Certificate{
+      type: data["type"] |> String.to_atom(),
+      domains: data["domains"] || [],
+      certificate_check_interval_ms:
+        data["certificate_check_interval_ms"] || @default_certificate_check_interval_ms,
+      dns_propagation_timeout_ms:
+        data["dns_propagation_timeout_ms"] || @default_certificate_dns_propagation_timeout_ms,
+      dns_check_interval_ms:
+        data["dns_check_interval_ms"] || @default_certificate_dns_check_interval_ms,
+      renew_before_days: data["renew_before_days"] || @default_certificate_renew_before_days,
+      dns_provider: parse_dns_provider(data["dns_provider"]),
+      dns_options: parse_dns_options(data["dns_options"]),
+      acme_provider: parse_acme_provider(data["acme_provider"]),
+      acme_options: parse_acme_options(data["acme_options"]),
+      importer: parse_importer(data["importer"]),
+      importer_options: parse_importer_options(data["importer_options"])
+    }
+  end
+
+  defp parse_dns_provider("route53"), do: Foundation.Certificates.DNSProvider.Route53
+  defp parse_dns_provider(provider), do: raise("DNS provider #{provider} not supported")
+
+  defp parse_dns_options(nil), do: nil
+
+  defp parse_dns_options(opts) do
+    %Foundation.Yaml.Certificate.DnsOptions{
+      ttl: opts["ttl"] || @default_certificate_dns_ttl,
+      zone: opts["zone"]
+    }
+  end
+
+  defp parse_acme_provider("lets_encrypt"), do: Foundation.Certificates.ACMEProvider.LetsEncrypt
+  defp parse_acme_provider(provider), do: raise("ACME provider #{provider} not supported")
+
+  defp parse_acme_options(nil), do: nil
+
+  defp parse_acme_options(opts) do
+    %Foundation.Yaml.Certificate.AcmeOptions{
+      contact_email: opts["contact_email"],
+      url: opts["url"] || @default_certificate_acme_client_url,
+      key_size: opts["key_size"] || @default_certificate_acme_key_size,
+      propagation_timeout_ms:
+        opts["propagation_timeout_ms"] || @default_certificate_acme_propagation_timeout_ms,
+      check_interval_ms: opts["check_interval_ms"] || @default_certificate_acme_check_interval_ms
+    }
+  end
+
+  defp parse_importer("route53"), do: Foundation.Certificates.Importer.Route53
+  defp parse_importer(importer), do: raise("Importer #{importer} not supported")
+
+  defp parse_importer_options(nil), do: nil
+
+  defp parse_importer_options(opts) do
+    %Foundation.Yaml.Certificate.ImporterOptions{
+      certificate_arn: opts["certificate_arn"]
+    }
   end
 end
