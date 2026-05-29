@@ -289,9 +289,9 @@ defmodule Foundation.Yaml do
     if old_checksum == new_checksum, do: false, else: true
   end
 
-  def maybe_parse(false, _content), do: {:error, :unchanged}
+  defp maybe_parse(false, _content), do: {:error, :unchanged}
 
-  def maybe_parse(true, content) do
+  defp maybe_parse(true, content) do
     checksum = compute_checksum(content)
 
     with {:ok, data} <- YamlElixir.read_from_string(content) do
