@@ -431,8 +431,8 @@ defmodule Foundation.YamlTest do
         assert cert.acme_options.url == "https://acme-v02.api.letsencrypt.org/directory"
         assert cert.acme_options.key_size == 2048
         assert cert.acme_options.contact_email != nil
-        assert cert.acme_options.propagation_timeout_ms == nil
-        assert cert.acme_options.check_interval_ms == nil
+        assert cert.acme_options.propagation_timeout_ms == 120_000
+        assert cert.acme_options.check_interval_ms == 2_000
       end
     end
 

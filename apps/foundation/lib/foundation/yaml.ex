@@ -22,10 +22,11 @@ defmodule Foundation.Yaml do
   @default_certificate_renew_before_days 30
   @default_certificate_check_interval_ms 86_400_000
   @default_certificate_dns_propagation_timeout_ms 120_000
-  @default_certificate_dns_check_interval_ms 5000
-
+  @default_certificate_dns_check_interval_ms 5_000
   @default_certificate_acme_client_url "https://acme-v02.api.letsencrypt.org/directory"
   @default_certificate_acme_key_size 2048
+  @default_certificate_acme_propagation_timeout_ms 120_000
+  @default_certificate_acme_check_interval_ms 2_000
   @default_certificate_dns_ttl 60
 
   defmodule Monitoring do
@@ -443,7 +444,10 @@ defmodule Foundation.Yaml do
     %Foundation.Yaml.Certificate.AcmeOptions{
       contact_email: opts["contact_email"],
       url: opts["url"] || @default_certificate_acme_client_url,
-      key_size: opts["key_size"] || @default_certificate_acme_key_size
+      key_size: opts["key_size"] || @default_certificate_acme_key_size,
+      propagation_timeout_ms:
+        opts["propagation_timeout_ms"] || @default_certificate_acme_propagation_timeout_ms,
+      check_interval_ms: opts["check_interval_ms"] || @default_certificate_acme_check_interval_ms
     }
   end
 
