@@ -36,6 +36,15 @@ defmodule Foundation.Certificate do
   ### Public Functions
   ### ==========================================================================
 
+  @spec start_certificate_manager(
+          app_name :: String.t(),
+          certificates :: list(Foundation.Yaml.Certificate.t())
+        ) :: :ok
+  def start_certificate_manager(app_name, certificates) do
+    Enum.each(certificates, &Supervisor.start_certificate_manager(app_name, &1))
+  end
+
+  @spec stop_certificate_manager(app_name :: String.t()) :: :ok
   def stop_certificate_manager(app_name) do
     Supervisor.stop_certificate_manager(app_name)
   end
