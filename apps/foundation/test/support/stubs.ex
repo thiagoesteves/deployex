@@ -27,7 +27,7 @@ defmodule Foundation.Fixture.Stubs do
     def create_order(_app, _domains, _key), do: {:ok, %{order: "order"}}
     @impl true
     def get_dns_challenges(_app, _order, _key),
-      do: {:ok, [%{record_name: "_acme.example.com.", record_value: "token123"}]}
+      do: {:ok, [%{record_name: "_acme.example.com.", record_value: "token123", challenge: []}]}
 
     @impl true
     def start_challenge_validation(_app, _challenges, _key), do: :ok
