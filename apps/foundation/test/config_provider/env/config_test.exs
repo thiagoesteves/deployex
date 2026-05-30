@@ -77,7 +77,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "7b030a9714eb3c42749dad0bb2a6bff70a039ae9933b52cea19a077b308d8661"},
+                   "80d60dd03b33b643f899e28971105f030e2e8377e71085c29b4c79478b785361"},
                   {:monitoring, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},

@@ -99,7 +99,7 @@ write_files:
               renew_before_days: 30
               dns_provider: "route53"
               dns_options:
-                ttl: 60
+                ttl: 10
                 zone: "${myapp_cert_acme_zone}"
               acme_provider: "lets_encrypt"
               acme_options:

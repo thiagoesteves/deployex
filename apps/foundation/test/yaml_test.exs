@@ -412,7 +412,7 @@ defmodule Foundation.YamlTest do
         [cert] = app.certificates
 
         assert %Certificate.DnsOptions{} = cert.dns_options
-        assert cert.dns_options.ttl == 60
+        assert cert.dns_options.ttl == 10
         assert cert.dns_options.zone != nil
       end
     end

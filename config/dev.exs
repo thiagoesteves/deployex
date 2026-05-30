@@ -127,7 +127,7 @@ config :foundation,
       #     renew_before_days: 30,
       #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
       #     dns_options: %{
-      #       ttl: 60,
+      #       ttl: 10,
       #       zone: "Z6767676776I8",
       #     },
       #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,

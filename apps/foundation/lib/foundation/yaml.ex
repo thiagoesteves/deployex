@@ -27,7 +27,7 @@ defmodule Foundation.Yaml do
   @default_certificate_acme_key_size 2048
   @default_certificate_acme_propagation_timeout_ms 120_000
   @default_certificate_acme_check_interval_ms 2_000
-  @default_certificate_dns_ttl 60
+  @default_certificate_dns_ttl 10
 
   defmodule Monitoring do
     @moduledoc """

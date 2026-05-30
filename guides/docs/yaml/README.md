@@ -140,7 +140,7 @@ applications:
         renew_before_days: 30                                 # Renew certificate before expiration
         dns_provider: "route53"                               # DNS provider implementation 
         dns_options: 
-          ttl: 60 
+          ttl: 10 
           zone: "Z0123456789ABCDEFG"
         acme_provider: "lets_encrypt"                         # ACME provider implementation
         acme_options: 
