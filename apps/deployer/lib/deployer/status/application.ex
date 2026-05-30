@@ -12,6 +12,7 @@ defmodule Deployer.Status.Application do
   alias Deployer.Monitor
   alias Deployer.Status
   alias Foundation.Catalog
+  alias Foundation.Certificates.PublicKey
   alias Foundation.Common
 
   @update_apps_interval :timer.seconds(1)
@@ -113,6 +114,16 @@ defmodule Deployer.Status.Application do
           versions: versions
         }
 
+        certificates =
+          with %Catalog.Certificate{domains: domains, certificate_pem: certificate_pem}
+               when domains != [] <- Catalog.certificate(name),
+               %PublicKey{} = decoded_pk <- PublicKey.decode_pem(certificate_pem) do
+            [decoded_pk]
+          else
+            _reason ->
+              []
+          end
+
         %Status{
           name: name,
           ports: replica_ports,
@@ -123,7 +134,8 @@ defmodule Deployer.Status.Application do
           status: :running,
           config: current_config,
           children: children,
-          monitoring: monitoring
+          monitoring: monitoring,
+          certificates: certificates
         }
       end)
 
@@ -258,6 +270,12 @@ defmodule Deployer.Status.Application do
 
     deployex_latest_release = Github.Release.latest_release()
 
+    certificates =
+      case mtls_certificate() do
+        nil -> []
+        certificate -> [certificate]
+      end
+
     %Status{
       name: name,
       sname: name,
@@ -278,7 +296,8 @@ defmodule Deployer.Status.Application do
       status: :running,
       uptime: uptime,
       latest_release: deployex_latest_release,
-      monitoring: Application.get_env(:foundation, :monitoring)
+      monitoring: Application.get_env(:foundation, :monitoring),
+      certificates: certificates
     }
   end
 

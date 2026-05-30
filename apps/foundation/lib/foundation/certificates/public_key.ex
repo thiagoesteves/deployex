@@ -3,6 +3,8 @@ defmodule Foundation.Certificates.PublicKey do
   Extracts and structures public key certificate metadata from X.509 certificates.
   """
 
+  require Logger
+
   @type t() :: %__MODULE__{
           issuer: String.t() | nil,
           serial: String.t() | nil,
@@ -27,19 +29,37 @@ defmodule Foundation.Certificates.PublicKey do
   Parses a certificate and returns structured details.
   """
   def decode(certificate_path) do
-    with {:ok, certificate_pem} <- File.read(certificate_path),
-         {:ok, parsed} <- X509.Certificate.from_pem(certificate_pem) do
-      pubkey = X509.Certificate.public_key(parsed)
+    with {:ok, certificate_pem} <- File.read(certificate_path) do
+      decode_pem(certificate_pem)
+    end
+  end
 
-      %__MODULE__{
-        issuer: extract_issuer(parsed),
-        serial: X509.Certificate.serial(parsed),
-        version: X509.Certificate.version(parsed),
-        public_key_type: key_type(pubkey),
-        public_key_size: key_size(pubkey),
-        expires_in_days: parsed |> extract_expiry() |> expires_in(),
-        domains: extract_domains(parsed)
-      }
+  @doc """
+  Parses a certificate pem
+  """
+  def decode_pem(nil), do: {:error, :not_found}
+
+  def decode_pem(certificate_pem) do
+    case X509.Certificate.from_pem(certificate_pem) do
+      {:ok, parsed} ->
+        pubkey = X509.Certificate.public_key(parsed)
+
+        %__MODULE__{
+          issuer: extract_issuer(parsed),
+          serial: X509.Certificate.serial(parsed),
+          version: X509.Certificate.version(parsed),
+          public_key_type: key_type(pubkey),
+          public_key_size: key_size(pubkey),
+          expires_in_days: parsed |> extract_expiry() |> expires_in(),
+          domains: extract_domains(parsed)
+        }
+
+      {:error, reason} = error ->
+        Logger.error(
+          "Error while reading certificate: #{certificate_pem}, reason: #{inspect(reason)}"
+        )
+
+        error
     end
   end
 
@@ -49,6 +69,7 @@ defmodule Foundation.Certificates.PublicKey do
       rdn_seq
       |> List.flatten()
       |> Enum.find_value(fn
+        {:AttributeTypeAndValue, {2, 5, 4, 10}, {:printableString, cn}} -> to_string(cn)
         {:AttributeTypeAndValue, {2, 5, 4, 3}, {:utf8String, cn}} -> to_string(cn)
         {:AttributeTypeAndValue, {2, 5, 4, 3}, cn} when is_list(cn) -> to_string(cn)
         _ -> nil

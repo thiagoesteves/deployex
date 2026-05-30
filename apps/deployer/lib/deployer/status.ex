@@ -30,7 +30,9 @@ defmodule Deployer.Status do
           # Self-referential for nested apps
           children: [t()],
           # Monitoring capabilities
-          monitoring: []
+          monitoring: [],
+          # Certificates capabilities
+          certificates: []
         }
 
   defstruct name: nil,
@@ -52,7 +54,8 @@ defmodule Deployer.Status do
             latest_release: %Github.Release{},
             config: nil,
             children: [],
-            monitoring: []
+            monitoring: [],
+            certificates: []
 
   @behaviour Deployer.Status.Adapter
 
