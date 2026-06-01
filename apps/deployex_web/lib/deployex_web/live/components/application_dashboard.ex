@@ -298,7 +298,6 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                   application={child_app}
                   monitoring={@monitored_app.monitoring}
                   metrics={@metrics}
-                  certificates={@monitored_app.certificates}
                   restart_path={~p"/applications/#{child_app.name}/#{child_app.sname}/restart"}
                 />
               </div>

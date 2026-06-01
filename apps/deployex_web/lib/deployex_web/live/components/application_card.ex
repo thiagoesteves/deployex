@@ -10,7 +10,6 @@ defmodule DeployexWeb.Components.ApplicationCard do
   attr :monitoring, :map, required: true
   attr :metrics, :map, required: true
   attr :restart_path, :string, required: true
-  attr :certificates, :list, default: []
 
   def content(assigns) do
     ~H"""
