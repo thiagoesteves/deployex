@@ -91,6 +91,9 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 - **[1]** - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4)
 
+> [!WARNING]
+> Release `0.10.0` will upgrade the OTP runtime to OTP-29. As DeployEx tracks only the two most recent OTP versions, OTP-27 will no longer be supported or included in this changelog.
+
 ### Running the application
 
 You can kickstart the setup with the following commands, the default number of replicas is 3:
