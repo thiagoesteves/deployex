@@ -26,8 +26,21 @@ defmodule Foundation.Certificates.PublicKey do
   ]
 
   @doc """
-  Parses a certificate and returns structured details.
+  Reads a PEM-encoded certificate from the given file path and returns a
+  `%PublicKey{}` struct with the extracted metadata.
+
+  Returns `{:error, reason}` if the file cannot be read or the certificate
+  cannot be parsed.
+
+  ## Examples
+
+      iex> PublicKey.decode("/path/to/cert.pem")
+      %PublicKey{issuer: "My CA", expires_in_days: 365, ...}
+
+      iex> PublicKey.decode("/nonexistent.pem")
+      {:error, :enoent}
   """
+  @spec decode(certificate_path :: String.t()) :: t() | {:error, term()}
   def decode(certificate_path) do
     with {:ok, certificate_pem} <- File.read(certificate_path) do
       decode_pem(certificate_pem)
@@ -35,8 +48,18 @@ defmodule Foundation.Certificates.PublicKey do
   end
 
   @doc """
-  Parses a certificate pem
+  Parses a PEM-encoded certificate string and returns a `%PublicKey{}` struct
+  with the extracted metadata.
+
+  ## Examples
+
+      iex> PublicKey.decode_pem(pem_string)
+      %PublicKey{issuer: "My CA", public_key_type: "RSA", public_key_size: 2048, ...}
+
+      iex> PublicKey.decode_pem(nil)
+      {:error, :not_found}
   """
+  @spec decode_pem(certificate_pem :: String.t() | nil) :: t() | {:error, term()}
   def decode_pem(nil), do: {:error, :not_found}
 
   def decode_pem(certificate_pem) do
