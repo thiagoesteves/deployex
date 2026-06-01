@@ -3,6 +3,7 @@ defmodule DeployexWeb.Components.DeployexCard do
   use DeployexWeb, :html
 
   use Phoenix.Component
+  alias DeployexWeb.Components.CertificatePanel
   alias DeployexWeb.Components.Monitoring
   alias DeployexWeb.Helper
 
@@ -151,7 +152,7 @@ defmodule DeployexWeb.Components.DeployexCard do
                   </svg>
                   <div class="text-xs font-medium text-base-content/60">mTLS</div>
                 </div>
-                <.supported? certificate={@deployex.tls} sname={@deployex.sname} />
+                <.supported? certificate={@deployex.tls} />
               </div>
 
               <div
@@ -300,6 +301,19 @@ defmodule DeployexWeb.Components.DeployexCard do
             />
           </div>
         </div>
+
+        <%= if @deployex.certificates != [] do %>
+          <div class="col-span-full space-y-3">
+            <%= for cert <-  @deployex.certificates do %>
+              <CertificatePanel.content
+                certificate={cert}
+                event="show-app-certificate"
+                name={"#{@deployex.name}"}
+                label="mTLS certificate"
+              />
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -321,9 +335,7 @@ defmodule DeployexWeb.Components.DeployexCard do
     """
   end
 
-  attr :warn_tls_exp_days, :integer, default: 30
   attr :certificate, :map, required: true
-  attr :sname, :string, required: true
 
   defp supported?(assigns) do
     ~H"""
@@ -333,34 +345,6 @@ defmodule DeployexWeb.Components.DeployexCard do
           <div class="w-2 h-2 bg-success rounded-full"></div>
           <span class="text-sm font-medium text-success">Supported</span>
         </div>
-        <button
-          id="show-tls-certificate-id"
-          phx-click="show-tls-certificate"
-          phx-value-sname={@sname}
-          type="button"
-          class={[
-            "btn btn-xs btn-circle transition-all duration-200 tooltip hover:scale-110",
-            if(@certificate.expires_in_days <= @warn_tls_exp_days,
-              do: "bg-error/10 border-error/20 text-error hover:bg-error/20",
-              else: "bg-success/10 border-success/20 text-success hover:bg-success/20"
-            )
-          ]}
-          data-tip={
-            if @certificate.expires_in_days <= @warn_tls_exp_days,
-              do: "Certificate expires in #{@certificate.expires_in_days} days!",
-              else: "View certificate details"
-          }
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
-                 a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-        </button>
       <% else %>
         <div class="flex items-center gap-1">
           <div class="w-2 h-2 bg-error rounded-full"></div>

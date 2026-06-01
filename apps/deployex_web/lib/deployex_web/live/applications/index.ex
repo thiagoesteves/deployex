@@ -108,10 +108,10 @@ defmodule DeployexWeb.ApplicationsLive do
       />
     <% end %>
 
-    <%= if @mtls_certificate.show_modal do %>
+    <%= if @pk_cert_details.show_modal do %>
       <CertificateModal.modal
         id="certificate"
-        certificate={@mtls_certificate.certificate}
+        certificate={@pk_cert_details.certificate}
         on_cancel="confirm-close-modal"
       />
     <% end %>
@@ -352,7 +352,7 @@ defmodule DeployexWeb.ApplicationsLive do
       |> assign(:terminal_process, nil)
       |> assign(:mode_confirmation, nil)
       |> assign(:yaml_config, yaml_config)
-      |> assign(:mtls_certificate, default_mtls_certificate())
+      |> assign(:pk_cert_details, default_pk_cert_details())
       |> assign(:current_path, "/applications")
 
     {:ok, socket}
@@ -374,7 +374,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:terminal_process, nil)
      |> assign(:mode_confirmation, nil)
      |> assign(:yaml_config, default_yaml_config())
-     |> assign(:mtls_certificate, default_mtls_certificate())
+     |> assign(:pk_cert_details, default_pk_cert_details())
      |> assign(:current_path, "/applications")}
   end
 
@@ -631,28 +631,6 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event(
-        "show-tls-certificate",
-        %{"sname" => "deployex"},
-        %{
-          assigns: %{
-            mtls_certificate: mtls_certificate,
-            monitoring_apps_data: monitoring_apps_data
-          }
-        } = socket
-      ) do
-    deployex = Enum.find(monitoring_apps_data, &(&1.name == "deployex"))
-
-    {:noreply,
-     socket
-     |> assign(:mtls_certificate, %{
-       mtls_certificate
-       | show_modal: true,
-         certificate: deployex.tls
-     })
-     |> push_patch(to: ~p"/applications")}
-  end
-
   def handle_event("config-changes-apply", _any, socket) do
     Watcher.apply_changes()
 
@@ -666,13 +644,13 @@ defmodule DeployexWeb.ApplicationsLive do
   def handle_event(
         "confirm-close-modal",
         _,
-        %{assigns: %{yaml_config: yaml_config, mtls_certificate: mtls_certificate}} = socket
+        %{assigns: %{yaml_config: yaml_config, pk_cert_details: pk_cert_details}} = socket
       ) do
     {:noreply,
      socket
      |> assign(:mode_confirmation, nil)
      |> assign(:yaml_config, %{yaml_config | show_modal: false})
-     |> assign(:mtls_certificate, %{mtls_certificate | show_modal: false})
+     |> assign(:pk_cert_details, %{pk_cert_details | show_modal: false})
      |> push_patch(to: ~p"/applications")}
   end
 
@@ -706,6 +684,35 @@ defmodule DeployexWeb.ApplicationsLive do
         %{assigns: %{active_sname_tab: active_sname_tab}} = socket
       ) do
     {:noreply, assign(socket, :active_sname_tab, Map.put(active_sname_tab, name, sname))}
+  end
+
+  def handle_event(
+        "show-app-certificate",
+        %{"name" => name},
+        %{
+          assigns: %{
+            pk_cert_details: pk_cert_details,
+            monitoring_apps_data: monitoring_apps_data
+          }
+        } = socket
+      ) do
+    case Enum.find(monitoring_apps_data, &(&1.name == name)) do
+      nil ->
+        {:noreply,
+         socket
+         |> assign(:pk_cert_details, default_pk_cert_details())
+         |> push_patch(to: ~p"/applications")}
+
+      %{certificates: [cert | _]} ->
+        {:noreply,
+         socket
+         |> assign(:pk_cert_details, %{
+           pk_cert_details
+           | show_modal: true,
+             certificate: cert
+         })
+         |> push_patch(to: ~p"/applications")}
+    end
   end
 
   def handle_event("swicth-app-tab", %{"name" => name}, socket) do
@@ -744,7 +751,7 @@ defmodule DeployexWeb.ApplicationsLive do
     }
   end
 
-  defp default_mtls_certificate do
+  defp default_pk_cert_details do
     %{
       show_modal: false,
       certificate: nil

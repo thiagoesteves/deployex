@@ -3,6 +3,8 @@ defmodule Foundation.Certificates.PublicKey do
   Extracts and structures public key certificate metadata from X.509 certificates.
   """
 
+  require Logger
+
   @type t() :: %__MODULE__{
           issuer: String.t() | nil,
           serial: String.t() | nil,
@@ -24,22 +26,63 @@ defmodule Foundation.Certificates.PublicKey do
   ]
 
   @doc """
-  Parses a certificate and returns structured details.
-  """
-  def decode(certificate_path) do
-    with {:ok, certificate_pem} <- File.read(certificate_path),
-         {:ok, parsed} <- X509.Certificate.from_pem(certificate_pem) do
-      pubkey = X509.Certificate.public_key(parsed)
+  Reads a PEM-encoded certificate from the given file path and returns a
+  `%PublicKey{}` struct with the extracted metadata.
 
-      %__MODULE__{
-        issuer: extract_issuer(parsed),
-        serial: X509.Certificate.serial(parsed),
-        version: X509.Certificate.version(parsed),
-        public_key_type: key_type(pubkey),
-        public_key_size: key_size(pubkey),
-        expires_in_days: parsed |> extract_expiry() |> expires_in(),
-        domains: extract_domains(parsed)
-      }
+  Returns `{:error, reason}` if the file cannot be read or the certificate
+  cannot be parsed.
+
+  ## Examples
+
+      iex> PublicKey.decode("/path/to/cert.pem")
+      %PublicKey{issuer: "My CA", expires_in_days: 365, ...}
+
+      iex> PublicKey.decode("/nonexistent.pem")
+      {:error, :enoent}
+  """
+  @spec decode(certificate_path :: String.t()) :: t() | {:error, term()}
+  def decode(certificate_path) do
+    with {:ok, certificate_pem} <- File.read(certificate_path) do
+      decode_pem(certificate_pem)
+    end
+  end
+
+  @doc """
+  Parses a PEM-encoded certificate string and returns a `%PublicKey{}` struct
+  with the extracted metadata.
+
+  ## Examples
+
+      iex> PublicKey.decode_pem(pem_string)
+      %PublicKey{issuer: "My CA", public_key_type: "RSA", public_key_size: 2048, ...}
+
+      iex> PublicKey.decode_pem(nil)
+      {:error, :not_found}
+  """
+  @spec decode_pem(certificate_pem :: String.t() | nil) :: map() | {:error, any()}
+  def decode_pem(nil), do: {:error, :not_found}
+
+  def decode_pem(certificate_pem) do
+    case X509.Certificate.from_pem(certificate_pem) do
+      {:ok, parsed} ->
+        pubkey = X509.Certificate.public_key(parsed)
+
+        %__MODULE__{
+          issuer: extract_issuer(parsed),
+          serial: X509.Certificate.serial(parsed),
+          version: X509.Certificate.version(parsed),
+          public_key_type: key_type(pubkey),
+          public_key_size: key_size(pubkey),
+          expires_in_days: parsed |> extract_expiry() |> expires_in(),
+          domains: extract_domains(parsed)
+        }
+
+      {:error, reason} = error ->
+        Logger.error(
+          "Error while reading certificate: #{certificate_pem}, reason: #{inspect(reason)}"
+        )
+
+        error
     end
   end
 
@@ -49,6 +92,7 @@ defmodule Foundation.Certificates.PublicKey do
       rdn_seq
       |> List.flatten()
       |> Enum.find_value(fn
+        {:AttributeTypeAndValue, {2, 5, 4, 10}, {:printableString, cn}} -> to_string(cn)
         {:AttributeTypeAndValue, {2, 5, 4, 3}, {:utf8String, cn}} -> to_string(cn)
         {:AttributeTypeAndValue, {2, 5, 4, 3}, cn} when is_list(cn) -> to_string(cn)
         _ -> nil

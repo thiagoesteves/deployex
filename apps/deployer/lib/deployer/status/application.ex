@@ -12,6 +12,7 @@ defmodule Deployer.Status.Application do
   alias Deployer.Monitor
   alias Deployer.Status
   alias Foundation.Catalog
+  alias Foundation.Certificates.PublicKey
   alias Foundation.Common
 
   @update_apps_interval :timer.seconds(1)
@@ -50,6 +51,7 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
+  # credo:disable-for-lines:1
   def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
@@ -113,6 +115,14 @@ defmodule Deployer.Status.Application do
           versions: versions
         }
 
+        %Catalog.Certificate{certificate_pem: certificate_pem} = Catalog.certificate(name)
+
+        certificates =
+          case PublicKey.decode_pem(certificate_pem) do
+            %PublicKey{} = decoded_pk -> [decoded_pk]
+            _ -> []
+          end
+
         %Status{
           name: name,
           ports: replica_ports,
@@ -123,7 +133,8 @@ defmodule Deployer.Status.Application do
           status: :running,
           config: current_config,
           children: children,
-          monitoring: monitoring
+          monitoring: monitoring,
+          certificates: certificates
         }
       end)
 
@@ -258,6 +269,12 @@ defmodule Deployer.Status.Application do
 
     deployex_latest_release = Github.Release.latest_release()
 
+    certificates =
+      case mtls_certificate() do
+        nil -> []
+        certificate -> [certificate]
+      end
+
     %Status{
       name: name,
       sname: name,
@@ -278,7 +295,8 @@ defmodule Deployer.Status.Application do
       status: :running,
       uptime: uptime,
       latest_release: deployex_latest_release,
-      monitoring: Application.get_env(:foundation, :monitoring)
+      monitoring: Application.get_env(:foundation, :monitoring),
+      certificates: certificates
     }
   end
 

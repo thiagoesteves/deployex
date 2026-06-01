@@ -4,6 +4,7 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
 
   use Phoenix.Component
   alias DeployexWeb.Components.ApplicationCard
+  alias DeployexWeb.Components.CertificatePanel
   alias DeployexWeb.Helper
 
   attr :monitored_app, :map, required: true
@@ -252,6 +253,19 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
             <% end %>
           </div>
         </div>
+
+        <%= if @monitored_app.certificates != [] do %>
+          <div class="col-span-full space-y-3">
+            <%= for cert <-  @monitored_app.certificates do %>
+              <CertificatePanel.content
+                certificate={cert}
+                event="show-app-certificate"
+                name={"#{@monitored_app.name}"}
+                label="Domain Certificate"
+              />
+            <% end %>
+          </div>
+        <% end %>
 
         <div class="mt-3 bg-base-300 rounded-lg">
           <div class="tabs tabs-lift bg-base-200 p-1 mb-6 ">

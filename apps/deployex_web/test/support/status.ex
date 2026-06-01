@@ -56,7 +56,8 @@ defmodule DeployexWeb.Fixture.Status do
       tls: default_public_key(),
       status: :running,
       uptime: "short time",
-      ports: [%{key: "PORT", base: 8765}]
+      ports: [%{key: "PORT", base: 8765}],
+      certificates: [default_public_key()]
     }
 
     Map.merge(deployex, attrs)
@@ -96,7 +97,8 @@ defmodule DeployexWeb.Fixture.Status do
       status: :running,
       crash_restart_count: 0,
       uptime: "long time",
-      ports: [%{key: "PORT", base: 5678}]
+      ports: [%{key: "PORT", base: 5678}],
+      certificates: [default_public_key()]
     }
 
     %Status{
