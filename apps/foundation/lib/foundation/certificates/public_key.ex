@@ -59,7 +59,7 @@ defmodule Foundation.Certificates.PublicKey do
       iex> PublicKey.decode_pem(nil)
       {:error, :not_found}
   """
-  @spec decode_pem(certificate_pem :: String.t() | nil) :: t() | {:error, term()}
+  @spec decode_pem(certificate_pem :: String.t() | nil) :: map() | {:error, any()}
   def decode_pem(nil), do: {:error, :not_found}
 
   def decode_pem(certificate_pem) do

@@ -51,6 +51,7 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
+  # credo:disable-for-lines:1
   def handle_info(:update_apps, state) do
     deployex = update_deployex_app()
 
@@ -114,14 +115,12 @@ defmodule Deployer.Status.Application do
           versions: versions
         }
 
+        %Catalog.Certificate{certificate_pem: certificate_pem} = Catalog.certificate(name)
+
         certificates =
-          with %Catalog.Certificate{domains: domains, certificate_pem: certificate_pem}
-               when domains != [] <- Catalog.certificate(name),
-               %PublicKey{} = decoded_pk <- PublicKey.decode_pem(certificate_pem) do
-            [decoded_pk]
-          else
-            _reason ->
-              []
+          case PublicKey.decode_pem(certificate_pem) do
+            %PublicKey{} = decoded_pk -> [decoded_pk]
+            _ -> []
           end
 
         %Status{
