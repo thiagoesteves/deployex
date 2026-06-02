@@ -18,6 +18,7 @@ defmodule Foundation.YamlTest do
   @yaml_aws_monitoring_multiple_apps "#{@file_paths}/deployex-aws-monitoring-multiple-apps.yaml"
   @yaml_aws_optional "#{@file_paths}/deployex-aws-optional.yaml"
   @yaml_deployex_aws_no_replica_ports "#{@file_paths}/deployex-aws-no-replica-ports.yaml"
+  @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -492,7 +493,11 @@ defmodule Foundation.YamlTest do
         dns_check_interval_ms: 5_000,
         renew_before_days: 30,
         dns_provider: Foundation.Certificates.DNSProvider.Route53,
-        dns_options: %Certificate.DnsOptions{ttl: 60, zone: "example.com"},
+        dns_options: %Certificate.DnsOptions{
+          ttl: 60,
+          zone: "example.com",
+          api_token: "ABC123ZXC"
+        },
         acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
         acme_options: %Certificate.AcmeOptions{
           contact_email: "admin@example.com",
@@ -540,6 +545,37 @@ defmodule Foundation.YamlTest do
       }
 
       assert importer_opts.certificate_arn == "arn:aws:acm:us-east-1:123:certificate/abc"
+    end
+  end
+
+  test "parses cloudflare dns_provider" do
+    with_mocks([
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_dns_cloudflare end]}
+    ]) do
+      {:ok, config} = Yaml.load()
+
+      [app | _] = config.applications
+      [cert] = app.certificates
+
+      assert cert.dns_provider == Foundation.Certificates.DNSProvider.Cloudflare
+    end
+  end
+
+  test "parses cloudflare dns_options with api_token" do
+    with_mocks([
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_dns_cloudflare end]}
+    ]) do
+      {:ok, config} = Yaml.load()
+
+      [app | _] = config.applications
+      [cert] = app.certificates
+
+      assert %Certificate.DnsOptions{} = cert.dns_options
+      assert cert.dns_options.zone == "cloudflare-zone-id"
+      assert cert.dns_options.api_token == "cf-api-token-secret"
+      assert cert.dns_options.ttl == 10
     end
   end
 end

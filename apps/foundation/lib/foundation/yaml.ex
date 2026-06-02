@@ -67,11 +67,12 @@ defmodule Foundation.Yaml do
 
     defmodule DnsOptions do
       @moduledoc "DNS provider options for certificate configuration."
-      defstruct [:ttl, :zone]
+      defstruct [:ttl, :zone, :api_token]
 
       @type t :: %__MODULE__{
               ttl: non_neg_integer() | nil,
-              zone: String.t() | nil
+              zone: String.t() | nil,
+              api_token: String.t() | nil
             }
     end
 
@@ -424,6 +425,7 @@ defmodule Foundation.Yaml do
   end
 
   defp parse_dns_provider("route53"), do: Foundation.Certificates.DNSProvider.Route53
+  defp parse_dns_provider("cloudflare"), do: Foundation.Certificates.DNSProvider.Cloudflare
   defp parse_dns_provider(provider), do: raise("DNS provider #{provider} not supported")
 
   defp parse_dns_options(nil), do: nil
@@ -431,7 +433,8 @@ defmodule Foundation.Yaml do
   defp parse_dns_options(opts) do
     %Foundation.Yaml.Certificate.DnsOptions{
       ttl: opts["ttl"] || @default_certificate_dns_ttl,
-      zone: opts["zone"]
+      zone: opts["zone"],
+      api_token: opts["api_token"]
     }
   end
 
