@@ -29,10 +29,17 @@ defmodule Foundation.Certificates.DNSProvider.Cloudflare do
 
     record_name = String.trim_trailing(name, ".")
 
-    search_url =
-      "#{@base_url}/zones/#{zone}/dns_records?match=all&type=TXT&name=#{URI.encode(record_name)}"
+    # NOTE: https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/list
+    query =
+      URI.encode_query(%{
+        match: "all",
+        type: "TXT",
+        name: record_name
+      })
 
-    case Req.get(search_url, headers: headers, params: [type: "TXT", name: record_name]) do
+    search_url = "#{@base_url}/zones/#{zone}/dns_records?#{query}"
+
+    case Req.get(search_url, headers: headers, params: []) do
       {:ok, %{status: status, body: body}} when status in [200, 201] ->
         case Jason.decode(body) do
           {:ok, %{"result" => []}} ->

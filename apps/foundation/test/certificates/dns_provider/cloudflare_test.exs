@@ -12,7 +12,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
   @options [api_token: "test-api-token", zone: "test-zone-id", ttl: 60]
   @record_id "existing-record-id"
 
-  @search_url "https://api.cloudflare.com/client/v4/zones/test-zone-id/dns_records?match=all&type=TXT&name=#{URI.encode(@record_name)}"
+  @search_url "https://api.cloudflare.com/client/v4/zones/test-zone-id/dns_records?match=all&name=#{URI.encode(@record_name)}&type=TXT"
 
   describe "upsert_txt_record/3 when record does not exist" do
     @tag :capture_log
