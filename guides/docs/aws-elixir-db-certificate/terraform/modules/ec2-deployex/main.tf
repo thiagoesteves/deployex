@@ -178,6 +178,7 @@ data "cloudinit_config" "server_config" {
       myapp_cert_email     = var.myapp_cert_email
       myapp_cert_acme_zone = var.myapp_cert_acme_zone
       myapp_cert_arn       = var.certificate_arn
+      myapp_cloudflare_api_token = data.aws_secretsmanager_secret_version.myapp_cloudflare_api_token_version.secret_string
     })
   }
 }

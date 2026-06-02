@@ -23,6 +23,7 @@ resource "aws_secretsmanager_secret" "deployex_otp_tls_crt" {
   description = "TLS key certificate for OTP distribution"
 }
 
+# If the application requires sendgrid
 resource "aws_secretsmanager_secret" "myapp_sendgrid_api_key" {
   name        = "${var.environment}/${var.app_name}/sendgrid-api-key"
   description = "Sendgrid api key for sending emails"
@@ -73,6 +74,16 @@ resource "aws_secretsmanager_secret" "erlang_cookie" {
 }
 
 data "aws_secretsmanager_secret_version" "erlang_cookie_version" {
+  secret_id = aws_secretsmanager_secret.erlang_cookie.arn
+}
+
+# If the application requires cloudflare
+resource "aws_secretsmanager_secret" "myapp_cloudflare_api_token" {
+  name        = "${var.environment}/${var.app_name}/cloudflare-api-token"
+  description = "Cloudflare api token for handling dns"
+}
+
+data "aws_secretsmanager_secret_version" "myapp_cloudflare_api_token_version" {
   secret_id = aws_secretsmanager_secret.erlang_cookie.arn
 }
 

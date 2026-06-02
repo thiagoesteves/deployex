@@ -101,7 +101,7 @@ write_files:
               dns_options:
                 ttl: 10
                 zone: "${myapp_cert_acme_zone}"
-                api_token: "ABC123GHB" # for cloudflare only
+                api_token: "${myapp_cloudflare_api_token}" # for cloudflare only, not required for route53
               acme_provider: "lets_encrypt"
               acme_options:
                 contact_email: "${myapp_cert_email}"
