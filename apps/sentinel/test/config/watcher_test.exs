@@ -53,7 +53,11 @@ defmodule Sentinel.Config.WatcherTest do
     dns_check_interval_ms: 5000,
     renew_before_days: 30,
     dns_provider: Foundation.Certificates.DNSProvider.Route53,
-    dns_options: %Foundation.Yaml.Certificate.DnsOptions{ttl: 60, zone: "example.com"},
+    dns_options: %Foundation.Yaml.Certificate.DnsOptions{
+      ttl: 60,
+      zone: "example.com",
+      api_token: "ABC123GHB"
+    },
     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
     acme_options: %Foundation.Yaml.Certificate.AcmeOptions{
       contact_email: "admin@example.com",
@@ -1739,7 +1743,11 @@ defmodule Sentinel.Config.WatcherTest do
         Map.merge(@default_application, %{
           certificates: [
             Map.merge(@default_certificate, %{
-              dns_options: %Foundation.Yaml.Certificate.DnsOptions{ttl: 120, zone: "example.com"}
+              dns_options: %Foundation.Yaml.Certificate.DnsOptions{
+                ttl: 120,
+                zone: "example.com",
+                api_token: "new"
+              }
             })
           ]
         })
@@ -1778,6 +1786,7 @@ defmodule Sentinel.Config.WatcherTest do
         assert cert_detail.apply_strategy == :immediate
         assert cert_detail.details[:acme].status == :modified
         assert cert_detail.details[:acme].config.dns_options.ttl == 120
+        assert cert_detail.details[:acme].config.dns_options.api_token == "new"
 
         assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
       end

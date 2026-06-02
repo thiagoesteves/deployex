@@ -129,6 +129,7 @@ config :foundation,
       #     dns_options: %{
       #       ttl: 10,
       #       zone: "Z6767676776I8",
+      #       api_token: "ABC123GHB" (for cloudflare only)
       #     },
       #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
       #     acme_options: %{

@@ -57,6 +57,7 @@ applications:
         dns_options:
           ttl: 10
           zone: "zone"
+          api_token: "ABC123GHB"
         acme_provider: "lets_encrypt"
         acme_options:
           contact_email: "myapp@mydomain.com"

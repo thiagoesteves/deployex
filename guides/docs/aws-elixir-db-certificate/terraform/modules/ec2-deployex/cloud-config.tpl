@@ -97,10 +97,11 @@ write_files:
               dns_propagation_timeout_ms: 120000
               dns_check_interval_ms: 5000
               renew_before_days: 30
-              dns_provider: "route53"
+              dns_provider: "cloudflare"
               dns_options:
                 ttl: 10
                 zone: "${myapp_cert_acme_zone}"
+                api_token: "ABC123GHB" # for cloudflare only
               acme_provider: "lets_encrypt"
               acme_options:
                 contact_email: "${myapp_cert_email}"

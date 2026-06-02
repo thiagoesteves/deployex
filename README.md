@@ -35,7 +35,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Supports automatic TLS certificate provisioning, deployment, and renewal:
   - Supports Let's Encrypt ACME v2 with DNS-01 challenge validation.
   - Supports fully automated per-application certificate lifecycle management directly from the YAML configuration.
-  - Supports wildcard domain certificates (e.g. `*.example.com`) through configurable DNS providers.
+  - Supports wildcard domain certificates (e.g. `*.example.com`) through configurable DNS providers (rout353 and cloudflare).
   - Supports automatic certificate import/export workflows for cloud providers such as AWS ACM/Route53.
   - Automatically renews certificates before expiration with configurable renewal thresholds and validation intervals.
 - Supports local environments for non-cloud deployments

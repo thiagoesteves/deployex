@@ -1,0 +1,31 @@
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+secrets_adapter: "aws"
+secrets_path: "deployex-myapp-prod-secrets"
+aws_region: "sa-east-1"
+version: "0.4.0"
+otp_version: 26
+os_target: "ubuntu-20.04"
+metrics_retention_time_ms: 3600000
+logs_retention_time_ms: 3600000
+applications:
+  - name: myphoenixapp
+    certificates:
+      - type: domains
+        domains:
+          - "example.com"
+          - "*.example.com"
+        dns_provider: cloudflare
+        dns_options:
+          ttl: 10
+          zone: "cloudflare-zone-id"
+          api_token: "cf-api-token-secret"
+        acme_provider: lets_encrypt
+        acme_options:
+          contact_email: "admin@example.com"
+        importer: route53
+        importer_options:
+          certificate_arn: "arn:aws:acm:us-east-1:123:certificate/abc"

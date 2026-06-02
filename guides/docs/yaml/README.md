@@ -138,18 +138,19 @@ applications:
         dns_propagation_timeout_ms: 120000                    # DNS propagation configuration  
         dns_check_interval_ms: 5000
         renew_before_days: 30                                 # Renew certificate before expiration
-        dns_provider: "route53"                               # DNS provider implementation 
+        dns_provider: "cloudflare"                            # DNS provider (Supports route53 or cloudflare)
         dns_options: 
           ttl: 10 
           zone: "Z0123456789ABCDEFG"
-        acme_provider: "lets_encrypt"                         # ACME provider implementation
+          api_token: "ABC123GHB"                              # For cloudflare only
+        acme_provider: "lets_encrypt"                         # ACME provider (Supports lets_encrypt)
         acme_options: 
           contact_email: "myapp@mydomain.com" 
           url: "https://acme-v02.api.letsencrypt.org/directory" 
           key_size: 2048
           propagation_timeout_ms: 120000
           check_interval_ms: 2000
-        importer: "route53"                                   # Certificate deployment/import strategy
+        importer: "route53"                                   # Certificate deployment/import (Supports route53)
         importer_options: 
           certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
 
