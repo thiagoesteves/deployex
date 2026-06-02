@@ -14,6 +14,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   alias Host.Commander
   alias Host.Terminal
 
+  @terminal_timeout :timer.minutes(15)
+
   require Logger
 
   @impl true
@@ -220,7 +222,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
           commands: commands,
           options: options,
           target: self(),
-          metadata: :iex_terminal
+          metadata: :iex_terminal,
+          timeout_session: @terminal_timeout
         })
 
       socket

@@ -11,6 +11,7 @@
 ### Enhancements
  * [`PULL-220`](https://github.com/thiagoesteves/deployex/pull/220) Changing log level to INFO when running unit tests
  * [`PULL-216`](https://github.com/thiagoesteves/deployex/pull/216) Let's Encrypt Certificate Management for DeployEx
+ * [`ISSUE-207`](https://github.com/thiagoesteves/deployex/issues/207) Increase the default timeout for IEX/ERL terminal
 
 ## 0.9.1 🚀 (2026-05-15)
 
