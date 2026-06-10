@@ -231,6 +231,8 @@ update_deployex() {
     echo "# Checksum verified successfully           #"
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
+    echo "# Clean inet tls info                      #"
+    rm /tmp/inet_tls.conf
     echo "# Clean and create a new directory         #"
     rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}

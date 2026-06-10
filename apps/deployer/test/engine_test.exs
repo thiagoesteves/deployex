@@ -85,7 +85,7 @@ defmodule Deployer.EngineTest do
                  assert {:ok, _pid} =
                           Engine.Worker.start_link(%Engine.Worker{
                             deploy_rollback_timeout_ms: 1_000,
-                            deploy_schedule_interval_ms: 10,
+                            deploy_schedule_interval_ms: 100,
                             name: name,
                             language: language
                           })
@@ -127,7 +127,7 @@ defmodule Deployer.EngineTest do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 1_000,
-                   deploy_schedule_interval_ms: 10,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })
@@ -210,7 +210,7 @@ defmodule Deployer.EngineTest do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 1_000,
-                   deploy_schedule_interval_ms: 10,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })
@@ -266,7 +266,7 @@ defmodule Deployer.EngineTest do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 1_000,
-                   deploy_schedule_interval_ms: 10,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language,
                    ghosted_version_list: [%{version: ghosted_version}]
@@ -360,7 +360,7 @@ defmodule Deployer.EngineTest do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 1_000,
-                   deploy_schedule_interval_ms: 10,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })
@@ -1251,7 +1251,7 @@ defmodule Deployer.EngineTest do
         assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 1_000,
-                   deploy_schedule_interval_ms: 10,
+                   deploy_schedule_interval_ms: 100,
                    name: name,
                    language: language
                  })

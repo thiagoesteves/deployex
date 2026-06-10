@@ -3,7 +3,15 @@
 ## 0.9.2 ()
 
 ### Backwards incompatible changes from 0.9.1
- * None
+
+#### Installer Actions
+ 1. It’s not mandatory, but it’s recommended to update `deployex.sh`.
+ ```bash
+ rm deployex.sh
+ wget https://github.com/thiagoesteves/deployex/releases/download/0.9.2/deployex.sh
+ chmod a+x deployex.sh
+ ./deployex.sh --update
+ ```
 
 ### Bug fixes
  * None
@@ -12,6 +20,7 @@
  * [`PULL-220`](https://github.com/thiagoesteves/deployex/pull/220) Changing log level to INFO when running unit tests
  * [`PULL-216`](https://github.com/thiagoesteves/deployex/pull/216) Let's Encrypt Certificate Management for DeployEx
  * [`ISSUE-207`](https://github.com/thiagoesteves/deployex/issues/207) Increase the default timeout for IEX/ERL terminal
+ * [`PULL-225`](https://github.com/thiagoesteves/deployex/pull/225) Cleaning up inet_tls.conf file before updating deployex application
 
 ## 0.9.1 🚀 (2026-05-15)
 
@@ -28,10 +37,10 @@
 
 ### Backwards incompatible changes from 0.8.0
 
-### Hotupgrade
+#### Hotupgrade
  * Hotupgrade from 0.8.0 to 0.9.0 is not viable since the previous version doesn't support it.
 
-### Installer Actions
+#### Installer Actions
  1. It’s not mandatory, but it’s recommended to update `deployex.sh` so it can support custom installation, hotupgrades and changing folder for log directories.
  ```bash
  rm deployex.sh
