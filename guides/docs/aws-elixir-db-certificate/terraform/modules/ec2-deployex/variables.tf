@@ -178,7 +178,7 @@ variable "myapp_cert_domain" {
   description = "Domain"
   type        = string
   nullable    = false
-  default     = "*.calori.com.br"
+  default     = "calori.com.br"
 }
 
 variable "myapp_cert_email" {

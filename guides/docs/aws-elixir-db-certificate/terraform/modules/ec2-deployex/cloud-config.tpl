@@ -92,7 +92,7 @@ write_files:
               restart_threshold_percent: 90
           certificates:
             - type: "domains"
-              domains: ["${myapp_cert_domain}"]
+              domains: ["*.${myapp_cert_domain}", "*.other.${myapp_cert_domain}"]
               certificate_check_interval_ms: 86400000
               dns_propagation_timeout_ms: 120000
               dns_check_interval_ms: 5000
