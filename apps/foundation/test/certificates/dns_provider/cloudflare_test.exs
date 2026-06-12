@@ -21,7 +21,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn _url, _opts -> {:ok, %{status: 201}} end
          ]}
@@ -35,7 +35,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn _url, _opts -> {:ok, %{status: 201}} end
          ]}
@@ -57,13 +57,13 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn url, opts ->
              assert url == "https://api.cloudflare.com/client/v4/zones/test-zone-id/dns_records"
              assert opts[:json][:type] == "TXT"
              assert opts[:json][:name] == @record_name
-             assert opts[:json][:content] == @txt_value
+             assert opts[:json][:content] == "\"#{@txt_value}\""
              assert opts[:json][:ttl] == 60
              {:ok, %{status: 201}}
            end
@@ -81,7 +81,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn _url, _opts -> {:error, reason} end
          ]}
@@ -97,7 +97,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn _url, _opts -> {:error, %Req.TransportError{reason: :econnrefused}} end
          ]}
@@ -123,7 +123,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
              {:ok,
               %{
                 status: 200,
-                body: Jason.encode!(%{"result" => [%{"id" => @record_id}]})
+                body: %{"result" => [%{"id" => @record_id}]}
               }}
            end,
            put: fn _url, _opts -> {:ok, %{status: 200}} end
@@ -141,7 +141,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
              {:ok,
               %{
                 status: 200,
-                body: Jason.encode!(%{"result" => [%{"id" => @record_id}]})
+                body: %{"result" => [%{"id" => @record_id}]}
               }}
            end,
            put: fn _url, _opts -> {:ok, %{status: 200}} end
@@ -166,7 +166,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
              {:ok,
               %{
                 status: 200,
-                body: Jason.encode!(%{"result" => [%{"id" => @record_id}]})
+                body: %{"result" => [%{"id" => @record_id}]}
               }}
            end,
            put: fn url, opts ->
@@ -175,7 +175,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
 
              assert opts[:json][:type] == "TXT"
              assert opts[:json][:name] == @record_name
-             assert opts[:json][:content] == @txt_value
+             assert opts[:json][:content] == "\"#{@txt_value}\""
              assert opts[:json][:ttl] == 60
              {:ok, %{status: 200}}
            end
@@ -196,7 +196,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
              {:ok,
               %{
                 status: 200,
-                body: Jason.encode!(%{"result" => [%{"id" => @record_id}]})
+                body: %{"result" => [%{"id" => @record_id}]}
               }}
            end,
            put: fn _url, _opts -> {:error, reason} end
@@ -215,7 +215,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
              {:ok,
               %{
                 status: 200,
-                body: Jason.encode!(%{"result" => [%{"id" => @record_id}]})
+                body: %{"result" => [%{"id" => @record_id}]}
               }}
            end,
            put: fn _url, _opts -> {:error, %Req.TransportError{reason: :econnrefused}} end
@@ -234,11 +234,11 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
 
   describe "upsert_txt_record/3 when search request fails" do
     @tag :capture_log
-    test "returns {:error, {:cloudflare_error, reason}}" do
+    test "returns {:cloudflare_error, %Req.TransportError{reason: :econnrefused}}" do
       reason = %Req.TransportError{reason: :econnrefused}
 
       with_mock Req, get: fn @search_url, _opts -> {:error, reason} end do
-        assert {:error, {:cloudflare_error, ^reason}} =
+        assert {:error, {:cloudflare_error, %Req.TransportError{reason: :econnrefused}}} =
                  Cloudflare.upsert_txt_record(@name, @txt_value, @options)
       end
     end
@@ -266,7 +266,7 @@ defmodule Foundation.Certificates.DNSProvider.CloudflareTest do
         {Req, [],
          [
            get: fn @search_url, _opts ->
-             {:ok, %{status: 200, body: Jason.encode!(%{"result" => []})}}
+             {:ok, %{status: 200, body: %{"result" => []}}}
            end,
            post: fn _url, opts ->
              assert opts[:json][:name] == @record_name

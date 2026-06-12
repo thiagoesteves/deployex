@@ -90,7 +90,9 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Network, [],
          [
-           lookup: fn _domain_charlist, _class, _type -> ["_acme.example.com.", "token123"] end
+           lookup: fn _domain_charlist, _class, _type, _options ->
+             ["_acme.example.com.", "token123"]
+           end
          ]}
       ]) do
         assert {:ok, _cert} = Manager.request_and_import_certificate(base_config())
@@ -121,7 +123,9 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Network, [],
          [
-           lookup: fn _domain_charlist, _class, _type -> ["_acme.example.com.", "token123"] end
+           lookup: fn _domain_charlist, _class, _type, _options ->
+             ["_acme.example.com.", "token123"]
+           end
          ]}
       ]) do
         assert {:ok, _cert} = Manager.request_and_import_certificate(base_config(), true)
@@ -153,7 +157,9 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Network, [],
          [
-           lookup: fn _domain_charlist, _class, _type -> ["_acme.example.com.", "token123"] end
+           lookup: fn _domain_charlist, _class, _type, _options ->
+             ["_acme.example.com.", "token123"]
+           end
          ]}
       ]) do
         assert {:ok, _cert} = Manager.request_and_import_certificate(base_config())
@@ -256,7 +262,7 @@ defmodule Foundation.Certificates.ManagerTest do
          ]},
         {Network, [],
          [
-           lookup: fn _domain_charlist, _class, _type -> [] end
+           lookup: fn _domain_charlist, _class, _type, _options -> [] end
          ]}
       ]) do
         # Very short timeouts so the test is fast.

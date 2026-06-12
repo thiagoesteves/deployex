@@ -58,6 +58,11 @@ resource "aws_iam_role_policy_attachment" "attach_cloudwatch" {
   policy_arn = aws_iam_policy.ec2_deployex_cloudwatch_policy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "attach_certifcate_manager" {
+  role       = aws_iam_role.ec2_deployex_instance_role.name
+  policy_arn = aws_iam_policy.route53_acm_management_policy.arn
+}
+
 # Security group for the EC2 instances
 resource "aws_security_group" "ec2_deployex_instances_sg" {
   name        = "${var.environment}-${var.app_name}-ec2-deployex-instance-sg"

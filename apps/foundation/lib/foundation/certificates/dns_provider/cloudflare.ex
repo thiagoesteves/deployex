@@ -27,7 +27,9 @@ defmodule Foundation.Certificates.DNSProvider.Cloudflare do
       {"content-type", "application/json"}
     ]
 
+    # Format data to cloudflare
     record_name = String.trim_trailing(name, ".")
+    txt_value = "\"#{txt_value}\""
 
     # NOTE: https://developers.cloudflare.com/api/resources/dns/subresources/records/methods/list
     query =
@@ -40,20 +42,15 @@ defmodule Foundation.Certificates.DNSProvider.Cloudflare do
     search_url = "#{@base_url}/zones/#{zone}/dns_records?#{query}"
 
     case Req.get(search_url, headers: headers, params: []) do
-      {:ok, %{status: status, body: body}} when status in [200, 201] ->
-        case Jason.decode(body) do
-          {:ok, %{"result" => []}} ->
-            create_record(zone, record_name, txt_value, ttl, headers)
+      {:ok, %{status: status, body: %{"result" => []}}}
+      when status in [200, 201] ->
+        create_record(zone, record_name, txt_value, ttl, headers)
 
-          {:ok, %{"result" => [%{"id" => id} | _]}} ->
-            update_record(zone, id, record_name, txt_value, ttl, headers)
+      {:ok, %{status: status, body: %{"result" => [%{"id" => id} | _]}}}
+      when status in [200, 201] ->
+        update_record(zone, id, record_name, txt_value, ttl, headers)
 
-          {:error, reason} ->
-            Logger.error("Failed to decode body response for #{record_name}")
-            {:error, reason}
-        end
-
-      {:error, reason} ->
+      {_, reason} ->
         Logger.error("Failed to search Cloudflare TXT records for #{name}: #{inspect(reason)}")
         {:error, {:cloudflare_error, reason}}
     end
