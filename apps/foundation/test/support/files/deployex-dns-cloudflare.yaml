@@ -20,7 +20,7 @@ applications:
           - "*.example.com"
         dns_provider: cloudflare
         dns_options:
-          ttl: 10
+          ttl: 1
           zone: "cloudflare-zone-id"
           api_token: "cf-api-token-secret"
         acme_provider: lets_encrypt

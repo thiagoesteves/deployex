@@ -56,6 +56,8 @@ defmodule Foundation.Certificates.Manager do
     :importer_options
   ]
 
+  @default_nameservers ["8.8.8.8", "1.1.1.1"]
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
@@ -77,6 +79,9 @@ defmodule Foundation.Certificates.Manager do
         Logger.info(
           "Certificate check completed successfully for app: #{state.app_name}, domains: #{inspect(certificate.domains)}"
         )
+
+      {:retry_after, seconds} when seconds >= 0 ->
+        Logger.warning("Acme for #{state.app_name} requested retry after #{seconds} s")
 
       {:error, reason} ->
         Logger.error("Certificate renewal check failed: #{inspect(reason)}")
@@ -180,7 +185,7 @@ defmodule Foundation.Certificates.Manager do
       {:ok, cert_chain_pem, private_key_pem}
     else
       error ->
-        Logger.error("ACME certificate generation for #{app_name}, reason: #{inspect(error)}")
+        Logger.error("ACME certificate generation failed for #{app_name}, reason: #{inspect(error)}")
         error
     end
   end
@@ -288,7 +293,7 @@ defmodule Foundation.Certificates.Manager do
     lookup_name = String.trim_trailing(name, ".")
     domain_charlist = String.to_charlist(lookup_name)
 
-    case Network.lookup(domain_charlist, :in, :txt) do
+    case Network.lookup(domain_charlist, :in, :txt, nameservers: public_nameservers()) do
       [] ->
         {:error, :not_propagated}
 
@@ -314,4 +319,13 @@ defmodule Foundation.Certificates.Manager do
 
   defp normalize_record(record) when is_list(record), do: List.to_string(record)
   defp normalize_record(record), do: inspect(record)
+
+  # Use public resolvers to avoid stale NXDOMAIN from VPC/local caching resolvers
+  defp public_nameservers do
+    @default_nameservers
+    |> Enum.map(fn ip ->
+      {:ok, parsed} = ip |> String.to_charlist() |> :inet.parse_address()
+      {parsed, 53}
+    end)
+  end
 end

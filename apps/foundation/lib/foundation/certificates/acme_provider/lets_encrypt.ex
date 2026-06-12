@@ -274,8 +274,10 @@ defmodule Foundation.Certificates.ACMEProvider.LetsEncrypt do
       {:ok, %{certificate_url: cert_url}} when not is_nil(cert_url) ->
         {:ok, cert_url}
 
-      {:ok, _} ->
-        Process.sleep(2_000)
+      {:retry_after, seconds} when seconds >= 0 ->
+        milliseconds = seconds * 1_000
+        Logger.warning("Acme fetching order for #{name} requested retry after #(seconds) s")
+        Process.sleep(milliseconds)
         fetch_with_retry(name, url, account_key, attempts_left - 1)
 
       {:error, reason} ->
