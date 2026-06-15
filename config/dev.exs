@@ -127,7 +127,7 @@ config :foundation,
       #     renew_before_days: 30,
       #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
       #     dns_options: %{
-      #       ttl: 10,
+      #       ttl: 1,
       #       zone: "Z6767676776I8",
       #       api_token: "ABC123GHB" (for cloudflare only)
       #     },

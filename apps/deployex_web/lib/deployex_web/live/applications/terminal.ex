@@ -62,6 +62,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         <.shortcut command="recompile" description="recompile and load" />
         <.shortcut command="CTRL+G" description="User switch command" />
         <.shortcut command="v[n]" description="session history" />
+        <.shortcut command="exports Map" description="List mod public functions" />
+        <.shortcut command="clear" description="Clear the screen" />
         <.shortcut command="break!(MyModule.my_func/1)" description="Sets a breakpoint" />
       </div>
     </div>

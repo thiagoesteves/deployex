@@ -413,7 +413,7 @@ defmodule Foundation.YamlTest do
         [cert] = app.certificates
 
         assert %Certificate.DnsOptions{} = cert.dns_options
-        assert cert.dns_options.ttl == 10
+        assert cert.dns_options.ttl == 1
         assert cert.dns_options.zone != nil
       end
     end
@@ -575,7 +575,7 @@ defmodule Foundation.YamlTest do
       assert %Certificate.DnsOptions{} = cert.dns_options
       assert cert.dns_options.zone == "cloudflare-zone-id"
       assert cert.dns_options.api_token == "cf-api-token-secret"
-      assert cert.dns_options.ttl == 10
+      assert cert.dns_options.ttl == 1
     end
   end
 end
