@@ -26,10 +26,11 @@ defmodule Foundation.Certificates.ACMEProvider do
 
   ## Returns
   - `{:ok, account_key}`: Successfully setup account
+  - `{:retry_after, seconds}` - If the server returns a Retry-After header.
   - `{:error, reason}`: Failed to setup account
   """
   @callback setup_account(app_name :: String.t(), opts :: map()) ::
-              {:ok, account_key()} | {:error, any()}
+              {:ok, account_key()} | {:retry_after, non_neg_integer()} | {:error, any()}
 
   @doc """
   Create a new ACME order for the given domains.
@@ -42,13 +43,14 @@ defmodule Foundation.Certificates.ACMEProvider do
 
   ## Returns
   - `{:ok, order}`: Successfully created order
+  - `{:retry_after, seconds}` - If the server returns a Retry-After header.
   - `{:error, reason}`: Failed to create order
   """
   @callback create_order(
               app_name :: String.t(),
               domains :: [String.t()],
               account_key :: account_key()
-            ) :: {:ok, order()} | {:error, any()}
+            ) :: {:ok, order()} | {:retry_after, non_neg_integer()} | {:error, any()}
 
   @doc """
   Get DNS challenge information for the order.

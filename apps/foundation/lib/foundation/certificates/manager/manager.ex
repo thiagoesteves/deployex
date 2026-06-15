@@ -106,7 +106,7 @@ defmodule Foundation.Certificates.Manager do
   Generate and deploy a certificate for the given domains.
   """
   @spec request_and_import_certificate(__MODULE__.t(), boolean()) ::
-          {:ok, map()} | {:error, any()}
+          {:ok, map()} | {:retry_after, non_neg_integer()} | {:error, any()}
   def request_and_import_certificate(state, force_renewal \\ false) do
     Logger.info(
       "Generating certificate for app: #{state.app_name} - #{inspect(state.domains)} using strategy: #{state.acme_provider}"
@@ -185,7 +185,10 @@ defmodule Foundation.Certificates.Manager do
       {:ok, cert_chain_pem, private_key_pem}
     else
       error ->
-        Logger.error("ACME certificate generation failed for #{app_name}, reason: #{inspect(error)}")
+        Logger.error(
+          "ACME certificate generation failed for #{app_name}, reason: #{inspect(error)}"
+        )
+
         error
     end
   end
