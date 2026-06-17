@@ -98,7 +98,10 @@ defmodule DeployexWeb.Fixture.Status do
       crash_restart_count: 0,
       uptime: "long time",
       ports: [%{key: "PORT", base: 5678}],
-      certificates: [default_public_key()]
+      certificates: [default_public_key()],
+      otp_version: "27",
+      elixir_version: "1.20",
+      phoenix_version: "1.3"
     }
 
     %Status{

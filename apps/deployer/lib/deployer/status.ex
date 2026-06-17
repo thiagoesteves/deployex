@@ -32,7 +32,10 @@ defmodule Deployer.Status do
           # Monitoring capabilities
           monitoring: [],
           # Certificates capabilities
-          certificates: []
+          certificates: [],
+          otp_version: String.t() | nil,
+          elixir_version: String.t() | nil,
+          phoenix_version: String.t() | nil
         }
 
   defstruct name: nil,
@@ -55,7 +58,10 @@ defmodule Deployer.Status do
             config: nil,
             children: [],
             monitoring: [],
-            certificates: []
+            certificates: [],
+            otp_version: nil,
+            elixir_version: nil,
+            phoenix_version: nil
 
   @behaviour Deployer.Status.Adapter
 
