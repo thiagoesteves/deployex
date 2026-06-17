@@ -42,7 +42,35 @@ defmodule DeployexWeb.Components.ApplicationCard do
               </div>
               <div class="flex-1">
                 <h1 class="text-3xl font-bold text-base-content mb-2">{@application.name}</h1>
-                <div class="badge badge-neutral badge-lg">Application</div>
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <img src="/images/erlang-otp.png" alt="OTP" class="w-5 h-5" />
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-base-content">OTP</span>
+                      <span class="text-xs text-base-content/60">
+                        {@application.otp_version}
+                      </span>
+                    </div>
+                  </div>
+                  <div :if={@application.elixir_version} class="flex items-center gap-2">
+                    <img src="/images/elixir.png" alt="Elixir" class="w-5 h-5" />
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-base-content">Elixir</span>
+                      <span class="text-xs text-base-content/60">
+                        {@application.elixir_version}
+                      </span>
+                    </div>
+                  </div>
+                  <div :if={@application.phoenix_version} class="flex items-center gap-2">
+                    <img src="/images/phoenix.png" alt="Phoenix" class="w-5 h-5" />
+                    <div class="flex flex-col">
+                      <span class="text-xs font-semibold text-base-content">Phoenix</span>
+                      <span class="text-xs text-base-content/60">
+                        {@application.phoenix_version}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <!-- App Details Grid -->

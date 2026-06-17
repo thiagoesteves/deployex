@@ -14,6 +14,7 @@ defmodule Deployer.Status.Application do
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
   alias Foundation.Common
+  alias Foundation.Rpc
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
@@ -275,6 +276,8 @@ defmodule Deployer.Status.Application do
         certificate -> [certificate]
       end
 
+    node = Node.self()
+
     %Status{
       name: name,
       sname: name,
@@ -296,7 +299,10 @@ defmodule Deployer.Status.Application do
       uptime: uptime,
       latest_release: deployex_latest_release,
       monitoring: Application.get_env(:foundation, :monitoring),
-      certificates: certificates
+      certificates: certificates,
+      otp_version: node_otp_version(node),
+      elixir_version: node_elixir_version(node),
+      phoenix_version: node_phoenix_version(node)
     }
   end
 
@@ -337,22 +343,67 @@ defmodule Deployer.Status.Application do
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
       language: language,
-      monitoring: monitoring
+      monitoring: monitoring,
+      otp_version: node_otp_version(node),
+      elixir_version: node_elixir_version(node),
+      phoenix_version: node_phoenix_version(node)
     }
   end
 
-  # Caches the mTLS certificate in the process dictionary on first access,
-  # since the certificate doesn't change during the application's lifetime.
-  # Returns the %Foundation.Certificate{} struct or nil if mTLS is not supported.
   defp mtls_certificate do
-    case Process.get(:mtls_certificate, :unchecked) do
-      :unchecked ->
-        cert = Common.mtls_certificate()
-        Process.put(:mtls_certificate, cert)
-        cert
+    case Process.get(:mtls_certificate, :not_fetched) do
+      :not_fetched ->
+        value = Common.mtls_certificate()
+        Process.put(:mtls_certificate, value)
+        value
 
-      cert ->
-        cert
+      value ->
+        value
+    end
+  end
+
+  defmacrop cache_in_process(key, do: block) do
+    quote do
+      case Process.get(unquote(key), :not_available_yet) do
+        :not_available_yet ->
+          case unquote(block) do
+            {:ok, value} ->
+              Process.put(unquote(key), value)
+              value
+
+            _ ->
+              nil
+          end
+
+        value ->
+          value
+      end
+    end
+  end
+
+  defp node_otp_version(node) do
+    cache_in_process({node, :otp}) do
+      rpc_string(node, :erlang, :system_info, [:otp_release])
+    end
+  end
+
+  defp node_elixir_version(node) do
+    cache_in_process({node, :elixir}) do
+      rpc_string(node, Application, :spec, [:elixir, :vsn])
+    end
+  end
+
+  defp node_phoenix_version(node) do
+    cache_in_process({node, :phoenix}) do
+      rpc_string(node, Application, :spec, [:phoenix, :vsn])
+    end
+  end
+
+  defp rpc_string(node, module, functions, args) do
+    case Rpc.call(node, module, functions, args, 1000) do
+      {:badrpc, {:EXIT, {:undef, _}}} -> {:ok, nil}
+      {:badrpc, _} -> {:error, nil}
+      version -> {:ok, "#{version}"}
     end
   end
 end

@@ -1,5 +1,17 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.3 🚀 (2026-06-17)
+
+### Backwards incompatible changes from 0.9.2
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-228`](https://github.com/thiagoesteves/deployex/pull/228) Add OTP/Elixir/Phoenix version info to monitored app status
+
+
 ## 0.9.2 🚀 (2026-06-15)
 
 ### Backwards incompatible changes from 0.9.1

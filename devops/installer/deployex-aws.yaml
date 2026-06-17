@@ -6,7 +6,7 @@ release_bucket: "myapp-prod-distribution"
 secrets_adapter: "aws"
 secrets_path: "deployex-myapp-prod-secrets"
 aws_region: "sa-east-1"
-version: "0.9.2"
+version: "0.9.3"
 otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
@@ -53,7 +53,7 @@ applications:
         dns_propagation_timeout_ms: 120_000
         dns_check_interval_ms: 5000
         renew_before_days: 30
-        dns_provider: "route53"
+        dns_provider: "cloudflare" # or "route53"
         dns_options:
           ttl: 1
           zone: "zone"
