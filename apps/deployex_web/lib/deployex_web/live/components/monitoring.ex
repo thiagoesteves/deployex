@@ -2,8 +2,6 @@ defmodule DeployexWeb.Components.Monitoring do
   @moduledoc false
   use DeployexWeb, :html
 
-  use Phoenix.Component
-
   alias DeployexWeb.Helper
 
   attr :monitoring, :list, required: true

@@ -2,7 +2,6 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
   @moduledoc false
   use DeployexWeb, :html
 
-  use Phoenix.Component
   alias DeployexWeb.Components.ApplicationCard
   alias DeployexWeb.Components.CertificatePanel
   alias DeployexWeb.Helper

@@ -1,3 +1,18 @@
+# CHANGELOG (0.10.X)
+
+## 0.10.0 ()
+
+From this version onwards the OTP-27 won't be supported in favor of the new OTP-29 version
+
+### Backwards incompatible changes from 0.9.3
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * None
+
 # CHANGELOG (0.9.X)
 
 ## 0.9.3 🚀 (2026-06-17)
@@ -77,8 +92,8 @@
 
 This release includes binaries for the following Ubuntu versions:
 
- * Ubuntu 24.04 with OTP 27 - [deployex-ubuntu-24.04-otp-27.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-27/.tool-versions)
- * Ubuntu 24.04 with OTP 28 - [deployex-ubuntu-24.04-otp-28.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-28/.tool-versions)
+ * Ubuntu 24.04 with OTP 27 - [deployex-ubuntu-24.04-otp-28.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-28/.tool-versions)
+ * Ubuntu 24.04 with OTP 28 - [deployex-ubuntu-24.04-otp-29.tar.gz](https://github.com/thiagoesteves/deployex/tree/main/devops/releases/otp-29/.tool-versions)
 
  You can use these pre-built binaries, or you can build your own if preferred.
 
