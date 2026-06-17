@@ -48,7 +48,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                     <div class="flex flex-col">
                       <span class="text-xs font-semibold text-base-content">OTP</span>
                       <span class="text-xs text-base-content/60">
-                        {@application.otp_version || "--"}
+                        {@application.otp_version}
                       </span>
                     </div>
                   </div>
