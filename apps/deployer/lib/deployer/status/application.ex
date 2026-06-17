@@ -245,20 +245,6 @@ defmodule Deployer.Status.Application do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
-  defmacrop cache_in_process(key, do: block) do
-    quote do
-      case Process.get(unquote(key), "not-available-yet") do
-        "not-available-yet" ->
-          value = unquote(block)
-          Process.put(unquote(key), value)
-          value
-
-        value ->
-          value
-      end
-    end
-  end
-
   defp do_set_mode(name, :automatic = mode, _version) do
     config = Catalog.config(name)
     Catalog.config_update(name, %{config | mode: mode})
@@ -365,8 +351,33 @@ defmodule Deployer.Status.Application do
   end
 
   defp mtls_certificate do
-    cache_in_process(:mtls_certificate) do
-      Common.mtls_certificate()
+    case Process.get(:mtls_certificate, :not_fetched) do
+      :not_fetched ->
+        value = Common.mtls_certificate()
+        Process.put(:mtls_certificate, value)
+        value
+
+      value ->
+        value
+    end
+  end
+
+  defmacrop cache_in_process(key, do: block) do
+    quote do
+      case Process.get(unquote(key), :not_available_yet) do
+        :not_available_yet ->
+          case unquote(block) do
+            {:ok, value} ->
+              Process.put(unquote(key), value)
+              value
+
+            _ ->
+              nil
+          end
+
+        value ->
+          value
+      end
     end
   end
 
@@ -388,11 +399,11 @@ defmodule Deployer.Status.Application do
     end
   end
 
-  def rpc_string(node, module, functions, args) do
+  defp rpc_string(node, module, functions, args) do
     case Rpc.call(node, module, functions, args, 1000) do
-      {:badrpc, {:EXIT, {:undef, _}}} -> nil
-      {:badrpc, _} -> "not-available-yet"
-      version -> "#{version}"
+      {:badrpc, {:EXIT, {:undef, _}}} -> {:ok, nil}
+      {:badrpc, _} -> {:error, nil}
+      version -> {:ok, "#{version}"}
     end
   end
 end
