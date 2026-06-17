@@ -162,7 +162,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -217,7 +217,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:connect, fn _node -> {:error, :not_connecting} end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -275,7 +275,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     # No info, update needed
     assert {:noreply, %{monitoring: monitoring}} =
@@ -334,7 +334,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:connect, fn _node -> {:ok, :connected} end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     ghosted_version = "1.1.1"
     version_map = StatusApp.current_version_map(sname_1)
@@ -415,7 +415,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
@@ -469,7 +469,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
@@ -523,7 +523,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
@@ -569,7 +569,7 @@ defmodule Deployer.Status.ApplicationTest do
     |> stub(:list, fn -> [sname_1, sname_2, sname_3] end)
 
     Foundation.RpcMock
-    |> expect(:call, fn _node, _module, _functions, _args, _timeout -> "" end)
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
 
     assert {:ok, _pid} = StatusApp.start_link(update_apps_interval: 50, name: module_name)
 
