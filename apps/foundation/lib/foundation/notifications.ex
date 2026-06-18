@@ -2,40 +2,42 @@ defmodule Foundation.Notifications do
   @moduledoc """
   Dispatches deployment lifecycle events to configured external notification channels.
 
-  `Foundation.Notifications.notify/2` is a fire-and-forget call: it reads the
-  adapter list from the `:foundation` application environment (populated at boot by
-  `Foundation.ConfigProvider.Env.Config` from `deployex.yaml`), filters to adapters
-  that are enabled and subscribed to the event, then dispatches each delivery in a
-  separate `Task.Supervisor` child so callers are never blocked.
+  `Foundation.Notifications.notify/2` broadcasts an event to a per-event
+  `Foundation.PubSub` topic (e.g. `"deployex::notifications::crash_restart"`).
+  Each `Foundation.Notifications.Worker` — one per entry in the `notifications:`
+  YAML list — subscribes only to the topics matching its `events` list at startup,
+  so PubSub routing handles delivery without any filtering in the worker.  This means:
+
+  - **Callers are never blocked** — `Phoenix.PubSub.broadcast/3` returns immediately.
+  - **Channels are isolated** — a slow or crashing adapter only affects its own worker.
+  - **Workers are supervised** — `Foundation.Notifications.Supervisor` restarts a
+    crashed worker automatically.
 
   ## Supported events
 
-  | Event atom                      | Trigger                                                   | Payload keys                                                            |
-  |---------------------------------|-----------------------------------------------------------|-------------------------------------------------------------------------|
-  | `:crash_restart`                | Monitored app crashed and is being restarted              | `node`, `sname`, `name`, `language`, `crash_restart_count`             |
-  | `:deployment_started`           | New deployment was initiated for an sname                 | `node`, `sname`, `version`                                              |
-  | `:deployment_complete`          | Hot-upgrade finished (success or failure)                 | `node`, `sname`, `status` (`:ok`/`:error`), `message`                  |
-  | `:watchdog_threshold_exceeded`  | Watchdog exceeded resource threshold and restarted an app | `node`, `sname`, `type`, `current_percentage`, `restart_threshold_percent` |
-  | `:certificate_renewed`          | TLS certificate was successfully renewed                  | `app_name`, `domains`                                                   |
-  | `:certificate_failed`           | TLS certificate renewal failed                            | `app_name`, `domains`, `reason`                                         |
+  | Event atom                       | Trigger                                                    | Payload keys                                                                |
+  |----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------|
+  | `:crash_restart`                 | Monitored app crashed and is being restarted               | `node`, `sname`, `name`, `language`, `crash_restart_count`                 |
+  | `:deployment_started`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
+  | `:deployment_complete`           | Hot-upgrade finished (success or failure)                  | `node`, `sname`, `status` (`:ok`/`:error`), `message`                      |
+  | `:watchdog_threshold_exceeded`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `sname`, `type`, `current_percentage`, `restart_threshold_percent` |
+  | `:certificate_renewed`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
+  | `:certificate_failed`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
 
   ## Available adapters
 
-  | YAML value    | Module                                | Description                            |
-  |---------------|---------------------------------------|----------------------------------------|
-  | `"webhook"`   | `Foundation.Notifications.Webhook`   | Generic HTTP POST with a JSON body     |
-  | `"slack"`     | `Foundation.Notifications.Slack`     | Slack Incoming Webhook message         |
-  | `"pagerduty"` | `Foundation.Notifications.PagerDuty` | PagerDuty Events API v2 incident       |
-
-  See each adapter's module documentation for its specific configuration options.
+  | YAML value    | Module                                | Description                           |
+  |---------------|---------------------------------------|---------------------------------------|
+  | `"webhook"`   | `Foundation.Notifications.Webhook`   | Generic HTTP POST with a JSON body    |
+  | `"slack"`     | `Foundation.Notifications.Slack`     | Slack Incoming Webhook message        |
+  | `"pagerduty"` | `Foundation.Notifications.PagerDuty` | PagerDuty Events API v2 incident      |
 
   ## Configuration (deployex.yaml)
 
-  Multiple adapters can run in parallel.  Each entry is independent: a different
-  channel can subscribe to a different subset of events.
+  Multiple adapters can run in parallel.  Each entry is independent and subscribes
+  to its own subset of events.
 
       notifications:
-        # Slack: all events to #deployex-alerts
         - adapter: "slack"
           url: "https://hooks.slack.com/services/T.../B.../..."
           enabled: true
@@ -47,7 +49,6 @@ defmodule Foundation.Notifications do
             username: "DeployEx"
             icon_emoji: ":rocket:"
 
-        # PagerDuty: only critical events that need on-call intervention
         - adapter: "pagerduty"
           enabled: true
           events:
@@ -57,7 +58,6 @@ defmodule Foundation.Notifications do
           options:
             routing_key: "abc123def456..."
 
-        # Generic webhook: send all events to an internal audit service
         - adapter: "webhook"
           url: "https://internal.example.com/hooks/deployex"
           enabled: true
@@ -73,34 +73,34 @@ defmodule Foundation.Notifications do
 
   Implement `Foundation.Notifications.Adapter` and add a new clause to
   `Foundation.Yaml.notification_adapter/1`.  See `Foundation.Notifications.Adapter`
-  for a step-by-step guide and skeleton implementation.
+  for a step-by-step guide and a skeleton implementation.
   """
 
-  require Logger
+  @topic_prefix "deployex::notifications"
 
   @doc """
-  Delivers `event` with `payload` to every enabled, subscribed notification adapter.
+  Returns the PubSub topic for a specific event.
 
-  Returns `:ok` immediately; delivery happens asynchronously.  Adapter errors are
-  logged but never re-raised.
+  Each `Foundation.Notifications.Worker` subscribes to `topic(event)` for
+  every event in its list.  `notify/2` broadcasts to the same per-event topic,
+  so PubSub routing delivers the message only to workers that subscribed to it.
+
+  ## Example
+
+      iex> Foundation.Notifications.topic(:crash_restart)
+      "deployex::notifications::crash_restart"
+  """
+  @spec topic(event :: atom()) :: String.t()
+  def topic(event), do: "#{@topic_prefix}::#{event}"
+
+  @doc """
+  Broadcasts `event` with `payload` to all workers subscribed to that event.
+
+  Returns `:ok` immediately; delivery to each adapter happens asynchronously
+  inside the respective `Foundation.Notifications.Worker` process.
   """
   @spec notify(event :: atom(), payload :: map()) :: :ok
   def notify(event, payload) do
-    :foundation
-    |> Application.get_env(:notifications, [])
-    |> Enum.filter(&(&1.enabled and event in &1.events))
-    |> Enum.each(fn config ->
-      Task.Supervisor.start_child(Foundation.TaskSupervisor, fn ->
-        case config.adapter.notify(event, payload, config) do
-          :ok ->
-            :ok
-
-          {:error, reason} ->
-            Logger.error(
-              "Notification adapter #{inspect(config.adapter)} failed for event=#{event} reason=#{inspect(reason)}"
-            )
-        end
-      end)
-    end)
+    Phoenix.PubSub.broadcast(Foundation.PubSub, topic(event), {event, payload})
   end
 end
