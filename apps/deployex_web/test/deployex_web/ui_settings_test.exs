@@ -1,5 +1,5 @@
 defmodule DeployexWeb.UiSettingsTest do
-  use DeployexWeb.ConnCase, async: true
+  use DeployexWeb.ConnCase, async: false
 
   import DeployexWeb.AccountsFixtures
 
