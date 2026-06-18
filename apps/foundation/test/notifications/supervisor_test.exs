@@ -1,12 +1,10 @@
 defmodule Foundation.Notifications.SupervisorTest do
   use ExUnit.Case, async: false
 
-  import Mock
-
   alias Foundation.Notifications.Supervisor, as: NotifSupervisor
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
-  @webhook_config %Yaml.Notification{
+  @worker_config %Worker{
     adapter: Foundation.Notifications.Webhook,
     url: "https://hooks.example.com",
     enabled: true,
@@ -14,44 +12,39 @@ defmodule Foundation.Notifications.SupervisorTest do
     options: %{}
   }
 
-  describe "start_link/1" do
+  describe "start_notification_worker/1" do
     @tag :capture_log
-    test "starts one worker per notification entry in app env" do
-      with_mocks([
-        {Application, [:passthrough],
-         [
-           get_env: fn
-             :foundation, :notifications, [] -> [@webhook_config, @webhook_config]
-             app, key, default -> :meck.passthrough([app, key, default])
-           end
-         ]}
-      ]) do
-        {:ok, sup} = NotifSupervisor.start_link(name: :test_notif_sup_two)
+    test "returns {:ok, pid} and starts a live worker process" do
+      {:ok, pid} = NotifSupervisor.start_notification_worker(@worker_config)
 
-        children = Supervisor.which_children(sup)
-        assert length(children) == 2
+      assert is_pid(pid)
+      assert Process.alive?(pid)
 
-        Supervisor.stop(sup)
-      end
+      GenServer.stop(pid)
     end
 
     @tag :capture_log
-    test "starts with no workers when notifications list is empty" do
-      with_mocks([
-        {Application, [:passthrough],
-         [
-           get_env: fn
-             :foundation, :notifications, [] -> []
-             app, key, default -> :meck.passthrough([app, key, default])
-           end
-         ]}
-      ]) do
-        {:ok, sup} = NotifSupervisor.start_link(name: :test_notif_sup_empty)
+    test "each call adds a worker to the supervisor" do
+      before = DynamicSupervisor.count_children(NotifSupervisor).workers
 
-        assert Supervisor.which_children(sup) == []
+      {:ok, pid1} = NotifSupervisor.start_notification_worker(@worker_config)
+      {:ok, pid2} = NotifSupervisor.start_notification_worker(@worker_config)
 
-        Supervisor.stop(sup)
-      end
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == before + 2
+
+      GenServer.stop(pid1)
+      GenServer.stop(pid2)
+    end
+
+    @tag :capture_log
+    test "disabled worker is still started (it simply skips subscriptions)" do
+      config = %Worker{@worker_config | enabled: false}
+
+      {:ok, pid} = NotifSupervisor.start_notification_worker(config)
+
+      assert Process.alive?(pid)
+
+      GenServer.stop(pid)
     end
   end
 end

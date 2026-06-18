@@ -16,6 +16,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
   @yaml_gcp_release_error "#{@file_paths}/deployex-gcp-release-error.yaml"
   @yaml_gcp_secrets_error "#{@file_paths}/deployex-gcp-secrets-error.yaml"
+  @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
 
   @tag :capture_log
   test "init/1 with success" do
@@ -669,6 +670,100 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                assert config == Config.load(config, [])
              end) =~
                "Error loading the YAML file, default configuration will be applied"
+    end
+  end
+
+  @tag :capture_log
+  test "load/3 with success for AWS with notifications" do
+    with_mocks([
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications end]}
+    ]) do
+      assert [
+               {:ex_aws, [region: "sa-east-1"]},
+               {:deployex_web,
+                [
+                  {DeployexWeb.Endpoint,
+                   [
+                     url: [host: "deployex.example.com"],
+                     http: [port: 5001]
+                   ]}
+                ]},
+               {:observer_web, [data_retention_period: 3_600_000]},
+               {:deployer,
+                [
+                  {Deployer.Release,
+                   [adapter: Deployer.Release.S3, bucket: "myapp-prod-distribution"]}
+                ]},
+               {:foundation,
+                [
+                  {:env, "prod"},
+                  {:applications,
+                   [
+                     %{
+                       env: [],
+                       name: "myphoenixapp",
+                       monitoring: [],
+                       replicas: 3,
+                       language: "elixir",
+                       deploy_rollback_timeout_ms: 600_000,
+                       deploy_schedule_interval_ms: 5_000,
+                       replica_ports: []
+                     }
+                   ]},
+                  {:config_checksum,
+                   "3da24d11865bc40bab27e2545a5547f83005a3137e7d3b8a2bc4a65d7f00ea16"},
+                  {:monitoring, []},
+                  {:notifications,
+                   [
+                     %Foundation.Yaml.Notification{
+                       adapter: Foundation.Notifications.Webhook,
+                       url: "https://hooks.example.com/deployex",
+                       enabled: true,
+                       events: [
+                         :crash_restart,
+                         :deployment_started,
+                         :deployment_complete,
+                         :watchdog_threshold_exceeded,
+                         :certificate_renewed,
+                         :certificate_failed
+                       ],
+                       options: %{}
+                     },
+                     %Foundation.Yaml.Notification{
+                       adapter: Foundation.Notifications.Slack,
+                       url: "https://hooks.slack.com/services/T000/B000/XXX",
+                       enabled: true,
+                       events: [:crash_restart, :deployment_complete],
+                       options: %{"username" => "DeployEx-Bot", "icon_emoji" => ":rocket:"}
+                     },
+                     %Foundation.Yaml.Notification{
+                       adapter: Foundation.Notifications.PagerDuty,
+                       url: nil,
+                       enabled: true,
+                       events: [:crash_restart, :watchdog_threshold_exceeded],
+                       options: %{"routing_key" => "abc123def456"}
+                     },
+                     %Foundation.Yaml.Notification{
+                       adapter: Foundation.Notifications.Webhook,
+                       url: "https://hooks2.example.com/deployex",
+                       enabled: false,
+                       events: [:crash_restart],
+                       options: %{}
+                     }
+                   ]},
+                  {:logs_retention_time_ms, 3_600_000},
+                  {:install_path, "/opt/deployex"},
+                  {:var_path, "/var/lib/deployex"},
+                  {:log_path, "/var/log/deployex"},
+                  {:monitored_app_log_path, "/var/log/monitored-apps"},
+                  {Foundation.ConfigProvider.Secrets.Manager,
+                   [
+                     adapter: Foundation.ConfigProvider.Secrets.Aws,
+                     path: "deployex-myapp-prod-secrets"
+                   ]}
+                ]}
+             ] = Config.load([], [])
     end
   end
 

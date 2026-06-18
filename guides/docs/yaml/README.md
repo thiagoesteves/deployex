@@ -68,6 +68,45 @@ metrics_retention_time_ms: 3600000                       # Metrics retention: 1 
 logs_retention_time_ms: 3600000                          # Logs retention: 1 hour (default: 3600000)
 
 # ============================================================================
+# EXTERNAL NOTIFICATIONS (optional)
+# ============================================================================
+
+notifications:
+  # Webhook adapter — generic HTTP POST to any endpoint
+  - adapter: "webhook"                                   # Adapter: webhook, slack or pagerduty
+    url: "https://example.com/hooks/deployex"            # HTTP POST destination
+    enabled: true
+    events:                                              # One or more of the six supported events
+      - "crash_restart"                                  # Monitored app crashed and was restarted
+      - "deployment_started"                             # New deployment was initiated
+      - "deployment_complete"                            # Deployment finished (success or failure)
+      - "watchdog_threshold_exceeded"                    # Resource threshold crossed; app restarted
+      - "certificate_renewed"                            # TLS certificate successfully renewed
+      - "certificate_failed"                             # TLS certificate renewal failed
+
+  # Slack Incoming Webhook adapter
+  - adapter: "slack"
+    url: "https://hooks.slack.com/services/T.../B.../..." # Slack Incoming Webhook URL
+    enabled: true
+    events:
+      - "crash_restart"
+      - "deployment_complete"
+      - "watchdog_threshold_exceeded"
+    options:
+      username: "DeployEx"                               # Bot display name (default: DeployEx)
+      icon_emoji: ":rocket:"                             # Bot icon emoji (default: :robot_face:)
+
+  # PagerDuty Events API v2 adapter
+  - adapter: "pagerduty"
+    enabled: true                                        # url: omit to use the default PagerDuty endpoint
+    events:
+      - "crash_restart"
+      - "watchdog_threshold_exceeded"
+      - "certificate_failed"
+    options:
+      routing_key: "abc123def456..."                     # PagerDuty integration key (required)
+
+# ============================================================================
 # HOST-LEVEL MONITORING (optional)
 # ============================================================================
 
@@ -225,6 +264,7 @@ These fields require a **full DeployEx restart**:
 - `secrets_path` - Secrets path
 - `aws_region` - AWS region
 - `google_credentials` - GCP credentials path
+- `notifications` - External notification channels (requires restart to add, remove, or reconfigure)
 
 #### System Requirements
 - `version` - DeployEx version

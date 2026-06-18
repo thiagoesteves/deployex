@@ -38,6 +38,10 @@ Upon deployment, the following dashboard becomes available, providing easy acces
   - Supports wildcard domain certificates (e.g. `*.example.com`) through configurable DNS providers (rout353 and cloudflare).
   - Supports automatic certificate import/export workflows for cloud providers such as AWS ACM/Route53.
   - Automatically renews certificates before expiration with configurable renewal thresholds and validation intervals.
+- Supports external alerting for deployment lifecycle events via configurable notification channels:
+  - Webhook — generic HTTP POST to any endpoint (n8n, Zapier, custom scripts, etc.)
+  - Slack — formatted Incoming Webhook messages with per-event emoji and mrkdwn.
+  - PagerDuty — Events API v2 incidents with automatic severity mapping.
 - Supports local environments for non-cloud deployments
 - Provides rollback functionality if a monitored app version remains unstable for 10 minutes (time configurable).
 - Rolled-back monitored app versions are ghosted, preventing their redeployment.
@@ -78,6 +82,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [**0.9.4**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.4) | **27.3.4.13**                                              | **28.5.0.2**                                               |
 | [**0.9.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.3) | **27.3.4.13**                                              | **28.5.0.2**                                               |
 | [**0.9.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.2) | **27.3.4.13**                                              | **28.5.0.2**                                               |
 | [**0.9.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.1) | **27.3.4.9**                                               | **28.4.1**                                                 |

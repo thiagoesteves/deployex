@@ -85,6 +85,24 @@ config :foundation,
       restart_threshold_percent: 95
     }
   ],
+  notifications: [],
+  # NOTE: Enable for notifications testing
+  # notifications: [
+  #   %{
+  #     adapter: Foundation.Notifications.Webhook,
+  #     url: "https://example.com/hooks/deployex",
+  #     enabled: true,
+  #     events: [
+  #       :crash_restart,
+  #       :deployment_started,
+  #       :deployment_complete,
+  #       :watchdog_threshold_exceeded,
+  #       :certificate_renewed,
+  #       :certificate_failed
+  #     ],
+  #     options: %{}
+  #   }
+  # ],
   applications: [
     %{
       name: "myphoenixapp",

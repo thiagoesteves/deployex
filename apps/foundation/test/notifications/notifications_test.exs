@@ -6,7 +6,6 @@ defmodule Foundation.NotificationsTest do
   alias Foundation.Notifications
   alias Foundation.Notifications.Webhook
   alias Foundation.Notifications.Worker
-  alias Foundation.Yaml
 
   @payload %{node: :deployex@host, sname: "myapp-1", crash_restart_count: 1}
 
@@ -50,7 +49,7 @@ defmodule Foundation.NotificationsTest do
   describe "Worker integration" do
     @tag :capture_log
     test "worker calls its adapter when a matching event is received" do
-      config = %Yaml.Notification{
+      config = %Worker{
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: true,
@@ -76,7 +75,7 @@ defmodule Foundation.NotificationsTest do
 
     @tag :capture_log
     test "worker ignores events not in its list" do
-      config = %Yaml.Notification{
+      config = %Worker{
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: true,
@@ -101,7 +100,7 @@ defmodule Foundation.NotificationsTest do
 
     @tag :capture_log
     test "disabled worker never calls its adapter" do
-      config = %Yaml.Notification{
+      config = %Worker{
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: false,
@@ -126,7 +125,7 @@ defmodule Foundation.NotificationsTest do
 
     @tag :capture_log
     test "two workers for different channels each receive the same event" do
-      config_a = %Yaml.Notification{
+      config_a = %Worker{
         adapter: Webhook,
         url: "https://a.example.com",
         enabled: true,
@@ -134,7 +133,7 @@ defmodule Foundation.NotificationsTest do
         options: %{}
       }
 
-      config_b = %Yaml.Notification{
+      config_b = %Worker{
         adapter: Webhook,
         url: "https://b.example.com",
         enabled: true,

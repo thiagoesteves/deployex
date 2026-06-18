@@ -78,6 +78,31 @@ defmodule Foundation.Notifications do
 
   @topic_prefix "deployex::notifications"
 
+  use GenServer
+
+  import Foundation.Macros
+
+  require Logger
+
+  ### ==========================================================================
+  ### Callback functions
+  ### ==========================================================================
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  @impl true
+  def init(_args) do
+    Logger.info("Initializing Notification Server")
+    {:ok, %{}, {:continue, :start_notification_manager}}
+  end
+
+  @impl true
+  def handle_continue(:start_notification_manager, state) do
+    initialize_notification_manager()
+    {:noreply, state}
+  end
+
   @doc """
   Returns the PubSub topic for a specific event.
 
@@ -102,5 +127,30 @@ defmodule Foundation.Notifications do
   @spec notify(event :: atom(), payload :: map()) :: :ok
   def notify(event, payload) do
     Phoenix.PubSub.broadcast(Foundation.PubSub, topic(event), {event, payload})
+  end
+
+  ### ==========================================================================
+  ### Private Functions
+  ### ==========================================================================
+
+  if_not_test do
+    alias Foundation.Notifications.Worker
+
+    def initialize_notification_manager do
+      :foundation
+      |> Application.fetch_env!(:notifications)
+      |> Enum.map(&to_notification_struct/1)
+      |> Enum.map(&Foundation.Notifications.Supervisor.start_notification_worker/1)
+    end
+
+    defp to_notification_struct(%Foundation.Yaml.Notification{} = config) do
+      struct!(Worker, Map.from_struct(config))
+    end
+
+    defp to_notification_struct(config) do
+      struct!(Worker, config)
+    end
+  else
+    defp initialize_notification_manager, do: :ok
   end
 end

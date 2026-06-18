@@ -19,19 +19,26 @@ defmodule Foundation.Notifications.Worker do
   require Logger
 
   alias Foundation.Notifications
-  alias Foundation.Yaml
+
+  defstruct [:adapter, :url, :enabled, :events, options: %{}]
+
+  @type t :: %__MODULE__{
+          adapter: module(),
+          url: String.t() | nil,
+          enabled: boolean(),
+          events: [atom()],
+          options: map()
+        }
 
   ### ==========================================================================
   ### GenServer callbacks
   ### ==========================================================================
-
-  @spec start_link(Yaml.Notification.t()) :: GenServer.on_start()
-  def start_link(%Yaml.Notification{} = config) do
+  def start_link(%__MODULE__{} = config) do
     GenServer.start_link(__MODULE__, config)
   end
 
   @impl true
-  def init(%Yaml.Notification{adapter: adapter, enabled: enabled, events: events} = config) do
+  def init(%__MODULE__{adapter: adapter, enabled: enabled, events: events} = config) do
     Logger.info("Initializing Notifications Worker for adapter: #{inspect(adapter)}")
 
     if enabled do

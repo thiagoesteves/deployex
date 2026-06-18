@@ -14,7 +14,8 @@ defmodule Foundation.Application do
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
         Foundation.Certificate,
-        Foundation.Notifications.Supervisor
+        Foundation.Notifications.Supervisor,
+        Foundation.Notifications
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

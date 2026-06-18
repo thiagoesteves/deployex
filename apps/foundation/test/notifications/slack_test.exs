@@ -4,9 +4,9 @@ defmodule Foundation.Notifications.SlackTest do
   import Mock
 
   alias Foundation.Notifications.Slack
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
-  @config %Yaml.Notification{
+  @config %Worker{
     adapter: Slack,
     url: "https://hooks.slack.com/services/T000/B000/XXX",
     enabled: true,

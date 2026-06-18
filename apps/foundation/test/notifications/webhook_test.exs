@@ -4,9 +4,9 @@ defmodule Foundation.Notifications.WebhookTest do
   import Mock
 
   alias Foundation.Notifications.Webhook
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
-  @config %Yaml.Notification{
+  @config %Worker{
     adapter: Webhook,
     url: "https://hooks.example.com/deployex",
     enabled: true,

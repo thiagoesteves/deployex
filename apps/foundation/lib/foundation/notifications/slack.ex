@@ -8,7 +8,7 @@ defmodule Foundation.Notifications.Slack do
   POST to the configured Incoming Webhook URL.  The URL already encodes the target
   workspace and channel, so no additional auth header is needed.
 
-  ## YAML configuration
+  ## Worker configuration
 
       notifications:
         - adapter: "slack"
@@ -47,15 +47,15 @@ defmodule Foundation.Notifications.Slack do
 
   require Logger
 
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
   @default_username "DeployEx"
   @default_icon_emoji ":robot_face:"
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Yaml.Notification.t()) ::
+  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
-  def notify(event, payload, %Yaml.Notification{url: url, options: options}) do
+  def notify(event, payload, %Worker{url: url, options: options}) do
     body =
       Jason.encode!(%{
         text: format_message(event, payload),

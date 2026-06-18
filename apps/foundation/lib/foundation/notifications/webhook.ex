@@ -6,7 +6,7 @@ defmodule Foundation.Notifications.Webhook do
   that accepts a POST with a JSON body (e.g. custom scripts, n8n, Zapier,
   Make, AWS API Gateway, etc.).
 
-  ## YAML configuration
+  ## Worker configuration
 
       notifications:
         - adapter: "webhook"
@@ -58,12 +58,12 @@ defmodule Foundation.Notifications.Webhook do
 
   require Logger
 
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Yaml.Notification.t()) ::
+  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
-  def notify(event, payload, %Yaml.Notification{url: url}) do
+  def notify(event, payload, %Worker{url: url}) do
     body =
       Jason.encode!(%{
         event: event,

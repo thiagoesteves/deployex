@@ -11,26 +11,35 @@ defmodule Foundation.Notifications.Supervisor do
   so multiple entries with the same adapter type are all started correctly.
   """
 
-  use Supervisor
+  use DynamicSupervisor
 
   alias Foundation.Notifications.Worker
 
-  @spec start_link(keyword()) :: Supervisor.on_start()
-  def start_link(args \\ []) do
-    name = Keyword.get(args, :name, __MODULE__)
-    Supervisor.start_link(__MODULE__, args, name: name)
+  ### ==========================================================================
+  ### GenServer Callbacks
+  ### ==========================================================================
+  def start_link(init_arg) do
+    DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
   @impl true
-  def init(_args) do
-    children =
-      :foundation
-      |> Application.get_env(:notifications, [])
-      |> Enum.with_index()
-      |> Enum.map(fn {config, index} ->
-        Supervisor.child_spec({Worker, config}, id: {Worker, index})
-      end)
+  def init(_init_arg) do
+    DynamicSupervisor.init(strategy: :one_for_one, max_restarts: 20)
+  end
 
-    Supervisor.init(children, strategy: :one_for_one)
+  ### ==========================================================================
+  ### Public APIs
+  ### ==========================================================================
+
+  @spec start_notification_worker(config :: Worker.t()) ::
+          {:ok, pid} | {:error, pid(), :already_started}
+  def start_notification_worker(config) do
+    spec = %{
+      id: Worker,
+      start: {Worker, :start_link, [config]},
+      restart: :transient
+    }
+
+    DynamicSupervisor.start_child(__MODULE__, spec)
   end
 end

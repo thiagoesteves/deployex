@@ -9,7 +9,7 @@ defmodule Foundation.Notifications.PagerDuty do
   The routing key determines which PagerDuty service and escalation policy receives
   the incident.
 
-  ## YAML configuration
+  ## Worker configuration
 
       notifications:
         - adapter: "pagerduty"
@@ -62,14 +62,14 @@ defmodule Foundation.Notifications.PagerDuty do
 
   require Logger
 
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
   @default_api_url "https://events.pagerduty.com/v2/enqueue"
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Yaml.Notification.t()) ::
+  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
-  def notify(event, payload, %Yaml.Notification{url: url, options: options}) do
+  def notify(event, payload, %Worker{url: url, options: options}) do
     routing_key = Map.fetch!(options, "routing_key")
     api_url = url || @default_api_url
 

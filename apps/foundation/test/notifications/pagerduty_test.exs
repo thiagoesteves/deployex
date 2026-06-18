@@ -4,9 +4,9 @@ defmodule Foundation.Notifications.PagerDutyTest do
   import Mock
 
   alias Foundation.Notifications.PagerDuty
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
-  @config %Yaml.Notification{
+  @config %Worker{
     adapter: PagerDuty,
     url: nil,
     enabled: true,

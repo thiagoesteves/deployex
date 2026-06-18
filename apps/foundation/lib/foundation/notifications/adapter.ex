@@ -7,7 +7,7 @@ defmodule Foundation.Notifications.Adapter do
   1. Create a module that `@behaviour Foundation.Notifications.Adapter`.
   2. Implement `notify/3`.  Return `:ok` on success or `{:error, reason}` on
      failure — `Foundation.Notifications` will log the error automatically.
-  3. Add a new clause to `Foundation.Yaml.notification_adapter/1` so the adapter
+  3. Add a new clause to `Foundation.Yaml.Notifications` so the adapter
      can be selected from `deployex.yaml`.
 
   ### Example skeleton
@@ -15,10 +15,10 @@ defmodule Foundation.Notifications.Adapter do
       defmodule Foundation.Notifications.MyChannel do
         @behaviour Foundation.Notifications.Adapter
 
-        alias Foundation.Yaml
+        alias Foundation.Notifications.Worker
 
         @impl true
-        def notify(event, payload, %Yaml.Notification{url: url, options: options}) do
+        def notify(event, payload, %Notifications.Worker{url: url, options: options}) do
           # build and send the notification
           :ok
         end
@@ -36,7 +36,7 @@ defmodule Foundation.Notifications.Adapter do
   accessed as `Map.get(options, "api_token")` inside `notify/3`.
   """
 
-  alias Foundation.Yaml
+  alias Foundation.Notifications.Worker
 
   @doc """
   Deliver a single event notification.
@@ -48,12 +48,9 @@ defmodule Foundation.Notifications.Adapter do
 
     - `event`   — one of the atoms defined in `Foundation.Notifications` (e.g. `:crash_restart`)
     - `payload` — map with event-specific fields; keys are atoms
-    - `config`  — the `Foundation.Yaml.Notification` struct for this adapter instance,
+    - `config`  — the `Foundation.Notifications.Worker` struct for this adapter instance,
                   containing `:url`, `:options`, and so on
   """
-  @callback notify(
-              event :: atom(),
-              payload :: map(),
-              config :: Yaml.Notification.t()
-            ) :: :ok | {:error, term()}
+  @callback notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
+              :ok | {:error, term()}
 end
