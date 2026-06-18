@@ -80,11 +80,22 @@ defmodule Foundation.Certificates.Manager do
           "Certificate check completed successfully for app: #{state.app_name}, domains: #{inspect(certificate.domains)}"
         )
 
+        Foundation.Notifications.notify(:certificate_renewed, %{
+          app_name: state.app_name,
+          domains: state.domains
+        })
+
       {:retry_after, seconds} when seconds >= 0 ->
         Logger.warning("Acme for #{state.app_name} requested retry after #{seconds} s")
 
       {:error, reason} ->
         Logger.error("Certificate renewal check failed: #{inspect(reason)}")
+
+        Foundation.Notifications.notify(:certificate_failed, %{
+          app_name: state.app_name,
+          domains: state.domains,
+          reason: inspect(reason)
+        })
     end
 
     _ = Process.send_after(self(), :check_and_renew, state.certificate_check_interval_ms)

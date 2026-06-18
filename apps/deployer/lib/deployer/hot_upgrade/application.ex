@@ -594,15 +594,31 @@ defmodule Deployer.HotUpgrade.Application do
       @events_topic,
       {:hot_upgrade_complete, Node.self(), sname, :ok, "Hot upgrade applied successfully!"}
     )
+
+    Foundation.Notifications.notify(:deployment_complete, %{
+      node: Node.self(),
+      sname: sname,
+      status: :ok,
+      message: "Hot upgrade applied successfully!"
+    })
   end
 
   @spec notify_error(sname :: String.t(), result :: any()) :: :ok
   defp notify_error(sname, result) do
+    message = "Upgrade failed: #{inspect(result)}"
+
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
-      {:hot_upgrade_complete, Node.self(), sname, :error, "Upgrade failed: #{inspect(result)}"}
+      {:hot_upgrade_complete, Node.self(), sname, :error, message}
     )
+
+    Foundation.Notifications.notify(:deployment_complete, %{
+      node: Node.self(),
+      sname: sname,
+      status: :error,
+      message: message
+    })
   end
 
   defp check_jellyfish_files(files, from_version, to_version) do

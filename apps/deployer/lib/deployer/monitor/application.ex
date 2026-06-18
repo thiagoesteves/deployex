@@ -157,6 +157,14 @@ defmodule Deployer.Monitor.Application do
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
+    Foundation.Notifications.notify(:crash_restart, %{
+      node: Node.self(),
+      sname: state.sname,
+      name: state.name,
+      language: state.language,
+      crash_restart_count: crash_restart_count
+    })
+
     # Retry with backoff pattern
     trigger_run_service(state.sname, 2 * crash_restart_count * 1000)
 
@@ -243,6 +251,12 @@ defmodule Deployer.Monitor.Application do
     version = version_map.version
 
     notify_new_deploy = fn ->
+      Foundation.Notifications.notify(:deployment_started, %{
+        node: Node.self(),
+        sname: sname,
+        version: version
+      })
+
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,
         @new_deploy_topic,

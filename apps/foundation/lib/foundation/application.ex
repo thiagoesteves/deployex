@@ -10,9 +10,12 @@ defmodule Foundation.Application do
     children =
       [
         {Phoenix.PubSub, name: Foundation.PubSub},
+        {Finch, name: Foundation.Finch},
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
-        Foundation.Certificate
+        Foundation.Certificate,
+        Foundation.Notifications.Supervisor,
+        Foundation.Notifications
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

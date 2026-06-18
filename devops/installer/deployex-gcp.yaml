@@ -12,6 +12,35 @@ otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
+notifications:
+  - adapter: "webhook"                                   # options: webhook, slack, pagerduty
+    url: "https://example.com/hooks/deployex"
+    enabled: true
+    events:
+      - "crash_restart"
+      - "deployment_started"
+      - "deployment_complete"
+      - "watchdog_threshold_exceeded"
+      - "certificate_renewed"
+      - "certificate_failed"
+  - adapter: "slack"
+    url: "https://hooks.slack.com/services/T.../B.../..."
+    enabled: true
+    events:
+      - "crash_restart"
+      - "deployment_complete"
+      - "watchdog_threshold_exceeded"
+    options:
+      username: "DeployEx"
+      icon_emoji: ":rocket:"
+  - adapter: "pagerduty"
+    enabled: true
+    events:
+      - "crash_restart"
+      - "watchdog_threshold_exceeded"
+      - "certificate_failed"
+    options:
+      routing_key: "YOUR_PAGERDUTY_INTEGRATION_KEY"
 monitoring:
   - type: "memory"
     enable_restart: true

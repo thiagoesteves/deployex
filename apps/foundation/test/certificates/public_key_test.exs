@@ -1,5 +1,5 @@
 defmodule Foundation.Certificates.PublicKeyTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Foundation.Certificates.PublicKey
 
