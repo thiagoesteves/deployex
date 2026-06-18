@@ -14,13 +14,13 @@ defmodule Foundation.Notifications.PagerDuty do
       notifications:
         - adapter: "pagerduty"
           enabled: true
+          url: "https://events.pagerduty.com/v2/enqueue" # optional — override the API endpoint
           events:
             - "crash_restart"
             - "watchdog_threshold_exceeded"
             - "certificate_failed"
           options:
             routing_key: "abc123def456..."   # required — PagerDuty integration key
-            # url: "https://..."             # optional — override the API endpoint
 
   The `url:` field is optional.  When omitted, the standard PagerDuty Events API
   endpoint (`https://events.pagerduty.com/v2/enqueue`) is used.  Override it only
@@ -70,7 +70,7 @@ defmodule Foundation.Notifications.PagerDuty do
   @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
   def notify(event, payload, %Worker{url: url, options: options}) do
-    routing_key = Map.fetch!(options, "routing_key")
+    routing_key = options[:routing_key]
     api_url = url || @default_api_url
 
     body =

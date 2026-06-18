@@ -27,13 +27,13 @@ defmodule Foundation.Notifications.Adapter do
   ### Adapter-specific configuration
 
   Anything in the `options:` map of a notification entry is passed through
-  as-is in `config.options`.  Use string keys (they come from YAML), e.g.:
+  in `config.options` with keys converted to atoms at parse time, e.g.:
 
       options:
         api_token: "secret"
         channel: "#alerts"
 
-  accessed as `Map.get(options, "api_token")` inside `notify/3`.
+  accessed as `Map.get(options, :api_token)` inside `notify/3`.
   """
 
   alias Foundation.Notifications.Worker

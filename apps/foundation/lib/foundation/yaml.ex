@@ -517,7 +517,7 @@ defmodule Foundation.Yaml do
       url: data["url"],
       enabled: data["enabled"] != false,
       events: parse_notification_events(data["events"] || []),
-      options: data["options"] || %{}
+      options: atomize_keys(data["options"])
     }
   end
 
@@ -537,4 +537,7 @@ defmodule Foundation.Yaml do
   defp parse_notification_event("certificate_renewed"), do: :certificate_renewed
   defp parse_notification_event("certificate_failed"), do: :certificate_failed
   defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
+
+  defp atomize_keys(nil), do: %{}
+  defp atomize_keys(map), do: Map.new(map, fn {k, v} -> {String.to_atom(k), v} end)
 end

@@ -29,6 +29,7 @@ defmodule Deployer.Application do
       {:ok, _pid} = response ->
         Deployer.Monitor.init_all_monitor_supervisors()
         init_all_workers()
+        notify_startup()
         response
 
       {:error, reason} = response ->
@@ -37,16 +38,44 @@ defmodule Deployer.Application do
     end
   end
 
+  @impl true
+  def stop(_state) do
+    notify_shutdown()
+  end
+
   if_not_test do
     alias Deployer.Engine
 
     defp application_servers, do: [Deployer.Status.Application]
 
     defp init_all_workers, do: Engine.init_all_workers()
+
+    defp notify_startup do
+      version = Application.spec(:deployer, :vsn) |> to_string()
+
+      Foundation.Notifications.notify(:deployment_started, %{
+        node: node(),
+        sname: "deployex",
+        version: version
+      })
+    end
+
+    defp notify_shutdown do
+      Foundation.Notifications.notify(:deployment_complete, %{
+        node: node(),
+        sname: "deployex",
+        status: :ok,
+        message: "shutdown"
+      })
+    end
   else
     defp application_servers, do: []
 
     defp init_all_workers, do: :ok
+
+    defp notify_startup, do: :ok
+
+    defp notify_shutdown, do: :ok
   end
 
   defp gcp_app_credentials do

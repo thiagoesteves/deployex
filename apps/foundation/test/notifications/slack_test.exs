@@ -11,7 +11,7 @@ defmodule Foundation.Notifications.SlackTest do
     url: "https://hooks.slack.com/services/T000/B000/XXX",
     enabled: true,
     events: [:crash_restart],
-    options: %{"username" => "DeployEx", "icon_emoji" => ":robot_face:"}
+    options: %{username: "DeployEx", icon_emoji: ":robot_face:"}
   }
 
   describe "notify/3" do

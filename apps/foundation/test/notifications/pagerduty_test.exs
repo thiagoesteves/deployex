@@ -11,7 +11,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
     url: nil,
     enabled: true,
     events: [:crash_restart],
-    options: %{"routing_key" => "abc123def456"}
+    options: %{routing_key: "abc123def456"}
   }
 
   describe "notify/3" do

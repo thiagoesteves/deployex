@@ -735,14 +735,14 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        url: "https://hooks.slack.com/services/T000/B000/XXX",
                        enabled: true,
                        events: [:crash_restart, :deployment_complete],
-                       options: %{"username" => "DeployEx-Bot", "icon_emoji" => ":rocket:"}
+                       options: %{username: "DeployEx-Bot", icon_emoji: ":rocket:"}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.PagerDuty,
                        url: nil,
                        enabled: true,
                        events: [:crash_restart, :watchdog_threshold_exceeded],
-                       options: %{"routing_key" => "abc123def456"}
+                       options: %{routing_key: "abc123def456"}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.Webhook,

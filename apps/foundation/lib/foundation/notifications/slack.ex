@@ -59,8 +59,8 @@ defmodule Foundation.Notifications.Slack do
     body =
       Jason.encode!(%{
         text: format_message(event, payload),
-        username: Map.get(options, "username", @default_username),
-        icon_emoji: Map.get(options, "icon_emoji", @default_icon_emoji)
+        username: options[:username] || @default_username,
+        icon_emoji: options[:icon_emoji] || @default_icon_emoji
       })
 
     headers = [{"content-type", "application/json"}]
