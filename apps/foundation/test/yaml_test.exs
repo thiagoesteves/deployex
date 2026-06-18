@@ -19,6 +19,7 @@ defmodule Foundation.YamlTest do
   @yaml_aws_optional "#{@file_paths}/deployex-aws-optional.yaml"
   @yaml_deployex_aws_no_replica_ports "#{@file_paths}/deployex-aws-no-replica-ports.yaml"
   @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
+  @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -576,6 +577,94 @@ defmodule Foundation.YamlTest do
       assert cert.dns_options.zone == "cloudflare-zone-id"
       assert cert.dns_options.api_token == "cf-api-token-secret"
       assert cert.dns_options.ttl == 1
+    end
+  end
+
+  describe "notifications parsing" do
+    test "parses a webhook notification entry" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [webhook | _] = config.notifications
+
+        assert %Yaml.Notification{} = webhook
+        assert webhook.adapter == Foundation.Notifications.Webhook
+        assert webhook.url == "https://hooks.example.com/deployex"
+        assert webhook.enabled == true
+        assert webhook.options == %{}
+
+        assert :crash_restart in webhook.events
+        assert :deployment_started in webhook.events
+        assert :deployment_complete in webhook.events
+        assert :watchdog_threshold_exceeded in webhook.events
+        assert :certificate_renewed in webhook.events
+        assert :certificate_failed in webhook.events
+      end
+    end
+
+    test "parses a slack notification entry with options" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [_, slack | _] = config.notifications
+
+        assert slack.adapter == Foundation.Notifications.Slack
+        assert slack.url == "https://hooks.slack.com/services/T000/B000/XXX"
+        assert slack.enabled == true
+        assert slack.options["username"] == "DeployEx-Bot"
+        assert slack.options["icon_emoji"] == ":rocket:"
+        assert :crash_restart in slack.events
+        assert :deployment_complete in slack.events
+      end
+    end
+
+    test "parses a pagerduty notification entry with options" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [_, _, pagerduty | _] = config.notifications
+
+        assert pagerduty.adapter == Foundation.Notifications.PagerDuty
+        assert pagerduty.url == nil
+        assert pagerduty.enabled == true
+        assert pagerduty.options["routing_key"] == "abc123def456"
+        assert :crash_restart in pagerduty.events
+        assert :watchdog_threshold_exceeded in pagerduty.events
+      end
+    end
+
+    test "parses a disabled notification entry" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [_, _, _, disabled] = config.notifications
+
+        assert disabled.adapter == Foundation.Notifications.Webhook
+        assert disabled.enabled == false
+        assert disabled.url == "https://hooks2.example.com/deployex"
+      end
+    end
+
+    test "defaults to empty notifications list when key is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.notifications == []
+      end
     end
   end
 end

@@ -383,6 +383,14 @@ defmodule Sentinel.Watchdog do
     %{sname: sname} = Catalog.node_info(node)
     Monitor.restart(sname)
 
+    Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
+      node: node,
+      sname: sname,
+      type: type,
+      current_percentage: current_percentage,
+      restart_threshold_percent: restart_threshold_percent
+    })
+
     :ok
   end
 
@@ -445,6 +453,14 @@ defmodule Sentinel.Watchdog do
 
     %{sname: sname} = Catalog.node_info(node)
     Monitor.restart(sname)
+
+    Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
+      node: node,
+      sname: sname,
+      type: :memory,
+      current_percentage: current_percentage,
+      restart_threshold_percent: restart_threshold_percent
+    })
 
     :ok
   end

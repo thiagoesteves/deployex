@@ -129,6 +129,43 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule Notification do
+    @moduledoc """
+    Configuration for a single notification channel.
+
+    Each entry in the top-level `notifications:` YAML list is parsed into one of
+    these structs and stored in the `:foundation` application environment under
+    the `:notifications` key.
+
+    ## Fields
+
+    - `:adapter`  — the module that handles delivery (e.g. `Foundation.Notifications.Webhook`)
+    - `:url`      — destination URL; required for `webhook` and `slack`, optional for `pagerduty`
+                    (which defaults to the standard Events API endpoint)
+    - `:enabled`  — set to `false` to silence a channel without removing it; defaults to `true`
+    - `:events`   — list of event atoms this channel subscribes to (empty list = no deliveries)
+    - `:options`  — adapter-specific key/value pairs parsed directly from the YAML `options:` map
+
+    ## Adapter-specific options
+
+    | Adapter     | Key             | Required | Description                              |
+    |-------------|-----------------|----------|------------------------------------------|
+    | `pagerduty` | `routing_key`   | yes      | PagerDuty integration / routing key      |
+    | `slack`     | `username`      | no       | Bot display name (default: `"DeployEx"`) |
+    | `slack`     | `icon_emoji`    | no       | Bot emoji icon (default: `":robot_face:"`) |
+    """
+
+    defstruct [:adapter, :url, :enabled, :events, options: %{}]
+
+    @type t :: %__MODULE__{
+            adapter: module(),
+            url: String.t() | nil,
+            enabled: boolean(),
+            events: [atom()],
+            options: map()
+          }
+  end
+
   defmodule Application do
     @moduledoc """
     Provides structure to define Application feature
@@ -180,6 +217,7 @@ defmodule Foundation.Yaml do
             logs_retention_time_ms: nil,
             monitoring: [],
             applications: [],
+            notifications: [],
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -204,6 +242,7 @@ defmodule Foundation.Yaml do
           logs_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
           applications: [Foundation.Yaml.Application.t()] | [],
+          notifications: [Foundation.Yaml.Notification.t()] | [],
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -328,6 +367,7 @@ defmodule Foundation.Yaml do
       logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,
       monitoring: parse_monitoring_list(data["monitoring"]),
       applications: parse_applications(data["applications"]),
+      notifications: parse_notifications(data["notifications"]),
       config_checksum: checksum
     }
   end
@@ -464,4 +504,37 @@ defmodule Foundation.Yaml do
       certificate_arn: opts["certificate_arn"]
     }
   end
+
+  defp parse_notifications(nil), do: []
+
+  defp parse_notifications(notifications) do
+    Enum.map(notifications, &parse_notification/1)
+  end
+
+  defp parse_notification(data) do
+    %Foundation.Yaml.Notification{
+      adapter: notification_adapter(data["adapter"]),
+      url: data["url"],
+      enabled: data["enabled"] != false,
+      events: parse_notification_events(data["events"] || []),
+      options: data["options"] || %{}
+    }
+  end
+
+  defp notification_adapter("webhook"), do: Foundation.Notifications.Webhook
+  defp notification_adapter("slack"), do: Foundation.Notifications.Slack
+  defp notification_adapter("pagerduty"), do: Foundation.Notifications.PagerDuty
+  defp notification_adapter(adapter), do: raise("Notification adapter #{adapter} not supported")
+
+  defp parse_notification_events(events) do
+    Enum.map(events, &parse_notification_event/1)
+  end
+
+  defp parse_notification_event("crash_restart"), do: :crash_restart
+  defp parse_notification_event("deployment_started"), do: :deployment_started
+  defp parse_notification_event("deployment_complete"), do: :deployment_complete
+  defp parse_notification_event("watchdog_threshold_exceeded"), do: :watchdog_threshold_exceeded
+  defp parse_notification_event("certificate_renewed"), do: :certificate_renewed
+  defp parse_notification_event("certificate_failed"), do: :certificate_failed
+  defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
 end

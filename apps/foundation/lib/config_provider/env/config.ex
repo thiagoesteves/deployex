@@ -37,6 +37,7 @@ defmodule Foundation.ConfigProvider.Env.Config do
             {:applications, yaml_config.applications},
             {:config_checksum, yaml_config.config_checksum},
             {:monitoring, yaml_config.monitoring},
+            {:notifications, yaml_config.notifications},
             {:logs_retention_time_ms, yaml_config.logs_retention_time_ms},
             {:install_path, yaml_config.install_path},
             {:var_path, yaml_config.var_path},

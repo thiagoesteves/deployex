@@ -1,0 +1,47 @@
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+secrets_adapter: "aws"
+secrets_path: "deployex-myapp-prod-secrets"
+aws_region: "sa-east-1"
+version: "0.4.0"
+otp_version: 26
+os_target: "ubuntu-20.04"
+notifications:
+  - adapter: "webhook"
+    url: "https://hooks.example.com/deployex"
+    enabled: true
+    events:
+      - "crash_restart"
+      - "deployment_started"
+      - "deployment_complete"
+      - "watchdog_threshold_exceeded"
+      - "certificate_renewed"
+      - "certificate_failed"
+  - adapter: "slack"
+    url: "https://hooks.slack.com/services/T000/B000/XXX"
+    enabled: true
+    events:
+      - "crash_restart"
+      - "deployment_complete"
+    options:
+      username: "DeployEx-Bot"
+      icon_emoji: ":rocket:"
+  - adapter: "pagerduty"
+    enabled: true
+    events:
+      - "crash_restart"
+      - "watchdog_threshold_exceeded"
+    options:
+      routing_key: "abc123def456"
+  - adapter: "webhook"
+    url: "https://hooks2.example.com/deployex"
+    enabled: false
+    events:
+      - "crash_restart"
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+    replicas: 3

@@ -34,6 +34,7 @@ config :foundation,
   monitored_app_log_path: "/var/log/monitored-apps",
   monitoring: [],
   applications: [],
+  notifications: [],
   healthcheck_logging: false,
   logs_retention_time_ms: :timer.hours(1),
   config_checksum: nil

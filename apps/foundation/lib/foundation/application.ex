@@ -10,6 +10,8 @@ defmodule Foundation.Application do
     children =
       [
         {Phoenix.PubSub, name: Foundation.PubSub},
+        {Task.Supervisor, name: Foundation.TaskSupervisor},
+        {Finch, name: Foundation.Finch},
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
         Foundation.Certificate

@@ -79,6 +79,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "1df842a56db380a76735783d8055d45a5d9558a9446a9076e596796532b3b59c"},
                   {:monitoring, []},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
@@ -183,6 +184,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "80b62c3694c0311d2d9567fbf777b419bced562b5bd5196432d811faf128f845"},
                   {:monitoring, []},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
@@ -303,6 +305,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        restart_threshold_percent: 85
                      }
                    ]},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/install/deployex"},
                   {:var_path, "/var/lib/install/deployex"},
@@ -408,6 +411,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        restart_threshold_percent: 85
                      }
                    ]},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
@@ -474,6 +478,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "9b6cb25872864716974f64a1477510d4127b0d7b3063e75d8c39e9dd00fb578d"},
                   {:monitoring, []},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/install/deployex"},
                   {:var_path, "/var/lib/install/deployex"},
@@ -580,6 +585,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                   {:config_checksum,
                    "5c1d8cb90a8661ac4fefad8d1ad2aa760d4d7257f61bd310e9aadf31c3b97968"},
                   {:monitoring, []},
+                  {:notifications, []},
                   {:logs_retention_time_ms, 3_600_000},
                   {:install_path, "/opt/deployex"},
                   {:var_path, "/var/lib/deployex"},
