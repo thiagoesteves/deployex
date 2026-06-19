@@ -119,6 +119,12 @@ defmodule Sentinel.Config.Watcher do
 
     Logger.info("ConfigWatcher: Successfully applied configuration updates")
 
+    Notifications.notify("config_change_applied", %{
+      node: Node.self(),
+      changes_count: state.pending_changes.changes_count,
+      fields: state.pending_changes.summary |> Map.keys() |> Enum.map(&to_string/1)
+    })
+
     # Notify subscribers about new changes
     Phoenix.PubSub.broadcast(
       Foundation.PubSub,
@@ -238,6 +244,12 @@ defmodule Sentinel.Config.Watcher do
             @pubsub_topic_new,
             {:watcher_config_new, Node.self(), pending_changes}
           )
+
+          Notifications.notify("config_changed", %{
+            node: Node.self(),
+            changes_count: pending_changes.changes_count,
+            fields: pending_changes.summary |> Map.keys() |> Enum.map(&to_string/1)
+          })
         end
 
         %{state | pending_config: yaml_upgradable, pending_changes: pending_changes}

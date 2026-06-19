@@ -45,6 +45,8 @@ defmodule Foundation.Notifications.PagerDuty do
   | `certificate_renewed`         | `info`             |
   | `certificate_failed`          | `error`            |
   | `deployment_shutdown`         | `warning`          |
+  | `config_changed`              | `warning`          |
+  | `config_change_applied`       | `info`             |
 
   ## Payload sent to PagerDuty
 
@@ -150,6 +152,14 @@ defmodule Foundation.Notifications.PagerDuty do
   defp format_summary("deployment_shutdown", payload),
     do: "deployment_shutdown — #{payload.sname} on #{payload.node} (force-terminated)"
 
+  defp format_summary("config_changed", payload),
+    do:
+      "config_changed — #{payload.changes_count} change(s) detected on #{payload.node}: #{Enum.join(payload.fields, ", ")}"
+
+  defp format_summary("config_change_applied", payload),
+    do:
+      "config_change_applied — #{payload.changes_count} change(s) applied on #{payload.node}: #{Enum.join(payload.fields, ", ")}"
+
   defp format_summary(event, payload),
     do: "#{event} — #{inspect(payload)}"
 
@@ -163,6 +173,8 @@ defmodule Foundation.Notifications.PagerDuty do
   defp event_severity("certificate_renewed", _payload), do: "info"
   defp event_severity("certificate_failed", _payload), do: "error"
   defp event_severity("deployment_shutdown", _payload), do: "warning"
+  defp event_severity("config_changed", _payload), do: "warning"
+  defp event_severity("config_change_applied", _payload), do: "info"
   defp event_severity(_event, _payload), do: "info"
 
   defp event_source(%{node: node}), do: to_string(node)

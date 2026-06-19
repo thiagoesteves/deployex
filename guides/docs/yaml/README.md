@@ -85,6 +85,8 @@ notifications:
       - "watchdog_threshold_warning"                     # Resource crossed warning threshold (or normalized)
       - "certificate_renewed"                            # TLS certificate successfully renewed
       - "certificate_failed"                             # TLS certificate renewal failed
+      - "config_changed"                                 # Upgradable config change detected in YAML
+      - "config_change_applied"                          # Pending config changes successfully applied
 
   # Slack Incoming Webhook adapter
   - adapter: "slack"
@@ -236,6 +238,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 - `logs_retention_time_ms` - Log data retention period
 - `metrics_retention_time_ms` - Metrics data retention period
 - `monitoring` - Host-level monitoring settings (memory thresholds)
+- `notifications` - External notification channels (workers are stopped and restarted on apply)
 
 #### Application Level (Runtime Upgradable)
 - `monitoring` - Application monitoring settings (atom, process, port thresholds)
@@ -267,7 +270,6 @@ These fields require a **full DeployEx restart**:
 - `secrets_path` - Secrets path
 - `aws_region` - AWS region
 - `google_credentials` - GCP credentials path
-- `notifications` - External notification channels (requires restart to add, remove, or reconfigure)
 
 #### System Requirements
 - `version` - DeployEx version

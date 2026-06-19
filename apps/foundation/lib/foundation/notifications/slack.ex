@@ -18,9 +18,13 @@ defmodule Foundation.Notifications.Slack do
             - "crash_restart"
             - "deployment_started"
             - "deployment_complete"
+            - "deployment_shutdown"
             - "watchdog_threshold_exceeded"
+            - "watchdog_threshold_warning"
             - "certificate_renewed"
             - "certificate_failed"
+            - "config_changed"
+            - "config_change_applied"
           options:
             username: "DeployEx"        # optional, default: "DeployEx"
             icon_emoji: ":rocket:"      # optional, default: ":robot_face:"
@@ -41,6 +45,22 @@ defmodule Foundation.Notifications.Slack do
 
       ✅ *deployment_complete* — `myapp-1` on `myapp@prod-1`
       Status: *ok* — Hot upgrade applied successfully!
+
+  ## Supported events
+
+  | Event                           | Emoji | Description                                           |
+  |---------------------------------|-------|-------------------------------------------------------|
+  | `crash_restart`                 | 🚨    | App crashed and was restarted                         |
+  | `deployment_started`            | 🚀    | New deployment initiated                              |
+  | `deployment_complete` (ok)      | ✅    | Deployment finished successfully                      |
+  | `deployment_complete` (error)   | ❌    | Deployment finished with error                        |
+  | `deployment_shutdown`           | 🛑    | App force-terminated (will restart shortly)           |
+  | `watchdog_threshold_exceeded`   | ⚠️    | Resource threshold crossed; app restarted             |
+  | `watchdog_threshold_warning`    | 🔶/✅ | Resource crossed warning threshold or normalized      |
+  | `certificate_renewed`           | 🔒    | TLS certificate successfully renewed                  |
+  | `certificate_failed`            | 🔓    | TLS certificate renewal failed                        |
+  | `config_changed`                | ⚙️    | Upgradable config change detected in YAML             |
+  | `config_change_applied`         | ✅    | Pending config changes successfully applied           |
   """
 
   @behaviour Foundation.Notifications.Adapter
@@ -164,6 +184,20 @@ defmodule Foundation.Notifications.Slack do
     """
     🛑 *deployment_shutdown* — `#{payload.sname}` on `#{payload.node}`
     `#{payload.sname}` was force-terminated and will restart shortly.\
+    """
+  end
+
+  defp format_message("config_changed", payload) do
+    """
+    ⚙️ *config_changed* — `#{payload.node}`
+    #{payload.changes_count} change(s) detected: #{Enum.join(payload.fields, ", ")}\
+    """
+  end
+
+  defp format_message("config_change_applied", payload) do
+    """
+    ✅ *config_change_applied* — `#{payload.node}`
+    #{payload.changes_count} change(s) applied: #{Enum.join(payload.fields, ", ")}\
     """
   end
 

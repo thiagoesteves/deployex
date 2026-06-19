@@ -143,7 +143,9 @@ defmodule Foundation.Notifications.SlackTest do
            action: :normalized
          }},
         {"certificate_renewed", %{app_name: "myapp", domains: ["example.com"]}},
-        {"certificate_failed", %{app_name: "myapp", domains: ["example.com"], reason: "timeout"}}
+        {"certificate_failed", %{app_name: "myapp", domains: ["example.com"], reason: "timeout"}},
+        {"config_changed", %{node: :n@h, changes_count: 1, fields: ["notifications"]}},
+        {"config_change_applied", %{node: :n@h, changes_count: 1, fields: ["notifications"]}}
       ]
 
       with_mocks([

@@ -170,7 +170,11 @@ defmodule Foundation.Notifications.PagerDutyTest do
          }, "info"},
         {"certificate_renewed", %{app_name: "app", domains: ["ex.com"]}, "info"},
         {"certificate_failed", %{app_name: "app", domains: ["ex.com"], reason: "timeout"},
-         "error"}
+         "error"},
+        {"config_changed",
+         %{node: :n@h, changes_count: 2, fields: ["notifications", "monitoring"]}, "warning"},
+        {"config_change_applied",
+         %{node: :n@h, changes_count: 2, fields: ["notifications", "monitoring"]}, "info"}
       ]
 
       test_pid = self()

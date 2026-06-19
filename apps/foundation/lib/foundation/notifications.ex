@@ -25,6 +25,8 @@ defmodule Foundation.Notifications do
   | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
   | `"certificate_failed"`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
   | `"deployment_shutdown"`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
+  | `"config_changed"`                | Upgradable config change detected in the YAML file         | `node`, `changes_count`, `fields`                                           |
+  | `"config_change_applied"`         | Pending config changes were successfully applied           | `node`, `changes_count`, `fields`                                           |
 
   ## Available adapters
 
@@ -89,8 +91,7 @@ defmodule Foundation.Notifications do
   def initialize_notification_manager do
     :foundation
     |> Application.fetch_env!(:notifications)
-    |> Enum.map(&to_notification_struct/1)
-    |> Enum.each(&Foundation.Notifications.Supervisor.start_notification_worker/1)
+    |> Enum.each(&start_notification_manager/1)
 
     :ok
   end

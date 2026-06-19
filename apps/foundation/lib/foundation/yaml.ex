@@ -546,6 +546,8 @@ defmodule Foundation.Yaml do
     certificate_renewed
     certificate_failed
     deployment_shutdown
+    config_changed
+    config_change_applied
   )
 
   defp parse_notification_events(events) do

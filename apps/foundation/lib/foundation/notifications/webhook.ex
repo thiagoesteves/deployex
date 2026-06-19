@@ -16,9 +16,13 @@ defmodule Foundation.Notifications.Webhook do
             - "crash_restart"
             - "deployment_started"
             - "deployment_complete"
+            - "deployment_shutdown"
             - "watchdog_threshold_exceeded"
+            - "watchdog_threshold_warning"
             - "certificate_renewed"
             - "certificate_failed"
+            - "config_changed"
+            - "config_change_applied"
 
   The `options:` key is accepted but currently unused; it is reserved for
   future extensions such as custom headers or HMAC signing.
@@ -44,14 +48,18 @@ defmodule Foundation.Notifications.Webhook do
 
   ## Payload fields per event
 
-  | Event                          | Fields in `payload`                                                    |
-  |--------------------------------|------------------------------------------------------------------------|
-  | `crash_restart`                | `node`, `sname`, `name`, `language`, `crash_restart_count`            |
-  | `deployment_started`           | `node`, `sname`, `version`                                             |
-  | `deployment_complete`          | `node`, `sname`, `status` (`:ok`/`:error`), `message`                 |
-  | `watchdog_threshold_exceeded`  | `node`, `sname`, `type`, `current_percentage`, `restart_threshold_percent` |
-  | `certificate_renewed`          | `app_name`, `domains`                                                  |
-  | `certificate_failed`           | `app_name`, `domains`, `reason`                                        |
+  | Event                           | Fields in `payload`                                                                                    |
+  |---------------------------------|--------------------------------------------------------------------------------------------------------|
+  | `crash_restart`                 | `node`, `sname`, `name`, `language`, `crash_restart_count`                                            |
+  | `deployment_started`            | `node`, `sname`, `version`                                                                             |
+  | `deployment_complete`           | `node`, `sname`, `status` (`:ok`/`:error`), `message`                                                 |
+  | `deployment_shutdown`           | `node`, `sname`                                                                                        |
+  | `watchdog_threshold_exceeded`   | `node`, `type`, `current_percentage`, `restart_threshold_percent`                                      |
+  | `watchdog_threshold_warning`    | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
+  | `certificate_renewed`           | `app_name`, `domains`                                                                                  |
+  | `certificate_failed`            | `app_name`, `domains`, `reason`                                                                        |
+  | `config_changed`                | `node`, `changes_count`, `fields`                                                                      |
+  | `config_change_applied`         | `node`, `changes_count`, `fields`                                                                      |
   """
 
   @behaviour Foundation.Notifications.Adapter
