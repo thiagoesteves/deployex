@@ -8,7 +8,7 @@ defmodule Foundation.Notifications.SupervisorTest do
     adapter: Foundation.Notifications.Webhook,
     url: "https://hooks.example.com",
     enabled: true,
-    events: [:crash_restart],
+    events: ["crash_restart"],
     options: %{}
   }
 
@@ -45,6 +45,23 @@ defmodule Foundation.Notifications.SupervisorTest do
       assert Process.alive?(pid)
 
       GenServer.stop(pid)
+    end
+  end
+
+  describe "stop_all_notification_workers/0" do
+    @tag :capture_log
+    test "terminates every worker under the supervisor" do
+      {:ok, pid1} = NotifSupervisor.start_notification_worker(@worker_config)
+      {:ok, pid2} = NotifSupervisor.start_notification_worker(@worker_config)
+
+      assert Process.alive?(pid1)
+      assert Process.alive?(pid2)
+
+      assert :ok = NotifSupervisor.stop_all_notification_workers()
+
+      refute Process.alive?(pid1)
+      refute Process.alive?(pid2)
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == 0
     end
   end
 end

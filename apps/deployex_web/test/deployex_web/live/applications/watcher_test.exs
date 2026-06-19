@@ -102,6 +102,54 @@ defmodule DeployexWeb.Applications.WatcherTest do
   end
 
   @tag :capture_log
+  test "GET /applications Review pending notification changes renders adapter names and events",
+       %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, liveview, _html} = live(conn, ~p"/applications")
+
+    send(
+      liveview.pid,
+      {:watcher_config_new, Node.self(),
+       FixtureWatcher.build_pending_changes_with_notifications()}
+    )
+
+    assert liveview |> element("#deployex-config-changes") |> render_click()
+
+    html = render(liveview)
+    assert html =~ "Notifications"
+    assert html =~ "Slack"
+    assert html =~ "Webhook"
+    assert html =~ "crash_restart"
+  end
+
+  @tag :capture_log
+  test "GET /applications Review pending certificate changes renders domain info", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, liveview, _html} = live(conn, ~p"/applications")
+
+    send(
+      liveview.pid,
+      {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_certificates()}
+    )
+
+    assert liveview |> element("#deployex-config-changes") |> render_click()
+
+    html = render(liveview)
+    assert html =~ "myphoenixapp"
+    assert html =~ "Certificates"
+    assert html =~ "DOMAINS"
+    assert html =~ "*.example.com"
+  end
+
+  @tag :capture_log
   test "GET /applications ignore changes from other nodes", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

@@ -42,4 +42,13 @@ defmodule Foundation.Notifications.Supervisor do
 
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
+
+  @spec stop_all_notification_workers() :: :ok
+  def stop_all_notification_workers do
+    __MODULE__
+    |> DynamicSupervisor.which_children()
+    |> Enum.each(fn {_, pid, _, _} -> DynamicSupervisor.terminate_child(__MODULE__, pid) end)
+
+    :ok
+  end
 end

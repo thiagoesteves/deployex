@@ -42,7 +42,7 @@ defmodule DeployexWeb.Application do
   ### Private Functions
   ### ==========================================================================
   defp notify_finish_deployment do
-    Foundation.Notifications.notify(:deployment_complete, %{
+    Foundation.Notifications.notify("deployment_complete", %{
       node: node(),
       sname: "deployex",
       status: :ok,

@@ -93,7 +93,10 @@ defmodule Deployer.Monitor.Application do
   def handle_call(:restart, _from, state) do
     Logger.warning("Restart requested for sname: #{state.sname}")
 
-    Foundation.Notifications.notify(:deployment_shutdown, %{node: node(), sname: "#{state.sname}"})
+    Foundation.Notifications.notify("deployment_shutdown", %{
+      node: node(),
+      sname: "#{state.sname}"
+    })
 
     # Stop current application
     Commander.stop(state.current_pid)
@@ -159,7 +162,7 @@ defmodule Deployer.Monitor.Application do
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
-    Foundation.Notifications.notify(:crash_restart, %{
+    Foundation.Notifications.notify("crash_restart", %{
       node: Node.self(),
       sname: state.sname,
       name: state.name,
@@ -253,7 +256,7 @@ defmodule Deployer.Monitor.Application do
     version = version_map.version
 
     notify_new_deploy = fn ->
-      Foundation.Notifications.notify(:deployment_started, %{
+      Foundation.Notifications.notify("deployment_started", %{
         node: Node.self(),
         sname: sname,
         version: version

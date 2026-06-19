@@ -53,7 +53,7 @@ defmodule Deployer.Application do
     defp notify_startup do
       version = Application.spec(:deployer, :vsn) |> to_string()
 
-      Foundation.Notifications.notify(:deployment_started, %{
+      Foundation.Notifications.notify("deployment_started", %{
         node: node(),
         sname: "deployex",
         version: version
@@ -61,7 +61,7 @@ defmodule Deployer.Application do
     end
 
     defp notify_shutdown do
-      Foundation.Notifications.notify(:deployment_complete, %{
+      Foundation.Notifications.notify("deployment_complete", %{
         node: node(),
         sname: "deployex",
         status: :ok,

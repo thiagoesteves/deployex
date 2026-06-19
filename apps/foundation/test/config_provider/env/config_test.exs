@@ -721,13 +721,13 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        url: "https://hooks.example.com/deployex",
                        enabled: true,
                        events: [
-                         :crash_restart,
-                         :deployment_started,
-                         :deployment_complete,
-                         :watchdog_threshold_exceeded,
-                         :watchdog_threshold_warning,
-                         :certificate_renewed,
-                         :certificate_failed
+                         "crash_restart",
+                         "deployment_started",
+                         "deployment_complete",
+                         "watchdog_threshold_exceeded",
+                         "watchdog_threshold_warning",
+                         "certificate_renewed",
+                         "certificate_failed"
                        ],
                        options: %{}
                      },
@@ -735,21 +735,21 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                        adapter: Foundation.Notifications.Slack,
                        url: "https://hooks.slack.com/services/T000/B000/XXX",
                        enabled: true,
-                       events: [:crash_restart, :deployment_complete],
+                       events: ["crash_restart", "deployment_complete"],
                        options: %{username: "DeployEx-Bot", icon_emoji: ":rocket:"}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.PagerDuty,
                        url: nil,
                        enabled: true,
-                       events: [:crash_restart, :watchdog_threshold_exceeded],
+                       events: ["crash_restart", "watchdog_threshold_exceeded"],
                        options: %{routing_key: "abc123def456"}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.Webhook,
                        url: "https://hooks2.example.com/deployex",
                        enabled: false,
-                       events: [:crash_restart],
+                       events: ["crash_restart"],
                        options: %{}
                      }
                    ]},

@@ -15,6 +15,7 @@ defmodule Sentinel.Config.Upgradable do
             metrics_retention_time_ms: nil,
             monitoring: [],
             applications: [],
+            notifications: [],
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -22,6 +23,7 @@ defmodule Sentinel.Config.Upgradable do
           metrics_retention_time_ms: non_neg_integer() | nil,
           monitoring: [{atom(), Yaml.Monitoring.t()}] | [],
           applications: [Yaml.Application.t()] | [],
+          notifications: [Yaml.Notification.t()] | [],
           config_checksum: String.t() | nil
         }
 
@@ -35,6 +37,7 @@ defmodule Sentinel.Config.Upgradable do
       metrics_retention_time_ms: config.metrics_retention_time_ms,
       monitoring: config.monitoring,
       applications: config.applications,
+      notifications: config.notifications,
       config_checksum: config.config_checksum
     }
   end
@@ -49,6 +52,7 @@ defmodule Sentinel.Config.Upgradable do
       metrics_retention_time_ms: Application.get_env(:observer_web, :data_retention_period),
       monitoring: Application.get_env(:foundation, :monitoring, []),
       applications: Application.get_env(:foundation, :applications, []),
+      notifications: Application.get_env(:foundation, :notifications, []),
       config_checksum: Application.get_env(:foundation, :config_checksum)
     }
   end

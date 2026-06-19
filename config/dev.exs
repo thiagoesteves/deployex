@@ -85,26 +85,27 @@ config :foundation,
       restart_threshold_percent: 95
     }
   ],
-  notifications: [],
-  # NOTE: Enable for notifications testing
-  # notifications: [
-  #   %{
-  #     adapter: Foundation.Notifications.Webhook,
-  #     url: "https://example.com/hooks/deployex",
-  #     enabled: true,
-  #     events: [
-  #       :crash_restart,
-  #       :deployment_started,
-  #       :deployment_complete,
-  #       :deployment_shutdown,
-  #       :watchdog_threshold_exceeded,
-  #       :watchdog_threshold_warning,
-  #       :certificate_renewed,
-  #       :certificate_failed
-  #     ],
-  #     options: %{}
-  #   }
-  # ],
+  notifications: [
+    # NOTE: Enable for notifications testing
+    # %{
+    #   adapter: Foundation.Notifications.Webhook,
+    #   url: "https://example.com/hooks/deployex",
+    #   enabled: true,
+    #   events: [
+    #     "crash_restart",
+    #     "deployment_started",
+    #     "deployment_complete",
+    #     "deployment_shutdown",
+    #     "watchdog_threshold_exceeded",
+    #     "watchdog_threshold_warning",
+    #     "certificate_renewed",
+    #     "certificate_failed",
+    #     "config_changed",
+    #     "config_change_applied"
+    #   ],
+    #   options: %{}
+    # }
+  ],
   applications: [
     %{
       name: "myphoenixapp",
@@ -135,36 +136,35 @@ config :foundation,
           restart_threshold_percent: 90
         }
       ],
-      certificates: []
-      # NOTE: Enable for certificate testing
-      # certificates: [
-      #   %{
-      #     type: :domains,
-      #     domains: ["*.calori.com.br"],
-      #     certificate_check_interval_ms: 86_400_000,
-      #     dns_propagation_timeout_ms: 120_000,
-      #     dns_check_interval_ms: 5_000,
-      #     renew_before_days: 30,
-      #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
-      #     dns_options: %{
-      #       ttl: 1,
-      #       zone: "Z6767676776I8",
-      #       api_token: "ABC123GHB" (for cloudflare only)
-      #     },
-      #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
-      #     acme_options: %{
-      #       contact_email: "myapp@mydomain.com",
-      #       url: "https://acme-v02.api.letsencrypt.org/directory",
-      #       key_size: 2048,
-      #       propagation_timeout_ms: 120_000,
-      #       check_interval_ms: 2_000
-      #     },
-      #     importer: Foundation.Certificates.Importer.Mock,
-      #     importer_options: %{
-      #       certificate_arn: "add::certificate::arn"
-      #     }
-      #   }
-      # ]
+      certificates: [
+        # NOTE: Enable for certificate testing
+        #   %{
+        #     type: :domains,
+        #     domains: ["*.calori.com.br"],
+        #     certificate_check_interval_ms: 86_400_000,
+        #     dns_propagation_timeout_ms: 120_000,
+        #     dns_check_interval_ms: 5_000,
+        #     renew_before_days: 30,
+        #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
+        #     dns_options: %{
+        #       ttl: 1,
+        #       zone: "Z6767676776I8",
+        #       api_token: "ABC123GHB" (for cloudflare only)
+        #     },
+        #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+        #     acme_options: %{
+        #       contact_email: "myapp@mydomain.com",
+        #       url: "https://acme-v02.api.letsencrypt.org/directory",
+        #       key_size: 2048,
+        #       propagation_timeout_ms: 120_000,
+        #       check_interval_ms: 2_000
+        #     },
+        #     importer: Foundation.Certificates.Importer.Mock,
+        #     importer_options: %{
+        #       certificate_arn: "add::certificate::arn"
+        #     }
+        #   }
+      ]
     }
   ]
 

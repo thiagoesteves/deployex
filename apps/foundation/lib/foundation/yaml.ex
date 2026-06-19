@@ -537,18 +537,24 @@ defmodule Foundation.Yaml do
   defp notification_adapter("pagerduty"), do: Foundation.Notifications.PagerDuty
   defp notification_adapter(adapter), do: raise("Notification adapter #{adapter} not supported")
 
+  @valid_notification_events ~w(
+    crash_restart
+    deployment_started
+    deployment_complete
+    watchdog_threshold_exceeded
+    watchdog_threshold_warning
+    certificate_renewed
+    certificate_failed
+    deployment_shutdown
+    config_changed
+    config_change_applied
+  )
+
   defp parse_notification_events(events) do
     Enum.map(events, &parse_notification_event/1)
   end
 
-  defp parse_notification_event("crash_restart"), do: :crash_restart
-  defp parse_notification_event("deployment_started"), do: :deployment_started
-  defp parse_notification_event("deployment_complete"), do: :deployment_complete
-  defp parse_notification_event("watchdog_threshold_exceeded"), do: :watchdog_threshold_exceeded
-  defp parse_notification_event("watchdog_threshold_warning"), do: :watchdog_threshold_warning
-  defp parse_notification_event("certificate_renewed"), do: :certificate_renewed
-  defp parse_notification_event("certificate_failed"), do: :certificate_failed
-  defp parse_notification_event("deployment_shutdown"), do: :deployment_shutdown
+  defp parse_notification_event(event) when event in @valid_notification_events, do: event
   defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
 
   defp atomize_keys(nil), do: %{}

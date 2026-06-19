@@ -286,7 +286,7 @@ defmodule Deployer.Engine.Worker do
       if sname == current_deployment.sname do
         Process.cancel_timer(current_deployment.timer_ref)
 
-        Foundation.Notifications.notify(:deployment_complete, %{
+        Foundation.Notifications.notify("deployment_complete", %{
           node: node(),
           sname: sname,
           status: :ok,
@@ -404,7 +404,7 @@ defmodule Deployer.Engine.Worker do
     new_deployments =
       Enum.reduce(deployments, %{}, fn {instance, %Engine.Deployment{sname: sname}}, acc ->
         Logger.info(" # Terminating node: #{sname}")
-        Foundation.Notifications.notify(:deployment_shutdown, %{node: node(), sname: sname})
+        Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: sname})
         Monitor.stop_service(state.name, sname)
         Catalog.cleanup(sname)
 

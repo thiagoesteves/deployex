@@ -80,7 +80,7 @@ defmodule Foundation.Certificates.Manager do
           "Certificate check completed successfully for app: #{state.app_name}, domains: #{inspect(certificate.domains)}"
         )
 
-        Foundation.Notifications.notify(:certificate_renewed, %{
+        Foundation.Notifications.notify("certificate_renewed", %{
           app_name: state.app_name,
           domains: state.domains
         })
@@ -91,7 +91,7 @@ defmodule Foundation.Certificates.Manager do
       {:error, reason} ->
         Logger.error("Certificate renewal check failed: #{inspect(reason)}")
 
-        Foundation.Notifications.notify(:certificate_failed, %{
+        Foundation.Notifications.notify("certificate_failed", %{
           app_name: state.app_name,
           domains: state.domains,
           reason: inspect(reason)

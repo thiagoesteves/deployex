@@ -595,7 +595,7 @@ defmodule Deployer.HotUpgrade.Application do
       {:hot_upgrade_complete, Node.self(), sname, :ok, "Hot upgrade applied successfully!"}
     )
 
-    Foundation.Notifications.notify(:deployment_complete, %{
+    Foundation.Notifications.notify("deployment_complete", %{
       node: node(),
       sname: sname,
       status: :ok,
@@ -613,7 +613,7 @@ defmodule Deployer.HotUpgrade.Application do
       {:hot_upgrade_complete, Node.self(), sname, :error, message}
     )
 
-    Foundation.Notifications.notify(:deployment_complete, %{
+    Foundation.Notifications.notify("deployment_complete", %{
       node: node(),
       sname: sname,
       status: :error,

@@ -596,13 +596,13 @@ defmodule Foundation.YamlTest do
         assert webhook.enabled == true
         assert webhook.options == %{}
 
-        assert :crash_restart in webhook.events
-        assert :deployment_started in webhook.events
-        assert :deployment_complete in webhook.events
-        assert :watchdog_threshold_exceeded in webhook.events
-        assert :watchdog_threshold_warning in webhook.events
-        assert :certificate_renewed in webhook.events
-        assert :certificate_failed in webhook.events
+        assert "crash_restart" in webhook.events
+        assert "deployment_started" in webhook.events
+        assert "deployment_complete" in webhook.events
+        assert "watchdog_threshold_exceeded" in webhook.events
+        assert "watchdog_threshold_warning" in webhook.events
+        assert "certificate_renewed" in webhook.events
+        assert "certificate_failed" in webhook.events
       end
     end
 
@@ -620,8 +620,8 @@ defmodule Foundation.YamlTest do
         assert slack.enabled == true
         assert slack.options[:username] == "DeployEx-Bot"
         assert slack.options[:icon_emoji] == ":rocket:"
-        assert :crash_restart in slack.events
-        assert :deployment_complete in slack.events
+        assert "crash_restart" in slack.events
+        assert "deployment_complete" in slack.events
       end
     end
 
@@ -638,8 +638,8 @@ defmodule Foundation.YamlTest do
         assert pagerduty.url == nil
         assert pagerduty.enabled == true
         assert pagerduty.options[:routing_key] == "abc123def456"
-        assert :crash_restart in pagerduty.events
-        assert :watchdog_threshold_exceeded in pagerduty.events
+        assert "crash_restart" in pagerduty.events
+        assert "watchdog_threshold_exceeded" in pagerduty.events
       end
     end
 
