@@ -4,10 +4,77 @@ defmodule Foundation.NotificationsTest do
   import Mock
 
   alias Foundation.Notifications
+  alias Foundation.Notifications.Supervisor, as: NotifSupervisor
   alias Foundation.Notifications.Webhook
   alias Foundation.Notifications.Worker
 
   @payload %{node: :deployex@host, sname: "myapp-1", crash_restart_count: 1}
+
+  describe "start_notification_manager/1" do
+    @tag :capture_log
+    test "starts one worker per Foundation.Yaml.Notification entry" do
+      configs = [
+        %Foundation.Yaml.Notification{
+          adapter: Webhook,
+          url: "https://a.example.com",
+          enabled: true,
+          events: ["crash_restart"],
+          options: %{}
+        },
+        %Foundation.Yaml.Notification{
+          adapter: Webhook,
+          url: "https://b.example.com",
+          enabled: true,
+          events: ["deployment_complete"],
+          options: %{}
+        }
+      ]
+
+      before = DynamicSupervisor.count_children(NotifSupervisor).workers
+      assert :ok = Notifications.start_notification_manager(configs)
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == before + 2
+
+      Notifications.stop_notification_manager()
+    end
+
+    @tag :capture_log
+    test "accepts plain map configs (non-struct)" do
+      configs = [
+        %{
+          adapter: Webhook,
+          url: "https://map.example.com",
+          enabled: true,
+          events: ["crash_restart"],
+          options: %{}
+        }
+      ]
+
+      before = DynamicSupervisor.count_children(NotifSupervisor).workers
+      assert :ok = Notifications.start_notification_manager(configs)
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == before + 1
+
+      Notifications.stop_notification_manager()
+    end
+  end
+
+  describe "stop_notification_manager/0" do
+    @tag :capture_log
+    test "terminates all running notification workers" do
+      config = %Foundation.Yaml.Notification{
+        adapter: Webhook,
+        url: "https://stop-test.example.com",
+        enabled: true,
+        events: ["crash_restart"],
+        options: %{}
+      }
+
+      Notifications.start_notification_manager([config, config])
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers >= 2
+
+      assert :ok = Notifications.stop_notification_manager()
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == 0
+    end
+  end
 
   describe "topic/1" do
     test "returns a binary topic string for an event" do
@@ -118,6 +185,32 @@ defmodule Foundation.NotificationsTest do
         Process.sleep(50)
 
         refute called(Webhook.notify(:_, :_, :_))
+      end
+
+      GenServer.stop(worker)
+    end
+
+    @tag :capture_log
+    test "adapter error is logged but worker stays alive" do
+      config = %Worker{
+        adapter: Webhook,
+        url: "https://hooks.example.com/deployex",
+        enabled: true,
+        events: ["crash_restart"],
+        options: %{}
+      }
+
+      {:ok, worker} = Worker.start_link(config)
+
+      with_mocks([
+        {Webhook, [], [notify: fn _event, _payload, _config -> {:error, :econnrefused} end]}
+      ]) do
+        Notifications.notify("crash_restart", @payload)
+
+        Process.sleep(50)
+
+        assert called(Webhook.notify("crash_restart", @payload, config))
+        assert Process.alive?(worker)
       end
 
       GenServer.stop(worker)

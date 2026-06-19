@@ -117,6 +117,21 @@ defmodule Foundation.Notifications.SlackTest do
       end
     end
 
+    test "falls back gracefully for unknown events" do
+      with_mocks([
+        {Finch, [],
+         [
+           build: fn :post, _url, _headers, _body -> %{} end,
+           request: fn _req, Foundation.Finch ->
+             {:ok, %Finch.Response{status: 200, headers: [], body: "ok"}}
+           end
+         ]}
+      ]) do
+        payload = %{custom_key: "custom_value"}
+        assert :ok = Slack.notify("unknown_event", payload, @config)
+      end
+    end
+
     test "formats all supported events without raising" do
       events_and_payloads = [
         {"crash_restart", %{node: :n@h, sname: "s-1", crash_restart_count: 1}},

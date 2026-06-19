@@ -141,6 +141,21 @@ defmodule Foundation.Notifications.PagerDutyTest do
       end
     end
 
+    test "falls back gracefully for unknown events" do
+      with_mocks([
+        {Finch, [],
+         [
+           build: fn :post, _url, _headers, _body -> %{} end,
+           request: fn _req, Foundation.Finch ->
+             {:ok, %Finch.Response{status: 202, headers: [], body: ""}}
+           end
+         ]}
+      ]) do
+        payload = %{custom_key: "custom_value"}
+        assert :ok = PagerDuty.notify("unknown_event", payload, @config)
+      end
+    end
+
     test "assigns correct severity for each event" do
       severities = [
         {"crash_restart", %{node: :n@h, sname: "s", crash_restart_count: 1}, "error"},
