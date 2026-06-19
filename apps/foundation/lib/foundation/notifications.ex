@@ -76,7 +76,7 @@ defmodule Foundation.Notifications do
   ## Adding a new adapter
 
   Implement `Foundation.Notifications.Adapter` and add a new clause to
-  `Foundation.Yaml.notification_adapter/1`.  See `Foundation.Notifications.Adapter`
+  `Foundation.Yaml` (private `notification_adapter/1`).  See `Foundation.Notifications.Adapter`
   for a step-by-step guide and a skeleton implementation.
   """
 

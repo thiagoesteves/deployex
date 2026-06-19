@@ -7,7 +7,7 @@ defmodule Foundation.Notifications.Adapter do
   1. Create a module that `@behaviour Foundation.Notifications.Adapter`.
   2. Implement `notify/3`.  Return `:ok` on success or `{:error, reason}` on
      failure — `Foundation.Notifications.Worker` will log the error automatically.
-  3. Add a new clause to `Foundation.Yaml.notification_adapter/1` so the adapter
+  3. Add a new clause to the private `notification_adapter/1` in `Foundation.Yaml` so the adapter
      can be selected from `deployex.yaml`.
 
   ### Example skeleton

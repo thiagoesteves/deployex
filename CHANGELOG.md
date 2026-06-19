@@ -1,5 +1,18 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.4 ()
+
+### Backwards incompatible changes from 0.9.3
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-230`](https://github.com/thiagoesteves/deployex/pull/230) Add external alerting via Webhook, Slack, and PagerDuty notification adapters
+ * [`PULL-232`](https://github.com/thiagoesteves/deployex/pull/232) Remove Certificate GenServer, call initializer directly from Application
+ * [`PULL-233`](https://github.com/thiagoesteves/deployex/pull/233) Add on-the-fly notification config and change events to strings
+
 ## 0.9.3 🚀 (2026-06-17)
 
 ### Backwards incompatible changes from 0.9.2
@@ -10,7 +23,6 @@
 
 ### Enhancements
  * [`PULL-228`](https://github.com/thiagoesteves/deployex/pull/228) Add OTP/Elixir/Phoenix version info to monitored app status
-
 
 ## 0.9.2 🚀 (2026-06-15)
 
