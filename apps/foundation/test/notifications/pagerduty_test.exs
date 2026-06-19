@@ -10,7 +10,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
     adapter: PagerDuty,
     url: nil,
     enabled: true,
-    events: [:crash_restart],
+    events: ["crash_restart"],
     options: %{routing_key: "abc123def456"}
   }
 
@@ -27,7 +27,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        assert :ok = PagerDuty.notify(:crash_restart, payload, @config)
+        assert :ok = PagerDuty.notify("crash_restart", payload, @config)
       end
     end
 
@@ -43,7 +43,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        assert {:error, {:http_error, 400}} = PagerDuty.notify(:crash_restart, payload, @config)
+        assert {:error, {:http_error, 400}} = PagerDuty.notify("crash_restart", payload, @config)
       end
     end
 
@@ -57,7 +57,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        assert {:error, :timeout} = PagerDuty.notify(:crash_restart, payload, @config)
+        assert {:error, :timeout} = PagerDuty.notify("crash_restart", payload, @config)
       end
     end
 
@@ -77,7 +77,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        PagerDuty.notify(:crash_restart, payload, @config)
+        PagerDuty.notify("crash_restart", payload, @config)
 
         assert_receive {:url, url}
         assert url == "https://events.pagerduty.com/v2/enqueue"
@@ -101,7 +101,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        PagerDuty.notify(:crash_restart, payload, custom_config)
+        PagerDuty.notify("crash_restart", payload, custom_config)
 
         assert_receive {:url, url}
         assert url == "https://acme.pagerduty.com/v2/enqueue"
@@ -124,7 +124,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
          ]}
       ]) do
         payload = %{node: :app@host, sname: "myapp-1", crash_restart_count: 1}
-        PagerDuty.notify(:crash_restart, payload, @config)
+        PagerDuty.notify("crash_restart", payload, @config)
 
         assert_receive {:request, headers, body}
 
@@ -143,16 +143,16 @@ defmodule Foundation.Notifications.PagerDutyTest do
 
     test "assigns correct severity for each event" do
       severities = [
-        {:crash_restart, %{node: :n@h, sname: "s", crash_restart_count: 1}, "error"},
-        {:deployment_started, %{node: :n@h, sname: "s", version: "1.0"}, "info"},
-        {:deployment_complete, %{node: :n@h, sname: "s", status: :ok, message: "ok"}, "info"},
-        {:deployment_complete, %{node: :n@h, sname: "s", status: :error, message: "fail"},
+        {"crash_restart", %{node: :n@h, sname: "s", crash_restart_count: 1}, "error"},
+        {"deployment_started", %{node: :n@h, sname: "s", version: "1.0"}, "info"},
+        {"deployment_complete", %{node: :n@h, sname: "s", status: :ok, message: "ok"}, "info"},
+        {"deployment_complete", %{node: :n@h, sname: "s", status: :error, message: "fail"},
          "error"},
-        {:deployment_shutdown, %{node: :n@h, sname: "s"}, "warning"},
-        {:watchdog_threshold_exceeded,
+        {"deployment_shutdown", %{node: :n@h, sname: "s"}, "warning"},
+        {"watchdog_threshold_exceeded",
          %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95},
          "critical"},
-        {:watchdog_threshold_warning,
+        {"watchdog_threshold_warning",
          %{
            node: :n@h,
            type: :atom,
@@ -160,7 +160,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
            warning_threshold_percent: 75,
            action: :warning
          }, "warning"},
-        {:watchdog_threshold_warning,
+        {"watchdog_threshold_warning",
          %{
            node: :n@h,
            type: :atom,
@@ -168,8 +168,9 @@ defmodule Foundation.Notifications.PagerDutyTest do
            warning_threshold_percent: 75,
            action: :normalized
          }, "info"},
-        {:certificate_renewed, %{app_name: "app", domains: ["ex.com"]}, "info"},
-        {:certificate_failed, %{app_name: "app", domains: ["ex.com"], reason: "timeout"}, "error"}
+        {"certificate_renewed", %{app_name: "app", domains: ["ex.com"]}, "info"},
+        {"certificate_failed", %{app_name: "app", domains: ["ex.com"], reason: "timeout"},
+         "error"}
       ]
 
       test_pid = self()

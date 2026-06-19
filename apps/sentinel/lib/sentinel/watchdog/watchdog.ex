@@ -383,7 +383,7 @@ defmodule Sentinel.Watchdog do
     %{sname: sname} = Catalog.node_info(node)
     Monitor.restart(sname)
 
-    Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
+    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
       node: node,
       type: type,
       current_percentage: current_percentage,
@@ -407,7 +407,7 @@ defmodule Sentinel.Watchdog do
       "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
 
-    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
       node: node,
       type: type,
       current_percentage: current_percentage,
@@ -435,7 +435,7 @@ defmodule Sentinel.Watchdog do
       "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
 
-    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
       node: node,
       type: type,
       current_percentage: current_percentage,
@@ -469,7 +469,7 @@ defmodule Sentinel.Watchdog do
     %{sname: sname} = Catalog.node_info(node)
     Monitor.restart(sname)
 
-    Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
+    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
       node: node,
       type: :memory,
       current_percentage: current_percentage,
@@ -492,7 +492,7 @@ defmodule Sentinel.Watchdog do
       "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
 
-    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
       node: node(),
       type: :memory,
       current_percentage: current_percentage,
@@ -522,7 +522,7 @@ defmodule Sentinel.Watchdog do
       "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
 
-    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
       node: node(),
       type: :memory,
       current_percentage: current_percentage,

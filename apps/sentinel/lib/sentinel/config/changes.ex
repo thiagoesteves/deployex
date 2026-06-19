@@ -40,6 +40,7 @@ defmodule Sentinel.Config.Changes do
           optional(:logs_retention_time_ms) => numeric_change(),
           optional(:metrics_retention_time_ms) => numeric_change(),
           optional(:monitoring) => list_change(),
+          optional(:notifications) => list_change(),
           optional(:applications) => %{
             old: [Foundation.Yaml.Application.t()],
             new: [Foundation.Yaml.Application.t()],

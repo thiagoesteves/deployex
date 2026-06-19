@@ -17,14 +17,14 @@ defmodule Foundation.Notifications do
 
   | Event atom                       | Trigger                                                    | Payload keys                                                                |
   |----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------|
-  | `:crash_restart`                 | Monitored app crashed and is being restarted               | `node`, `sname`, `name`, `language`, `crash_restart_count`                 |
-  | `:deployment_started`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
-  | `:deployment_complete`           | Hot-upgrade finished (success or failure)                  | `node`, `sname`, `status` (`:ok`/`:error`), `message`                      |
-  | `:watchdog_threshold_exceeded`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
-  | `:watchdog_threshold_warning`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
-  | `:certificate_renewed`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
-  | `:certificate_failed`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
-  | `:deployment_shutdown`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
+  | `"crash_restart"`                 | Monitored app crashed and is being restarted               | `node`, `sname`, `name`, `language`, `crash_restart_count`                 |
+  | `"deployment_started"`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
+  | `"deployment_complete"`           | Hot-upgrade finished (success or failure)                  | `node`, `sname`, `status` (`:ok`/`:error`), `message`                      |
+  | `"watchdog_threshold_exceeded"`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
+  | `"watchdog_threshold_warning"`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
+  | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
+  | `"certificate_failed"`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
+  | `"deployment_shutdown"`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
 
   ## Available adapters
 
@@ -95,6 +95,20 @@ defmodule Foundation.Notifications do
     :ok
   end
 
+  @spec stop_notification_manager() :: :ok
+  def stop_notification_manager do
+    Foundation.Notifications.Supervisor.stop_all_notification_workers()
+  end
+
+  @spec start_notification_manager(notifications :: list()) :: :ok
+  def start_notification_manager(notifications) do
+    notifications
+    |> Enum.map(&to_notification_struct/1)
+    |> Enum.each(&Foundation.Notifications.Supervisor.start_notification_worker/1)
+
+    :ok
+  end
+
   @doc """
   Returns the PubSub topic for a specific event.
 
@@ -104,10 +118,10 @@ defmodule Foundation.Notifications do
 
   ## Example
 
-      iex> Foundation.Notifications.topic(:crash_restart)
+      iex> Foundation.Notifications.topic("crash_restart")
       "deployex::notifications::crash_restart"
   """
-  @spec topic(event :: atom()) :: String.t()
+  @spec topic(event :: String.t()) :: String.t()
   def topic(event), do: "#{@topic_prefix}::#{event}"
 
   @doc """
@@ -116,7 +130,7 @@ defmodule Foundation.Notifications do
   Returns `:ok` immediately; delivery to each adapter happens asynchronously
   inside the respective `Foundation.Notifications.Worker` process.
   """
-  @spec notify(event :: atom(), payload :: map()) :: :ok
+  @spec notify(event :: String.t(), payload :: map()) :: :ok
   def notify(event, payload) do
     Phoenix.PubSub.broadcast(Foundation.PubSub, topic(event), {event, payload})
   end

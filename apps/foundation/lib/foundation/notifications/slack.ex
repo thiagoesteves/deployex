@@ -53,7 +53,7 @@ defmodule Foundation.Notifications.Slack do
   @default_icon_emoji ":robot_face:"
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
+  @spec notify(event :: String.t(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
   def notify(event, payload, %Worker{url: url, options: options}) do
     body =
@@ -96,63 +96,63 @@ defmodule Foundation.Notifications.Slack do
     {:error, reason}
   end
 
-  defp format_message(:crash_restart, payload) do
+  defp format_message("crash_restart", payload) do
     """
     🚨 *crash_restart* — `#{payload.sname}` on `#{payload.node}`
     Crash count: *#{payload.crash_restart_count}*\
     """
   end
 
-  defp format_message(:deployment_started, payload) do
+  defp format_message("deployment_started", payload) do
     """
     🚀 *deployment_started* — `#{payload.sname}` on `#{payload.node}`
     Version: *#{payload.version}*\
     """
   end
 
-  defp format_message(:deployment_complete, %{status: :ok} = payload) do
+  defp format_message("deployment_complete", %{status: :ok} = payload) do
     """
     ✅ *deployment_complete* — `#{payload.sname}` on `#{payload.node}`
     Status: *ok* — #{payload.message}\
     """
   end
 
-  defp format_message(:deployment_complete, %{status: :error} = payload) do
+  defp format_message("deployment_complete", %{status: :error} = payload) do
     """
     ❌ *deployment_complete* — `#{payload.sname}` on `#{payload.node}`
     Status: *error* — #{payload.message}\
     """
   end
 
-  defp format_message(:watchdog_threshold_exceeded, payload) do
+  defp format_message("watchdog_threshold_exceeded", payload) do
     """
     ⚠️ *watchdog_threshold_exceeded* — `#{payload.node}`
     Resource: *#{payload.type}* at *#{payload.current_percentage}%* (threshold: #{payload.restart_threshold_percent}%)\
     """
   end
 
-  defp format_message(:watchdog_threshold_warning, %{action: :warning} = payload) do
+  defp format_message("watchdog_threshold_warning", %{action: :warning} = payload) do
     """
     🔶 *watchdog_threshold_warning* — `#{payload.node}`
     Resource: *#{payload.type}* at *#{payload.current_percentage}%* (warning: #{payload.warning_threshold_percent}%)\
     """
   end
 
-  defp format_message(:watchdog_threshold_warning, %{action: :normalized} = payload) do
+  defp format_message("watchdog_threshold_warning", %{action: :normalized} = payload) do
     """
     ✅ *watchdog_threshold_warning* — `#{payload.node}` normalized
     Resource: *#{payload.type}* back to *#{payload.current_percentage}%* (below #{payload.warning_threshold_percent}%)\
     """
   end
 
-  defp format_message(:certificate_renewed, payload) do
+  defp format_message("certificate_renewed", payload) do
     """
     🔒 *certificate_renewed* — `#{payload.app_name}`
     Domains: #{Enum.join(payload.domains, ", ")}\
     """
   end
 
-  defp format_message(:certificate_failed, payload) do
+  defp format_message("certificate_failed", payload) do
     """
     🔓 *certificate_failed* — `#{payload.app_name}`
     Domains: #{Enum.join(payload.domains, ", ")}
@@ -160,7 +160,7 @@ defmodule Foundation.Notifications.Slack do
     """
   end
 
-  defp format_message(:deployment_shutdown, payload) do
+  defp format_message("deployment_shutdown", payload) do
     """
     🛑 *deployment_shutdown* — `#{payload.sname}` on `#{payload.node}`
     `#{payload.sname}` was force-terminated and will restart shortly.\

@@ -27,6 +27,7 @@ defmodule Sentinel.Config.Watcher do
   alias Deployer.Monitor.Supervisor, as: MonitorSupervisor
   alias Foundation.Catalog.Local
   alias Foundation.Certificate
+  alias Foundation.Notifications
   alias Foundation.Yaml
   alias Sentinel.Config.Changes
   alias Sentinel.Config.Upgradable
@@ -270,6 +271,7 @@ defmodule Sentinel.Config.Watcher do
     |> add_number_changes(:logs_retention_time_ms, old, new, :immediate)
     |> add_number_changes(:metrics_retention_time_ms, old, new, :immediate)
     |> add_monitoring_changes(old, new, :immediate)
+    |> add_notification_changes(old, new, :immediate)
     |> add_application_changes(old, new)
   end
 
@@ -331,6 +333,18 @@ defmodule Sentinel.Config.Watcher do
           acc
       end
     end)
+  end
+
+  defp add_notification_changes(acc, old, new, strategy) do
+    if normalize(old.notifications) != normalize(new.notifications) do
+      Map.put(acc, :notifications, %{
+        old: old.notifications,
+        new: new.notifications,
+        apply_strategy: strategy
+      })
+    else
+      acc
+    end
   end
 
   defp add_env_changes(acc, old_app, new_app, strategy) do
@@ -451,6 +465,11 @@ defmodule Sentinel.Config.Watcher do
 
           :ok
 
+        :notifications ->
+          Logger.warning("ConfigWatcher: Stopping all notification workers for update")
+          Notifications.stop_notification_manager()
+          :ok
+
         _ ->
           :ok
       end
@@ -508,6 +527,10 @@ defmodule Sentinel.Config.Watcher do
 
         :monitoring ->
           Sentinel.Watchdog.reset_app_statistics("deployex")
+          :ok
+
+        :notifications ->
+          Notifications.start_notification_manager(change.new)
           :ok
 
         :metrics_retention_time_ms ->

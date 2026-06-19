@@ -61,7 +61,7 @@ defmodule Foundation.Notifications.Webhook do
   alias Foundation.Notifications.Worker
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
+  @spec notify(event :: String.t(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
   def notify(event, payload, %Worker{url: url}) do
     body =

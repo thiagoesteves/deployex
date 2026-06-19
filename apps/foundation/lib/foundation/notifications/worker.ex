@@ -26,7 +26,7 @@ defmodule Foundation.Notifications.Worker do
           adapter: module(),
           url: String.t() | nil,
           enabled: boolean(),
-          events: [atom()],
+          events: [String.t()],
           options: map()
         }
 

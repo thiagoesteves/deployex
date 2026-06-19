@@ -69,7 +69,7 @@ defmodule Foundation.Notifications.PagerDuty do
   @default_api_url "https://events.pagerduty.com/v2/enqueue"
 
   @impl true
-  @spec notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
+  @spec notify(event :: String.t(), payload :: map(), config :: Worker.t()) ::
           :ok | {:error, term()}
   def notify(event, payload, %Worker{url: url, options: options}) do
     routing_key = options[:routing_key]
@@ -120,49 +120,49 @@ defmodule Foundation.Notifications.PagerDuty do
     {:error, reason}
   end
 
-  defp format_summary(:crash_restart, payload),
+  defp format_summary("crash_restart", payload),
     do: "crash_restart — #{payload.sname} on #{payload.node}"
 
-  defp format_summary(:deployment_started, payload),
+  defp format_summary("deployment_started", payload),
     do: "deployment_started — #{payload.sname} on #{payload.node} (version #{payload.version})"
 
-  defp format_summary(:deployment_complete, payload),
+  defp format_summary("deployment_complete", payload),
     do: "deployment_complete (#{payload.status}) — #{payload.sname} on #{payload.node}"
 
-  defp format_summary(:watchdog_threshold_exceeded, payload),
+  defp format_summary("watchdog_threshold_exceeded", payload),
     do:
       "watchdog_threshold_exceeded — #{payload.type} at #{payload.current_percentage}% on #{payload.node}"
 
-  defp format_summary(:watchdog_threshold_warning, %{action: :warning} = payload),
+  defp format_summary("watchdog_threshold_warning", %{action: :warning} = payload),
     do:
       "watchdog_threshold_warning — #{payload.type} at #{payload.current_percentage}% on #{payload.node} (warning: #{payload.warning_threshold_percent}%)"
 
-  defp format_summary(:watchdog_threshold_warning, %{action: :normalized} = payload),
+  defp format_summary("watchdog_threshold_warning", %{action: :normalized} = payload),
     do:
       "watchdog_threshold_warning — #{payload.type} normalized to #{payload.current_percentage}% on #{payload.node}"
 
-  defp format_summary(:certificate_renewed, payload),
+  defp format_summary("certificate_renewed", payload),
     do: "certificate_renewed — #{payload.app_name} (#{Enum.join(payload.domains, ", ")})"
 
-  defp format_summary(:certificate_failed, payload),
+  defp format_summary("certificate_failed", payload),
     do: "certificate_failed — #{payload.app_name}: #{payload.reason}"
 
-  defp format_summary(:deployment_shutdown, payload),
+  defp format_summary("deployment_shutdown", payload),
     do: "deployment_shutdown — #{payload.sname} on #{payload.node} (force-terminated)"
 
   defp format_summary(event, payload),
     do: "#{event} — #{inspect(payload)}"
 
-  defp event_severity(:crash_restart, _payload), do: "error"
-  defp event_severity(:deployment_started, _payload), do: "info"
-  defp event_severity(:deployment_complete, %{status: :ok}), do: "info"
-  defp event_severity(:deployment_complete, %{status: :error}), do: "error"
-  defp event_severity(:watchdog_threshold_exceeded, _payload), do: "critical"
-  defp event_severity(:watchdog_threshold_warning, %{action: :warning}), do: "warning"
-  defp event_severity(:watchdog_threshold_warning, %{action: :normalized}), do: "info"
-  defp event_severity(:certificate_renewed, _payload), do: "info"
-  defp event_severity(:certificate_failed, _payload), do: "error"
-  defp event_severity(:deployment_shutdown, _payload), do: "warning"
+  defp event_severity("crash_restart", _payload), do: "error"
+  defp event_severity("deployment_started", _payload), do: "info"
+  defp event_severity("deployment_complete", %{status: :ok}), do: "info"
+  defp event_severity("deployment_complete", %{status: :error}), do: "error"
+  defp event_severity("watchdog_threshold_exceeded", _payload), do: "critical"
+  defp event_severity("watchdog_threshold_warning", %{action: :warning}), do: "warning"
+  defp event_severity("watchdog_threshold_warning", %{action: :normalized}), do: "info"
+  defp event_severity("certificate_renewed", _payload), do: "info"
+  defp event_severity("certificate_failed", _payload), do: "error"
+  defp event_severity("deployment_shutdown", _payload), do: "warning"
   defp event_severity(_event, _payload), do: "info"
 
   defp event_source(%{node: node}), do: to_string(node)

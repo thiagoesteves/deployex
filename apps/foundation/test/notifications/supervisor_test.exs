@@ -8,7 +8,7 @@ defmodule Foundation.Notifications.SupervisorTest do
     adapter: Foundation.Notifications.Webhook,
     url: "https://hooks.example.com",
     enabled: true,
-    events: [:crash_restart],
+    events: ["crash_restart"],
     options: %{}
   }
 

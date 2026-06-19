@@ -11,38 +11,38 @@ defmodule Foundation.NotificationsTest do
 
   describe "topic/1" do
     test "returns a binary topic string for an event" do
-      assert is_binary(Notifications.topic(:crash_restart))
+      assert is_binary(Notifications.topic("crash_restart"))
     end
 
     test "different events produce different topics" do
-      assert Notifications.topic(:crash_restart) != Notifications.topic(:deployment_complete)
+      assert Notifications.topic("crash_restart") != Notifications.topic("deployment_complete")
     end
 
     test "topic contains the event name" do
-      assert Notifications.topic(:crash_restart) =~ "crash_restart"
+      assert Notifications.topic("crash_restart") =~ "crash_restart"
     end
   end
 
   describe "notify/2" do
     test "broadcasts to the per-event topic on Foundation.PubSub" do
-      Phoenix.PubSub.subscribe(Foundation.PubSub, Notifications.topic(:crash_restart))
+      Phoenix.PubSub.subscribe(Foundation.PubSub, Notifications.topic("crash_restart"))
 
-      Notifications.notify(:crash_restart, @payload)
+      Notifications.notify("crash_restart", @payload)
 
-      assert_receive {:crash_restart, received_payload}
+      assert_receive {"crash_restart", received_payload}
       assert received_payload == @payload
     end
 
     test "does not deliver to a subscriber on a different event topic" do
-      Phoenix.PubSub.subscribe(Foundation.PubSub, Notifications.topic(:deployment_complete))
+      Phoenix.PubSub.subscribe(Foundation.PubSub, Notifications.topic("deployment_complete"))
 
-      Notifications.notify(:crash_restart, @payload)
+      Notifications.notify("crash_restart", @payload)
 
-      refute_receive {:crash_restart, _}, 50
+      refute_receive {"crash_restart", _}, 50
     end
 
     test "returns :ok" do
-      assert :ok = Notifications.notify(:crash_restart, @payload)
+      assert :ok = Notifications.notify("crash_restart", @payload)
     end
   end
 
@@ -53,7 +53,7 @@ defmodule Foundation.NotificationsTest do
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: true,
-        events: [:crash_restart],
+        events: ["crash_restart"],
         options: %{}
       }
 
@@ -62,12 +62,12 @@ defmodule Foundation.NotificationsTest do
       with_mocks([
         {Webhook, [], [notify: fn _event, _payload, _config -> :ok end]}
       ]) do
-        Notifications.notify(:crash_restart, @payload)
+        Notifications.notify("crash_restart", @payload)
 
         # allow the worker's handle_info to run
         Process.sleep(50)
 
-        assert called(Webhook.notify(:crash_restart, @payload, config))
+        assert called(Webhook.notify("crash_restart", @payload, config))
       end
 
       GenServer.stop(worker)
@@ -79,7 +79,7 @@ defmodule Foundation.NotificationsTest do
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: true,
-        events: [:watchdog_threshold_exceeded],
+        events: ["watchdog_threshold_exceeded"],
         options: %{}
       }
 
@@ -88,7 +88,7 @@ defmodule Foundation.NotificationsTest do
       with_mocks([
         {Webhook, [], [notify: fn _event, _payload, _config -> :ok end]}
       ]) do
-        Notifications.notify(:crash_restart, @payload)
+        Notifications.notify("crash_restart", @payload)
 
         Process.sleep(50)
 
@@ -104,7 +104,7 @@ defmodule Foundation.NotificationsTest do
         adapter: Webhook,
         url: "https://hooks.example.com/deployex",
         enabled: false,
-        events: [:crash_restart],
+        events: ["crash_restart"],
         options: %{}
       }
 
@@ -113,7 +113,7 @@ defmodule Foundation.NotificationsTest do
       with_mocks([
         {Webhook, [], [notify: fn _event, _payload, _config -> :ok end]}
       ]) do
-        Notifications.notify(:crash_restart, @payload)
+        Notifications.notify("crash_restart", @payload)
 
         Process.sleep(50)
 
@@ -129,7 +129,7 @@ defmodule Foundation.NotificationsTest do
         adapter: Webhook,
         url: "https://a.example.com",
         enabled: true,
-        events: [:crash_restart],
+        events: ["crash_restart"],
         options: %{}
       }
 
@@ -137,7 +137,7 @@ defmodule Foundation.NotificationsTest do
         adapter: Webhook,
         url: "https://b.example.com",
         enabled: true,
-        events: [:crash_restart],
+        events: ["crash_restart"],
         options: %{}
       }
 
@@ -147,12 +147,12 @@ defmodule Foundation.NotificationsTest do
       with_mocks([
         {Webhook, [], [notify: fn _event, _payload, _config -> :ok end]}
       ]) do
-        Notifications.notify(:crash_restart, @payload)
+        Notifications.notify("crash_restart", @payload)
 
         Process.sleep(50)
 
-        assert called(Webhook.notify(:crash_restart, @payload, config_a))
-        assert called(Webhook.notify(:crash_restart, @payload, config_b))
+        assert called(Webhook.notify("crash_restart", @payload, config_a))
+        assert called(Webhook.notify("crash_restart", @payload, config_b))
       end
 
       GenServer.stop(worker_a)

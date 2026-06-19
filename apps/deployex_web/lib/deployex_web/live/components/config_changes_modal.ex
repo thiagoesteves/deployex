@@ -299,6 +299,46 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
+  defp render_change_section(%{field: :notifications} = assigns) do
+    ~H"""
+    <div class="bg-base-200 rounded-lg p-4 border border-base-300">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            >
+            </path>
+          </svg>
+          <h3 class="text-lg font-bold text-base-content">Notifications</h3>
+        </div>
+        <.strategy_badge strategy={@change_data.apply_strategy} />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-error/10 border border-error/20 rounded-lg p-3">
+          <div class="text-xs font-semibold text-error mb-2">
+            Current ({length(@change_data.old)} entries)
+          </div>
+          <%= for notif <- @change_data.old do %>
+            <.render_notification_entry notification={notif} />
+          <% end %>
+        </div>
+        <div class="bg-success/10 border border-success/20 rounded-lg p-3">
+          <div class="text-xs font-semibold text-success mb-2">
+            New ({length(@change_data.new)} entries)
+          </div>
+          <%= for notif <- @change_data.new do %>
+            <.render_notification_entry notification={notif} />
+          <% end %>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp render_change_section(%{field: field} = assigns) do
     field_name = format_field_name(field)
 
@@ -336,6 +376,21 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
             {format_value(@field, @change_data.new)}
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_notification_entry(assigns) do
+    adapter_name = assigns.notification.adapter |> Module.split() |> List.last()
+    assigns = assign(assigns, :adapter_name, adapter_name)
+
+    ~H"""
+    <div class="mb-2 last:mb-0 font-mono text-sm">
+      <span class="font-semibold">{@adapter_name}</span>
+      <span :if={not @notification.enabled} class="text-xs text-warning ml-1">(disabled)</span>
+      <div class="text-xs text-base-content/60 mt-0.5">
+        {Enum.join(@notification.events, ", ")}
       </div>
     </div>
     """

@@ -46,11 +46,11 @@ defmodule Foundation.Notifications.Adapter do
 
   ## Parameters
 
-    - `event`   — one of the atoms defined in `Foundation.Notifications` (e.g. `:crash_restart`)
+    - `event`   — one of the strings defined in `Foundation.Notifications` (e.g. `"crash_restart"`)
     - `payload` — map with event-specific fields; keys are atoms
     - `config`  — the `Foundation.Notifications.Worker` struct for this adapter instance,
                   containing `:url`, `:options`, and so on
   """
-  @callback notify(event :: atom(), payload :: map(), config :: Worker.t()) ::
+  @callback notify(event :: String.t(), payload :: map(), config :: Worker.t()) ::
               :ok | {:error, term()}
 end

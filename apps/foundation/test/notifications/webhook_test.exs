@@ -10,7 +10,7 @@ defmodule Foundation.Notifications.WebhookTest do
     adapter: Webhook,
     url: "https://hooks.example.com/deployex",
     enabled: true,
-    events: [:crash_restart],
+    events: ["crash_restart"],
     options: %{}
   }
 
@@ -28,7 +28,7 @@ defmodule Foundation.Notifications.WebhookTest do
            end
          ]}
       ]) do
-        assert :ok = Webhook.notify(:crash_restart, @payload, @config)
+        assert :ok = Webhook.notify("crash_restart", @payload, @config)
       end
     end
 
@@ -43,7 +43,7 @@ defmodule Foundation.Notifications.WebhookTest do
            end
          ]}
       ]) do
-        assert :ok = Webhook.notify(:crash_restart, @payload, @config)
+        assert :ok = Webhook.notify("crash_restart", @payload, @config)
       end
     end
 
@@ -59,7 +59,7 @@ defmodule Foundation.Notifications.WebhookTest do
          ]}
       ]) do
         assert {:error, {:http_error, 500}} =
-                 Webhook.notify(:crash_restart, @payload, @config)
+                 Webhook.notify("crash_restart", @payload, @config)
       end
     end
 
@@ -72,7 +72,7 @@ defmodule Foundation.Notifications.WebhookTest do
            request: fn _req, Foundation.Finch -> {:error, :timeout} end
          ]}
       ]) do
-        assert {:error, :timeout} = Webhook.notify(:crash_restart, @payload, @config)
+        assert {:error, :timeout} = Webhook.notify("crash_restart", @payload, @config)
       end
     end
 
@@ -91,7 +91,7 @@ defmodule Foundation.Notifications.WebhookTest do
            end
          ]}
       ]) do
-        Webhook.notify(:crash_restart, @payload, @config)
+        Webhook.notify("crash_restart", @payload, @config)
 
         assert_receive {:request_body, headers, body}
 

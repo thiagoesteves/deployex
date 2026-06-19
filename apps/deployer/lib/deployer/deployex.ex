@@ -19,7 +19,7 @@ defmodule Deployer.Deployex do
   def force_terminate(sleep_time) do
     Logger.warning("Deployex was requested to terminate, see you soon!!!")
 
-    Foundation.Notifications.notify(:deployment_shutdown, %{node: node(), sname: "deployex"})
+    Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: "deployex"})
 
     :timer.sleep(sleep_time)
 
