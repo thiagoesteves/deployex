@@ -137,8 +137,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     send(
       liveview.pid,
-      {:watcher_config_new, Node.self(),
-       FixtureWatcher.build_pending_changes_with_certificates()}
+      {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_certificates()}
     )
 
     assert liveview |> element("#deployex-config-changes") |> render_click()
