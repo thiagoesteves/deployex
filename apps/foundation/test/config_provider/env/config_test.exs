@@ -712,7 +712,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "3da24d11865bc40bab27e2545a5547f83005a3137e7d3b8a2bc4a65d7f00ea16"},
+                   "720a9843958d77bb27cb019d6ac75f1afcf9d6591075f559abfd4d10b3ac7874"},
                   {:monitoring, []},
                   {:notifications,
                    [
@@ -725,6 +725,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                          :deployment_started,
                          :deployment_complete,
                          :watchdog_threshold_exceeded,
+                         :watchdog_threshold_warning,
                          :certificate_renewed,
                          :certificate_failed
                        ],

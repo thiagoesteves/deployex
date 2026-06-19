@@ -12,7 +12,7 @@ defmodule Foundation.Notifications.Slack do
 
       notifications:
         - adapter: "slack"
-          url: "https://hooks.slack.com/services"
+          url: "https://hooks.slack.com/services/T00/B00/token"
           enabled: true
           events:
             - "crash_restart"
@@ -126,8 +126,22 @@ defmodule Foundation.Notifications.Slack do
 
   defp format_message(:watchdog_threshold_exceeded, payload) do
     """
-    ⚠️ *watchdog_threshold_exceeded* — `#{payload.sname}` on `#{payload.node}`
+    ⚠️ *watchdog_threshold_exceeded* — `#{payload.node}`
     Resource: *#{payload.type}* at *#{payload.current_percentage}%* (threshold: #{payload.restart_threshold_percent}%)\
+    """
+  end
+
+  defp format_message(:watchdog_threshold_warning, %{action: :warning} = payload) do
+    """
+    🔶 *watchdog_threshold_warning* — `#{payload.node}`
+    Resource: *#{payload.type}* at *#{payload.current_percentage}%* (warning: #{payload.warning_threshold_percent}%)\
+    """
+  end
+
+  defp format_message(:watchdog_threshold_warning, %{action: :normalized} = payload) do
+    """
+    ✅ *watchdog_threshold_warning* — `#{payload.node}` normalized
+    Resource: *#{payload.type}* back to *#{payload.current_percentage}%* (below #{payload.warning_threshold_percent}%)\
     """
   end
 
@@ -143,6 +157,13 @@ defmodule Foundation.Notifications.Slack do
     🔓 *certificate_failed* — `#{payload.app_name}`
     Domains: #{Enum.join(payload.domains, ", ")}
     Reason: #{payload.reason}\
+    """
+  end
+
+  defp format_message(:deployment_shutdown, payload) do
+    """
+    🛑 *deployment_shutdown* — `#{payload.sname}` on `#{payload.node}`
+    `#{payload.sname}` was force-terminated and will restart shortly.\
     """
   end
 

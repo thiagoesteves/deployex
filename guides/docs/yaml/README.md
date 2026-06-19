@@ -76,11 +76,13 @@ notifications:
   - adapter: "webhook"                                   # Adapter: webhook, slack or pagerduty
     url: "https://example.com/hooks/deployex"            # HTTP POST destination
     enabled: true
-    events:                                              # One or more of the six supported events
+    events:                                              # One or more of the supported events
       - "crash_restart"                                  # Monitored app crashed and was restarted
       - "deployment_started"                             # New deployment was initiated
       - "deployment_complete"                            # Deployment finished (success or failure)
+      - "deployment_shutdown"                            # App was force-terminated (will restart)
       - "watchdog_threshold_exceeded"                    # Resource threshold crossed; app restarted
+      - "watchdog_threshold_warning"                     # Resource crossed warning threshold (or normalized)
       - "certificate_renewed"                            # TLS certificate successfully renewed
       - "certificate_failed"                             # TLS certificate renewal failed
 
@@ -101,6 +103,7 @@ notifications:
     enabled: true                                        # url: omit to use the default PagerDuty endpoint
     events:
       - "crash_restart"
+      - "deployment_shutdown"
       - "watchdog_threshold_exceeded"
       - "certificate_failed"
     options:

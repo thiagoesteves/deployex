@@ -18,6 +18,7 @@ notifications:
       - "deployment_started"
       - "deployment_complete"
       - "watchdog_threshold_exceeded"
+      - "watchdog_threshold_warning"
       - "certificate_renewed"
       - "certificate_failed"
   - adapter: "slack"

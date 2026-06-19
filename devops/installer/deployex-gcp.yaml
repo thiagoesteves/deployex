@@ -20,7 +20,9 @@ notifications:
       - "crash_restart"
       - "deployment_started"
       - "deployment_complete"
+      - "deployment_shutdown"
       - "watchdog_threshold_exceeded"
+      - "watchdog_threshold_warning"
       - "certificate_renewed"
       - "certificate_failed"
   - adapter: "slack"
@@ -37,6 +39,7 @@ notifications:
     enabled: true
     events:
       - "crash_restart"
+      - "deployment_shutdown"
       - "watchdog_threshold_exceeded"
       - "certificate_failed"
     options:

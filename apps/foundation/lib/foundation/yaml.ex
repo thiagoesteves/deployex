@@ -155,6 +155,17 @@ defmodule Foundation.Yaml do
     | `slack`     | `icon_emoji`    | no       | Bot emoji icon (default: `":robot_face:"`) |
     """
 
+    defmodule Options do
+      @moduledoc "Options for notification configuration."
+      defstruct [:routing_key, :username, :icon_emoji]
+
+      @type t :: %__MODULE__{
+              routing_key: String.t() | nil,
+              username: String.t() | nil,
+              icon_emoji: String.t() | nil
+            }
+    end
+
     defstruct [:adapter, :url, :enabled, :events, options: %{}]
 
     @type t :: %__MODULE__{
@@ -162,7 +173,7 @@ defmodule Foundation.Yaml do
             url: String.t() | nil,
             enabled: boolean(),
             events: [atom()],
-            options: map()
+            options: __MODULE__.Options.t() | nil
           }
   end
 
@@ -534,8 +545,10 @@ defmodule Foundation.Yaml do
   defp parse_notification_event("deployment_started"), do: :deployment_started
   defp parse_notification_event("deployment_complete"), do: :deployment_complete
   defp parse_notification_event("watchdog_threshold_exceeded"), do: :watchdog_threshold_exceeded
+  defp parse_notification_event("watchdog_threshold_warning"), do: :watchdog_threshold_warning
   defp parse_notification_event("certificate_renewed"), do: :certificate_renewed
   defp parse_notification_event("certificate_failed"), do: :certificate_failed
+  defp parse_notification_event("deployment_shutdown"), do: :deployment_shutdown
   defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
 
   defp atomize_keys(nil), do: %{}
