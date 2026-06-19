@@ -22,6 +22,7 @@ config :foundation,
       deploy_schedule_interval_ms: 5000,
       replica_ports: [%{key: "PORT", base: 4444}],
       env: ["SECRET=value", "PHX_SERVER=true"],
+      certificates: [],
       monitoring: [
         port: %{
           enable_restart: true,
@@ -48,6 +49,7 @@ config :foundation,
       deploy_schedule_interval_ms: 5000,
       replica_ports: [%{key: "PORT", base: 5555}],
       env: ["SECRET=value", "PHX_SERVER=true"],
+      certificates: [],
       monitoring: [
         port: %{
           enable_restart: false,
@@ -74,6 +76,7 @@ config :foundation,
       deploy_schedule_interval_ms: 5000,
       replica_ports: [%{key: "PORT", base: 6666}],
       env: ["SECRET=value", "PHX_SERVER=true"],
+      certificates: [],
       monitoring: []
     }
   ]

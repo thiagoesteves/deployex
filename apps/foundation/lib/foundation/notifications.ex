@@ -85,11 +85,14 @@ defmodule Foundation.Notifications do
   ### ==========================================================================
   ### Public Functions
   ### ==========================================================================
+  @spec initialize_notification_manager() :: :ok
   def initialize_notification_manager do
     :foundation
     |> Application.fetch_env!(:notifications)
     |> Enum.map(&to_notification_struct/1)
-    |> Enum.map(&Foundation.Notifications.Supervisor.start_notification_worker/1)
+    |> Enum.each(&Foundation.Notifications.Supervisor.start_notification_worker/1)
+
+    :ok
   end
 
   @doc """
