@@ -1,59 +1,10 @@
 defmodule Foundation.CertificateTest do
   use ExUnit.Case, async: false
 
-  import ExUnit.CaptureLog
   import Mock
 
   alias Foundation.Certificate
   alias Foundation.Certificates.Manager.Supervisor
-
-  # ---------------------------------------------------------------------------
-  # init/1
-  # ---------------------------------------------------------------------------
-
-  describe "init/1" do
-    @tag :capture_log
-    test "logs initialization message" do
-      log =
-        capture_log(fn ->
-          {:ok, pid} = GenServer.start_link(Certificate, [])
-          # Give the continue a moment to fire before we stop.
-          Process.sleep(50)
-          GenServer.stop(pid)
-        end)
-
-      assert log =~ "Initializing Certificate Server"
-    end
-
-    @tag :capture_log
-    test "returns initial state as empty map" do
-      # We inspect via :sys.get_state; the continue callback runs first but
-      # does not modify the state, so it stays %{}.
-      {:ok, pid} = GenServer.start_link(Certificate, [])
-      Process.sleep(50)
-      assert :sys.get_state(pid) == %{}
-      GenServer.stop(pid)
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # handle_continue :start_certificate_manager (test env)
-  # ---------------------------------------------------------------------------
-
-  describe "handle_continue :start_certificate_manager (test environment)" do
-    @tag :capture_log
-    test "does not call Supervisor.start_certificate_manager in test env" do
-      # In test mode Foundation.Certificate uses the no-op initialize_certificate_manager/0,
-      # so the supervisor must never be contacted.
-      with_mock Supervisor, start_certificate_manager: fn _name, _cert -> {:ok, self()} end do
-        {:ok, pid} = GenServer.start_link(Certificate, [])
-        Process.sleep(50)
-        refute called(Supervisor.start_certificate_manager(:_, :_))
-        GenServer.stop(pid)
-      end
-    end
-  end
-
   # ---------------------------------------------------------------------------
   # stop_certificate_manager/1
   # ---------------------------------------------------------------------------

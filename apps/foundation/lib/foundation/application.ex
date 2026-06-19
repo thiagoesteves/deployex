@@ -19,7 +19,6 @@ defmodule Foundation.Application do
         {Finch, name: Foundation.Finch},
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
-        Foundation.Certificate,
         Foundation.Notifications.Supervisor
       ]
 
@@ -29,6 +28,7 @@ defmodule Foundation.Application do
 
     case Supervisor.start_link(children, opts) do
       {:ok, _pid} = response ->
+        Foundation.Certificate.initialize_certificate_manager()
         Foundation.Notifications.initialize_notification_manager()
         response
 

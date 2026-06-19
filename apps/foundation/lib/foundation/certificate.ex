@@ -1,36 +1,15 @@
 defmodule Foundation.Certificate do
   @moduledoc """
-  GenServer responsible for bootstrapping and coordinating certificate managers
+  Provides functions for bootstrapping and managing certificate managers
   across all registered applications.
+
+  On application startup, `initialize_certificate_manager/0` is called to
+  start a certificate manager for each application that declares certificates
+  in its catalog entry. Individual managers can also be started or stopped
+  on demand via `start_certificate_manager/2` and `stop_certificate_manager/1`.
   """
 
-  use GenServer
-
-  import Foundation.Macros
-
   alias Foundation.Certificates.Manager.Supervisor
-
-  require Logger
-
-  ### ==========================================================================
-  ### Callback functions
-  ### ==========================================================================
-
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
-
-  @impl true
-  def init(_args) do
-    Logger.info("Initializing Certificate Server")
-    {:ok, %{}, {:continue, :start_certificate_manager}}
-  end
-
-  @impl true
-  def handle_continue(:start_certificate_manager, state) do
-    initialize_certificate_manager()
-    {:noreply, state}
-  end
 
   ### ==========================================================================
   ### Public Functions
@@ -53,23 +32,20 @@ defmodule Foundation.Certificate do
   ### Private Functions
   ### ==========================================================================
 
-  if_not_test do
-    alias Foundation.Catalog
+  @spec initialize_certificate_manager() :: :ok
+  def initialize_certificate_manager do
+    Foundation.Catalog.applications()
+    |> Enum.each(fn
+      %{certificates: []} ->
+        :ok
 
-    defp initialize_certificate_manager do
-      Catalog.applications()
-      |> Enum.each(fn
-        %{certificates: []} ->
-          :ok
+      %{name: app_name, certificates: certificates} ->
+        Enum.each(
+          certificates,
+          &Supervisor.start_certificate_manager(app_name, &1)
+        )
+    end)
 
-        %{name: app_name, certificates: certificates} ->
-          Enum.each(
-            certificates,
-            &Supervisor.start_certificate_manager(app_name, &1)
-          )
-      end)
-    end
-  else
-    defp initialize_certificate_manager, do: :ok
+    :ok
   end
 end
