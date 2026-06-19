@@ -93,6 +93,8 @@ defmodule Deployer.Monitor.Application do
   def handle_call(:restart, _from, state) do
     Logger.warning("Restart requested for sname: #{state.sname}")
 
+    Foundation.Notifications.notify(:deployment_shutdown, %{node: node(), sname: "#{state.sname}"})
+
     # Stop current application
     Commander.stop(state.current_pid)
 

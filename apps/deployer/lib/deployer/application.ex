@@ -33,7 +33,7 @@ defmodule Deployer.Application do
         response
 
       {:error, reason} = response ->
-        Logger.error("Error Initializing Deployer Supervisor reason: #{inspect(reason)}")
+        Logger.error("Error Initializing Deployer Application reason: #{inspect(reason)}")
         response
     end
   end

@@ -123,13 +123,24 @@ defmodule Foundation.Notifications.SlackTest do
         {:deployment_started, %{node: :n@h, sname: "s-1", version: "1.0.0"}},
         {:deployment_complete, %{node: :n@h, sname: "s-1", status: :ok, message: "done"}},
         {:deployment_complete, %{node: :n@h, sname: "s-1", status: :error, message: "fail"}},
+        {:deployment_shutdown, %{node: :n@h, sname: "s-1"}},
         {:watchdog_threshold_exceeded,
+         %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95}},
+        {:watchdog_threshold_warning,
          %{
            node: :n@h,
-           sname: "s-1",
-           type: :memory,
-           current_percentage: 96,
-           restart_threshold_percent: 95
+           type: :atom,
+           current_percentage: 78,
+           warning_threshold_percent: 75,
+           action: :warning
+         }},
+        {:watchdog_threshold_warning,
+         %{
+           node: :n@h,
+           type: :atom,
+           current_percentage: 70,
+           warning_threshold_percent: 75,
+           action: :normalized
          }},
         {:certificate_renewed, %{app_name: "myapp", domains: ["example.com"]}},
         {:certificate_failed, %{app_name: "myapp", domains: ["example.com"], reason: "timeout"}}

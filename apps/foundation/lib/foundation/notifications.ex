@@ -20,9 +20,11 @@ defmodule Foundation.Notifications do
   | `:crash_restart`                 | Monitored app crashed and is being restarted               | `node`, `sname`, `name`, `language`, `crash_restart_count`                 |
   | `:deployment_started`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
   | `:deployment_complete`           | Hot-upgrade finished (success or failure)                  | `node`, `sname`, `status` (`:ok`/`:error`), `message`                      |
-  | `:watchdog_threshold_exceeded`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `sname`, `type`, `current_percentage`, `restart_threshold_percent` |
+  | `:watchdog_threshold_exceeded`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
+  | `:watchdog_threshold_warning`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `:certificate_renewed`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
   | `:certificate_failed`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
+  | `:deployment_shutdown`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
 
   ## Available adapters
 
@@ -76,31 +78,18 @@ defmodule Foundation.Notifications do
   for a step-by-step guide and a skeleton implementation.
   """
 
+  alias Foundation.Notifications.Worker
+
   @topic_prefix "deployex::notifications"
 
-  use GenServer
-
-  import Foundation.Macros
-
-  require Logger
-
   ### ==========================================================================
-  ### Callback functions
+  ### Public Functions
   ### ==========================================================================
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
-
-  @impl true
-  def init(_args) do
-    Logger.info("Initializing Notification Server")
-    {:ok, %{}, {:continue, :start_notification_manager}}
-  end
-
-  @impl true
-  def handle_continue(:start_notification_manager, state) do
-    initialize_notification_manager()
-    {:noreply, state}
+  def initialize_notification_manager do
+    :foundation
+    |> Application.fetch_env!(:notifications)
+    |> Enum.map(&to_notification_struct/1)
+    |> Enum.map(&Foundation.Notifications.Supervisor.start_notification_worker/1)
   end
 
   @doc """
@@ -132,25 +121,11 @@ defmodule Foundation.Notifications do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
+  defp to_notification_struct(%Foundation.Yaml.Notification{} = config) do
+    struct!(Worker, Map.from_struct(config))
+  end
 
-  if_not_test do
-    alias Foundation.Notifications.Worker
-
-    def initialize_notification_manager do
-      :foundation
-      |> Application.fetch_env!(:notifications)
-      |> Enum.map(&to_notification_struct/1)
-      |> Enum.map(&Foundation.Notifications.Supervisor.start_notification_worker/1)
-    end
-
-    defp to_notification_struct(%Foundation.Yaml.Notification{} = config) do
-      struct!(Worker, Map.from_struct(config))
-    end
-
-    defp to_notification_struct(config) do
-      struct!(Worker, config)
-    end
-  else
-    defp initialize_notification_manager, do: :ok
+  defp to_notification_struct(config) do
+    struct!(Worker, config)
   end
 end

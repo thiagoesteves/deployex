@@ -3,6 +3,11 @@ defmodule DeployexWeb.Application do
 
   use Application
 
+  require Logger
+
+  ### ==========================================================================
+  ### Callback Functions
+  ### ==========================================================================
   @impl true
   def start(_type, _args) do
     children = [
@@ -21,7 +26,28 @@ defmodule DeployexWeb.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: DeployexWeb.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    case Supervisor.start_link(children, opts) do
+      {:ok, _pid} = response ->
+        notify_finish_deployment()
+        response
+
+      {:error, reason} = response ->
+        Logger.error("Error Initializing DeployexWeb Application reason: #{inspect(reason)}")
+        response
+    end
+  end
+
+  ### ==========================================================================
+  ### Private Functions
+  ### ==========================================================================
+  defp notify_finish_deployment do
+    Foundation.Notifications.notify(:deployment_complete, %{
+      node: node(),
+      sname: "deployex",
+      status: :ok,
+      message: "deployment completed with success"
+    })
   end
 
   # Tell Phoenix to update the endpoint configuration

@@ -5,6 +5,12 @@ defmodule Foundation.Application do
 
   use Application
 
+  require Logger
+
+  ### ==========================================================================
+  ### Callback Functions
+  ### ==========================================================================
+
   @impl true
   def start(_type, _args) do
     children =
@@ -14,13 +20,21 @@ defmodule Foundation.Application do
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
         Foundation.Certificate,
-        Foundation.Notifications.Supervisor,
-        Foundation.Notifications
+        Foundation.Notifications.Supervisor
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Foundation.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    case Supervisor.start_link(children, opts) do
+      {:ok, _pid} = response ->
+        Foundation.Notifications.initialize_notification_manager()
+        response
+
+      {:error, reason} = response ->
+        Logger.error("Error Initializing Deployer Application reason: #{inspect(reason)}")
+        response
+    end
   end
 end

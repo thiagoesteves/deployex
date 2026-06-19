@@ -600,6 +600,7 @@ defmodule Foundation.YamlTest do
         assert :deployment_started in webhook.events
         assert :deployment_complete in webhook.events
         assert :watchdog_threshold_exceeded in webhook.events
+        assert :watchdog_threshold_warning in webhook.events
         assert :certificate_renewed in webhook.events
         assert :certificate_failed in webhook.events
       end

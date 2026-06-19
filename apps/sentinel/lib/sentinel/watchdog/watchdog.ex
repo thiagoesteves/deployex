@@ -385,7 +385,6 @@ defmodule Sentinel.Watchdog do
 
     Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
       node: node,
-      sname: sname,
       type: type,
       current_percentage: current_percentage,
       restart_threshold_percent: restart_threshold_percent
@@ -408,6 +407,14 @@ defmodule Sentinel.Watchdog do
       "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
 
+    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+      node: node,
+      type: type,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :warning
+    })
+
     # Set flag indicating that warning log was emitted
     :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: true}})
 
@@ -427,6 +434,14 @@ defmodule Sentinel.Watchdog do
     Logger.warning(
       "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
+
+    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+      node: node,
+      type: type,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :normalized
+    })
 
     # Reset warning log flag, current value was normalized
     :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: false}})
@@ -456,7 +471,6 @@ defmodule Sentinel.Watchdog do
 
     Foundation.Notifications.notify(:watchdog_threshold_exceeded, %{
       node: node,
-      sname: sname,
       type: :memory,
       current_percentage: current_percentage,
       restart_threshold_percent: restart_threshold_percent
@@ -477,6 +491,14 @@ defmodule Sentinel.Watchdog do
     Logger.warning(
       "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
     )
+
+    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+      node: node(),
+      type: :memory,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :warning
+    })
 
     # Set flag indicating that warning log was emitted
     :ets.insert(
@@ -499,6 +521,14 @@ defmodule Sentinel.Watchdog do
     Logger.warning(
       "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
     )
+
+    Foundation.Notifications.notify(:watchdog_threshold_warning, %{
+      node: node(),
+      type: :memory,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :normalized
+    })
 
     # Reset warning log flag, current value was normalized
     :ets.insert(

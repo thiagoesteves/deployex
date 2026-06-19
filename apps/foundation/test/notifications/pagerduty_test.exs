@@ -148,14 +148,26 @@ defmodule Foundation.Notifications.PagerDutyTest do
         {:deployment_complete, %{node: :n@h, sname: "s", status: :ok, message: "ok"}, "info"},
         {:deployment_complete, %{node: :n@h, sname: "s", status: :error, message: "fail"},
          "error"},
+        {:deployment_shutdown, %{node: :n@h, sname: "s"}, "warning"},
         {:watchdog_threshold_exceeded,
+         %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95},
+         "critical"},
+        {:watchdog_threshold_warning,
          %{
            node: :n@h,
-           sname: "s",
-           type: :memory,
-           current_percentage: 96,
-           restart_threshold_percent: 95
-         }, "critical"},
+           type: :atom,
+           current_percentage: 78,
+           warning_threshold_percent: 75,
+           action: :warning
+         }, "warning"},
+        {:watchdog_threshold_warning,
+         %{
+           node: :n@h,
+           type: :atom,
+           current_percentage: 70,
+           warning_threshold_percent: 75,
+           action: :normalized
+         }, "info"},
         {:certificate_renewed, %{app_name: "app", domains: ["ex.com"]}, "info"},
         {:certificate_failed, %{app_name: "app", domains: ["ex.com"], reason: "timeout"}, "error"}
       ]
