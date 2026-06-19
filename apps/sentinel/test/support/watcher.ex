@@ -241,4 +241,78 @@ defmodule Sentinel.Fixture.Watcher do
       changes_count: 4
     }
   end
+
+  def build_pending_changes_with_notifications do
+    %Changes{
+      summary: %{
+        notifications: %{
+          old: [
+            %Foundation.Yaml.Notification{
+              adapter: Foundation.Notifications.Slack,
+              url: "https://hooks.slack.com/test",
+              enabled: true,
+              events: ["crash_restart", "deployment_complete"],
+              options: %{}
+            }
+          ],
+          new: [
+            %Foundation.Yaml.Notification{
+              adapter: Foundation.Notifications.Webhook,
+              url: "https://example.com/hooks/deployex",
+              enabled: true,
+              events: ["crash_restart", "deployment_complete", "config_changed"],
+              options: %{}
+            }
+          ],
+          apply_strategy: :immediate
+        }
+      },
+      timestamp: ~U[2025-11-14 23:41:07.000464Z],
+      changes_count: 1
+    }
+  end
+
+  def build_pending_changes_with_certificates do
+    cert = %Foundation.Yaml.Certificate{
+      type: :domains,
+      domains: ["*.example.com"],
+      certificate_check_interval_ms: 86_400_000,
+      dns_propagation_timeout_ms: 120_000,
+      dns_check_interval_ms: 5000,
+      renew_before_days: 30,
+      dns_provider: :cloudflare,
+      dns_options: nil,
+      acme_provider: :lets_encrypt,
+      acme_options: nil,
+      importer: nil,
+      importer_options: nil
+    }
+
+    %Changes{
+      summary: %{
+        applications: %{
+          old: [],
+          new: [],
+          details: %{
+            "myphoenixapp" => %{
+              status: :modified,
+              changes: %{
+                certificates: %{
+                  old: [],
+                  new: [cert],
+                  details: %{
+                    domains: %{status: :added, config: cert}
+                  },
+                  apply_strategy: :immediate
+                }
+              },
+              apply_strategies: [:immediate]
+            }
+          }
+        }
+      },
+      timestamp: ~U[2025-11-14 23:41:07.000464Z],
+      changes_count: 1
+    }
+  end
 end
