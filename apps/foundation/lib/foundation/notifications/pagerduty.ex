@@ -43,6 +43,7 @@ defmodule Foundation.Notifications.PagerDuty do
   | `watchdog_threshold_exceeded` | `critical`         |
   | `watchdog_threshold_warning`  | `warning` / `info` |
   | `certificate_renewed`         | `info`             |
+  | `certificate_valid`           | `info`             |
   | `certificate_failed`          | `error`            |
   | `deployment_shutdown`         | `warning`          |
   | `config_changed`              | `warning`          |
@@ -146,6 +147,9 @@ defmodule Foundation.Notifications.PagerDuty do
   defp format_summary("certificate_renewed", payload),
     do: "certificate_renewed — #{payload.app_name} (#{Enum.join(payload.domains, ", ")})"
 
+  defp format_summary("certificate_valid", payload),
+    do: "certificate_valid — #{payload.app_name} (#{Enum.join(payload.domains, ", ")})"
+
   defp format_summary("certificate_failed", payload),
     do: "certificate_failed — #{payload.app_name}: #{payload.reason}"
 
@@ -171,6 +175,7 @@ defmodule Foundation.Notifications.PagerDuty do
   defp event_severity("watchdog_threshold_warning", %{action: :warning}), do: "warning"
   defp event_severity("watchdog_threshold_warning", %{action: :normalized}), do: "info"
   defp event_severity("certificate_renewed", _payload), do: "info"
+  defp event_severity("certificate_valid", _payload), do: "info"
   defp event_severity("certificate_failed", _payload), do: "error"
   defp event_severity("deployment_shutdown", _payload), do: "warning"
   defp event_severity("config_changed", _payload), do: "warning"

@@ -23,6 +23,7 @@ defmodule Foundation.Notifications do
   | `"watchdog_threshold_exceeded"`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
   | `"watchdog_threshold_warning"`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
+  | `"certificate_valid"`             | Periodic check found a still-valid certificate (no renewal)| `app_name`, `domains`                                                       |
   | `"certificate_failed"`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
   | `"deployment_shutdown"`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
   | `"config_changed"`                | Upgradable config change detected in the YAML file         | `node`, `changes_count`, `fields`                                           |
@@ -71,6 +72,7 @@ defmodule Foundation.Notifications do
             - "deployment_complete"
             - "watchdog_threshold_exceeded"
             - "certificate_renewed"
+            - "certificate_valid"
             - "certificate_failed"
 
   ## Adding a new adapter

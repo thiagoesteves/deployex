@@ -20,6 +20,7 @@ defmodule Foundation.Notifications.Webhook do
             - "watchdog_threshold_exceeded"
             - "watchdog_threshold_warning"
             - "certificate_renewed"
+            - "certificate_valid"
             - "certificate_failed"
             - "config_changed"
             - "config_change_applied"

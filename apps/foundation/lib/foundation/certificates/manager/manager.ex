@@ -75,12 +75,22 @@ defmodule Foundation.Certificates.Manager do
   @impl true
   def handle_continue(:check_and_renew, state) do
     case request_and_import_certificate(state) do
-      {:ok, certificate} ->
+      {:ok, :renewed, certificate} ->
+        Logger.info(
+          "Certificate renewed successfully for app: #{state.app_name}, domains: #{inspect(certificate.domains)}"
+        )
+
+        Foundation.Notifications.notify("certificate_renewed", %{
+          app_name: state.app_name,
+          domains: state.domains
+        })
+
+      {:ok, :valid, certificate} ->
         Logger.info(
           "Certificate check completed successfully for app: #{state.app_name}, domains: #{inspect(certificate.domains)}"
         )
 
-        Foundation.Notifications.notify("certificate_renewed", %{
+        Foundation.Notifications.notify("certificate_valid", %{
           app_name: state.app_name,
           domains: state.domains
         })
@@ -117,7 +127,7 @@ defmodule Foundation.Certificates.Manager do
   Generate and deploy a certificate for the given domains.
   """
   @spec request_and_import_certificate(__MODULE__.t(), boolean()) ::
-          {:ok, map()} | {:retry_after, non_neg_integer()} | {:error, any()}
+          {:ok, :renewed | :valid, map()} | {:retry_after, non_neg_integer()} | {:error, any()}
   def request_and_import_certificate(state, force_renewal \\ false) do
     Logger.info(
       "Generating certificate for app: #{state.app_name} - #{inspect(state.domains)} using strategy: #{state.acme_provider}"
@@ -129,14 +139,17 @@ defmodule Foundation.Certificates.Manager do
       {%{certificate_pem: nil}, _} ->
         Logger.info("No domain certificate exists, creating new one for #{state.app_name}")
         new_certificate = Catalog.Certificate.new(state)
-        generate_and_store_acme_certificate(state, new_certificate)
+
+        with {:ok, cert} <- generate_and_store_acme_certificate(state, new_certificate),
+             do: {:ok, :renewed, cert}
 
       {cert, true} ->
         Logger.info(
           "Certificate exists but force renewal requested, updating existing certificate"
         )
 
-        generate_and_store_acme_certificate(state, cert)
+        with {:ok, cert} <- generate_and_store_acme_certificate(state, cert),
+             do: {:ok, :renewed, cert}
 
       {cert, false} ->
         if Catalog.Certificate.valid?(cert, state.renew_before_days) do
@@ -144,10 +157,12 @@ defmodule Foundation.Certificates.Manager do
             "Using existing valid certificate for app: #{state.app_name} - #{inspect(state.domains)}"
           )
 
-          {:ok, cert}
+          {:ok, :valid, cert}
         else
           Logger.info("Certificate exists but is invalid, updating existing certificate")
-          generate_and_store_acme_certificate(state, cert)
+
+          with {:ok, cert} <- generate_and_store_acme_certificate(state, cert),
+               do: {:ok, :renewed, cert}
         end
     end
   end

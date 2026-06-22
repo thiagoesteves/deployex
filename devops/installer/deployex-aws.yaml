@@ -24,6 +24,7 @@ notifications:
       - "watchdog_threshold_exceeded"
       - "watchdog_threshold_warning"
       - "certificate_renewed"
+      - "certificate_valid"
       - "certificate_failed"
   - adapter: "slack"
     url: "https://hooks.slack.com/services/T.../B.../..."

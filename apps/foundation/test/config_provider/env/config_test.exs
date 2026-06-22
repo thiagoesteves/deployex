@@ -712,7 +712,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                      }
                    ]},
                   {:config_checksum,
-                   "720a9843958d77bb27cb019d6ac75f1afcf9d6591075f559abfd4d10b3ac7874"},
+                   "1cd424809d967082a438fe226202a0c65181a4b4bd3c42331a64a167401c3cc8"},
                   {:monitoring, []},
                   {:notifications,
                    [
@@ -727,6 +727,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                          "watchdog_threshold_exceeded",
                          "watchdog_threshold_warning",
                          "certificate_renewed",
+                         "certificate_valid",
                          "certificate_failed"
                        ],
                        options: %Foundation.Yaml.Notification.Options{}
