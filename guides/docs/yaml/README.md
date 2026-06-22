@@ -72,9 +72,16 @@ logs_retention_time_ms: 3600000                          # Logs retention: 1 hou
 # ============================================================================
 
 notifications:
-  # Webhook adapter — generic HTTP POST to any endpoint
+  # Webhook adapter — subscribe to every event using "all"
   - adapter: "webhook"                                   # Adapter: webhook, slack or pagerduty
     url: "https://example.com/hooks/deployex"            # HTTP POST destination
+    enabled: true
+    events:
+      - "all"                                            # Expands to all supported events automatically
+
+  # Webhook adapter — or list individual events
+  - adapter: "webhook"
+    url: "https://example.com/hooks/deployex-critical"
     enabled: true
     events:                                              # One or more of the supported events
       - "crash_restart"                                  # Monitored app crashed and was restarted
@@ -84,6 +91,7 @@ notifications:
       - "watchdog_threshold_exceeded"                    # Resource threshold crossed; app restarted
       - "watchdog_threshold_warning"                     # Resource crossed warning threshold (or normalized)
       - "certificate_renewed"                            # TLS certificate successfully renewed
+      - "certificate_valid"                              # Periodic check found a still-valid certificate
       - "certificate_failed"                             # TLS certificate renewal failed
       - "config_changed"                                 # Upgradable config change detected in YAML
       - "config_change_applied"                          # Pending config changes successfully applied

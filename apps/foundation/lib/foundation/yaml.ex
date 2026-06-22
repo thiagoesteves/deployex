@@ -143,7 +143,8 @@ defmodule Foundation.Yaml do
     - `:url`      — destination URL; required for `webhook` and `slack`, optional for `pagerduty`
                     (which defaults to the standard Events API endpoint)
     - `:enabled`  — set to `false` to silence a channel without removing it; defaults to `true`
-    - `:events`   — list of event atoms this channel subscribes to (empty list = no deliveries)
+    - `:events`   — list of events this channel subscribes to; use `"all"` as the sole entry to
+                    subscribe to every supported event (empty list = no deliveries)
     - `:options`  — adapter-specific key/value pairs parsed directly from the YAML `options:` map
 
     ## Adapter-specific options
@@ -562,7 +563,11 @@ defmodule Foundation.Yaml do
   )
 
   defp parse_notification_events(events) do
-    Enum.map(events, &parse_notification_event/1)
+    if "all" in events do
+      @valid_notification_events
+    else
+      Enum.map(events, &parse_notification_event/1)
+    end
   end
 
   defp parse_notification_event(event) when event in @valid_notification_events, do: event

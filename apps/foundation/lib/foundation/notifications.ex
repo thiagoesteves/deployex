@@ -40,7 +40,8 @@ defmodule Foundation.Notifications do
   ## Configuration (deployex.yaml)
 
   Multiple adapters can run in parallel.  Each entry is independent and subscribes
-  to its own subset of events.
+  to its own subset of events.  Use `"all"` as the sole event to subscribe to
+  every supported event automatically.
 
       notifications:
         - adapter: "slack"
@@ -67,13 +68,7 @@ defmodule Foundation.Notifications do
           url: "https://internal.example.com/hooks/deployex"
           enabled: true
           events:
-            - "crash_restart"
-            - "deployment_started"
-            - "deployment_complete"
-            - "watchdog_threshold_exceeded"
-            - "certificate_renewed"
-            - "certificate_valid"
-            - "certificate_failed"
+            - "all"    # subscribe to every supported event
 
   ## Adding a new adapter
 
