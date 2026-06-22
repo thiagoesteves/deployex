@@ -91,9 +91,7 @@ defmodule Foundation.Notifications do
   def initialize_notification_manager do
     :foundation
     |> Application.fetch_env!(:notifications)
-    |> Enum.each(&start_notification_manager/1)
-
-    :ok
+    |> start_notification_manager()
   end
 
   @spec stop_notification_manager() :: :ok
