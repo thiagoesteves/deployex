@@ -17,14 +17,7 @@ notifications:
     url: "https://example.com/hooks/deployex"
     enabled: true
     events:
-      - "crash_restart"
-      - "deployment_started"
-      - "deployment_complete"
-      - "deployment_shutdown"
-      - "watchdog_threshold_exceeded"
-      - "watchdog_threshold_warning"
-      - "certificate_renewed"
-      - "certificate_failed"
+      - "all"
   - adapter: "slack"
     url: "https://hooks.slack.com/services/T.../B.../..."
     enabled: true

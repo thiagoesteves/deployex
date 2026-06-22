@@ -23,6 +23,7 @@ defmodule Foundation.Notifications do
   | `"watchdog_threshold_exceeded"`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
   | `"watchdog_threshold_warning"`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
+  | `"certificate_valid"`             | Periodic check found a still-valid certificate (no renewal)| `app_name`, `domains`                                                       |
   | `"certificate_failed"`            | TLS certificate renewal failed                             | `app_name`, `domains`, `reason`                                             |
   | `"deployment_shutdown"`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
   | `"config_changed"`                | Upgradable config change detected in the YAML file         | `node`, `changes_count`, `fields`                                           |
@@ -39,7 +40,8 @@ defmodule Foundation.Notifications do
   ## Configuration (deployex.yaml)
 
   Multiple adapters can run in parallel.  Each entry is independent and subscribes
-  to its own subset of events.
+  to its own subset of events.  Use `"all"` as the sole event to subscribe to
+  every supported event automatically.
 
       notifications:
         - adapter: "slack"
@@ -66,17 +68,12 @@ defmodule Foundation.Notifications do
           url: "https://internal.example.com/hooks/deployex"
           enabled: true
           events:
-            - "crash_restart"
-            - "deployment_started"
-            - "deployment_complete"
-            - "watchdog_threshold_exceeded"
-            - "certificate_renewed"
-            - "certificate_failed"
+            - "all"    # subscribe to every supported event
 
   ## Adding a new adapter
 
   Implement `Foundation.Notifications.Adapter` and add a new clause to
-  `Foundation.Yaml.notification_adapter/1`.  See `Foundation.Notifications.Adapter`
+  `Foundation.Yaml` (private `notification_adapter/1`).  See `Foundation.Notifications.Adapter`
   for a step-by-step guide and a skeleton implementation.
   """
 
@@ -91,9 +88,7 @@ defmodule Foundation.Notifications do
   def initialize_notification_manager do
     :foundation
     |> Application.fetch_env!(:notifications)
-    |> Enum.each(&start_notification_manager/1)
-
-    :ok
+    |> start_notification_manager()
   end
 
   @spec stop_notification_manager() :: :ok
@@ -139,8 +134,14 @@ defmodule Foundation.Notifications do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
-  defp to_notification_struct(%Foundation.Yaml.Notification{} = config) do
-    struct!(Worker, Map.from_struct(config))
+  defp to_notification_struct(config) when is_struct(config) do
+    config
+    |> Map.from_struct()
+    |> Map.update(:options, %{}, fn
+      opts when is_struct(opts) -> Map.from_struct(opts)
+      opts -> opts
+    end)
+    |> then(&struct!(Worker, &1))
   end
 
   defp to_notification_struct(config) do

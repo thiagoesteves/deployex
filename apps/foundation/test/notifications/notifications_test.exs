@@ -19,20 +19,52 @@ defmodule Foundation.NotificationsTest do
           url: "https://a.example.com",
           enabled: true,
           events: ["crash_restart"],
-          options: %{}
+          options: %Foundation.Yaml.Notification.Options{}
         },
         %Foundation.Yaml.Notification{
           adapter: Webhook,
           url: "https://b.example.com",
           enabled: true,
           events: ["deployment_complete"],
-          options: %{}
+          options: %Foundation.Yaml.Notification.Options{}
         }
       ]
 
       before = DynamicSupervisor.count_children(NotifSupervisor).workers
       assert :ok = Notifications.start_notification_manager(configs)
       assert DynamicSupervisor.count_children(NotifSupervisor).workers == before + 2
+
+      Notifications.stop_notification_manager()
+    end
+
+    @tag :capture_log
+    test "converts nested Options struct to plain map in Worker" do
+      configs = [
+        %Foundation.Yaml.Notification{
+          adapter: Webhook,
+          url: "https://options.example.com",
+          enabled: true,
+          events: ["crash_restart"],
+          options: %Foundation.Yaml.Notification.Options{
+            username: "DeployEx-Bot",
+            icon_emoji: ":rocket:"
+          }
+        }
+      ]
+
+      before = DynamicSupervisor.count_children(NotifSupervisor).workers
+      assert :ok = Notifications.start_notification_manager(configs)
+      assert DynamicSupervisor.count_children(NotifSupervisor).workers == before + 1
+
+      [worker_pid | _] =
+        NotifSupervisor
+        |> DynamicSupervisor.which_children()
+        |> Enum.map(fn {_, pid, _, _} -> pid end)
+
+      %Worker{options: options} = :sys.get_state(worker_pid)
+      assert is_map(options) and not is_struct(options)
+      assert options.username == "DeployEx-Bot"
+      assert options.icon_emoji == ":rocket:"
 
       Notifications.stop_notification_manager()
     end
@@ -65,7 +97,7 @@ defmodule Foundation.NotificationsTest do
         url: "https://stop-test.example.com",
         enabled: true,
         events: ["crash_restart"],
-        options: %{}
+        options: %Foundation.Yaml.Notification.Options{}
       }
 
       Notifications.start_notification_manager([config, config])

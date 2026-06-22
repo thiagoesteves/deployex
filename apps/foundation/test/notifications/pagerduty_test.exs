@@ -184,6 +184,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
            action: :normalized
          }, "info"},
         {"certificate_renewed", %{app_name: "app", domains: ["ex.com"]}, "info"},
+        {"certificate_valid", %{app_name: "app", domains: ["ex.com"]}, "info"},
         {"certificate_failed", %{app_name: "app", domains: ["ex.com"], reason: "timeout"},
          "error"},
         {"config_changed",

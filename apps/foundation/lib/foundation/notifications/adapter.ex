@@ -7,7 +7,7 @@ defmodule Foundation.Notifications.Adapter do
   1. Create a module that `@behaviour Foundation.Notifications.Adapter`.
   2. Implement `notify/3`.  Return `:ok` on success or `{:error, reason}` on
      failure — `Foundation.Notifications.Worker` will log the error automatically.
-  3. Add a new clause to `Foundation.Yaml.notification_adapter/1` so the adapter
+  3. Add a new clause to the private `notification_adapter/1` in `Foundation.Yaml` so the adapter
      can be selected from `deployex.yaml`.
 
   ### Example skeleton
@@ -46,6 +46,7 @@ defmodule Foundation.Notifications.Adapter do
   | `"watchdog_threshold_exceeded"`| `node`, `type`, `current_percentage`, `restart_threshold_percent`                             |
   | `"watchdog_threshold_warning"` | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`        | `app_name`, `domains`                                                                         |
+  | `"certificate_valid"`          | `app_name`, `domains`                                                                         |
   | `"certificate_failed"`         | `app_name`, `domains`, `reason`                                                               |
   | `"config_changed"`             | `node`, `changes_count`, `fields`                                                             |
   | `"config_change_applied"`      | `node`, `changes_count`, `fields`                                                             |

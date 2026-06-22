@@ -20,6 +20,7 @@ defmodule Foundation.YamlTest do
   @yaml_deployex_aws_no_replica_ports "#{@file_paths}/deployex-aws-no-replica-ports.yaml"
   @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
+  @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -594,7 +595,7 @@ defmodule Foundation.YamlTest do
         assert webhook.adapter == Foundation.Notifications.Webhook
         assert webhook.url == "https://hooks.example.com/deployex"
         assert webhook.enabled == true
-        assert webhook.options == %{}
+        assert webhook.options == %Yaml.Notification.Options{}
 
         assert "crash_restart" in webhook.events
         assert "deployment_started" in webhook.events
@@ -602,6 +603,7 @@ defmodule Foundation.YamlTest do
         assert "watchdog_threshold_exceeded" in webhook.events
         assert "watchdog_threshold_warning" in webhook.events
         assert "certificate_renewed" in webhook.events
+        assert "certificate_valid" in webhook.events
         assert "certificate_failed" in webhook.events
       end
     end
@@ -618,8 +620,8 @@ defmodule Foundation.YamlTest do
         assert slack.adapter == Foundation.Notifications.Slack
         assert slack.url == "https://hooks.slack.com/services/T000/B000/XXX"
         assert slack.enabled == true
-        assert slack.options[:username] == "DeployEx-Bot"
-        assert slack.options[:icon_emoji] == ":rocket:"
+        assert slack.options.username == "DeployEx-Bot"
+        assert slack.options.icon_emoji == ":rocket:"
         assert "crash_restart" in slack.events
         assert "deployment_complete" in slack.events
       end
@@ -637,7 +639,7 @@ defmodule Foundation.YamlTest do
         assert pagerduty.adapter == Foundation.Notifications.PagerDuty
         assert pagerduty.url == nil
         assert pagerduty.enabled == true
-        assert pagerduty.options[:routing_key] == "abc123def456"
+        assert pagerduty.options.routing_key == "abc123def456"
         assert "crash_restart" in pagerduty.events
         assert "watchdog_threshold_exceeded" in pagerduty.events
       end
@@ -655,6 +657,36 @@ defmodule Foundation.YamlTest do
         assert disabled.adapter == Foundation.Notifications.Webhook
         assert disabled.enabled == false
         assert disabled.url == "https://hooks2.example.com/deployex"
+      end
+    end
+
+    test "expands \"all\" event to every supported event" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_notifications_all end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        [webhook] = config.notifications
+
+        assert %Yaml.Notification{} = webhook
+        assert webhook.adapter == Foundation.Notifications.Webhook
+
+        all_events = ~w(
+          crash_restart
+          deployment_started
+          deployment_complete
+          watchdog_threshold_exceeded
+          watchdog_threshold_warning
+          certificate_renewed
+          certificate_valid
+          certificate_failed
+          deployment_shutdown
+          config_changed
+          config_change_applied
+        )
+
+        assert Enum.sort(webhook.events) == Enum.sort(all_events)
       end
     end
 

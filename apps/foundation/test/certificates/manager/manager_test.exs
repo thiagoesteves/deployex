@@ -61,7 +61,7 @@ defmodule Foundation.Certificates.ManagerTest do
            valid?: fn ^existing, _threshold_days -> true end
          ]}
       ]) do
-        assert {:ok, ^existing} = Manager.request_and_import_certificate(base_config())
+        assert {:ok, :valid, ^existing} = Manager.request_and_import_certificate(base_config())
       end
     end
 
@@ -95,7 +95,7 @@ defmodule Foundation.Certificates.ManagerTest do
            end
          ]}
       ]) do
-        assert {:ok, _cert} = Manager.request_and_import_certificate(base_config())
+        assert {:ok, :renewed, _cert} = Manager.request_and_import_certificate(base_config())
       end
     end
 
@@ -128,7 +128,8 @@ defmodule Foundation.Certificates.ManagerTest do
            end
          ]}
       ]) do
-        assert {:ok, _cert} = Manager.request_and_import_certificate(base_config(), true)
+        assert {:ok, :renewed, _cert} =
+                 Manager.request_and_import_certificate(base_config(), true)
       end
     end
 
@@ -162,7 +163,7 @@ defmodule Foundation.Certificates.ManagerTest do
            end
          ]}
       ]) do
-        assert {:ok, _cert} = Manager.request_and_import_certificate(base_config())
+        assert {:ok, :renewed, _cert} = Manager.request_and_import_certificate(base_config())
       end
     end
 
@@ -325,6 +326,71 @@ defmodule Foundation.Certificates.ManagerTest do
 
         assert log =~ "Initializing Certificate Manager Renewal"
         assert log =~ "test_app"
+      end
+    end
+
+    @tag :capture_log
+    test "fires certificate_valid notification when existing cert is still valid" do
+      existing = valid_existing_cert()
+      test_pid = self()
+
+      with_mocks([
+        {Catalog, [],
+         [
+           certificate: fn _app -> existing end,
+           certificate_update: fn _app, c -> {:ok, c} end
+         ]},
+        {Catalog.Certificate, [],
+         [
+           valid?: fn _cert, _threshold_days -> true end
+         ]},
+        {Foundation.Notifications, [:passthrough],
+         [notify: fn event, _payload -> send(test_pid, {:notified, event}) end]}
+      ]) do
+        {:ok, pid} = Manager.start_link(base_config(certificate_check_interval_ms: 60_000))
+        assert_receive {:notified, "certificate_valid"}, 500
+        refute_received {:notified, "certificate_renewed"}
+        GenServer.stop(pid)
+      end
+    end
+
+    @tag :capture_log
+    test "fires certificate_renewed notification when a new certificate is generated" do
+      no_cert = %Certificate{certificate_pem: nil}
+      test_pid = self()
+
+      with_mocks([
+        {Catalog, [],
+         [
+           certificate: fn _app -> no_cert end,
+           certificate_update: fn _app, c -> {:ok, c} end
+         ]},
+        {Catalog.Certificate, [],
+         [
+           new: fn _state -> no_cert end,
+           metadata_from_cert_pem: fn _pem ->
+             {:ok,
+              %{
+                issuer: "TestCA",
+                valid_from: ~U[2024-01-01 00:00:00Z],
+                valid_until: ~U[2025-01-01 00:00:00Z]
+              }}
+           end,
+           split_certificate_chain: fn _pem -> {"cert_pem", "chain_pem"} end
+         ]},
+        {Network, [],
+         [
+           lookup: fn _domain_charlist, _class, _type, _options ->
+             ["_acme.example.com.", "token123"]
+           end
+         ]},
+        {Foundation.Notifications, [:passthrough],
+         [notify: fn event, _payload -> send(test_pid, {:notified, event}) end]}
+      ]) do
+        {:ok, pid} = Manager.start_link(base_config(certificate_check_interval_ms: 60_000))
+        assert_receive {:notified, "certificate_renewed"}, 500
+        refute_received {:notified, "certificate_valid"}
+        GenServer.stop(pid)
       end
     end
 
