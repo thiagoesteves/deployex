@@ -137,8 +137,14 @@ defmodule Foundation.Notifications do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
-  defp to_notification_struct(%Foundation.Yaml.Notification{} = config) do
-    struct!(Worker, Map.from_struct(config))
+  defp to_notification_struct(config) when is_struct(config) do
+    config
+    |> Map.from_struct()
+    |> Map.update(:options, %{}, fn
+      opts when is_struct(opts) -> Map.from_struct(opts)
+      opts -> opts
+    end)
+    |> then(&struct!(Worker, &1))
   end
 
   defp to_notification_struct(config) do

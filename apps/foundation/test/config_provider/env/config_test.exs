@@ -729,28 +729,31 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                          "certificate_renewed",
                          "certificate_failed"
                        ],
-                       options: %{}
+                       options: %Foundation.Yaml.Notification.Options{}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.Slack,
                        url: "https://hooks.slack.com/services/T000/B000/XXX",
                        enabled: true,
                        events: ["crash_restart", "deployment_complete"],
-                       options: %{username: "DeployEx-Bot", icon_emoji: ":rocket:"}
+                       options: %Foundation.Yaml.Notification.Options{
+                         username: "DeployEx-Bot",
+                         icon_emoji: ":rocket:"
+                       }
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.PagerDuty,
                        url: nil,
                        enabled: true,
                        events: ["crash_restart", "watchdog_threshold_exceeded"],
-                       options: %{routing_key: "abc123def456"}
+                       options: %Foundation.Yaml.Notification.Options{routing_key: "abc123def456"}
                      },
                      %Foundation.Yaml.Notification{
                        adapter: Foundation.Notifications.Webhook,
                        url: "https://hooks2.example.com/deployex",
                        enabled: false,
                        events: ["crash_restart"],
-                       options: %{}
+                       options: %Foundation.Yaml.Notification.Options{}
                      }
                    ]},
                   {:logs_retention_time_ms, 3_600_000},

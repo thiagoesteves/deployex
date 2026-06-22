@@ -594,7 +594,7 @@ defmodule Foundation.YamlTest do
         assert webhook.adapter == Foundation.Notifications.Webhook
         assert webhook.url == "https://hooks.example.com/deployex"
         assert webhook.enabled == true
-        assert webhook.options == %{}
+        assert webhook.options == %Yaml.Notification.Options{}
 
         assert "crash_restart" in webhook.events
         assert "deployment_started" in webhook.events
@@ -618,8 +618,8 @@ defmodule Foundation.YamlTest do
         assert slack.adapter == Foundation.Notifications.Slack
         assert slack.url == "https://hooks.slack.com/services/T000/B000/XXX"
         assert slack.enabled == true
-        assert slack.options[:username] == "DeployEx-Bot"
-        assert slack.options[:icon_emoji] == ":rocket:"
+        assert slack.options.username == "DeployEx-Bot"
+        assert slack.options.icon_emoji == ":rocket:"
         assert "crash_restart" in slack.events
         assert "deployment_complete" in slack.events
       end
@@ -637,7 +637,7 @@ defmodule Foundation.YamlTest do
         assert pagerduty.adapter == Foundation.Notifications.PagerDuty
         assert pagerduty.url == nil
         assert pagerduty.enabled == true
-        assert pagerduty.options[:routing_key] == "abc123def456"
+        assert pagerduty.options.routing_key == "abc123def456"
         assert "crash_restart" in pagerduty.events
         assert "watchdog_threshold_exceeded" in pagerduty.events
       end

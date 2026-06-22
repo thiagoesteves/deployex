@@ -528,7 +528,17 @@ defmodule Foundation.Yaml do
       url: data["url"],
       enabled: data["enabled"] != false,
       events: parse_notification_events(data["events"] || []),
-      options: atomize_keys(data["options"])
+      options: parse_notification_options(data["options"])
+    }
+  end
+
+  defp parse_notification_options(nil), do: %Foundation.Yaml.Notification.Options{}
+
+  defp parse_notification_options(opts) do
+    %Foundation.Yaml.Notification.Options{
+      routing_key: opts["routing_key"],
+      username: opts["username"],
+      icon_emoji: opts["icon_emoji"]
     }
   end
 
@@ -556,7 +566,4 @@ defmodule Foundation.Yaml do
 
   defp parse_notification_event(event) when event in @valid_notification_events, do: event
   defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
-
-  defp atomize_keys(nil), do: %{}
-  defp atomize_keys(map), do: Map.new(map, fn {k, v} -> {String.to_atom(k), v} end)
 end
