@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.5 ()
+
+### Backwards incompatible changes
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-235`](https://github.com/thiagoesteves/deployex/pull/235) Update library dependencies
+
 ## 0.9.4 🚀 (2026-06-22)
 
 ### Backwards incompatible changes from 0.9.3
