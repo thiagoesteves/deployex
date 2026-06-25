@@ -1,5 +1,17 @@
 # CHANGELOG (0.9.X)
 
+## Unreleased
+
+### Backwards incompatible changes
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * Bump library dependencies: phoenix 1.8.7→1.8.8, bandit 1.11.1→1.12.0, plug 1.19.2→1.20.1, finch 0.20.0→0.23.0, mint 1.7.1→1.9.0, tailwind 0.4.1→0.5.1, thousand_island 1.4.3→1.5.0, yaml_elixir 2.12.0→2.12.2, credo 1.7.14→1.7.19, ex_doc 0.39.3→0.40.3, swoosh 1.19.9→1.26.2, floki 0.38.1→0.38.4, erlexec 2.2.2→2.3.4, idna 6.1.1→7.1.0, and other transitive deps
+ * Add CLAUDE.md with project conventions, commit style, testing guide, and CI reference
+
 ## 0.9.4 🚀 (2026-06-22)
 
 ### Backwards incompatible changes from 0.9.3
