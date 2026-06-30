@@ -1,20 +1,25 @@
-name: InfraScan Audit
+name: Analysis Tools
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: Analysis tool to run
+        required: true
+        type: choice
+        options:
+          - infrascan
 
 jobs:
   infrascan:
+    if: ${{ github.event.inputs.tool == 'infrascan' }}
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Create Reports Directory
-        run: |
-          mkdir -p infrascan-reports
-          chmod 777 infrascan-reports
+        run: mkdir -p infrascan-reports
 
       - name: Run InfraScan
         uses: soldevelo/infrascan@v1.0.9
@@ -22,10 +27,10 @@ jobs:
           scanner: comprehensive
           format: html
           out: infrascan-reports/report.html
-            
+
       - name: Upload InfraScan Report
+        if: always()
         uses: actions/upload-artifact@v4
-        if: always() # Upload report even if the scan step fails
         with:
           name: infrascan-report
           path: infrascan-reports/report.html
