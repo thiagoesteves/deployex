@@ -38,3 +38,9 @@ variable "ec2_instance_type" {
   type        = string
   nullable    = false
 }
+
+variable "log_retention_in_days" {
+  description = "Number of days CloudWatch log groups are retained before deletion"
+  type        = number
+  default     = 30
+}

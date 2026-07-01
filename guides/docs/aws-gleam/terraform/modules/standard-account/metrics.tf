@@ -3,7 +3,8 @@
 #
 
 resource "aws_cloudwatch_log_group" "ec2_instance_logs" {
-  name = "myappname-${var.account_name}-ec2-instance-logs"
+  name              = "myappname-${var.account_name}-ec2-instance-logs"
+  retention_in_days = var.log_retention_in_days
 }
 
 resource "aws_iam_policy" "ec2_cloudwatch_policy" {
