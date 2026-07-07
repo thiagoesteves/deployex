@@ -166,8 +166,11 @@ defmodule Deployer.Engine.Worker do
           |> Status.current_version_map()
           |> Status.add_ghosted_version()
 
-        # Return deployment to the current one
-        deployments = Map.put(deployments, state.current, deployment_to_terminate)
+        # Return deployment to the current one. When the rollback timer was
+        # armed by the initial boot there is no previous deployment to return
+        # to, so reset the instance to an empty deployment
+        deployments =
+          Map.put(deployments, state.current, deployment_to_terminate || %Engine.Deployment{})
 
         %{
           state

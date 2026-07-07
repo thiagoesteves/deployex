@@ -948,6 +948,67 @@ defmodule Deployer.EngineTest do
     end
 
     @tag :capture_log
+    test "Rollback after timeout on initial boot keeps the engine alive" do
+      # When the engine initializes with an installed application, the rollback
+      # timer is armed without a previous deployment to terminate. If the
+      # application never reports running, the rollback must reset the instance
+      # to an empty deployment instead of corrupting the state.
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(sname)
+      version_to_ghost = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> version_to_ghost end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version_to_ghost}]
+      end)
+      |> expect(:current_version_map, 1, fn _sname ->
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
+      end)
+      |> expect(:add_ghosted_version, 1, fn version_map -> {:ok, [version_map]} end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} -> {:ok, self()} end)
+      |> expect(:stop_service, fn _name, ^sname ->
+        send(pid, {:handle_ref_event, ref})
+        :ok
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version_to_ghost, hash: "local", pre_commands: []}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 100,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        # Let the engine run a few schedule cycles after the rollback
+        :timer.sleep(300)
+
+        assert Process.alive?(worker_pid)
+
+        state = :sys.get_state(String.to_atom(name))
+        assert %Deployer.Engine.Deployment{sname: nil} = state.deployments[1]
+        assert Enum.any?(state.ghosted_version_list, &(&1.version == version_to_ghost))
+      end
+    end
+
+    @tag :capture_log
     test "Invalid rollback message" do
       name = "myelixir"
       language = "elixir"
