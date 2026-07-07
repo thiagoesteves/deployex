@@ -40,3 +40,6 @@ erl_crash.dump
 
 # Ignore override config settings
 config/*.override.exs
+
+# Override global gitignore — track CLAUDE.md in this repo
+!AGENTS.md
