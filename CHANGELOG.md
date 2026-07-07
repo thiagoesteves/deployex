@@ -11,6 +11,7 @@
 ### Enhancements
  * [`PULL-235`](https://github.com/thiagoesteves/deployex/pull/235) Update library dependencies
  * [`PULL-238`](https://github.com/thiagoesteves/deployex/pull/238) Updated observer web and packages
+ * [`PULL-243`](https://github.com/thiagoesteves/deployex/pull/243) Adding agents.md file for tracking
 
 ## 0.9.4 🚀 (2026-06-22)
 
