@@ -2,7 +2,7 @@
 
 ## 0.9.5 ()
 
-### Backwards incompatible changes
+### Backwards incompatible changes from 0.9.4
  * None
 
 ### Bug fixes
