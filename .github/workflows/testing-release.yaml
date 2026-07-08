@@ -8,17 +8,19 @@ on:
 env:
   MIX_ENV: prod
   SHELL: /usr/bin/bash
-  UBUNTU_2404_OTP_27_NAME: deployex-ubuntu-24.04-otp-27.tar.gz
-  UBUNTU_2404_OTP_28_NAME: deployex-ubuntu-24.04-otp-28.tar.gz
 
 jobs:
-  buildUbuntu2404Otp27:
+  build:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-    outputs:
-      sha: ${{ steps.checksum.outputs.sha }}
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: [27, 28]
+    env:
+      ARTIFACT_NAME: deployex-ubuntu-24.04-otp-${{ matrix.otp }}.tar.gz
     steps:
       - uses: actions/checkout@v7
 
@@ -26,7 +28,7 @@ jobs:
         run: sudo apt-get install libcap-dev -y
 
       - name: Copy .tool-versions
-        run: cp devops/releases/otp-27/.tool-versions .
+        run: cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
 
       - name: Setup BEAM
         uses: erlef/setup-beam@v1
@@ -44,166 +46,60 @@ jobs:
         run: mix release
 
       - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_27_NAME }}
+        run: mv _build/prod/*.tar.gz ${{ env.ARTIFACT_NAME }}
+
+      - name: Calculate checksum
+        run: sha256sum ${{ env.ARTIFACT_NAME }} > ${{ env.ARTIFACT_NAME }}.sha256
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          path: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-
-      - name: Calculate checksum
-        id: checksum
-        run: |
-          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_27_NAME }} | awk '{print $1}')
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-
-  buildUbuntu2404Otp28:
-    if: github.event.base_ref != 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    outputs:
-      sha: ${{ steps.checksum.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install libcap-dev [recommended by erlexec]
-        run: sudo apt-get install libcap-dev -y
-
-      - name: Copy .tool-versions
-        run: cp devops/releases/otp-28/.tool-versions .
-
-      - name: Setup BEAM
-        uses: erlef/setup-beam@v1
-        with:
-          version-file: .tool-versions
-          version-type: strict
-
-      - name: Install Elixir dependencies
-        run: mix do deps.get + compile --warnings-as-errors
-
-      - name: Assets Deploy
-        run: mix assets.deploy
-
-      - name: Compile and Generate a Release
-        run: mix release
-
-      - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz ${{ env.UBUNTU_2404_OTP_28_NAME }}
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          path: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-
-      - name: Calculate checksum
-        id: checksum
-        run: |
-          SHA=$(sha256sum ${{ env.UBUNTU_2404_OTP_28_NAME }} | awk '{print $1}')
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.ARTIFACT_NAME }}
+            ${{ env.ARTIFACT_NAME }}.sha256
 
   copyInstaller:
     if: github.event.base_ref != 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-    outputs:
-      sha: ${{ steps.checksum.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Prepare installer and checksum
+        run: |
+          cp devops/installer/deployex.sh .
+          sha256sum deployex.sh > deployex.sh.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: deployex.sh
-          path: devops/installer/deployex.sh
-
-      - name: Calculate checksum
-        id: checksum
-        run: |
-          SHA=$(sha256sum devops/installer/deployex.sh | awk '{print $1}')
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
-
-  checksum:
-    if: github.event.base_ref != 'refs/heads/main'
-    name: Calculate and save checksum file
-    needs: [buildUbuntu2404Otp27, buildUbuntu2404Otp28, copyInstaller]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Create checksums file
-        run: |
-          cat << EOF > checksum.txt
-          ${{ needs.buildUbuntu2404Otp27.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          ${{ needs.buildUbuntu2404Otp28.outputs.sha }}  ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          ${{ needs.copyInstaller.outputs.sha }}  deployex.sh
-          EOF
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: checksum.txt
-          path: checksum.txt
+          path: |
+            deployex.sh
+            deployex.sh.sha256
 
   upload_aws:
     if: github.event.base_ref != 'refs/heads/main'
     name: Upload files to AWS environment
-    needs: checksum
+    needs: [build, copyInstaller]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - name: Download ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
+      - name: Download all artefacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.UBUNTU_2404_OTP_27_NAME }}
+          merge-multiple: true
 
-      - name: Upload ${{ env.UBUNTU_2404_OTP_27_NAME }} artefact
-        uses: prewk/s3-cp-action@v2
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: "sa-east-1"
-          source: ${{ env.UBUNTU_2404_OTP_27_NAME }}
-          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+      - name: Create checksums file
+        run: cat *.sha256 > checksum.txt
 
-      - name: Download ${{ env.UBUNTU_2404_OTP_28_NAME }} artefact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-
-      - name: Upload ${{ env.UBUNTU_2404_OTP_28_NAME }} artefact
-        uses: prewk/s3-cp-action@v2
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: "sa-east-1"
-          source: ${{ env.UBUNTU_2404_OTP_28_NAME }}
-          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
-
-      - name: Download installer artefact
-        uses: actions/download-artifact@v4
-        with:
-          name: deployex.sh
-
-      - name: Upload installer artefact
-        uses: prewk/s3-cp-action@v2
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: "sa-east-1"
-          source: deployex.sh
-          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
-
-      - name: Download checksum artefact
-        uses: actions/download-artifact@v4
-        with:
-          name: checksum.txt
-
-      - name: Upload checksum artefact
-        uses: prewk/s3-cp-action@v2
-        with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws_region: "sa-east-1"
-          source: checksum.txt
-          dest: "s3://${{ secrets.CLOUD_TEST_STORAGE}}"
+      - name: Upload artefacts to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: sa-east-1
+        run: |
+          for file in deployex-ubuntu-24.04-otp-*.tar.gz deployex.sh checksum.txt; do
+            aws s3 cp "$file" "s3://${{ secrets.CLOUD_TEST_STORAGE }}"
+          done
