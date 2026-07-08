@@ -2,14 +2,18 @@
 
 ## 0.9.5 ()
 
-### Backwards incompatible changes
+### Backwards incompatible changes from 0.9.4
  * None
 
 ### Bug fixes
- * None
+ * [`PULL-239`](https://github.com/thiagoesteves/deployex/pull/239) Fix engine state corruption on rollback timeout during initial boot
+ * [`PULL-240`](https://github.com/thiagoesteves/deployex/pull/240) Fix read-after-write race in the web cache
+ * [`PULL-241`](https://github.com/thiagoesteves/deployex/pull/241) Fix stderr log streaming from monitored applications
+ * [`PULL-242`](https://github.com/thiagoesteves/deployex/pull/242) Make the engine worker resilient to restarts while monitors are running
 
 ### Enhancements
  * [`PULL-235`](https://github.com/thiagoesteves/deployex/pull/235) Update library dependencies
+ * [`PULL-237`](https://github.com/thiagoesteves/deployex/pull/237) Add CloudWatch log group retention policy (terraform)
  * [`PULL-238`](https://github.com/thiagoesteves/deployex/pull/238) Updated observer web and packages
  * [`PULL-243`](https://github.com/thiagoesteves/deployex/pull/243) Adding agents.md file for tracking
 
