@@ -137,6 +137,100 @@ defmodule Deployer.EngineTest do
     end
   end
 
+  describe "Engine worker restart resilience" do
+    @tag :capture_log
+    test "Initialization tolerates an already running monitor service" do
+      # Monitors live in a separate supervision tree, so when the engine
+      # worker is restarted by its supervisor the monitor for the installed
+      # application may still be running
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} ->
+        send(pid, {:handle_ref_event, ref})
+        {:error, {:already_started, self()}}
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version, hash: "local", pre_commands: []}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        # Let the engine run a few schedule cycles after initialization
+        :timer.sleep(300)
+
+        assert Process.alive?(worker_pid)
+
+        state = :sys.get_state(String.to_atom(name))
+        assert %Deployer.Engine.Deployment{sname: ^sname, state: :active} = state.deployments[1]
+      end
+    end
+
+    @tag :capture_log
+    test "Application running notification before the rollback timer is armed" do
+      # A monitor that survived an engine worker restart can report the
+      # application running before the engine arms any rollback timer
+      name = "myelixir"
+      language = "elixir"
+
+      sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 60_000,
+                   name: name,
+                   language: language
+                 })
+
+        # No schedule cycle has run yet, so no rollback timer is armed
+        Engine.notify_application_running(sname)
+
+        state = :sys.get_state(String.to_atom(name))
+
+        assert Process.alive?(worker_pid)
+        assert state.current == 1
+      end
+    end
+  end
+
   describe "Checking deployment" do
     @tag :capture_log
     test "Check for new version - full deployment - no pre-commands" do

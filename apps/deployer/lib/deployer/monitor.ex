@@ -47,7 +47,7 @@ defmodule Deployer.Monitor do
   """
   @impl true
   @spec start_service(service :: Monitor.Service.t()) ::
-          {:ok, pid} | {:error, pid(), :already_started}
+          {:ok, pid()} | {:error, {:already_started, pid()} | any()}
   def start_service(%Monitor.Service{} = service) do
     default().start_service(service)
   end

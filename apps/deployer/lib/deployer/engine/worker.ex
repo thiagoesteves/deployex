@@ -287,7 +287,9 @@ defmodule Deployer.Engine.Worker do
 
     state =
       if sname == current_deployment.sname do
-        Process.cancel_timer(current_deployment.timer_ref)
+        # NOTE: The rollback timer may not be armed, e.g. when the monitor
+        #       reports running right after an engine worker restart
+        if current_deployment.timer_ref, do: Process.cancel_timer(current_deployment.timer_ref)
 
         Foundation.Notifications.notify("deployment_complete", %{
           node: node(),
@@ -429,18 +431,31 @@ defmodule Deployer.Engine.Worker do
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
-      {:ok, _} =
-        Monitor.start_service(%Monitor.Service{
-          name: name,
-          sname: sname,
-          language: language,
-          ports: ports,
-          env: env
-        })
+      start_monitor_service!(%Monitor.Service{
+        name: name,
+        sname: sname,
+        language: language,
+        ports: ports,
+        env: env
+      })
 
       set_timeout_to_rollback(state, sname, ports)
     else
       state
+    end
+  end
+
+  # NOTE: The monitor may already be running when the engine worker is
+  #       restarted by its supervisor, since monitors live in a separate
+  #       supervision tree.
+  defp start_monitor_service!(%Monitor.Service{} = service) do
+    case Monitor.start_service(service) do
+      {:ok, _pid} ->
+        :ok
+
+      {:error, {:already_started, _pid}} ->
+        Logger.warning("Monitor for sname: #{service.sname} is already running")
+        :ok
     end
   end
 
@@ -579,14 +594,13 @@ defmodule Deployer.Engine.Worker do
 
       Status.set_current_version_map(new_sname, release, deployment: :full_deployment)
 
-      {:ok, _} =
-        Monitor.start_service(%Monitor.Service{
-          name: name,
-          sname: new_sname,
-          language: language,
-          ports: available_ports,
-          env: env
-        })
+      start_monitor_service!(%Monitor.Service{
+        name: name,
+        sname: new_sname,
+        language: language,
+        ports: available_ports,
+        env: env
+      })
     end)
 
     state
