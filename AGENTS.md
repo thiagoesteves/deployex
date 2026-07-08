@@ -263,10 +263,28 @@ Hot upgrade testing has its own workflow: `.github/workflows/hot_upgrade.yaml`.
 
 ---
 
+## Changelog Maintenance
+
+`CHANGELOG.md` is maintained manually.
+After a PR is merged, add an entry for it to the top (unreleased) version section, e.g. `## 0.9.5 ()`.
+
+Rules:
+
+- Place the entry under the matching category: `### Bug fixes`, `### Enhancements`, or `### Backwards incompatible changes`
+- Entry format (one line, PR title as the description):
+  `* [`PULL-NNN`](https://github.com/thiagoesteves/deployex/pull/NNN) <PR title>`
+- For issues, use `ISSUE-NNN` with the `/issues/NNN` URL instead
+- Keep entries sorted by ascending PR number within each category
+- Replace the `* None` placeholder when adding the first entry to a category; keep `* None` in empty categories
+- Backwards incompatible changes also describe the required operator steps (installer commands, hotupgrade caveats), see the `0.9.2` and `0.9.0` sections for examples
+- The release date and rocket emoji are added to the heading only when the version ships: `## 0.9.4 🚀 (2026-06-22)`, unreleased versions keep an empty date: `## 0.9.5 ()`
+
+---
+
 ## Guides and Documentation
 
 - `guides/docs/` - deployment guides per cloud/language (AWS-Elixir, GCP-Elixir, Local-Erlang, etc.)
 - `guides/docs/hot-upgrades/` - hot upgrade documentation
 - `guides/docs/yaml/` - YAML configuration reference
-- `CHANGELOG.md` - version history (do not edit manually)
+- `CHANGELOG.md` - version history, updated manually per merged PR (see "Changelog Maintenance")
 - Docs are generated with `mix docs` and published into `apps/deployex_web/priv/static/docs/`
