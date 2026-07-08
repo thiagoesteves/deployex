@@ -16,6 +16,8 @@
  * [`PULL-237`](https://github.com/thiagoesteves/deployex/pull/237) Add CloudWatch log group retention policy (terraform)
  * [`PULL-238`](https://github.com/thiagoesteves/deployex/pull/238) Updated observer web and packages
  * [`PULL-243`](https://github.com/thiagoesteves/deployex/pull/243) Adding agents.md file for tracking
+ * [`PULL-245`](https://github.com/thiagoesteves/deployex/pull/245) Update actions/checkout from v5 to v7 in all workflows
+ * [`PULL-246`](https://github.com/thiagoesteves/deployex/pull/246) Parametrize release workflows with an OTP matrix
 
 ## 0.9.4 🚀 (2026-06-22)
 
