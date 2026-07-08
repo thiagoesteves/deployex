@@ -22,9 +22,9 @@ defmodule DeployexWeb.Cache do
   end
 
   @impl true
-  def handle_cast({:update_data, key, data}, state) do
+  def handle_call({:update_data, key, data}, _from, state) do
     :ets.insert(@table_name, {key, data})
-    {:noreply, state}
+    {:reply, :ok, state}
   end
 
   ### ==========================================================================
@@ -40,7 +40,9 @@ defmodule DeployexWeb.Cache do
     end
   end
 
+  # NOTE: The write is a synchronous call so that a subsequent get/1 is
+  #       guaranteed to observe it, get/1 reads the ETS table directly.
   def set(key, data) do
-    GenServer.cast(__MODULE__, {:update_data, key, data})
+    GenServer.call(__MODULE__, {:update_data, key, data})
   end
 end
