@@ -330,7 +330,10 @@ defmodule Sentinel.Logs.Server do
     create_terminal = fn log_type ->
       path = log_path(sname, log_type)
       commands = "tail -F -n 0 #{path}"
-      options = [:"#{log_type}"]
+      # NOTE: tail always writes the file content to its own stdout, regardless
+      #       of which log file is being followed, so the terminal must always
+      #       capture :stdout. The log type is carried by the metadata.
+      options = [:stdout]
 
       Terminal.new(%Terminal{
         # node: node,

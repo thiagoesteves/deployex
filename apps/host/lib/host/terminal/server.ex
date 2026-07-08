@@ -113,8 +113,8 @@ defmodule Host.Terminal.Server do
     {:stop, :normal, state}
   end
 
-  def handle_info({:stdout, os_process, message}, %{process: process} = state)
-      when os_process == process do
+  def handle_info({stream, os_process, message}, %{process: process} = state)
+      when stream in [:stdout, :stderr] and os_process == process do
     state = %{state | msg_sequence: state.msg_sequence + 1, message: message}
 
     notify_target(state)

@@ -235,6 +235,25 @@ defmodule Sentinel.Logs.ServerTest do
                    1_000
   end
 
+  test "Log terminals always capture the tail output from stdout", %{pid: pid} do
+    test_pid = self()
+    new_sname = Catalog.create_sname("myelixir")
+    Catalog.setup_new_node(new_sname)
+
+    # NOTE: tail writes the content of the followed file to its own stdout,
+    #       so both the stdout and the stderr log terminals must capture :stdout
+    with_mock Terminal,
+      new: fn %Terminal{options: options, metadata: %{type: type}} ->
+        send(test_pid, {:terminal_created, type, options})
+        :ok
+      end do
+      send(pid, {:new_deploy, Node.self(), new_sname})
+
+      assert_receive {:terminal_created, "stdout", [:stdout]}, 1_000
+      assert_receive {:terminal_created, "stderr", [:stdout]}, 1_000
+    end
+  end
+
   test "Check no Terminal is created if there is no log file", %{
     fake_sname: fake_sname,
     sname: sname,
