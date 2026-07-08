@@ -281,6 +281,21 @@ Rules:
 
 ---
 
+## Release Preparation
+
+To prepare a release, open a single "prepare release" PR that applies all of the following:
+
+1. `mix/shared.exs`: set the final version, without the `-rcN` suffix (e.g. `"0.9.5-rc1"` -> `"0.9.5"`)
+2. `README.md`: in the version compatibility table, remove the `:soon:` marker from the released version row and make sure the OTP columns match the Erlang versions pinned in `devops/releases/otp-*/.tool-versions`
+3. `devops/installer/deployex-aws.yaml` and `devops/installer/deployex-gcp.yaml`: set `version:` to the released version
+4. `guides/docs/yaml/README.md`: set the `version:` field in the YAML example to the released version
+5. `CHANGELOG.md`: add the release date to the version heading in the format `## X.Y.Z 🚀 (YYYY-MM-DD)`
+6. Run `mix docs` to regenerate the published documentation (commits the updated `apps/deployex_web/priv/static/docs/docs.tar.gz`)
+
+After the PR is merged, pushing the version tag from main triggers `.github/workflows/releases.yaml` to build and publish the release artifacts.
+
+---
+
 ## Guides and Documentation
 
 - `guides/docs/` - deployment guides per cloud/language (AWS-Elixir, GCP-Elixir, Local-Erlang, etc.)
