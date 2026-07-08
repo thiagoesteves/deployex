@@ -20,7 +20,7 @@ jobs:
     outputs:
       sha: ${{ steps.checksum.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install libcap-dev [recommended by erlexec]
         run: sudo apt-get install libcap-dev -y
@@ -65,7 +65,7 @@ jobs:
     outputs:
       sha: ${{ steps.checksum.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install libcap-dev [recommended by erlexec]
         run: sudo apt-get install libcap-dev -y
@@ -110,7 +110,7 @@ jobs:
     outputs:
       sha: ${{ steps.checksum.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Calculate checksum
         id: checksum
@@ -131,7 +131,7 @@ jobs:
     outputs:
       sha: ${{ steps.checksum.outputs.sha }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: actions/upload-artifact@v4
         with:
