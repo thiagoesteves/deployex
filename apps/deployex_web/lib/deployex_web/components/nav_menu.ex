@@ -155,7 +155,7 @@ defmodule DeployexWeb.Components.NavMenu do
       <!-- Minimal Logo -->
       <div class="flex-shrink-0">
         <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-          <.icon name="hero-cube" class="w-6 h-6 text-primary" />
+          <img src="/images/logo.svg" alt="DeployEx" class="w-6 h-6" />
         </div>
       </div>
       <!-- Brand Text - Only show when expanded -->
