@@ -28,7 +28,12 @@ defmodule Deployex.MixProject do
             host: :permanent,
             deployer: :permanent,
             sentinel: :permanent,
-            deployex_web: :permanent
+            deployex_web: :permanent,
+            # Required by Observer Web: :observer ships the crashdump_viewer parser
+            # and :mnesia enables the Mnesia table browser on this node. Load-only,
+            # neither is started at boot.
+            mnesia: :load,
+            observer: :load
           ],
           config_providers: [
             {Foundation.ConfigProvider.Env.Config, nil},
