@@ -45,7 +45,7 @@ defmodule DeployexWeb.Components.NavMenu do
       id: "observer",
       path: "/embedded-observer",
       label: "Observer Web",
-      icon: "hero-chart-bar",
+      icon: "observer-web-logo",
       color: "info",
       description: "System monitoring"
     },
@@ -155,7 +155,7 @@ defmodule DeployexWeb.Components.NavMenu do
       <!-- Minimal Logo -->
       <div class="flex-shrink-0">
         <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-          <.icon name="hero-cube" class="w-6 h-6 text-primary" />
+          <img src="/images/logo.svg" alt="DeployEx" class="w-6 h-6" />
         </div>
       </div>
       <!-- Brand Text - Only show when expanded -->
@@ -189,7 +189,7 @@ defmodule DeployexWeb.Components.NavMenu do
     >
       <!-- Icon -->
       <div class="flex-shrink-0">
-        <.icon
+        <.nav_icon
           name={@item.icon}
           class={
             "w-5 h-5 transition-colors duration-150 " <>
@@ -217,6 +217,57 @@ defmodule DeployexWeb.Components.NavMenu do
         <div class="w-2 h-2 bg-error rounded-full"></div>
       </div> --%>
     </a>
+    """
+  end
+
+  # Navigation icon - supports heroicons and custom brand logos
+  #
+  # The "observer-web-logo" is the Supervision Lens logo from the Observer Web
+  # project (Observer.Web.Components.Icons), kept in sync manually.
+  defp nav_icon(%{name: "observer-web-logo"} = assigns) do
+    ~H"""
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class={@class}
+    >
+      <defs>
+        <linearGradient id="dx-ow-logo-gradient" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#2563eb" />
+          <stop offset="1" stop-color="#06b6d4" />
+        </linearGradient>
+      </defs>
+      <circle cx="10.5" cy="10.5" r="7.5" /><line
+        x1="16.2"
+        y1="16.2"
+        x2="21"
+        y2="21"
+        stroke-width="2.4"
+      /><line x1="10.5" y1="8" x2="7.2" y2="13" /><line x1="10.5" y1="8" x2="13.8" y2="13" /><circle
+        cx="10.5"
+        cy="7.6"
+        r="1.7"
+        fill="url(#dx-ow-logo-gradient)"
+        stroke="none"
+      /><circle cx="7.0" cy="13.4" r="1.4" fill="currentColor" stroke="none" /><circle
+        cx="14.0"
+        cy="13.4"
+        r="1.4"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+    """
+  end
+
+  defp nav_icon(assigns) do
+    ~H"""
+    <.icon name={@name} class={@class} />
     """
   end
 

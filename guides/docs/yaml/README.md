@@ -52,7 +52,7 @@ aws_region: "sa-east-1"                                  # AWS region (only for 
 google_credentials: "/home/ubuntu/gcp-config.json"       # Google credentials (only for GCP)
 
 # System Configuration
-version: "0.9.5"                                         # DeployEx version
+version: "0.9.6"                                         # DeployEx version
 otp_version: 28                                          # OTP version (must match monitored apps)
 os_target: "ubuntu-24.04"                                # Target OS server
 

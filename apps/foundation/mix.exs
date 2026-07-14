@@ -21,7 +21,11 @@ defmodule Foundation.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      # Required by Observer Web: :observer ships the crashdump_viewer parser
+      # and :mnesia enables the Mnesia table browser on this node. Both are
+      # started at boot; :observer has no supervision tree, and :mnesia runs
+      # with an empty ram-only schema until tables are created.
+      extra_applications: [:logger, :observer, :mnesia],
       mod: {Foundation.Application, []}
     ]
   end

@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.6 🚀 (2026-07-14)
+
+### Backwards incompatible changes from 0.9.5
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-249`](https://github.com/thiagoesteves/deployex/pull/249) Update Observer Web to 0.2.6 with its new logo in the nav menu, loading `:observer` and `:mnesia` to enable the crashdump viewer and Mnesia table browser
+
 ## 0.9.5 🚀 (2026-07-08)
 
 ### Backwards incompatible changes from 0.9.4
