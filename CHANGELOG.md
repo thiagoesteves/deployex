@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.7 🚀 (2026-07-14)
+
+### Backwards incompatible changes from 0.9.6
+ * None - version `0.9.7` supports hot upgrade from `0.9.6`
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * [`PULL-250`](https://github.com/thiagoesteves/deployex/pull/250) FUpdating ObserverWeb and adding new disclosure component
+
 ## 0.9.6 🚀 (2026-07-14)
 
 ### Backwards incompatible changes from 0.9.5
