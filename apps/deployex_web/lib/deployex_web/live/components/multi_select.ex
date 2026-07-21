@@ -49,8 +49,8 @@ defmodule DeployexWeb.Components.MultiSelect do
           <% end %>
         <% end %>
       </div>
-      
-    <!-- Toggle Button -->
+
+      <!-- Toggle Button -->
       <div class="flex justify-center mb-4">
         <button
           id={Helper.normalize_id("#{@id}-toggle-options")}
@@ -78,8 +78,8 @@ defmodule DeployexWeb.Components.MultiSelect do
           {if @show_options, do: "Hide Options", else: "Show Options"}
         </button>
       </div>
-      
-    <!-- Available Options -->
+
+      <!-- Available Options -->
       <div :if={@show_options} class="collapse collapse-open bg-base-200 rounded-lg">
         <div
           class="collapse-content p-4"

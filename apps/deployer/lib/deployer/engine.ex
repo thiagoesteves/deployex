@@ -1,8 +1,6 @@
 defmodule Deployer.Engine do
   @moduledoc false
 
-  require Logger
-
   alias Deployer.Engine
   alias Deployer.Status
   alias Foundation.Catalog

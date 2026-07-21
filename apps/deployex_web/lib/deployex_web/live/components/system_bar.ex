@@ -103,8 +103,7 @@ defmodule DeployexWeb.Components.SystemBar do
                 <span class="text-xs text-base-content/60">{@memory_max}G Total</span>
               </div>
               <div class="flex items-center gap-2">
-                <progress class="progress progress-info w-20 h-2" value={@memory_used} max="100">
-                </progress>
+                <progress class="progress progress-info w-20 h-2" value={@memory_used} max="100"></progress>
                 <span class="text-sm font-bold text-info min-w-[3rem] text-right">
                   {@memory_used}%
                 </span>
@@ -117,8 +116,7 @@ defmodule DeployexWeb.Components.SystemBar do
                 <span class="text-xs text-base-content/60">{@cpus_max}% Max</span>
               </div>
               <div class="flex items-center gap-2">
-                <progress class="progress progress-warning w-20 h-2" value={@cpus_used} max="100">
-                </progress>
+                <progress class="progress progress-warning w-20 h-2" value={@cpus_used} max="100"></progress>
                 <span class="text-sm font-bold text-warning min-w-[3rem] text-right">{@cpu}%</span>
               </div>
             </div>
