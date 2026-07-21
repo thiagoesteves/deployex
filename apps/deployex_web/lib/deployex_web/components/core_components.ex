@@ -600,6 +600,50 @@ defmodule DeployexWeb.CoreComponents do
   end
 
   @doc ~S"""
+  Renders a disclosure row: a single truncated line preceded by a triangle marker that is
+  filled when there is more content to expand and hollow (and non-interactive) when the line
+  is all there is - so a list of rows reads at a glance which entries hide detail.
+
+  ## Examples
+
+      <.disclosure id="log-entry-1" expandable?={expandable_content?(entry.content)} title={entry.content}>
+        <:summary>{entry.content}</:summary>
+        <p>{entry.content}</p>
+      </.disclosure>
+  """
+  attr :id, :string, required: true
+  attr :expandable?, :boolean, default: true
+  attr :summary_class, :any, default: nil
+  attr :title, :string, default: nil
+
+  slot :summary, required: true
+  slot :inner_block
+
+  def disclosure(assigns) do
+    ~H"""
+    <div :if={not @expandable?} id={@id} class="flex items-start gap-1">
+      <span class="shrink-0 w-4 text-center select-none text-base-content/30">▷</span>
+      <span class={["min-w-0 flex-1 truncate", @summary_class]} title={@title}>
+        {render_slot(@summary)}
+      </span>
+    </div>
+    <details :if={@expandable?} id={@id} class="group">
+      <summary class="flex items-start gap-1 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <span class="shrink-0 w-4 text-center select-none inline-block transition-transform group-open:rotate-90">
+          ▶
+        </span>
+        <span class={["min-w-0 flex-1 truncate", @summary_class]} title={@title}>
+          {render_slot(@summary)}
+        </span>
+      </summary>
+      <div class="pl-5">
+        {render_slot(@inner_block)}
+      </div>
+    </details>
+    """
+  end
+
+  @doc ~S"""
   Renders a modern history logs table with DaisyUI styling and timestamp.
   """
   attr :id, :string, required: true
@@ -702,20 +746,20 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td class="font-mono text-xs text-base-content/90 max-w-md">
-              <details>
-                <summary class="cursor-pointer truncate">
+              <.disclosure
+                id={"history-log-content-#{log_message.id}"}
+                expandable?={expandable_content?(log_message.content)}
+                title={log_message.content}
+              >
+                <:summary>{log_message.content}</:summary>
+                <div class="mt-2 flex items-center justify-between gap-2 break-words">
                   {log_message.content}
-                </summary>
-                <div class="mt-5 break-words">
-                  <div class="flex gap-2">
-                    {log_message.content}
-                    <.copy_to_clipboard
-                      id={"c2c-modern-logs-table-#{Foundation.Common.uuid4()}"}
-                      message={log_message.content}
-                    />
-                  </div>
+                  <.copy_to_clipboard
+                    id={"c2c-modern-logs-table-#{log_message.id}"}
+                    message={log_message.content}
+                  />
                 </div>
-              </details>
+              </.disclosure>
             </td>
           </tr>
         </tbody>
@@ -818,20 +862,20 @@ defmodule DeployexWeb.CoreComponents do
               </div>
             </td>
             <td class="font-mono text-xs text-base-content/90 max-w-md">
-              <details>
-                <summary class="cursor-pointer truncate">
+              <.disclosure
+                id={"logs-live-content-#{log_message.id}"}
+                expandable?={expandable_content?(log_message.content)}
+                title={log_message.content}
+              >
+                <:summary>{log_message.content}</:summary>
+                <div class="mt-2 flex items-center justify-between gap-2 break-words">
                   {log_message.content}
-                </summary>
-                <div class="mt-5 break-words">
-                  <div class="flex gap-2">
-                    {log_message.content}
-                    <.copy_to_clipboard
-                      id={"c2c-modern-logs-table-#{Foundation.Common.uuid4()}"}
-                      message={log_message.content}
-                    />
-                  </div>
+                  <.copy_to_clipboard
+                    id={"c2c-modern-logs-table-#{log_message.id}"}
+                    message={log_message.content}
+                  />
                 </div>
-              </details>
+              </.disclosure>
             </td>
           </tr>
         </tbody>
@@ -842,6 +886,16 @@ defmodule DeployexWeb.CoreComponents do
 
   defp log_type_badge("stdout"), do: "badge-warning"
   defp log_type_badge("stderr"), do: "badge-error"
+
+  @long_line_threshold 160
+
+  @doc """
+  Returns whether log content is worth putting behind a `disclosure/1` toggle:
+  multiline content, or a single line longer than #{@long_line_threshold} characters.
+  """
+  def expandable_content?(content) when is_binary(content) do
+    String.contains?(content, ["\n", "\r"]) or String.length(content) > @long_line_threshold
+  end
 
   @doc ~S"""
   Renders a table with generic log styling.

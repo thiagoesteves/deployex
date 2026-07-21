@@ -29,20 +29,20 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
               >
               </span>
               <div class="font-mono text-xs text-base-content/90 w-1/2 ">
-                <details>
-                  <summary class="cursor-pointer truncate">
+                <.disclosure
+                  id={"apps-log-content-#{log_message.id}"}
+                  expandable?={expandable_content?(log_message.content)}
+                  title={log_message.content}
+                >
+                  <:summary>{log_message.content}</:summary>
+                  <div class="mt-2 flex items-center justify-between gap-2 text-wrap break-words">
                     {log_message.content}
-                  </summary>
-                  <div class="mt-5  text-wrap break-words">
-                    <div class="flex gap-2">
-                      {log_message.content}
-                      <.copy_to_clipboard
-                        id={"c2c-apps-logs-table-#{Foundation.Common.uuid4()}"}
-                        message={log_message.content}
-                      />
-                    </div>
+                    <.copy_to_clipboard
+                      id={"c2c-apps-logs-table-#{log_message.id}"}
+                      message={log_message.content}
+                    />
                   </div>
-                </details>
+                </.disclosure>
               </div>
             </div>
           </:col>
