@@ -107,6 +107,7 @@ check_app_access_requirements() {
 
 DEPLOYEX_SERVICE_NAME=deployex.service
 DEPLOYEX_SYSTEMD_PATH=/etc/systemd/system/${DEPLOYEX_SERVICE_NAME}
+DEPLOYEX_NEEDRESTART_PATH=/etc/needrestart/conf.d/deployex.conf
 
 remove_deployex() {
     echo "#           Removing Deployex              #"
@@ -119,6 +120,9 @@ remove_deployex() {
     rm -f /etc/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
     rm -f /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME}
     rm -f /usr/lib/systemd/system/${DEPLOYEX_SERVICE_NAME} # and symlinks that might be related
+
+    # Remove the needrestart exclusion
+    rm -f ${DEPLOYEX_NEEDRESTART_PATH}
 
     # Reload systemd to forget about the service
     systemctl daemon-reload
@@ -139,8 +143,10 @@ install_deployex() {
 DEPLOYEX_SYSTEMD_FILE="
   [Unit]
   Description=Deployex daemon
-  After=network.target
-  
+  Wants=network-online.target
+  After=network-online.target
+  StartLimitIntervalSec=0
+
   [Service]
   Environment=SHELL=/usr/bin/bash
   Environment=LANG=C.UTF-8
@@ -153,10 +159,11 @@ DEPLOYEX_SYSTEMD_FILE="
   StandardOutput=append:${DEPLOYEX_LOG_PATH}/deployex-stdout.log
   StandardError=append:${DEPLOYEX_LOG_PATH}/deployex-stderr.log
   KillMode=mixed
-  TimeoutStopSec=30
   KillSignal=SIGTERM
+  TimeoutStopSec=15
   RestartSec=5
   Restart=on-failure
+  OOMPolicy=continue
   LimitNPROC=infinity
   LimitCORE=infinity
   LimitNOFILE=infinity
@@ -186,6 +193,18 @@ DEPLOYEX_SYSTEMD_FILE="
     chown deployex:deployex ${DEPLOYEX_MONITORED_APP_LOG_PATH}/
 
     printf "%s\n" "${DEPLOYEX_SYSTEMD_FILE}" > ${DEPLOYEX_SYSTEMD_PATH}
+
+    # NOTE: On Debian/Ubuntu, needrestart maps every process back to the systemd unit
+    #       that owns its control group. Since all monitored applications run inside
+    #       deployex.service, a library upgrade in any single one of them makes
+    #       unattended-upgrades restart the whole platform, taking down every other
+    #       application with it. Opting out keeps the timing of that restart with the
+    #       operator, who is responsible for restarting deployex after library upgrades.
+    if [ -d "$(dirname ${DEPLOYEX_NEEDRESTART_PATH})" ]; then
+        echo "# Excluding deployex from needrestart      #"
+        printf "%s\n" '$nrconf{override_rc}{qr(^deployex\.service$)} = 0;' > ${DEPLOYEX_NEEDRESTART_PATH}
+    fi
+
     echo "#    Deployex installed with success       #"
 }
 
@@ -234,7 +253,7 @@ update_deployex() {
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean inet tls info                      #"
-    rm /tmp/inet_tls.conf
+    rm -f /tmp/inet_tls.conf
     echo "# Clean and create a new directory         #"
     rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
