@@ -433,7 +433,14 @@ defmodule DeployexWeb.Components.DeployexCard do
         <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
         <span class="text-sm font-semibold text-success">Running</span>
       </div>
-      <span class="font-mono text-sm font-medium text-success">{@version}</span>
+      <div class="flex items-center gap-1">
+        <span class="font-mono text-sm font-medium text-success">{@version}</span>
+        <.copy_to_clipboard
+          id={"c2c-version-#{@sname}"}
+          message={@version}
+          class="text-success/70 hover:text-success transition-colors duration-200"
+        />
+      </div>
       <div class="flex items-center gap-2">
         <.version_indicator latest_release={@latest_release} version={@version} />
         <.config_changes_button sname={@sname} pending_config_changes={@pending_config_changes} />
