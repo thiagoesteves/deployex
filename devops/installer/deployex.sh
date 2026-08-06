@@ -200,10 +200,14 @@ DEPLOYEX_SYSTEMD_FILE="
     #       unattended-upgrades restart the whole platform, taking down every other
     #       application with it. Opting out keeps the timing of that restart with the
     #       operator, who is responsible for restarting deployex after library upgrades.
-    if [ -d "$(dirname ${DEPLOYEX_NEEDRESTART_PATH})" ]; then
-        echo "# Excluding deployex from needrestart      #"
-        printf "%s\n" '$nrconf{override_rc}{qr(^deployex\.service$)} = 0;' > ${DEPLOYEX_NEEDRESTART_PATH}
-    fi
+    #
+    #       The drop-in is written whether or not needrestart is currently installed,
+    #       since it is frequently pulled in later as a dependency. needrestart globs
+    #       conf.d/*.conf when it runs, so an exclusion waiting there is honoured from
+    #       the first upgrade onwards.
+    echo "# Excluding deployex from needrestart      #"
+    mkdir -p "$(dirname ${DEPLOYEX_NEEDRESTART_PATH})"
+    printf "%s\n" '$nrconf{override_rc}{qr(^deployex\.service$)} = 0;' > ${DEPLOYEX_NEEDRESTART_PATH}
 
     echo "#    Deployex installed with success       #"
 }
