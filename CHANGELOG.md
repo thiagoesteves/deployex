@@ -1,15 +1,31 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.8 ()
+## 0.9.8 🚀 (2026-08-06)
 
 ### Backwards incompatible changes from 0.9.7
- * None
+
+#### Installer Actions
+ 1. It's not mandatory, but it's recommended to update `deployex.sh` so new installations pick up the hardened systemd service and the needrestart exclusion.
+ ```bash
+ rm deployex.sh
+ wget https://github.com/thiagoesteves/deployex/releases/download/0.9.8/deployex.sh
+ chmod a+x deployex.sh
+ ./deployex.sh --update
+ ```
+ 2. `--update` does not rewrite `/etc/systemd/system/deployex.service`, so an existing installation keeps its current unit and none of the service changes from [`PULL-254`](https://github.com/thiagoesteves/deployex/pull/254) take effect. Running `--install` recreates the unit, but it also removes `/var/lib/deployex` and the monitored application logs first. To keep the installation intact, apply the new `KillMode`, `TimeoutStopSec` and `OOMPolicy` settings to the existing unit by hand and reload systemd.
+ ```bash
+ systemctl daemon-reload
+ systemctl restart deployex
+ ```
 
 ### Bug fixes
- * None
+ * [`PULL-254`](https://github.com/thiagoesteves/deployex/pull/254) Stop left-over processes in the control group and unattended needrestart restarts
+ * [`PULL-256`](https://github.com/thiagoesteves/deployex/pull/256) Write the needrestart exclusion even when needrestart is absent
 
 ### Enhancements
- * None
+ * [`PULL-252`](https://github.com/thiagoesteves/deployex/pull/252) Update OTP to 27.3.4.15 and 28.5.0.4
+ * [`PULL-253`](https://github.com/thiagoesteves/deployex/pull/253) Update library dependencies
+ * [`PULL-255`](https://github.com/thiagoesteves/deployex/pull/255) Add copy button next to the application version
 
 ## 0.9.7 🚀 (2026-07-21)
 
