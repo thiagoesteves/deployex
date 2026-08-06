@@ -432,7 +432,14 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
             <span class="text-sm font-semibold text-success">Running</span>
           </div>
-          <span class="font-mono text-sm font-medium text-success">{@version}</span>
+          <div class="flex items-center gap-1">
+            <span class="font-mono text-sm font-medium text-success">{@version}</span>
+            <.copy_to_clipboard
+              id={"c2c-version-#{@sname}"}
+              message={@version}
+              class="text-success/70 hover:text-success transition-colors duration-200"
+            />
+          </div>
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% @status == :pre_commands -> %>
@@ -449,7 +456,14 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <div class="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
             <span class="text-sm font-semibold text-warning">Starting</span>
           </div>
-          <span class="font-mono text-sm font-medium text-warning">{@version}</span>
+          <div class="flex items-center gap-1">
+            <span class="font-mono text-sm font-medium text-warning">{@version}</span>
+            <.copy_to_clipboard
+              id={"c2c-version-#{@sname}"}
+              message={@version}
+              class="text-warning/70 hover:text-warning transition-colors duration-200"
+            />
+          </div>
           <.restart_button sname={@sname} restart_path={@restart_path} />
         </div>
       <% true -> %>

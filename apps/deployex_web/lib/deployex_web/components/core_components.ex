@@ -553,11 +553,12 @@ defmodule DeployexWeb.CoreComponents do
 
   attr :id, :string, required: true
   attr :message, :string, required: true
+  attr :class, :any, default: "text-gray-500"
 
   def copy_to_clipboard(assigns) do
     ~H"""
     <button
-      class="text-gray-500"
+      class={@class}
       phx-click={JS.dispatch("phx:copy_to_clipboard", detail: %{text: @message, id: @id})}
     >
       <div class="flex gap-1 items-center object-center">
