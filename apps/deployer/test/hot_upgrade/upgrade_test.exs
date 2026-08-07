@@ -1051,6 +1051,52 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              })
   end
 
+  @tag :capture_log
+  test "update_sys_config_from_installed_version/1 Elixir fails when a config provider crashes",
+       %{
+         node: node,
+         current_path: current_path,
+         to_version: to_version
+       } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{current_releases_version_path}/sys.config"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", sys_config_path)
+    original_sys_config = File.read!(sys_config_path)
+
+    # Providers run over RPC inside the still running old version. One that starts a process
+    # the application already owns works on a cold boot and fails here
+    badrpc =
+      {:badrpc,
+       {:EXIT,
+        {{:badmatch, {:error, {:already_started, self()}}},
+         [{Testapp.SecretsProvider, :load, 2, [file: ~c"lib/secrets.ex", line: 54]}]}}}
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      badrpc
+    end)
+
+    log =
+      capture_log(fn ->
+        assert {:error, {:config_provider_failed, _mod, ^badrpc}} =
+                 UpgradeApp.update_sys_config_from_installed_version(%Execute{
+                   node: node,
+                   language: "elixir",
+                   current_path: current_path,
+                   to_version: to_version
+                 })
+      end)
+
+    assert log =~ "did not return a configuration"
+    assert log =~ "already_started"
+
+    # The failure must not be carried forward as if it were the configuration
+    assert File.read!(sys_config_path) == original_sys_config
+    refute File.exists?("#{current_releases_version_path}/original.sys.config")
+  end
+
   test "restore_runtime_config/2 makes no rpc call when there is nothing to apply", %{node: node} do
     Foundation.RpcMock
     |> stub(:call, fn _node, _module, _function, _args, _timeout ->
