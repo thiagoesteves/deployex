@@ -48,8 +48,24 @@ defmodule Deployer.HotUpgrade.Application do
      (see `install_runtime_config_hook/2`), which runs inside `install_release/2` right after
      the environment has been reset and before any `suspend` or `code_change` observes it.
 
-     Note that the providers execute within the current version, meaning the system is not
-     immediately prepared to execute hot upgrades when configuration changes occur.
+     What that means for a configuration change between versions:
+
+     * A changed or removed key is picked up. `change_appl_data/3` calls `del_env/1` before
+       `add_env/2`, rebuilding the environment of each application from the new `.app` file and
+       the new build time sys.config, and `change_application_data/2` replaces `conf_data`
+       rather than merging it. So a key deleted in the new version does not survive, not even
+       through the `persistent: true` used here, and the hook only adds back what the new
+       version actually resolves.
+
+     * A changed `runtime.exs` is picked up, since the new version's sys.config points the
+       `Config.Reader` provider at the new version's file, which `unpack_release/1` has already
+       written to disk. It is evaluated by the code the running node has loaded, so it must not
+       depend on modules or language features that only arrive with the new release.
+
+     * A changed Config Provider is NOT picked up. The provider modules execute over RPC on the
+       running node, which is still on the old version - `install_release/2` has not run yet.
+       The old implementation is what resolves the configuration, so a fix to a provider only
+       takes effect after a full deployment has made it the running version.
 
   References:
 
