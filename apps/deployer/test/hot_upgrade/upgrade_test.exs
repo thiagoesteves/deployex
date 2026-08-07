@@ -1021,6 +1021,67 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
   end
 
+  @tag :capture_log
+  test "execute/5 Elixir aborts before installing when a config provider fails", %{
+    node: node,
+    sname: sname,
+    app_name: app_name,
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{current_releases_version_path}/sys.config"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", sys_config_path)
+    original_sys_config = File.read!(sys_config_path)
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+        {:ok, to_version}
+
+      ^node, :code, :root_dir, [], @expected_timeout ->
+        ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
+
+      ^node, :systools, :make_relup, _params, @expected_timeout ->
+        :ok
+
+      ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+        {:ok, :any, :any}
+
+      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+        {:badrpc, {:EXIT, {{:badmatch, {:error, {:already_started, self()}}}, []}}}
+
+      ^node, :release_handler, :install_release, _params, @expected_timeout ->
+        flunk("install_release must not run once the configuration cannot be resolved")
+
+      ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+        flunk("make_permanent must not run once the configuration cannot be resolved")
+    end)
+
+    with_mock Node, [:passthrough], connect: fn ^node -> true end do
+      assert {:error, {:config_provider_failed, _mod, _reason}} =
+               UpgradeApp.execute(%Execute{
+                 node: node,
+                 sname: sname,
+                 name: app_name,
+                 language: "elixir",
+                 current_path: current_path,
+                 new_path: new_path,
+                 from_version: from_version,
+                 to_version: to_version
+               })
+    end
+
+    # Nothing was installed and nothing was rewritten, so the running node keeps the
+    # configuration it already had and the engine falls back to a full deployment
+    assert File.read!(sys_config_path) == original_sys_config
+    refute File.exists?("#{current_releases_version_path}/original.sys.config")
+  end
+
   test "execute/5 Elixir Application error", %{
     app_name: app_name,
     sname: sname,
