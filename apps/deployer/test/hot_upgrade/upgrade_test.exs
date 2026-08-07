@@ -1050,6 +1050,55 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
   end
 
   @tag :capture_log
+  test "install_runtime_config_hook/2 restores every application of an umbrella in one call", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    relup_path = "#{current_releases_version_path}/relup"
+
+    File.mkdir_p!(current_releases_version_path)
+    write_relup!(relup_path)
+
+    # An umbrella release is still one OTP release with one sys.config and one relup, it just
+    # holds several applications. change_appl_data/3 resets all of them, so the hook has to
+    # bring all of them back
+    runtime_config = [
+      core: [{Core.Repo, [url: "postgres://host/db"]}],
+      worker: [poll_ms: 5_000],
+      web: [{Web.Endpoint, [secret_key_base: "s3cret"]}]
+    ]
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+
+    assert :ok =
+             UpgradeApp.install_runtime_config_hook(
+               %Execute{node: node, current_path: current_path, to_version: to_version},
+               runtime_config
+             )
+
+    assert {:ok, [{_to, [{_from, _descr, script}], _}]} = :file.consult(relup_path)
+    assert [{:apply, {:erl_eval, :exprs, [forms, []]}} | _] = script
+
+    :persistent_term.put({:deployex, :runtime_config}, runtime_config)
+    on_exit(fn -> :persistent_term.erase({:deployex, :runtime_config}) end)
+
+    on_exit(fn ->
+      Application.delete_env(:core, Core.Repo)
+      Application.delete_env(:worker, :poll_ms)
+      Application.delete_env(:web, Web.Endpoint)
+    end)
+
+    assert {:value, _last, _bindings} = :erl_eval.exprs(forms, [])
+
+    assert Application.get_env(:core, Core.Repo) == [url: "postgres://host/db"]
+    assert Application.get_env(:worker, :poll_ms) == 5_000
+    assert Application.get_env(:web, Web.Endpoint) == [secret_key_base: "s3cret"]
+  end
+
+  @tag :capture_log
   test "install_runtime_config_hook/2 leaves an emulator restart script untouched", %{
     node: node,
     current_path: current_path,
