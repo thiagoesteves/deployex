@@ -1,5 +1,7 @@
 name: Create Release with Hot Upgrade (Ubuntu 24.04 / Debian 13)
 
+run-name: Hot Upgrade ${{ inputs.from_version }} -> ${{ inputs.target_version }} (OTP ${{ inputs.otp }})
+
 on:
   workflow_dispatch:
     inputs:
@@ -28,6 +30,7 @@ env:
 
 jobs:
   generate_release:
+    name: Release ${{ inputs.from_version }} -> ${{ inputs.target_version }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
