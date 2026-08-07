@@ -603,6 +603,10 @@ defmodule Deployer.HotUpgrade.Application do
           "Error while adding the runtime config hook to: #{relup_path}, reason: #{inspect(reason)}"
         )
 
+        # Nothing will consume the stash now, and it holds whatever the Config Providers
+        # produced, secrets included
+        _ = Rpc.call(node, :persistent_term, :erase, [@runtime_config_key], @rpc_timeout)
+
         {:error, reason}
     end
   end
@@ -710,21 +714,30 @@ defmodule Deployer.HotUpgrade.Application do
     do: {from_vsn, descr, [instruction | script]}
 
   # Abstract forms for:
-  #   application:set_env(persistent_term:get(Key), [{persistent, true}])
+  #   application:set_env(persistent_term:get(Key), [{persistent, true}]),
+  #   persistent_term:erase(Key)
+  #
   # Forms are plain terms, so unlike the configuration they survive the relup file, and
   # erl_eval is in stdlib so nothing has to be compiled or loaded into the target node.
+  #
+  # The hook erases its own stash as its last act. The resolved configuration holds whatever
+  # the Config Providers produced, secrets included, so it must not outlive the upgrade that
+  # needed it.
   @spec runtime_config_hook_forms() :: [tuple()]
   defp runtime_config_hook_forms do
     l = 0
-    {app, key} = @runtime_config_key
+
+    key_form =
+      {:tuple, l,
+       [{:atom, l, elem(@runtime_config_key, 0)}, {:atom, l, elem(@runtime_config_key, 1)}]}
 
     [
       {:call, l, {:remote, l, {:atom, l, :application}, {:atom, l, :set_env}},
        [
-         {:call, l, {:remote, l, {:atom, l, :persistent_term}, {:atom, l, :get}},
-          [{:tuple, l, [{:atom, l, app}, {:atom, l, key}]}]},
+         {:call, l, {:remote, l, {:atom, l, :persistent_term}, {:atom, l, :get}}, [key_form]},
          {:cons, l, {:tuple, l, [{:atom, l, :persistent}, {:atom, l, true}]}, {nil, l}}
-       ]}
+       ]},
+      {:call, l, {:remote, l, {:atom, l, :persistent_term}, {:atom, l, :erase}}, [key_form]}
     ]
   end
 

@@ -1041,8 +1041,12 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     on_exit(fn -> :persistent_term.erase({:deployex, :runtime_config}) end)
     on_exit(fn -> Application.delete_env(:testapp, Testapp.Repo) end)
 
-    assert {:value, :ok, _bindings} = :erl_eval.exprs(forms, [])
+    assert {:value, _last, _bindings} = :erl_eval.exprs(forms, [])
     assert Application.get_env(:testapp, Testapp.Repo)[:ssl_opts][:match_fun] == match_fun
+
+    # The stash holds whatever the Config Providers produced, secrets included, so the hook
+    # must erase it rather than leave it on the node
+    assert :persistent_term.get({:deployex, :runtime_config}, :erased) == :erased
   end
 
   @tag :capture_log
@@ -1082,8 +1086,17 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     current_path: current_path,
     to_version: to_version
   } do
+    test_pid = self()
+
     Foundation.RpcMock
-    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+    |> stub(:call, fn
+      ^node, :persistent_term, :put, _args, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, args, @expected_timeout ->
+        send(test_pid, {:erased, args})
+        true
+    end)
 
     # Installing without the hook would reset every application, so this must not be silent
     assert capture_log(fn ->
@@ -1093,6 +1106,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                         testapp: [{Testapp.Repo, []}]
                       )
            end) =~ "Error while adding the runtime config hook"
+
+    # Nothing will consume the stash now, so it must not be left on the node
+    assert_receive {:erased, [{:deployex, :runtime_config}]}
   end
 
   @tag :capture_log
