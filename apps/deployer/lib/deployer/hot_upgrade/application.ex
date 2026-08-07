@@ -514,17 +514,10 @@ defmodule Deployer.HotUpgrade.Application do
     original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
     # Read the build time config from build.config
     {:ok, [sys_config]} = :file.consult(sys_config_path)
-    # In this step, it will run the runtime.exs and Config Providers for the current version
-    sys_config =
-      sys_config
-      |> Keyword.get(:elixir)
-      |> Keyword.get(:config_provider_init)
-      |> Map.get(:providers)
-      |> Enum.reduce(sys_config, fn {mod, arg}, cfg ->
-        Rpc.call(node, mod, :load, [cfg, arg], @rpc_timeout)
-      end)
 
-    with :ok <- File.rename(sys_config_path, original_sys_config_file),
+    # In this step, it will run the runtime.exs and Config Providers for the current version
+    with {:ok, sys_config} <- run_config_providers(node, sys_config),
+         :ok <- File.rename(sys_config_path, original_sys_config_file),
          :ok <-
            File.write(sys_config_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [sys_config])) do
       :ok
@@ -619,6 +612,38 @@ defmodule Deployer.HotUpgrade.Application do
       status: :error,
       message: message
     })
+  end
+
+  # Run runtime.exs and the Config Providers for the version being installed.
+  #
+  # They execute over RPC inside the still running old version, so a provider that assumes a
+  # cold system fails here: one that starts a process the application already owns comes back
+  # as {:badrpc, {:EXIT, {{:badmatch, {:error, {:already_started, pid}}}, _}}} even though it
+  # works on boot. Mirror Config.Provider.run_providers/2 and require a list back, otherwise
+  # the failure reason is carried forward as if it were the configuration and ends up written
+  # into sys.config.
+  @spec run_config_providers(node(), keyword()) :: {:ok, keyword()} | {:error, any()}
+  defp run_config_providers(node, sys_config) do
+    sys_config
+    |> Keyword.get(:elixir)
+    |> Keyword.get(:config_provider_init)
+    |> Map.get(:providers)
+    |> Enum.reduce_while({:ok, sys_config}, fn {mod, arg}, {:ok, config} ->
+      case Rpc.call(node, mod, :load, [config, arg], @rpc_timeout) do
+        new_config when is_list(new_config) ->
+          {:cont, {:ok, new_config}}
+
+        reason ->
+          Logger.error("""
+          Config provider #{inspect(mod)} did not return a configuration on node #{node}, got: \
+          #{inspect(reason)}. Providers run inside the already running old version, so they must \
+          tolerate a started system: one that starts a process the application already owns fails \
+          here with {:already_started, pid} even though it works on a cold boot.\
+          """)
+
+          {:halt, {:error, {:config_provider_failed, mod, reason}}}
+      end
+    end)
   end
 
   defp check_jellyfish_files(files, from_version, to_version) do
