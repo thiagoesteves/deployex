@@ -1097,6 +1097,133 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     refute File.exists?("#{current_releases_version_path}/original.sys.config")
   end
 
+  test "install_runtime_config_hook/2 makes no rpc call when there is nothing to apply", %{
+    node: node
+  } do
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _function, _args, _timeout ->
+      flunk("no rpc call expected")
+    end)
+
+    assert :ok = UpgradeApp.install_runtime_config_hook(%Execute{node: node}, [])
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 stashes the config and heads the relup script", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    relup_path = "#{current_releases_version_path}/relup"
+
+    File.mkdir_p!(current_releases_version_path)
+
+    original_script = [
+      {:load_object_code, {:testapp, ~c"0.2.0", [:test_app_sm]}},
+      {:suspend, [:test_app_sm]},
+      {:code_change, :up, [{:test_app_sm, []}]},
+      {:resume, [:test_app_sm]}
+    ]
+
+    relup = {~c"0.2.0", [{~c"0.1.0", ~c"", original_script}], []}
+    File.write!(relup_path, :io_lib.format(~c"~tp.~n", [relup]))
+
+    match_fun = :public_key.pkix_verify_hostname_match_fun(:https)
+    runtime_config = [testapp: [{Testapp.Repo, [ssl_opts: [match_fun: match_fun]]}]]
+    test_pid = self()
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, args, @expected_timeout ->
+      send(test_pid, {:stashed, args})
+      :ok
+    end)
+
+    assert :ok =
+             UpgradeApp.install_runtime_config_hook(
+               %Execute{
+                 node: node,
+                 current_path: current_path,
+                 to_version: to_version
+               },
+               runtime_config
+             )
+
+    # The configuration itself cannot travel in the relup, it goes over RPC
+    assert_receive {:stashed, [{:deployex, :runtime_config}, ^runtime_config]}
+
+    # release_handler reads the relup with :file.consult/1 too, so the patched file must parse
+    assert {:ok, [{~c"0.2.0", [{~c"0.1.0", ~c"", script}], []}]} = :file.consult(relup_path)
+
+    # Heading the script puts it after change_appl_data/3 and before suspend/code_change
+    assert [{:apply, {:erl_eval, :exprs, [forms, []]}} | ^original_script] = script
+
+    # The forms must evaluate to the set_env call, with no module loaded into the target
+    :persistent_term.put({:deployex, :runtime_config}, runtime_config)
+    on_exit(fn -> :persistent_term.erase({:deployex, :runtime_config}) end)
+
+    assert {:value, :ok, _bindings} = :erl_eval.exprs(forms, [])
+    assert Application.get_env(:testapp, Testapp.Repo)[:ssl_opts][:match_fun] == match_fun
+    on_exit(fn -> Application.delete_env(:testapp, Testapp.Repo) end)
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 leaves an emulator restart script untouched", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    relup_path = "#{current_releases_version_path}/relup"
+
+    File.mkdir_p!(current_releases_version_path)
+
+    script = [:restart_new_emulator, {:load_object_code, {:testapp, ~c"0.2.0", [:test_app_sm]}}]
+
+    File.write!(
+      relup_path,
+      :io_lib.format(~c"~tp.~n", [{~c"0.2.0", [{~c"0.1.0", ~c"", script}], []}])
+    )
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+
+    assert :ok =
+             UpgradeApp.install_runtime_config_hook(
+               %Execute{
+                 node: node,
+                 current_path: current_path,
+                 to_version: to_version
+               },
+               testapp: [{Testapp.Repo, []}]
+             )
+
+    # The VM restarts and Config.Provider resolves the configuration again on boot
+    assert {:ok, [{_to, [{_from, _descr, ^script}], _}]} = :file.consult(relup_path)
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 does not fail the upgrade when the relup is missing", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+
+    assert capture_log(fn ->
+             assert :ok =
+                      UpgradeApp.install_runtime_config_hook(
+                        %Execute{
+                          node: node,
+                          current_path: current_path,
+                          to_version: to_version
+                        },
+                        testapp: [{Testapp.Repo, []}]
+                      )
+           end) =~ "Could not add the runtime config hook"
+  end
+
   test "restore_runtime_config/2 makes no rpc call when there is nothing to apply", %{node: node} do
     Foundation.RpcMock
     |> stub(:call, fn _node, _module, _function, _args, _timeout ->
@@ -1119,9 +1246,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     ]
 
     Foundation.RpcMock
-    |> stub(:call, fn ^node, :application, :set_env, args, @expected_timeout ->
-      send(test_pid, {:set_env, args})
-      :ok
+    |> stub(:call, fn
+      ^node, :application, :set_env, args, @expected_timeout ->
+        send(test_pid, {:set_env, args})
+        :ok
+
+      ^node, :persistent_term, :erase, args, @expected_timeout ->
+        send(test_pid, {:erase, args})
+        true
     end)
 
     assert :ok = UpgradeApp.restore_runtime_config(%Execute{node: node}, runtime_config)
@@ -1129,6 +1261,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     # Same primitive and shape Config.Provider uses at boot via Application.put_all_env/2
     assert_receive {:set_env, [^runtime_config, [persistent: true]]}
     refute_receive {:set_env, _args}
+
+    # The relup hook stash must not outlive the upgrade
+    assert_receive {:erase, [{:deployex, :runtime_config}]}
   end
 
   @tag :capture_log

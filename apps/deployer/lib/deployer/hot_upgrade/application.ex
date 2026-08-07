@@ -50,11 +50,17 @@ defmodule Deployer.HotUpgrade.Application do
      raises `undef` when called - a worse failure than losing the configuration.
 
      Those entries are therefore kept out of the generated file, per `{app, key}` pair, and
-     applied over RPC with `:application.set_env/2` right after the release is installed. That
-     is the same primitive `Config.Provider` uses on a cold start through
-     `Application.put_all_env/2`, which has no serialization step and carries these values
-     without trouble. The generated file is then consulted back as a second guard, so anything
-     the split does not catch fails the upgrade instead of silently wiping the configuration.
+     applied with `:application.set_env/2`. That is the same primitive `Config.Provider` uses on
+     a cold start through `Application.put_all_env/2`, which has no serialization step and
+     carries these values without trouble. The generated file is then consulted back as a second
+     guard, so anything the split does not catch fails the upgrade instead of silently wiping
+     the configuration.
+
+     They are applied twice, which is harmless and deliberate. A hook spliced into the relup
+     (see `install_runtime_config_hook/2`) applies them from inside `install_release/2`, before
+     any `suspend` or `code_change` observes them as missing, and `restore_runtime_config/2`
+     applies them again once the release is installed so the upgrade does not depend on the
+     hook being in place.
 
   References:
 
@@ -77,6 +83,7 @@ defmodule Deployer.HotUpgrade.Application do
   @check_timeout 300_000
   @behaviour Deployer.HotUpgrade.Adapter
   @events_topic "deployex::hotupgrade::events"
+  @runtime_config_key {:deployex, :runtime_config}
 
   alias Deployer.HotUpgrade.Check
   alias Deployer.HotUpgrade.Execute
@@ -181,6 +188,7 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- check_install_release(data),
          :ok <- notify_progress(data.sname, "Updating sys.config file"),
          {:ok, runtime_config} <- update_sys_config_from_installed_version(data),
+         :ok <- install_runtime_config_hook(data, runtime_config),
          :ok <- notify_progress(data.sname, "Installing release"),
          :ok <- install_release(data),
          :ok <- notify_progress(data.sname, "Applying the runtime configuration"),
@@ -577,6 +585,53 @@ defmodule Deployer.HotUpgrade.Application do
   def update_sys_config_from_installed_version(_data), do: {:ok, []}
 
   @doc """
+  Splice a hook into the generated relup that applies the deferred configuration from inside
+  `release_handler:install_release/2`.
+
+  `change_appl_data/3` rebuilds the application environment from sys.config and only then does
+  `eval_script/5` run the relup instructions, so an instruction placed at the head of the script
+  executes after the new configuration is in place but before any `suspend`, `code_change` or
+  `resume`. That closes the window where a process restarted by the upgrade would observe the
+  deferred keys as missing.
+
+  The configuration itself cannot travel in the relup, which `release_handler` also reads with
+  `:file.consult/1`. It is stashed in `:persistent_term` over RPC instead, which survives
+  `change_appl_data/3` because it is not application environment, and the relup only carries
+  abstract forms, which are plain terms:
+
+      {apply, {erl_eval, exprs, [Forms, []]}}
+
+  evaluating `application:set_env(persistent_term:get(Key), [{persistent, true}])`. Nothing is
+  compiled and no module is injected into the target, so this is independent of the OTP version
+  the managed application was built with.
+
+  This is an optimisation. When it fails the upgrade carries on and
+  `restore_runtime_config/2` still applies the configuration once the release is installed.
+  """
+  @spec install_runtime_config_hook(Execute.t(), runtime_config()) :: :ok
+  def install_runtime_config_hook(_data, []), do: :ok
+
+  def install_runtime_config_hook(
+        %Execute{node: node, current_path: current_path, to_version: to_version},
+        runtime_config
+      ) do
+    relup_path = "#{current_path}/releases/#{to_version}/relup"
+
+    with :ok <- stash_runtime_config(node, runtime_config),
+         :ok <- splice_runtime_config_hook(relup_path) do
+      Logger.info("Runtime config hook added to the relup at: #{relup_path}")
+    else
+      {:error, reason} ->
+        Logger.warning(
+          "Could not add the runtime config hook, reason: #{inspect(reason)}. The configuration " <>
+            "is applied after the release is installed instead."
+        )
+    end
+
+    :ok
+  end
+
+  @doc """
   Apply the configuration entries that sys.config cannot carry.
 
   `release_handler:install_release/2` rebuilds the environment of every application from
@@ -602,6 +657,11 @@ defmodule Deployer.HotUpgrade.Application do
          ) do
       :ok ->
         Logger.info("Applied runtime config for apps: #{inspect(Keyword.keys(runtime_config))}")
+
+        # Setting the same values twice is harmless, the relup hook may already have applied
+        # them, but the stash must not outlive the upgrade
+        _ = Rpc.call(node, :persistent_term, :erase, [@runtime_config_key], @rpc_timeout)
+
         :ok
 
       reason ->
@@ -690,6 +750,61 @@ defmodule Deployer.HotUpgrade.Application do
       status: :error,
       message: message
     })
+  end
+
+  @spec stash_runtime_config(node(), runtime_config()) :: :ok | {:error, any()}
+  defp stash_runtime_config(node, runtime_config) do
+    case Rpc.call(
+           node,
+           :persistent_term,
+           :put,
+           [@runtime_config_key, runtime_config],
+           @rpc_timeout
+         ) do
+      :ok -> :ok
+      reason -> {:error, {:stash_failed, reason}}
+    end
+  end
+
+  @spec splice_runtime_config_hook(binary()) :: :ok | {:error, any()}
+  defp splice_runtime_config_hook(relup_path) do
+    instruction = {:apply, {:erl_eval, :exprs, [runtime_config_hook_forms(), []]}}
+
+    case :file.consult(relup_path) do
+      {:ok, [{to_vsn, up, down}]} ->
+        patched = {to_vsn, Enum.map(up, &prepend_instruction(&1, instruction)), down}
+        File.write(relup_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [patched]))
+
+      reason ->
+        {:error, {:unreadable_relup, reason}}
+    end
+  end
+
+  # An emulator upgrade restarts the VM and the configuration is resolved again on boot, so
+  # there is nothing to reapply and the script must keep restart_new_emulator at its head
+  defp prepend_instruction({from_vsn, descr, [:restart_new_emulator | _] = script}, _instruction),
+    do: {from_vsn, descr, script}
+
+  defp prepend_instruction({from_vsn, descr, script}, instruction),
+    do: {from_vsn, descr, [instruction | script]}
+
+  # Abstract forms for:
+  #   application:set_env(persistent_term:get(Key), [{persistent, true}])
+  # Forms are plain terms, so unlike the configuration they survive the relup file, and
+  # erl_eval is in stdlib so nothing has to be compiled or loaded into the target node.
+  @spec runtime_config_hook_forms() :: [tuple()]
+  defp runtime_config_hook_forms do
+    l = 0
+    {app, key} = @runtime_config_key
+
+    [
+      {:call, l, {:remote, l, {:atom, l, :application}, {:atom, l, :set_env}},
+       [
+         {:call, l, {:remote, l, {:atom, l, :persistent_term}, {:atom, l, :get}},
+          [{:tuple, l, [{:atom, l, app}, {:atom, l, key}]}]},
+         {:cons, l, {:tuple, l, [{:atom, l, :persistent}, {:atom, l, true}]}, {nil, l}}
+       ]}
+    ]
   end
 
   # Run runtime.exs and the Config Providers for the version being installed. They execute over
