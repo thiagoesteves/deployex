@@ -7,6 +7,7 @@
 
 ### Bug fixes
  * [`PULL-261`](https://github.com/thiagoesteves/deployex/pull/261) Fail the upgrade when a config provider does not return a configuration
+ * [`PULL-263`](https://github.com/thiagoesteves/deployex/pull/263) Apply the runtime configuration through a relup hook instead of sys.config
 
 ### Enhancements
  * None
