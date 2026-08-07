@@ -1,5 +1,17 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.9 🚀 (2026-08-07)
+
+### Backwards incompatible changes from 0.9.8
+ * None - version `0.9.9` supports hot upgrade from `0.9.8`
+
+### Bug fixes
+ * [`PULL-261`](https://github.com/thiagoesteves/deployex/pull/261) Fail the upgrade when a config provider does not return a configuration
+ * [`PULL-263`](https://github.com/thiagoesteves/deployex/pull/263) Apply the runtime configuration through a relup hook instead of sys.config
+
+### Enhancements
+ * None
+
 ## 0.9.8 🚀 (2026-08-06)
 
 ### Backwards incompatible changes from 0.9.7
