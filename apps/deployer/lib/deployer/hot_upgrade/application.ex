@@ -17,23 +17,39 @@ defmodule Deployer.HotUpgrade.Application do
        a. Unpack a release using release_handler:unpack_release
        b. Create a relup file using systools:make_relup
        c. Check Install release using release_handler:check_install_release
-         i. Request via RPC to run  ConfigProvider and Runtime and populate sys.config (Only ELixir)
+         i. Request via RPC to run ConfigProvider and Runtime and resolve the config (Only Elixir)
+         ii. Add a hook to the relup that applies that config during the install (Only Elixir)
        d. Install the release using release_handler:install_release
        e. Make the release permanent using release_handler:make_permanent
-         i. Return original empty sys.config (Only ELixir)
 
     Note that only upgrades are permitted in this project, and in the event of
      failure, the system will revert to a full deployment.
 
   4. ATTENTION:
-     The sys.config file contains all application configurations and is not loaded during a
-     hot HotUpgrade. For Elixir applications, Config Provider and Runtime are codes that executes
-     when the application is starting and are required for fetching information.
-     To address this, several steps are included in this module to load the new
-     version of sys.config and utilize the RPC channel to execute runtime.exs and the config
-     provider. It's important to note that these actions occur within the current version,
-     meaning the system is not immediately prepared to execute hot upgrades when configuration
-     changes occur.
+     For Elixir applications, `runtime.exs` and the Config Providers only execute when the
+     application boots, never during a hot upgrade. Worse, `release_handler` actively undoes
+     their result: `change_appl_data/3` rebuilds the environment of EVERY loaded application
+     from the build time sys.config, so everything `runtime.exs` produced is gone the moment
+     the release is installed.
+
+     This module therefore resolves that configuration itself over the RPC channel and applies
+     it with `:application.set_env/2`, the primitive `Config.Provider` uses on a cold start
+     through `Application.put_all_env/2`.
+
+     Writing the resolved configuration back into sys.config, which is what this module used
+     to do, only works for values `:file.consult/1` can read back. A resolved configuration can
+     hold values with no textual term syntax, such as the closure in
+     `customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]`
+     for an Ecto Repo. That is printed as `#Fun<...>`, the file stops parsing, and OTP does not
+     report it: `change_appl_data/3` falls back to an empty config and every application
+     silently reverts to its compile time environment while the upgrade reports success.
+
+     sys.config is now only read. The configuration is applied by a hook spliced into the relup
+     (see `install_runtime_config_hook/2`), which runs inside `install_release/2` right after
+     the environment has been reset and before any `suspend` or `code_change` observes it.
+
+     Note that the providers execute within the current version, meaning the system is not
+     immediately prepared to execute hot upgrades when configuration changes occur.
 
   References:
 
@@ -56,11 +72,18 @@ defmodule Deployer.HotUpgrade.Application do
   @check_timeout 300_000
   @behaviour Deployer.HotUpgrade.Adapter
   @events_topic "deployex::hotupgrade::events"
+  @runtime_config_key {:deployex, :runtime_config}
 
   alias Deployer.HotUpgrade.Check
   alias Deployer.HotUpgrade.Execute
   alias Deployer.HotUpgrade.Jellyfish
   alias Foundation.Rpc
+
+  @typedoc """
+  The configuration produced by `runtime.exs` and the Config Providers of the version being
+  installed. Same shape as sys.config itself: `[{app, [{key, value}]}]`.
+  """
+  @type runtime_config :: [{app :: atom(), env :: keyword()}]
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -152,12 +175,12 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- make_relup(data),
          :ok <- notify_progress(data.sname, "Checking release can be installed"),
          :ok <- check_install_release(data),
-         :ok <- notify_progress(data.sname, "Updating sys.config file"),
-         :ok <- update_sys_config_from_installed_version(data),
+         :ok <- notify_progress(data.sname, "Resolving the runtime configuration"),
+         {:ok, runtime_config} <- resolve_runtime_config(data),
+         :ok <- notify_progress(data.sname, "Adding the runtime configuration to the relup"),
+         :ok <- install_runtime_config_hook(data, runtime_config),
          :ok <- notify_progress(data.sname, "Installing release"),
          :ok <- install_release(data),
-         :ok <- notify_progress(data.sname, "Returning original sys.config file"),
-         :ok <- return_original_sys_config(data),
          :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
          :ok <- notify_complete_ok(data.make_permanent_async, data.sname) do
@@ -502,51 +525,87 @@ defmodule Deployer.HotUpgrade.Application do
     releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
   end
 
-  @spec update_sys_config_from_installed_version(Execute.t()) :: :ok | {:error, any()}
-  def update_sys_config_from_installed_version(%Execute{
+  @doc """
+  Resolve the configuration of the version being installed.
+
+  Reads the build time sys.config of the new version and runs its `runtime.exs` and Config
+  Providers over RPC, producing exactly the configuration the application would have had on a
+  cold boot. The file is only read, never written.
+  """
+  @spec resolve_runtime_config(Execute.t()) :: {:ok, runtime_config()} | {:error, any()}
+  def resolve_runtime_config(%Execute{
         node: node,
         language: "elixir",
         current_path: current_path,
         to_version: to_version
       }) do
-    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
-    sys_config_path = "#{rel_vsn_dir}/sys.config"
-    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
-    # Read the build time config from build.config
-    {:ok, [sys_config]} = :file.consult(sys_config_path)
+    sys_config_path = "#{current_path}/releases/#{to_version}/sys.config"
 
-    # In this step, it will run the runtime.exs and Config Providers for the current version
-    with {:ok, sys_config} <- run_config_providers(node, sys_config),
-         :ok <- File.rename(sys_config_path, original_sys_config_file),
-         :ok <-
-           File.write(sys_config_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [sys_config])) do
+    # Read the build time config, then run runtime.exs and the Config Providers on top of it
+    case :file.consult(sys_config_path) do
+      {:ok, [sys_config]} ->
+        run_config_providers(node, sys_config)
+
+      reason ->
+        Logger.error("Error while reading #{sys_config_path}, reason: #{inspect(reason)}")
+
+        {:error, {:unreadable_sys_config, reason}}
+    end
+  end
+
+  def resolve_runtime_config(_data), do: {:ok, []}
+
+  @doc """
+  Add a hook to the generated relup that applies the resolved configuration from inside
+  `release_handler:install_release/2`.
+
+  The configuration used to be written back into sys.config, but that only works for values
+  `:file.consult/1` can read back. An anonymous function has no textual term syntax and is
+  printed as `#Fun<...>`, which OTP does not report: the file stops parsing,
+  `change_appl_data/3` falls back to an empty config and every application silently reverts to
+  its compile time environment.
+
+  `change_appl_data/3` rebuilds that environment before `eval_script/5` runs the relup, so an
+  instruction at the head of the script executes once the environment has been reset and
+  before any `suspend`, `code_change` or `resume` can observe it.
+
+  The configuration cannot travel in the relup either, which `release_handler` also reads with
+  `:file.consult/1`. It is stashed in `:persistent_term` over RPC, which survives
+  `change_appl_data/3` because it is not application environment, and the relup carries only
+  abstract forms, which are plain terms:
+
+      {apply, {erl_eval, exprs, [Forms, []]}}
+
+  evaluating `application:set_env(persistent_term:get(Key), [{persistent, true}])`. That is the
+  primitive `Config.Provider` uses on a cold start through `Application.put_all_env/2`, and
+  nothing is serialized on the way. No module is compiled or loaded into the target, so this
+  does not depend on the OTP version the managed application was built with.
+  """
+  @spec install_runtime_config_hook(Execute.t(), runtime_config()) :: :ok | {:error, any()}
+  def install_runtime_config_hook(_data, []), do: :ok
+
+  def install_runtime_config_hook(
+        %Execute{node: node, current_path: current_path, to_version: to_version},
+        runtime_config
+      ) do
+    relup_path = "#{current_path}/releases/#{to_version}/relup"
+
+    with :ok <- stash_runtime_config(node, runtime_config),
+         :ok <- splice_runtime_config_hook(relup_path) do
+      Logger.info("Runtime config hook added to the relup at: #{relup_path}")
+
       :ok
     else
       {:error, reason} ->
+        # Installing without the hook would reset every application to its compile time
+        # environment, so fail here and let the engine run a full deployment instead
         Logger.error(
-          "Error while updating sys.config to: #{to_version}, reason: #{inspect(reason)}"
+          "Error while adding the runtime config hook to: #{relup_path}, reason: #{inspect(reason)}"
         )
 
         {:error, reason}
     end
   end
-
-  def update_sys_config_from_installed_version(_data), do: :ok
-
-  @spec return_original_sys_config(Execute.t()) :: :ok | {:error, any()}
-  def return_original_sys_config(%Execute{
-        language: "elixir",
-        current_path: current_path,
-        to_version: to_version
-      }) do
-    rel_vsn_dir = "#{current_path}/releases/#{to_version}"
-    sys_config_path = "#{rel_vsn_dir}/sys.config"
-    original_sys_config_file = "#{rel_vsn_dir}/original.sys.config"
-
-    File.rename(original_sys_config_file, sys_config_path)
-  end
-
-  def return_original_sys_config(_data), do: :ok
 
   @spec root_dir(node :: node()) :: any()
   def root_dir(node), do: Rpc.call(node, :code, :root_dir, [], @rpc_timeout)
@@ -612,6 +671,61 @@ defmodule Deployer.HotUpgrade.Application do
       status: :error,
       message: message
     })
+  end
+
+  @spec stash_runtime_config(node(), runtime_config()) :: :ok | {:error, any()}
+  defp stash_runtime_config(node, runtime_config) do
+    case Rpc.call(
+           node,
+           :persistent_term,
+           :put,
+           [@runtime_config_key, runtime_config],
+           @rpc_timeout
+         ) do
+      :ok -> :ok
+      reason -> {:error, {:stash_failed, reason}}
+    end
+  end
+
+  @spec splice_runtime_config_hook(binary()) :: :ok | {:error, any()}
+  defp splice_runtime_config_hook(relup_path) do
+    instruction = {:apply, {:erl_eval, :exprs, [runtime_config_hook_forms(), []]}}
+
+    case :file.consult(relup_path) do
+      {:ok, [{to_vsn, up, down}]} ->
+        patched = {to_vsn, Enum.map(up, &prepend_instruction(&1, instruction)), down}
+        File.write(relup_path, :io_lib.format(~c"%% coding: utf-8~n~tp.~n", [patched]))
+
+      reason ->
+        {:error, {:unreadable_relup, reason}}
+    end
+  end
+
+  # An emulator upgrade restarts the VM, which resolves the configuration again on boot, so
+  # there is nothing to apply and the script must keep restart_new_emulator at its head
+  defp prepend_instruction({from_vsn, descr, [:restart_new_emulator | _] = script}, _instruction),
+    do: {from_vsn, descr, script}
+
+  defp prepend_instruction({from_vsn, descr, script}, instruction),
+    do: {from_vsn, descr, [instruction | script]}
+
+  # Abstract forms for:
+  #   application:set_env(persistent_term:get(Key), [{persistent, true}])
+  # Forms are plain terms, so unlike the configuration they survive the relup file, and
+  # erl_eval is in stdlib so nothing has to be compiled or loaded into the target node.
+  @spec runtime_config_hook_forms() :: [tuple()]
+  defp runtime_config_hook_forms do
+    l = 0
+    {app, key} = @runtime_config_key
+
+    [
+      {:call, l, {:remote, l, {:atom, l, :application}, {:atom, l, :set_env}},
+       [
+         {:call, l, {:remote, l, {:atom, l, :persistent_term}, {:atom, l, :get}},
+          [{:tuple, l, [{:atom, l, app}, {:atom, l, key}]}]},
+         {:cons, l, {:tuple, l, [{:atom, l, :persistent}, {:atom, l, true}]}, {nil, l}}
+       ]}
+    ]
   end
 
   # Run runtime.exs and the Config Providers for the version being installed.
