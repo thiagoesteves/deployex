@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.9 ()
+
+### Backwards incompatible changes from 0.9.8
+ * None
+
+### Bug fixes
+ * [`PULL-258`](https://github.com/thiagoesteves/deployex/pull/258) Keep runtime configuration during hot upgrades with anonymous functions
+
+### Enhancements
+ * None
+
 ## 0.9.8 🚀 (2026-08-06)
 
 ### Backwards incompatible changes from 0.9.7
