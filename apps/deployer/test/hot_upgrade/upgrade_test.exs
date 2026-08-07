@@ -821,67 +821,40 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert :ok = UpgradeApp.permfy(%Execute{make_permanent_async: true})
   end
 
-  @tag :capture_log
-  test "return_original_sys_config/1 Elixir success", %{
-    current_path: current_path,
-    to_version: to_version
-  } do
-    current_releases_version_path = "#{current_path}/releases/#{to_version}"
-
-    File.mkdir_p!(current_releases_version_path)
-
-    File.write("#{current_releases_version_path}/original.sys.config", "empty")
-    File.rm("#{current_releases_version_path}/sys.config")
-
-    assert :ok =
-             UpgradeApp.return_original_sys_config(%Execute{
-               language: "elixir",
-               current_path: current_path,
-               to_version: to_version
-             })
-
-    assert File.exists?("#{current_releases_version_path}/sys.config")
-  end
-
-  test "return_original_sys_config/1 Erlang success", %{
-    current_path: current_path,
-    to_version: to_version
-  } do
-    assert :ok =
-             UpgradeApp.return_original_sys_config(%Execute{
-               language: "erlang",
-               current_path: current_path,
-               to_version: to_version
-             })
-  end
-
-  @tag :capture_log
-  test "update_sys_config_from_installed_version/1 Elixir success", %{
+  test "resolve_runtime_config/1 Elixir success", %{
     node: node,
     current_path: current_path,
     to_version: to_version
   } do
     current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{current_releases_version_path}/sys.config"
 
     File.mkdir_p!(current_releases_version_path)
-    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+    File.cp!("./test/support/files/sys.config", sys_config_path)
+    original_sys_config = File.read!(sys_config_path)
 
     Foundation.RpcMock
-    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-      :ok
+    |> stub(:call, fn ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+      Keyword.put(cfg, :from_runtime_exs, answer: 42)
     end)
 
-    assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(%Execute{
+    assert {:ok, config} =
+             UpgradeApp.resolve_runtime_config(%Execute{
                node: node,
                language: "elixir",
                current_path: current_path,
                to_version: to_version
              })
+
+    assert config[:from_runtime_exs] == [answer: 42]
+    assert config[:logger][:level] == :info
+
+    # sys.config is only read, the release directory must come out untouched
+    assert File.read!(sys_config_path) == original_sys_config
+    refute File.exists?("#{current_releases_version_path}/original.sys.config")
   end
 
-  @tag :skip
-  test "update_sys_config_from_installed_version/1 Elixir error", %{
+  test "resolve_runtime_config/1 Elixir carries values sys.config could never hold", %{
     node: node,
     current_path: current_path,
     to_version: to_version
@@ -891,36 +864,275 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.mkdir_p!(current_releases_version_path)
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
 
+    # The exact value an Ecto Repo gets for a verify_peer TLS connection. Writing it to
+    # sys.config prints it as #Fun<...> and the file stops parsing
+    match_fun = :public_key.pkix_verify_hostname_match_fun(:https)
+
+    repo_config = [
+      url: "postgres://user:pass@host:5432/db",
+      ssl_opts: [verify: :verify_peer, customize_hostname_check: [match_fun: match_fun]]
+    ]
+
     Foundation.RpcMock
-    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-      :ok
+    |> stub(:call, fn ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+      Keyword.update!(cfg, :testapp, &Keyword.put(&1, Testapp.Repo, repo_config))
     end)
 
-    with_mock File, [:passthrough], rename: fn _source, _destination -> {:error, :any} end do
-      assert capture_log(fn ->
-               assert {:error, :any} =
-                        UpgradeApp.update_sys_config_from_installed_version(%Execute{
-                          node: node,
-                          language: "elixir",
-                          current_path: current_path,
-                          to_version: to_version
-                        })
-             end) =~ "Error while updating sys.config to: #{to_version}, reason: :any"
-    end
+    assert {:ok, config} =
+             UpgradeApp.resolve_runtime_config(%Execute{
+               node: node,
+               language: "elixir",
+               current_path: current_path,
+               to_version: to_version
+             })
+
+    assert config[:testapp][Testapp.Repo] == repo_config
+    fun = config[:testapp][Testapp.Repo][:ssl_opts][:customize_hostname_check][:match_fun]
+    assert fun.({:dns_id, ~c"a.example.com"}, {:dNSName, ~c"*.example.com"})
   end
 
-  test "update_sys_config_from_installed_version/1 Erlang success", %{
+  @tag :capture_log
+  test "resolve_runtime_config/1 Elixir fails when a config provider crashes", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
+
+    # Providers run over RPC inside the still running old version. One that starts a process
+    # the application already owns works on a cold boot and fails here
+    badrpc =
+      {:badrpc,
+       {:EXIT,
+        {{:badmatch, {:error, {:already_started, self()}}},
+         [{Testapp.SecretsProvider, :load, 2, [file: ~c"lib/secrets.ex", line: 54]}]}}}
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout -> badrpc end)
+
+    log =
+      capture_log(fn ->
+        assert {:error, {:config_provider_failed, _mod, ^badrpc}} =
+                 UpgradeApp.resolve_runtime_config(%Execute{
+                   node: node,
+                   language: "elixir",
+                   current_path: current_path,
+                   to_version: to_version
+                 })
+      end)
+
+    assert log =~ "did not return a configuration"
+    assert log =~ "already_started"
+  end
+
+  @tag :capture_log
+  test "resolve_runtime_config/1 Elixir fails when sys.config cannot be read", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    File.mkdir_p!("#{current_path}/releases/#{to_version}")
+
+    assert capture_log(fn ->
+             assert {:error, {:unreadable_sys_config, _reason}} =
+                      UpgradeApp.resolve_runtime_config(%Execute{
+                        node: node,
+                        language: "elixir",
+                        current_path: current_path,
+                        to_version: to_version
+                      })
+           end) =~ "Error while reading"
+  end
+
+  test "resolve_runtime_config/1 Erlang success", %{
     node: node,
     new_path: new_path,
     to_version: to_version
   } do
-    assert :ok =
-             UpgradeApp.update_sys_config_from_installed_version(%Execute{
+    assert {:ok, []} =
+             UpgradeApp.resolve_runtime_config(%Execute{
                node: node,
                language: "erlang",
                new_path: new_path,
                to_version: to_version
              })
+  end
+
+  test "install_runtime_config_hook/2 makes no rpc call when there is nothing to apply", %{
+    node: node
+  } do
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _function, _args, _timeout ->
+      flunk("no rpc call expected")
+    end)
+
+    assert :ok = UpgradeApp.install_runtime_config_hook(%Execute{node: node}, [])
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 stashes the config and heads the relup script", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    relup_path = "#{current_releases_version_path}/relup"
+
+    File.mkdir_p!(current_releases_version_path)
+
+    original_script = [
+      {:load_object_code, {:testapp, ~c"0.2.0", [:test_app_sm]}},
+      {:suspend, [:test_app_sm]},
+      {:code_change, :up, [{:test_app_sm, []}]},
+      {:resume, [:test_app_sm]}
+    ]
+
+    File.write!(
+      relup_path,
+      :io_lib.format(~c"~tp.~n", [{~c"0.2.0", [{~c"0.1.0", ~c"", original_script}], []}])
+    )
+
+    match_fun = :public_key.pkix_verify_hostname_match_fun(:https)
+    runtime_config = [testapp: [{Testapp.Repo, [ssl_opts: [match_fun: match_fun]]}]]
+    test_pid = self()
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, args, @expected_timeout ->
+      send(test_pid, {:stashed, args})
+      :ok
+    end)
+
+    assert :ok =
+             UpgradeApp.install_runtime_config_hook(
+               %Execute{node: node, current_path: current_path, to_version: to_version},
+               runtime_config
+             )
+
+    # The configuration itself cannot travel in the relup, it goes over RPC
+    assert_receive {:stashed, [{:deployex, :runtime_config}, ^runtime_config]}
+
+    # release_handler reads the relup with :file.consult/1 too, so the patched file must parse
+    assert {:ok, [{~c"0.2.0", [{~c"0.1.0", ~c"", script}], []}]} = :file.consult(relup_path)
+
+    # Heading the script puts it after change_appl_data/3 and before suspend/code_change
+    assert [{:apply, {:erl_eval, :exprs, [forms, []]}} | ^original_script] = script
+
+    # The forms must evaluate to the set_env call, with no module loaded into the target
+    :persistent_term.put({:deployex, :runtime_config}, runtime_config)
+    on_exit(fn -> :persistent_term.erase({:deployex, :runtime_config}) end)
+    on_exit(fn -> Application.delete_env(:testapp, Testapp.Repo) end)
+
+    assert {:value, :ok, _bindings} = :erl_eval.exprs(forms, [])
+    assert Application.get_env(:testapp, Testapp.Repo)[:ssl_opts][:match_fun] == match_fun
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 leaves an emulator restart script untouched", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    relup_path = "#{current_releases_version_path}/relup"
+
+    File.mkdir_p!(current_releases_version_path)
+
+    script = [:restart_new_emulator, {:load_object_code, {:testapp, ~c"0.2.0", [:test_app_sm]}}]
+
+    File.write!(
+      relup_path,
+      :io_lib.format(~c"~tp.~n", [{~c"0.2.0", [{~c"0.1.0", ~c"", script}], []}])
+    )
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+
+    assert :ok =
+             UpgradeApp.install_runtime_config_hook(
+               %Execute{node: node, current_path: current_path, to_version: to_version},
+               testapp: [{Testapp.Repo, []}]
+             )
+
+    # The VM restarts and Config.Provider resolves the configuration again on boot
+    assert {:ok, [{_to, [{_from, _descr, ^script}], _}]} = :file.consult(relup_path)
+  end
+
+  @tag :capture_log
+  test "install_runtime_config_hook/2 does not fail the upgrade when the relup is missing", %{
+    node: node,
+    current_path: current_path,
+    to_version: to_version
+  } do
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :persistent_term, :put, _args, @expected_timeout -> :ok end)
+
+    assert capture_log(fn ->
+             assert :ok =
+                      UpgradeApp.install_runtime_config_hook(
+                        %Execute{node: node, current_path: current_path, to_version: to_version},
+                        testapp: [{Testapp.Repo, []}]
+                      )
+           end) =~ "Could not add the runtime config hook"
+  end
+
+  test "apply_runtime_config/2 makes no rpc call when there is nothing to apply", %{node: node} do
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _function, _args, _timeout ->
+      flunk("no rpc call expected")
+    end)
+
+    assert :ok = UpgradeApp.apply_runtime_config(%Execute{node: node}, [])
+  end
+
+  @tag :capture_log
+  test "apply_runtime_config/2 applies the whole config in a single call", %{node: node} do
+    match_fun = :public_key.pkix_verify_hostname_match_fun(:https)
+    test_pid = self()
+
+    runtime_config = [
+      testapp: [
+        {Testapp.Repo, [ssl_opts: [customize_hostname_check: [match_fun: match_fun]]]},
+        {Testapp.Mailer, [adapter: Swoosh.Adapters.Local]}
+      ]
+    ]
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :application, :set_env, args, @expected_timeout ->
+        send(test_pid, {:set_env, args})
+        :ok
+
+      ^node, :persistent_term, :erase, args, @expected_timeout ->
+        send(test_pid, {:erase, args})
+        true
+    end)
+
+    assert :ok = UpgradeApp.apply_runtime_config(%Execute{node: node}, runtime_config)
+
+    # Same primitive and shape Config.Provider uses at boot via Application.put_all_env/2
+    assert_receive {:set_env, [^runtime_config, [persistent: true]]}
+    refute_receive {:set_env, _args}
+
+    # The relup hook stash must not outlive the upgrade
+    assert_receive {:erase, [{:deployex, :runtime_config}]}
+  end
+
+  @tag :capture_log
+  test "apply_runtime_config/2 error", %{node: node} do
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :application, :set_env, _args, @expected_timeout ->
+      {:badrpc, :nodedown}
+    end)
+
+    assert capture_log(fn ->
+             assert {:error, {:badrpc, :nodedown}} =
+                      UpgradeApp.apply_runtime_config(%Execute{node: node},
+                        testapp: [{Testapp.Repo, []}]
+                      )
+           end) =~ "Error while applying runtime config, reason: {:badrpc, :nodedown}"
   end
 
   @tag :capture_log
@@ -952,7 +1164,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1021,7 +1242,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1067,13 +1297,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                      "Resolving the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Applying the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
@@ -1112,7 +1343,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1151,13 +1391,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                      "Resolving the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Applying the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Making release 0.2.0 permanent"},
@@ -1197,7 +1438,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1236,13 +1486,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Checking release can be installed"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                      "Resolving the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
                      1_000
 
-      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Returning original sys.config file"},
+      assert_receive {:hot_upgrade_progress, ^node, ^sname, "Applying the runtime configuration"},
                      1_000
 
       assert_receive {:hot_upgrade_progress, ^node, ^sname, "Making release 0.2.0 permanent"},
@@ -1282,7 +1533,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1324,14 +1584,15 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                                "Checking release can be installed"},
                               1_000
 
-               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Resolving the runtime configuration"},
                               1_000
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
                               1_000
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname,
-                               "Returning original sys.config file"},
+                               "Applying the runtime configuration"},
                               1_000
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname,
@@ -1374,7 +1635,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
+
+      ^node, :persistent_term, :put, _params, @expected_timeout ->
+        :ok
+
+      ^node, :persistent_term, :erase, _params, @expected_timeout ->
+        true
+
+      ^node, :application, :set_env, _params, @expected_timeout ->
         :ok
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
@@ -1424,14 +1694,15 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                                "Checking release can be installed"},
                               1_000
 
-               assert_receive {:hot_upgrade_progress, ^node, ^sname, "Updating sys.config file"},
+               assert_receive {:hot_upgrade_progress, ^node, ^sname,
+                               "Resolving the runtime configuration"},
                               1_000
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname, "Installing release"},
                               1_000
 
                assert_receive {:hot_upgrade_progress, ^node, ^sname,
-                               "Returning original sys.config file"},
+                               "Applying the runtime configuration"},
                               1_000
 
                assert_receive {:hot_upgrade_complete, ^node, ^sname, :error,
