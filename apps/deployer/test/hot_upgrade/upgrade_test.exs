@@ -867,8 +867,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
 
     Foundation.RpcMock
-    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-      :ok
+    |> stub(:call, fn ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+      cfg
     end)
 
     assert :ok =
@@ -892,8 +892,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     File.cp!("./test/support/files/sys.config", "#{current_releases_version_path}/sys.config")
 
     Foundation.RpcMock
-    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-      :ok
+    |> stub(:call, fn ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+      cfg
     end)
 
     with_mock File, [:passthrough], rename: fn _source, _destination -> {:error, :any} end do
@@ -907,6 +907,50 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                         })
              end) =~ "Error while updating sys.config to: #{to_version}, reason: :any"
     end
+  end
+
+  @tag :capture_log
+  test "update_sys_config_from_installed_version/1 Elixir fails when a config provider crashes",
+       %{
+         node: node,
+         current_path: current_path,
+         to_version: to_version
+       } do
+    current_releases_version_path = "#{current_path}/releases/#{to_version}"
+    sys_config_path = "#{current_releases_version_path}/sys.config"
+
+    File.mkdir_p!(current_releases_version_path)
+    File.cp!("./test/support/files/sys.config", sys_config_path)
+    original_sys_config = File.read!(sys_config_path)
+
+    # Providers run over RPC inside the still running old version. One that starts a process
+    # the application already owns works on a cold boot and fails here
+    badrpc =
+      {:badrpc,
+       {:EXIT,
+        {{:badmatch, {:error, {:already_started, self()}}},
+         [{Testapp.SecretsProvider, :load, 2, [file: ~c"lib/secrets.ex", line: 54]}]}}}
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, _module, :load, [_cfg, _arg], @expected_timeout -> badrpc end)
+
+    log =
+      capture_log(fn ->
+        assert {:error, {:config_provider_failed, _mod, ^badrpc}} =
+                 UpgradeApp.update_sys_config_from_installed_version(%Execute{
+                   node: node,
+                   language: "elixir",
+                   current_path: current_path,
+                   to_version: to_version
+                 })
+      end)
+
+    assert log =~ "did not return a configuration"
+    assert log =~ "already_started"
+
+    # The failure must not be carried forward and written into sys.config
+    assert File.read!(sys_config_path) == original_sys_config
+    refute File.exists?("#{current_releases_version_path}/original.sys.config")
   end
 
   test "update_sys_config_from_installed_version/1 Erlang success", %{
@@ -952,8 +996,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1021,8 +1065,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1112,8 +1156,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1197,8 +1241,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1282,8 +1326,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1374,8 +1418,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
 
-      ^node, _module, :load, [_cfg, _arg], @expected_timeout ->
-        :ok
+      ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+        cfg
 
       ^node, :release_handler, :install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
