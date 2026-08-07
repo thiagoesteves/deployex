@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.9 🚀 (2026-08-07)
+
+### Backwards incompatible changes from 0.9.8
+ * None - version `0.9.9` supports hot upgrade from `0.9.8`
+
+### Bug fixes
+ * [`PULL-261`](https://github.com/thiagoesteves/deployex/pull/261) Fail the upgrade when a config provider does not return a configuration
+
+### Enhancements
+ * None
+
 ## 0.9.8 🚀 (2026-08-06)
 
 ### Backwards incompatible changes from 0.9.7
