@@ -13,6 +13,14 @@ defmodule DeployexWeb.UserLoginLiveTest do
     end
 
     @tag :capture_log
+    test "names the credential fields so password managers stay on this form", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
+
+      assert html =~ ~s(autocomplete="username")
+      assert html =~ ~s(autocomplete="current-password")
+    end
+
+    @tag :capture_log
     test "redirects if already logged in", %{conn: conn} do
       result =
         conn

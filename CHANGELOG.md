@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.10 ()
+
+### Backwards incompatible changes from 0.9.9
+ * None
+
+### Bug fixes
+ * [`PULL-265`](https://github.com/thiagoesteves/deployex/pull/265) Stop password managers filling credentials into the GitHub artifact form
+
+### Enhancements
+ * None
+
 ## 0.9.9 🚀 (2026-08-07)
 
 ### Backwards incompatible changes from 0.9.8

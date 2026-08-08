@@ -37,6 +37,24 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
     end
 
     @tag :capture_log
+    test "keeps password managers from filling the url and token fields", %{conn: conn} do
+      Deployer.HotUpgradeMock
+      |> expect(:subscribe_events, fn -> :ok end)
+
+      {:ok, live, _html} = live(conn, ~p"/hotupgrade")
+
+      html =
+        live
+        |> element("a", "GitHub URL")
+        |> render_click()
+
+      # A text field followed by a password field reads as a sign in form, and the DeployEx
+      # credentials end up in the artifact URL and the token
+      assert html =~ ~s(autocomplete="off")
+      assert html =~ ~s(autocomplete="new-password")
+    end
+
+    @tag :capture_log
     test "switches back to file upload method", %{conn: conn} do
       Deployer.HotUpgradeMock
       |> expect(:subscribe_events, fn -> :ok end)

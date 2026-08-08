@@ -24,11 +24,20 @@ defmodule DeployexWeb.UserLoginLive do
             </div>
 
             <.simple_form for={@form} id="login_form" action={~p"/users/log_in"} phx-update="ignore">
-              <.input field={@form[:username]} type="text" placeholder="Username" required />
+              <%!-- Naming the credential fields explicitly keeps password managers on this
+                    form instead of guessing at any other text plus password pair in the UI --%>
+              <.input
+                field={@form[:username]}
+                type="text"
+                placeholder="Username"
+                autocomplete="username"
+                required
+              />
               <.input
                 field={@form[:password]}
                 type="password"
-                placeholder="current-password"
+                placeholder="Password"
+                autocomplete="current-password"
                 required
               />
 

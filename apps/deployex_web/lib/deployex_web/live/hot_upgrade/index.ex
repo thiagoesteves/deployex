@@ -207,12 +207,16 @@ defmodule DeployexWeb.HotUpgradeLive do
                 Download from GitHub
               </h2>
 
+              <%!-- A text field followed by a password field looks like a sign in form to a
+                    password manager, which then fills the DeployEx credentials into the URL and
+                    token below. The autocomplete hints here and on the inputs keep it away. --%>
               <.form
                 for={@form}
                 id="github-download-form"
                 phx-change="github-download-form-update"
                 phx-submit="download-from-github"
                 class="space-y-4"
+                autocomplete="off"
               >
                 <div class="form-control">
                   <label class="label">
@@ -224,6 +228,9 @@ defmodule DeployexWeb.HotUpgradeLive do
                     value={@form.params["github_url"]}
                     placeholder="https://github.com/user/repo/actions/runs/123/artifacts/456"
                     class="input input-bordered w-full"
+                    autocomplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
                     required
                   />
                   <label class="label">
@@ -237,12 +244,17 @@ defmodule DeployexWeb.HotUpgradeLive do
                   <label class="label">
                     <span class="label-text font-medium">GitHub Token (optional)</span>
                   </label>
+                  <%!-- new-password rather than off: Chrome ignores off for password fields
+                        but will not fill a stored credential into a new-password one --%>
                   <input
                     type="password"
                     name="github_token"
                     value={@form.params["github_token"]}
                     placeholder="ghp_xxxxxxxxxxxx"
                     class="input input-bordered w-full font-mono text-sm"
+                    autocomplete="new-password"
+                    data-1p-ignore
+                    data-lpignore="true"
                   />
                   <label class="label">
                     <span class="label-text-alt text-base-content/60">
