@@ -282,10 +282,21 @@ defmodule Foundation.Catalog do
   @doc """
   Add a version to the version history
 
+  Returns the stored record, whose `id` identifies it for `update_version/1`.
   """
   @impl true
-  @spec add_version(map()) :: :ok
+  @spec add_version(map()) :: {:ok, Catalog.Version.t()}
   def add_version(version), do: default().add_version(version)
+
+  @doc """
+  Update a version already in the history
+
+  A full deployment records the version before the node has started, so its outcome is only
+  known later. This rewrites that record in place rather than appending a second one.
+  """
+  @impl true
+  @spec update_version(map()) :: {:ok, Catalog.Version.t()} | {:error, :not_found}
+  def update_version(version), do: default().update_version(version)
 
   @doc """
   Retrieve the ghosted version history for the respective application

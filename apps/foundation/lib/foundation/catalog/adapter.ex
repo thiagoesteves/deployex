@@ -23,7 +23,8 @@ defmodule Foundation.Catalog.Adapter do
   @callback current_path(String.t()) :: String.t() | nil
   @callback previous_path(String.t()) :: String.t() | nil
   @callback versions(String.t(), Keyword.t()) :: list()
-  @callback add_version(map()) :: :ok
+  @callback add_version(map()) :: {:ok, Catalog.Version.t()}
+  @callback update_version(map()) :: {:ok, Catalog.Version.t()} | {:error, :not_found}
   @callback ghosted_versions(String.t()) :: list()
   @callback add_ghosted_version(map()) :: {:ok, list()}
   @callback add_user_session_token(Accounts.UserToken.t()) :: :ok

@@ -289,6 +289,7 @@ defmodule Foundation.Catalog.Local do
       name
       |> history_version_path()
       |> list()
+      |> Enum.map(&normalize_version/1)
       |> Enum.sort_by(& &1.inserted_at, {:desc, NaiveDateTime})
 
     if sname do
@@ -300,16 +301,39 @@ defmodule Foundation.Catalog.Local do
 
   @impl true
   def add_version(%{name: name} = version) do
+    # The record is written before the outcome is known and updated afterwards, so it is
+    # keyed rather than appended anonymously. The list is ordered by inserted_at, not by
+    # file name, so keying this way does not change the history order
+    id = version.id || "#{System.os_time(:microsecond)}.term"
+    version = %{version | id: id}
+
     name
     |> history_version_path()
-    |> insert_by_timestamp(version)
+    |> insert_by_key(id, version)
+
+    {:ok, version}
   end
+
+  @impl true
+  def update_version(%{name: name, id: id} = version) when is_binary(id) do
+    path = history_version_path(name)
+
+    if File.exists?("#{path}/#{id}") do
+      insert_by_key(path, id, version)
+      {:ok, version}
+    else
+      {:error, :not_found}
+    end
+  end
+
+  def update_version(_version), do: {:error, :not_found}
 
   @impl true
   def ghosted_versions(name) do
     name
     |> ghosted_version_path()
     |> list()
+    |> Enum.map(&normalize_version/1)
   end
 
   @impl true
@@ -388,6 +412,16 @@ defmodule Foundation.Catalog.Local do
     file = "#{System.os_time(:microsecond)}.term"
     File.write!("#{path}/#{file}", :erlang.term_to_binary(data))
   end
+
+  # A record written by an earlier version decodes without the fields added since, and
+  # reading one of those would raise a KeyError. DeployEx hot upgrades itself and then reads
+  # the history it wrote before the upgrade, so this is the normal path rather than an edge
+  # case. struct/2 fills the missing fields with their defaults and ignores unknown ones
+  defp normalize_version(%Catalog.Version{} = version) do
+    struct(Catalog.Version, Map.delete(version, :__struct__))
+  end
+
+  defp normalize_version(version), do: version
 
   defp insert_by_key(path, key, data) do
     File.write!("#{path}/#{key}", :erlang.term_to_binary(data))

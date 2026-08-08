@@ -22,8 +22,62 @@ defmodule Foundation.CatalogTest do
 
   test "add_version/1", %{name: name} do
     version = %Catalog.Version{version: "0.0.0", name: name}
-    assert :ok = Catalog.add_version(version)
-    assert [^version] = Catalog.versions(name, [])
+    assert {:ok, %Catalog.Version{id: id} = stored} = Catalog.add_version(version)
+    assert is_binary(id)
+    assert [^stored] = Catalog.versions(name, [])
+  end
+
+  test "update_version/1 rewrites the record in place", %{name: name} do
+    # A full deployment records the version before the node has started, so the outcome is
+    # only known later and must not append a second entry
+    {:ok, stored} =
+      Catalog.add_version(%Catalog.Version{
+        version: "0.0.0",
+        name: name,
+        outcome: :started,
+        inserted_at: NaiveDateTime.utc_now()
+      })
+
+    assert {:ok, _updated} =
+             Catalog.update_version(%{stored | outcome: :ok, duration_ms: 1234})
+
+    assert [%Catalog.Version{outcome: :ok, duration_ms: 1234, id: id}] =
+             Catalog.versions(name, [])
+
+    assert id == stored.id
+  end
+
+  test "update_version/1 without a stored record", %{name: name} do
+    assert {:error, :not_found} =
+             Catalog.update_version(%Catalog.Version{version: "0.0.0", name: name, id: "nope"})
+
+    assert {:error, :not_found} =
+             Catalog.update_version(%Catalog.Version{version: "0.0.0", name: name})
+  end
+
+  test "versions/2 reads records written before the newer fields existed", %{name: name} do
+    # DeployEx hot upgrades itself and then reads the history it wrote beforehand, so a
+    # record decoded without the newer keys must not raise
+    legacy = %{
+      __struct__: Catalog.Version,
+      version: "0.0.0",
+      hash: nil,
+      pre_commands: [],
+      name: name,
+      sname: "#{name}-abc123",
+      deployment: :full_deployment,
+      inserted_at: NaiveDateTime.utc_now()
+    }
+
+    path = "#{Application.get_env(:foundation, :var_path)}/storage/#{name}/deployex/history"
+    File.mkdir_p!(path)
+    File.write!("#{path}/legacy.term", :erlang.term_to_binary(legacy))
+
+    assert [%Catalog.Version{} = version] = Catalog.versions(name, [])
+    assert version.version == "0.0.0"
+    assert version.outcome == nil
+    assert version.from_version == nil
+    assert version.duration_ms == nil
   end
 
   test "ghosted_versions/0", %{name: name} do
