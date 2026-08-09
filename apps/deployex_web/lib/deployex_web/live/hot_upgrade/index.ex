@@ -702,10 +702,10 @@ defmodule DeployexWeb.HotUpgradeLive do
               </div>
             </div>
 
-            <div class="bg-error/10 border border-error/20 rounded-lg p-4">
+            <div class="bg-warning/10 border border-warning/20 rounded-lg p-4">
               <div class="flex gap-3">
                 <svg
-                  class="w-5 h-5 text-error flex-shrink-0 mt-0.5"
+                  class="w-5 h-5 text-warning flex-shrink-0 mt-0.5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -719,12 +719,15 @@ defmodule DeployexWeb.HotUpgradeLive do
                   </path>
                 </svg>
                 <div class="space-y-2">
-                  <p class="font-semibold text-error">Warning: Destructive Operation</p>
+                  <p class="font-semibold text-warning">Before you apply</p>
                   <ul class="text-sm text-base-content/80 space-y-1 list-disc list-inside">
-                    <li>All running application instances will be terminated</li>
-                    <li>Deployments will restart sequentially</li>
-                    <li>This may cause temporary service interruption</li>
-                    <li>This action cannot be undone</li>
+                    <li>DeployEx keeps running, its code is replaced in place</li>
+                    <li>Processes with a code_change callback have their state migrated live</li>
+                    <li>Monitored applications are not affected, they run on separate nodes</li>
+                    <li>
+                      A failure does not roll back on its own. DeployEx stays up and logs the
+                      error, and restarting the service returns it to the last permanent version
+                    </li>
                   </ul>
                 </div>
               </div>
