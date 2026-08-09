@@ -192,9 +192,15 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
           live |> element("#hotupgrade-apply-deployex", "Apply Hot Upgrade") |> render_click()
 
         assert html =~ "Hot upgrade"
-        assert html =~ "Warning: Destructive Operation"
-        assert html =~ "All running application instances will be terminated"
+        assert html =~ "Before you apply"
         assert html =~ "Yes, Apply Hot Upgrade"
+
+        # release_handler swaps code in the running VM, so nothing is stopped. The confirmation
+        # used to claim the opposite, contradicting the release card on the same page
+        assert html =~ "DeployEx keeps running"
+        assert html =~ "does not roll back on its own"
+        refute html =~ "All running application instances will be terminated"
+        refute html =~ "Warning: Destructive Operation"
       end
     end
 
