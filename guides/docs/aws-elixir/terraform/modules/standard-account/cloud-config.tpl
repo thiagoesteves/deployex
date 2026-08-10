@@ -10,6 +10,9 @@ packages:
  - unzip
  - nginx
  - logrotate
+ - awscli
+ - jq
+ - amazon-ssm-agent
 
 write_files:
   - path: /home/root/install-otp-certificates.sh
@@ -326,12 +329,10 @@ runcmd:
   # Set the hostname so the environment is obvious on the box and in logs
   - hostnamectl set-hostname myappname-${account_name}-debian
   - echo "127.0.0.1 myappname-${account_name}-debian" >> /etc/hosts
-  # AWS CLI, used by install-otp-certificates.sh to read from Secrets Manager
-  - cd /tmp
-  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" "-o" "awscliv2.zip"
-  - unzip "awscliv2.zip"
-  - ./aws/install
-  - ./aws/install --update
+  # Enable AWS Systems Manager agent
+  - systemctl enable amazon-ssm-agent
+  # RDS server certificate chain, used by the Ecto repo to verify the database
+  - curl -o /etc/ssl/certs/rds-global.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
   # Download and install Deployex. deployex.sh reads its yaml with yq, which Debian does
   # not ship by default
   - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
