@@ -104,6 +104,27 @@ defmodule Foundation.CertificateTest do
     end
 
     @tag :capture_log
+    test "writes only the file whose path is given", %{dir: dir} do
+      stored = %Foundation.Catalog.Certificate{
+        certificate_pem: "LEAF",
+        private_key_pem: "KEY"
+      }
+
+      cert_only = Path.join(dir, "cert-only.pem")
+      key_only = Path.join(dir, "key-only.pem")
+
+      with_mock Foundation.Catalog, [:passthrough], certificate: fn _ -> stored end do
+        assert {:ok, _} = Certificate.export_to_files("nerveshub", cert_only, nil)
+        assert {:ok, _} = Certificate.export_to_files("nerveshub", nil, key_only)
+      end
+
+      # a nil path skips that file rather than raising on Path.dirname/1
+      assert File.read!(cert_only) == "LEAF\n"
+      assert File.read!(key_only) == "KEY"
+      refute File.exists?(Path.join(dir, "host.pem"))
+    end
+
+    @tag :capture_log
     test "returns not_found when no certificate has been issued", %{
       cert_path: cert_path,
       key_path: key_path

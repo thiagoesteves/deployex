@@ -41,6 +41,10 @@ defmodule Foundation.Certificate do
   Files are created with mode 0600 for the private key and 0644 for the certificate, and
   the parent directories are created if missing.
 
+  Either path may be `nil`, in which case that file is skipped. Writing only the
+  certificate is the useful case, for something that needs to present the chain without
+  holding the key.
+
   DeployEx runs as the unprivileged `deployex` user, so the destination has to be writable
   by it. A path such as `/etc/ssl` is root owned by default and needs granting first, for
   example:
@@ -58,8 +62,8 @@ defmodule Foundation.Certificate do
   """
   @spec export_to_files(
           app_name :: String.t(),
-          certificate_path :: String.t(),
-          private_key_path :: String.t()
+          certificate_path :: String.t() | nil,
+          private_key_path :: String.t() | nil
         ) :: {:ok, map()} | {:error, any()}
   def export_to_files(app_name, certificate_path, private_key_path) do
     case Catalog.certificate(app_name) do
@@ -88,13 +92,18 @@ defmodule Foundation.Certificate do
 
     with :ok <- write_file(certificate_path, full_chain, 0o644),
          :ok <- write_file(private_key_path, certificate.private_key_pem, 0o600) do
-      Logger.info(
-        "Exported certificate to: #{certificate_path} and private key to: #{private_key_path}"
-      )
+      logged =
+        [certificate_path, private_key_path]
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join(" and ")
+
+      Logger.info("Exported certificate for #{inspect(logged)}")
 
       {:ok, %{certificate_path: certificate_path, private_key_path: private_key_path}}
     end
   end
+
+  defp write_file(nil, _content, _mode), do: :ok
 
   defp write_file(path, content, mode) do
     with :ok <- path |> Path.dirname() |> File.mkdir_p(),

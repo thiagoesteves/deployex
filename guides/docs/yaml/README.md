@@ -275,7 +275,9 @@ storage_options:
   private_key_path: "/etc/ssl/myapp/host-key.pem"
 ```
 
-Both keys are optional and independent. The certificate is written as a full chain, leaf first followed by the intermediates, with mode `0644`. The private key is written with mode `0600`.
+Both keys are optional and independent: give one and only that file is written. Writing only the certificate is the useful case, for something that needs to present the chain without holding the key. Omitting both, or omitting `storage_options` entirely, disables the export.
+
+The certificate is written as a full chain, leaf first followed by the intermediates, with mode `0644`. The private key is written with mode `0600`.
 
 > [!IMPORTANT]
 > DeployEx runs as the unprivileged `deployex` user, so the destination directory has to be writable by it. Paths such as `/etc/ssl` are root owned and will fail with `:eacces` until permission is granted:
