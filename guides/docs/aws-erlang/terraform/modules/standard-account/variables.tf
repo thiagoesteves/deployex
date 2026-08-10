@@ -44,3 +44,8 @@ variable "log_retention_in_days" {
   type        = number
   default     = 30
 }
+# Address Let's Encrypt uses for expiry notices, see setup-tls.sh in cloud-config.tpl
+variable "certbot_email" {
+  type     = string
+  nullable = false
+}
