@@ -98,6 +98,21 @@ defmodule Foundation.Yaml do
             }
     end
 
+    defmodule StorageOptions do
+      @moduledoc """
+      Where a renewed certificate is written on the instance.
+
+      Both paths are optional and independent, so a deployment that only needs the
+      certificate does not have to write the private key next to it.
+      """
+      defstruct [:certificate_path, :private_key_path]
+
+      @type t :: %__MODULE__{
+              certificate_path: String.t() | nil,
+              private_key_path: String.t() | nil
+            }
+    end
+
     defstruct [
       :type,
       :domains,
@@ -110,7 +125,8 @@ defmodule Foundation.Yaml do
       :acme_provider,
       :acme_options,
       :importer,
-      :importer_options
+      :importer_options,
+      :storage_options
     ]
 
     @type t :: %__MODULE__{
@@ -125,7 +141,8 @@ defmodule Foundation.Yaml do
             acme_provider: atom() | nil,
             acme_options: __MODULE__.AcmeOptions.t() | nil,
             importer: atom() | nil,
-            importer_options: __MODULE__.ImporterOptions.t() | nil
+            importer_options: __MODULE__.ImporterOptions.t() | nil,
+            storage_options: __MODULE__.StorageOptions.t() | nil
           }
   end
 
@@ -472,7 +489,8 @@ defmodule Foundation.Yaml do
       acme_provider: parse_acme_provider(data["acme_provider"]),
       acme_options: parse_acme_options(data["acme_options"]),
       importer: parse_importer(data["importer"]),
-      importer_options: parse_importer_options(data["importer_options"])
+      importer_options: parse_importer_options(data["importer_options"]),
+      storage_options: parse_storage_options(data["storage_options"])
     }
   end
 
@@ -508,6 +526,15 @@ defmodule Foundation.Yaml do
 
   defp parse_importer("route53"), do: Foundation.Certificates.Importer.Route53
   defp parse_importer(importer), do: raise("Importer #{importer} not supported")
+
+  defp parse_storage_options(nil), do: nil
+
+  defp parse_storage_options(opts) do
+    %Certificate.StorageOptions{
+      certificate_path: opts["certificate_path"],
+      private_key_path: opts["private_key_path"]
+    }
+  end
 
   defp parse_importer_options(nil), do: nil
 
