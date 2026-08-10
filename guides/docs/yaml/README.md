@@ -205,6 +205,9 @@ applications:
         importer: "route53"                                   # Certificate deployment/import (Supports route53)
         importer_options: 
           certificate_arn: "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx"
+        storage_options:                                      # Optional, write the certificate to disk on renewal
+          certificate_path: "/etc/ssl/myapp/host.pem"
+          private_key_path: "/etc/ssl/myapp/host-key.pem"
 
   # --------------------------------------------------------------------------
   # Application: myapp
@@ -261,6 +264,31 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 #### Application Certificates
 
 DeployEx supports automatic TLS certificate provisioning, renewal, and deployment using ACME providers such as Let's Encrypt. Certificates are configured per application through the certificates field. This allows applications to manage HTTPS certificates without requiring external automation.
+
+#### Writing the certificate to disk
+
+`importer` hands the certificate to a cloud service, which covers a load balancer terminating TLS but not a process that has to read the certificate from the filesystem. `storage_options` covers that case: give it the paths and DeployEx writes them every time the certificate is renewed.
+
+```yaml
+storage_options:
+  certificate_path: "/etc/ssl/myapp/host.pem"
+  private_key_path: "/etc/ssl/myapp/host-key.pem"
+```
+
+Both keys are optional and independent. The certificate is written as a full chain, leaf first followed by the intermediates, with mode `0644`. The private key is written with mode `0600`.
+
+> [!IMPORTANT]
+> DeployEx runs as the unprivileged `deployex` user, so the destination directory has to be writable by it. Paths such as `/etc/ssl` are root owned and will fail with `:eacces` until permission is granted:
+> ```bash
+> install -d -o deployex -g deployex -m 0750 /etc/ssl/myapp
+> ```
+> A failure to write is logged but does **not** fail the renewal. The certificate has already been issued and imported at that point, and failing would make the manager retry and reissue against the Let's Encrypt weekly limit.
+
+The same export is available on demand, which is useful for placing an already issued certificate without waiting for a renewal:
+
+```elixir
+Foundation.Certificate.export_to_files("myapp", "/etc/ssl/myapp/host.pem", "/etc/ssl/myapp/host-key.pem")
+```
 
 ### Non-Upgradable Configuration Fields
 

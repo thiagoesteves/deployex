@@ -38,7 +38,8 @@ defmodule Foundation.Certificates.Manager do
           acme_provider: atom(),
           acme_options: map(),
           importer: atom(),
-          importer_options: map()
+          importer_options: map(),
+          storage_options: map() | nil
         }
 
   defstruct [
@@ -53,7 +54,8 @@ defmodule Foundation.Certificates.Manager do
     :acme_provider,
     :acme_options,
     :importer,
-    :importer_options
+    :importer_options,
+    :storage_options
   ]
 
   @default_nameservers ["8.8.8.8", "1.1.1.1"]
@@ -185,8 +187,41 @@ defmodule Foundation.Certificates.Manager do
              attrs.chain_certificate_pem,
              private_key_pem,
              importer_options
-           ) do
-      Catalog.certificate_update(app_name, struct(existing_cert, attrs))
+           ),
+         {:ok, cert} <- Catalog.certificate_update(app_name, struct(existing_cert, attrs)) do
+      # After the catalog is updated, so the files carry the certificate that was just
+      # issued rather than the one it replaced
+      store_certificate_files(app_name, cert_config.storage_options)
+
+      {:ok, cert}
+    end
+  end
+
+  # NOTE: a failure here is logged but does not fail the renewal. The certificate has
+  #       already been issued and imported at this point, so failing would leave the
+  #       manager retrying and reissuing against the Let's Encrypt weekly limit for what
+  #       is almost always a directory the deployex user cannot write to.
+  defp store_certificate_files(_app_name, nil), do: :ok
+
+  defp store_certificate_files(_app_name, %{certificate_path: nil, private_key_path: nil}),
+    do: :ok
+
+  defp store_certificate_files(app_name, %{
+         certificate_path: certificate_path,
+         private_key_path: private_key_path
+       }) do
+    case Foundation.Certificate.export_to_files(app_name, certificate_path, private_key_path) do
+      {:ok, _paths} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "Certificate renewed for app: #{app_name} but could not be written to disk, " <>
+            "reason: #{inspect(reason)}. The deployex user needs write access to the target " <>
+            "directory."
+        )
+
+        :ok
     end
   end
 
