@@ -38,11 +38,15 @@ defmodule Deployer.HotUpgrade.Deployex do
 
     with {:ok, _} <-
            Commander.run("tar -xf  #{download_path} -C #{new_path}", [:sync, :stdout, :stderr]),
+         :ok <- check_toolchain(new_path),
          {:ok, %Check{deploy: :hot_upgrade} = check} <- HotUpgradeApp.check(check) do
       {:ok, check}
     else
       {:ok, %Check{deploy: :full_deployment}} ->
         {:error, :full_deployment}
+
+      {:error, {:toolchain_mismatch, _details} = reason} ->
+        {:error, reason}
 
       reason ->
         Logger.warning(
@@ -98,6 +102,56 @@ defmodule Deployer.HotUpgrade.Deployex do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # A hot upgrade replaces application code inside the running VM, it cannot replace the
+  # VM or the language runtime under it. systools:make_relup/4 needs an appup for every
+  # application whose version changes, and neither Elixir nor the OTP applications ship
+  # one, so an artifact built on a different toolchain fails partway through the upgrade
+  # with a missing appup rather than at the point the wrong file was chosen.
+  #
+  # The release directory names carry both versions, so this is answerable before anything
+  # is installed.
+  defp check_toolchain(new_path) do
+    running = %{
+      elixir: System.version(),
+      erts: to_string(:erlang.system_info(:version))
+    }
+
+    release = %{
+      elixir: version_from_dir(new_path, "lib/elixir-*", "elixir-"),
+      erts: version_from_dir(new_path, "erts-*", "erts-")
+    }
+
+    mismatched =
+      Enum.reject([:elixir, :erts], fn key ->
+        # An unreadable release layout is left to the checks that follow rather than
+        # rejected here, they report it far better than a guess would
+        is_nil(release[key]) or release[key] == running[key]
+      end)
+
+    if mismatched == [] do
+      :ok
+    else
+      details = Map.new(mismatched, &{&1, %{running: running[&1], release: release[&1]}})
+
+      Logger.error("""
+      Hot upgrade refused, the release was built on a different toolchain: \
+      #{inspect(details)}. A hot upgrade cannot change the Erlang or Elixir version under \
+      a running system. Use the artifact matching the otp_version this installation runs, \
+      or apply it as a full deployment.\
+      """)
+
+      {:error, {:toolchain_mismatch, details}}
+    end
+  end
+
+  defp version_from_dir(new_path, pattern, prefix) do
+    case Path.wildcard("#{new_path}/#{pattern}") do
+      [dir] -> dir |> Path.basename() |> String.replace_prefix(prefix, "")
+      _ -> nil
+    end
+  end
+
   defp parse_version(download_path) do
     [_, to_version] =
       download_path

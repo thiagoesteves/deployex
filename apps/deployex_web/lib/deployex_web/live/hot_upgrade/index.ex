@@ -1020,6 +1020,16 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   # Helper Functions
 
+  # Names the versions that differ so the operator can see which artifact to fetch instead
+  defp toolchain_error_message(details) do
+    changes =
+      Enum.map_join(details, ", ", fn {name, %{running: running, release: release}} ->
+        "#{name} #{running} -> #{release}"
+      end)
+
+    "wrong artifact for this installation: #{changes}"
+  end
+
   defp handle_release(path, filename, size) do
     uploads_path = "#{:code.priv_dir(:deployex_web)}/static/uploads"
     File.mkdir_p!(uploads_path)
@@ -1043,6 +1053,9 @@ defmodule DeployexWeb.HotUpgradeLive do
 
       {:error, :full_deployment} ->
         {:postpone, %{hotupgrade | error: "full deployment only"}}
+
+      {:error, {:toolchain_mismatch, details}} ->
+        {:postpone, %{hotupgrade | error: toolchain_error_message(details)}}
 
       {:error, _reason} ->
         {:postpone, %{hotupgrade | error: "invalid release"}}

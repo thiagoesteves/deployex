@@ -22,6 +22,50 @@ defmodule Deployer.HotUpgrade.DeployexTest do
     end
   end
 
+  test "check/1 refuses an artifact built on a different toolchain" do
+    new_path = "/tmp/hotupgrade/deployex"
+    on_exit(fn -> File.rm_rf(new_path) end)
+
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options ->
+      # stands in for the extraction. Same ERTS, different Elixir, which is what applying
+      # the wrong otp_version artifact looks like on disk
+      File.mkdir_p!("#{new_path}/lib/elixir-0.0.1")
+      File.mkdir_p!("#{new_path}/erts-#{:erlang.system_info(:version)}")
+      {:ok, []}
+    end)
+
+    log =
+      capture_log(fn ->
+        assert {:error, {:toolchain_mismatch, details}} =
+                 Deployex.check("/tmp/deployex-1.0.0.tar.gz")
+
+        assert %{elixir: %{release: "0.0.1", running: running}} = details
+        assert running == System.version()
+        # only the version that actually differs is reported
+        refute Map.has_key?(details, :erts)
+      end)
+
+    assert log =~ "built on a different toolchain"
+  end
+
+  test "check/1 accepts an artifact built on the same toolchain" do
+    new_path = "/tmp/hotupgrade/deployex"
+    on_exit(fn -> File.rm_rf(new_path) end)
+
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options ->
+      File.mkdir_p!("#{new_path}/lib/elixir-#{System.version()}")
+      File.mkdir_p!("#{new_path}/erts-#{:erlang.system_info(:version)}")
+      {:ok, []}
+    end)
+
+    with_mock HotUpgradeApp, [:passthrough],
+      check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end do
+      assert {:ok, %Check{}} = Deployex.check("/tmp/deployex-1.0.0.tar.gz")
+    end
+  end
+
   test "check/1 fail to untar" do
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:error, ["invalid"]} end)
