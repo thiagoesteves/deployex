@@ -6,12 +6,14 @@
 #    /var/log/cloud-init-output.log
 #
 packages:
+ - certbot
+ - yq
  - unzip
  - nginx
  - logrotate
 
 write_files:
-  - path: /home/ubuntu/install-otp-certificates.sh
+  - path: /home/root/install-otp-certificates.sh
     owner: root:root
     permissions: "0755"
     content: |
@@ -28,7 +30,7 @@ write_files:
       gcloud secrets versions access 1 --secret=myappname-${account_name}-otp-tls-crt > /usr/local/share/ca-certificates/deployex.crt
       gcloud secrets versions access 1 --secret=myappname-${account_name}-otp-tls-crt > /usr/local/share/ca-certificates/myappname.crt
       echo "[OK]"
-  - path: /home/ubuntu/gcp-config.json
+  - path: /home/root/gcp-config.json
     owner: root:root
     permissions: "0644"
     content: |
@@ -36,7 +38,7 @@ write_files:
         "type": "service_account" # Populate it after installation
         ...
       }
-  - path: /home/ubuntu/deployex.yaml
+  - path: /home/root/deployex.yaml
     owner: root:root
     permissions: "0644"
     content: |
@@ -47,7 +49,7 @@ write_files:
       release_bucket: "myappname-${account_name}-distribution"
       secrets_adapter: "gcp"
       secrets_path: "deployex-myappname-${account_name}-secrets"
-      google_credentials: "/home/ubuntu/gcp-config.json"
+      google_credentials: "/home/root/gcp-config.json"
       version: "${deployex_version}"
       otp_version: 28
       otp_tls_certificates: "/usr/local/share/ca-certificates"
@@ -134,25 +136,55 @@ write_files:
       }
 
       server {
+          listen 80 default_server;
+          server_name _;
+          return 404;
+      }
+
+      server {
           listen 80;
           server_name ${hostname} ${deployex_hostname};
 
-          if ($host = ${hostname}) {
+          # HTTP-01 challenge, for the first issue and for every renewal. certbot only ever
+          # writes files under this root, it does not touch the nginx configuration
+          location /.well-known/acme-challenge/ {
+              root /var/www/certbot;
+          }
+
+          location / {
               return 301 https://$host$request_uri;
-          } # managed by Certbot
-
-
-          if ($host = ${deployex_hostname}) {
-              return 301 https://$host$request_uri;
-          } # managed by Certbot
-
-          return 404; # managed by Certbot
+          }
       }
 
-      server { 
-          #listen 443 ssl; # managed by Certbot
+  - path: /home/root/nginx-tls.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      # Installed into /etc/nginx/conf.d/ by setup-tls.sh once the certificate exists. One
+      # certificate covers both names, under a lineage named after ${hostname}.
+      #
+      # The TLS parameters are written out instead of including
+      # /etc/letsencrypt/options-ssl-nginx.conf. That file is created by the certbot nginx
+      # installer plugin, which does not run here because the certificate is obtained with
+      # certonly --webroot, so it does not exist on the box. These are the same values.
+      #
+      # They sit inside the server blocks rather than at http level, because the stock
+      # nginx.conf already sets ssl_protocols and ssl_prefer_server_ciphers there and nginx
+      # rejects the duplicates.
+      server {
+          listen 443 ssl;
           server_name  ${deployex_hostname};
           client_max_body_size 30M;
+
+          ssl_certificate     /etc/letsencrypt/live/${hostname}/fullchain.pem;
+          ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;
+
+          ssl_session_cache shared:deployex_SSL:10m;
+          ssl_session_timeout 1440m;
+          ssl_session_tickets off;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_prefer_server_ciphers off;
+          ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305";
 
           location / {
               allow all;
@@ -169,14 +201,22 @@ write_files:
 
               proxy_pass http://deployex;
           }
-          
-          # Add here the letsencrypt paths
       }
 
       server {
-          #listen 443 ssl; # managed by Certbot
+          listen 443 ssl;
           server_name  ${hostname};
           client_max_body_size 30M;
+
+          ssl_certificate     /etc/letsencrypt/live/${hostname}/fullchain.pem;
+          ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;
+
+          ssl_session_cache shared:deployex_SSL:10m;
+          ssl_session_timeout 1440m;
+          ssl_session_tickets off;
+          ssl_protocols TLSv1.2 TLSv1.3;
+          ssl_prefer_server_ciphers off;
+          ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305";
 
           location / {
               allow all;
@@ -193,15 +233,61 @@ write_files:
 
               proxy_pass http://phoenix;
           }
-          # Add here the letsencrypt paths
       }
+
+  - path: /home/root/setup-tls.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      #
+      #  Obtain the TLS certificate and enable the HTTPS server blocks.
+      #
+      #  Runs on every boot and is idempotent: --keep-until-expiring leaves a still valid
+      #  certificate alone, which matters because any cloud-config change replaces the
+      #  instance and Let's Encrypt only allows 5 identical certificates per week.
+      #
+      set -uo pipefail
+
+      mkdir -p /var/www/certbot
+
+      if certbot certonly \
+           --webroot --webroot-path /var/www/certbot \
+           --cert-name ${hostname} \
+           -d ${hostname} -d ${deployex_hostname} \
+           --email ${certbot_email} \
+           --agree-tos --non-interactive --keep-until-expiring \
+           --deploy-hook "systemctl reload nginx"; then
+        install -o root -g root -m 0644 /home/root/nginx-tls.conf /etc/nginx/conf.d/tls.conf
+
+        if nginx -t; then
+          systemctl reload nginx
+        else
+          # Never leave nginx unable to start, HTTP is better than nothing
+          rm -f /etc/nginx/conf.d/tls.conf
+          echo "setup-tls: generated TLS config failed nginx -t, staying on HTTP" >&2
+          exit 1
+        fi
+      else
+        echo "setup-tls: certbot failed, staying on HTTP. Check that ${hostname} and" >&2
+        echo "           ${deployex_hostname} resolve to this instance, then re-run." >&2
+        exit 1
+      fi
 runcmd:
-  - /home/ubuntu/install-otp-certificates.sh
-  - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-  - chmod a+x /usr/local/bin/yq
-  - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/ubuntu
-  - chmod a+x /home/ubuntu/deployex.sh
-  - /home/ubuntu/deployex.sh --install /home/ubuntu/deployex.yaml
-  - systemctl enable --no-block nginx 
-  - systemctl start --no-block nginx
+  # Set the hostname so the environment is obvious on the box and in logs
+  - hostnamectl set-hostname myappname-${account_name}-debian
+  - echo "127.0.0.1 myappname-${account_name}-debian" >> /etc/hosts
+  # Install OTP certificates from Google Secret Manager
+  - /home/root/install-otp-certificates.sh
+  # Download and install Deployex
+  - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
+  - chmod a+x /home/root/deployex.sh
+  - /home/root/deployex.sh --install /home/root/deployex.yaml
+  # Enable Nginx
+  - systemctl enable nginx
+  - systemctl restart nginx
+  # nginx is serving HTTP at this point, which is all the HTTP-01 challenge needs
+  - /home/root/setup-tls.sh
+  # Reboot to apply all changes
+  - sleep 5
   - reboot

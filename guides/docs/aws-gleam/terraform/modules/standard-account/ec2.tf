@@ -1,9 +1,9 @@
-data "aws_ami" "ubuntu" {
+data "aws_ami" "debian" {
   most_recent = true
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["debian-13-amd64-*"]
   }
 
   filter {
@@ -11,7 +11,7 @@ data "aws_ami" "ubuntu" {
     values = ["hvm"]
   }
 
-  owners = ["099720109477"] # Canonical
+  owners = ["136693071363"] # Debian official
 }
 
 resource "aws_security_group" "ec2_security" {
@@ -102,6 +102,7 @@ data "cloudinit_config" "server_config" {
     content = templatefile("${path.module}/cloud-config.tpl", {
       hostname = "${var.server_dns}"
       deployex_hostname = "${var.deployex_dns}"
+      certbot_email = "${var.certbot_email}"
       deployex_version = "${var.deployex_version}"
       log_group_name = aws_cloudwatch_log_group.ec2_instance_logs.name
       account_name = "${var.account_name}"
@@ -112,7 +113,7 @@ data "cloudinit_config" "server_config" {
 }
 
 resource "aws_instance" "ec2_myappname_instance" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = data.aws_ami.debian.id
   instance_type               = "${var.ec2_instance_type}"
   key_name                    = "${var.aws_key_name}"
   vpc_security_group_ids      = [aws_security_group.ec2_security.id]

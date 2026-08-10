@@ -90,8 +90,8 @@ For initial installations or updates to deployex, access the Google Compute Inst
 
 ```bash
 my-user@myfirstapp-prod-instance:~$ sudo su
-root@myfirstapp-prod-instance:/home/my-user# cd ../ubuntu/
-root@myfirstapp-prod-instance:/home/ubuntu# ls
+root@myfirstapp-prod-instance:/home/my-user# cd ../root/
+root@myfirstapp-prod-instance:/home/root# ls
 ```
 
 Check the configuration for DeployEx and your target app by editing the `deployex-config.json` file:
@@ -141,14 +141,14 @@ If you are updating DeployEx, you may need to update the `deployex.sh` script. T
 ```bash
 version=0.3.0
 rm deployex.sh
-wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
+wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/root
 chmod a+x deployex.sh
 ```
 
 Run the script to install (or update) deployex:
 
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --install deployex.yaml
+root@ip-10-0-1-116:/home/root# ./deployex.sh --install deployex.yaml
 #           Removing Deployex              #
 ...
 # Clean and create a new directory         #
@@ -165,13 +165,13 @@ vi deployex.yaml
 version: "0.9.1"
 otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
-os_target: "ubuntu-24.04"
+os_target: "ubuntu-24.04"                                # DeployEx release artifact, the only one published. It runs on Debian 13 as well
 ...
 ```
 
 Once the file is updated, run the update command:
 ```bash
-root@ip-10-0-1-116:/home/ubuntu# ./deployex.sh --update deployex.yaml
+root@ip-10-0-1-116:/home/root# ./deployex.sh --update deployex.yaml
 ```
 
 > [!IMPORTANT]
@@ -221,69 +221,21 @@ Here are some useful resources with suggestions on how to automate the upload of
 > Before proceeding, make sure that the DNS is correctly configured to point to the GCP instance.
 
 
- For HTTPS, you can use free certificates from [Let's encrypt](https://letsencrypt.org/getting-started/). In this example, we'll use [cert bot for ubuntu](https://certbot.eff.org/instructions?ws=nginx&os=ubuntufocal) to obtain and configure the certificates:
+HTTPS is set up automatically while the instance boots. `cloud-config.tpl` installs `certbot`, serves plain HTTP with a `/.well-known/acme-challenge/` location, and `setup-tls.sh` obtains the certificate and enables the HTTPS server blocks. No ssh session is needed.
+
+The certificate is requested for `${hostname}` and `${deployex_hostname}`, so both must resolve to the instance **before** it boots, otherwise the HTTP-01 challenge fails. When that happens the instance stays on HTTP and the reason is written to `/var/log/cloud-init-output.log`; fix the DNS and re-run `/root/setup-tls.sh`.
+
+Certbot never edits the nginx configuration here. It only obtains the certificate, and the TLS server blocks are written by `cloud-config.tpl` referencing the well known paths:
 
 ```bash
-sudo su
-apt update
-apt install snapd
-snap install --classic certbot
-ln -s /snap/bin/certbot /usr/bin/certbot
+ssl_certificate     /etc/letsencrypt/live/${hostname}/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/${hostname}/privkey.pem;
 ```
 
-Before installing the certificate, make a backup of the current Nginx configuration file located at `/etc/nginx/sites-available/default`. Certbot may modify this file, so keeping a local copy ensures you can restore it if needed. Once the backup is created, run the following command:
-```bash
-certbot --nginx
-```
-
-This command will install Certbot and automatically configure Nginx to use the obtained certificates. After Nginx is configured, the certificate paths will be set up and will look something like this:
-
-```bash
-vi /etc/nginx/sites-available/default
- ...
-           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
-           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
-           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-```
-
-Update your configuration file to include the Let's Encrypt certificate paths. Find the section where it mentions:
-
-```bash
-           # Add here the letsencrypt paths
-```
-replace this comment with the actual certificate paths:
-```bash
-               proxy_set_header Upgrade $http_upgrade;
-               proxy_set_header Connection "upgrade";
-
-               proxy_pass http://deployex;
-           }
-           ssl_certificate /etc/letsencrypt/live/myappname.com/fullchain.pem; # managed by Certbot
-           ssl_certificate_key /etc/letsencrypt/live/myappname.com/privkey.pem; # managed by Certbot
-           include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-           ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-       }
-```
-
-Also, ensure that port 443 is enabled for both servers. For example:
-
-```bash
-      server {
-          listen 443 ssl; # managed by Certbot
-```
-
-After modifying the configuration file, save the changes and restart Nginx:
-
-```bash
-sudo su
-vi /etc/nginx/sites-available/default
-# modify and save file
-systemctl reload nginx
-```
+That means the template stays the source of truth. Anything certbot wrote into the config would otherwise be lost the next time terraform replaces the instance, which any change to `cloud-config.tpl` does.
 
 > [!NOTE]
-> After the changes, It may require a reboot.
+> `setup-tls.sh` runs on every boot and is safe to re-run. `--keep-until-expiring` leaves a still valid certificate alone, which matters because Let's Encrypt allows only 5 identical certificates per week and instance replacement is routine. The certificate does not survive a replacement, so it is reissued on the next boot.
 
 [tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
 [main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir/terraform/environments/prod/main_example.tf_

@@ -35,6 +35,7 @@ data "cloudinit_config" "server_config" {
     content = templatefile("${path.module}/cloud-config.tpl", {
       hostname = "${var.server_dns}"
       deployex_hostname = "${var.deployex_dns}"
+      certbot_email = "${var.certbot_email}"
       deployex_version = "${var.deployex_version}"
       account_name = "${var.account_name}"
       replicas = "${var.replicas}"
@@ -49,7 +50,7 @@ resource "google_compute_instance" "dev" {
   tags         = ["externalssh","webserver"]
   boot_disk {
     initialize_params {
-      image = "ubuntu-os-cloud/ubuntu-2004-lts"
+      image = "debian-cloud/debian-13"
     }
   }
   network_interface {

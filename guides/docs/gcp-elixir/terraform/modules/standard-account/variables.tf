@@ -54,3 +54,9 @@ variable "publickeypath" {
     type = string
     default = "~/.ssh/id_rsa.pub"
 }
+
+# Address Let's Encrypt uses for expiry notices, see setup-tls.sh in cloud-config.tpl
+variable "certbot_email" {
+  type     = string
+  nullable = false
+}
