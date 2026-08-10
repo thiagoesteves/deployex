@@ -205,7 +205,7 @@ write_files:
           }
       }
 
-  - path: /root/nginx-tls.conf
+  - path: /home/root/nginx-tls.conf
     owner: root:root
     permissions: "0644"
     content: |
@@ -307,7 +307,7 @@ write_files:
            --email ${certbot_email} \
            --agree-tos --non-interactive --keep-until-expiring \
            --deploy-hook "systemctl reload nginx"; then
-        install -o root -g root -m 0644 /root/nginx-tls.conf /etc/nginx/conf.d/tls.conf
+        install -o root -g root -m 0644 /home/root/nginx-tls.conf /etc/nginx/conf.d/tls.conf
 
         if nginx -t; then
           systemctl reload nginx
