@@ -7,11 +7,11 @@
 #
 packages:
  - certbot
+ - yq
  - unzip
  - nginx
  - logrotate
  - awscli
- - jq
  - amazon-ssm-agent
 
 write_files:
@@ -333,10 +333,6 @@ runcmd:
   - systemctl enable amazon-ssm-agent
   # RDS server certificate chain, used by the Ecto repo to verify the database
   - curl -o /etc/ssl/certs/rds-global.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
-  # Download and install Deployex. deployex.sh reads its yaml with yq, which Debian does
-  # not ship by default
-  - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-  - chmod a+x /usr/local/bin/yq
   # Install OTP certificates from AWS Secrets Manager
   - /home/root/install-otp-certificates.sh
   # Download and install Deployex

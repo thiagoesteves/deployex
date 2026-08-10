@@ -7,6 +7,7 @@
 #
 packages:
  - certbot
+ - yq
  - unzip
  - nginx
  - logrotate
@@ -276,10 +277,6 @@ runcmd:
   # Set the hostname so the environment is obvious on the box and in logs
   - hostnamectl set-hostname myappname-${account_name}-debian
   - echo "127.0.0.1 myappname-${account_name}-debian" >> /etc/hosts
-  # Download and install Deployex. deployex.sh reads its yaml with yq, which Debian does
-  # not ship by default
-  - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-  - chmod a+x /usr/local/bin/yq
   # Install OTP certificates from Google Secret Manager
   - /home/root/install-otp-certificates.sh
   # Download and install Deployex
