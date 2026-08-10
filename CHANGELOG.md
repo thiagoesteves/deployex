@@ -1,15 +1,17 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.10 ()
+## 0.9.10 🚀 (2026-08-10)
 
 ### Backwards incompatible changes from 0.9.9
  * None
 
 ### Bug fixes
  * [`PULL-265`](https://github.com/thiagoesteves/deployex/pull/265) Stop password managers filling credentials into the GitHub artifact form
+ * [`PULL-267`](https://github.com/thiagoesteves/deployex/pull/267) Correct the hot upgrade confirmation, it does not terminate anything
 
 ### Enhancements
- * None
+ * [`PULL-268`](https://github.com/thiagoesteves/deployex/pull/268) Automate TLS certificates and move the deployment guides to Debian 13
+ * [`PULL-269`](https://github.com/thiagoesteves/deployex/pull/269) Write renewed certificates to disk
 
 ## 0.9.9 🚀 (2026-08-07)
 
