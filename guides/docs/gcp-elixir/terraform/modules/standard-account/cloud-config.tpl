@@ -234,7 +234,7 @@ write_files:
           }
       }
 
-  - path: /root/setup-tls.sh
+  - path: /home/root/setup-tls.sh
     owner: root:root
     permissions: "0755"
     content: |
@@ -273,14 +273,24 @@ write_files:
         exit 1
       fi
 runcmd:
-  - /home/root/install-otp-certificates.sh
+  # Set the hostname so the environment is obvious on the box and in logs
+  - hostnamectl set-hostname myappname-${account_name}-debian
+  - echo "127.0.0.1 myappname-${account_name}-debian" >> /etc/hosts
+  # Download and install Deployex. deployex.sh reads its yaml with yq, which Debian does
+  # not ship by default
   - wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
   - chmod a+x /usr/local/bin/yq
+  # Install OTP certificates from Google Secret Manager
+  - /home/root/install-otp-certificates.sh
+  # Download and install Deployex
   - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
   - chmod a+x /home/root/deployex.sh
   - /home/root/deployex.sh --install /home/root/deployex.yaml
+  # Enable Nginx
   - systemctl enable nginx
   - systemctl restart nginx
-  # nginx serves HTTP at this point, which is all the HTTP-01 challenge needs
-  - /root/setup-tls.sh
+  # nginx is serving HTTP at this point, which is all the HTTP-01 challenge needs
+  - /home/root/setup-tls.sh
+  # Reboot to apply all changes
+  - sleep 5
   - reboot
