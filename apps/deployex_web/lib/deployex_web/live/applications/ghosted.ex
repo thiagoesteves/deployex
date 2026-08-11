@@ -1,8 +1,6 @@
 defmodule DeployexWeb.ApplicationsLive.Ghosted do
   use DeployexWeb, :live_component
 
-  require Logger
-
   alias Deployer.Status
 
   attr :name, :string, required: true
@@ -33,9 +31,7 @@ defmodule DeployexWeb.ApplicationsLive.Ghosted do
           <button
             id="ghosted-clear-all"
             class="btn btn-sm btn-error"
-            phx-click="ghosted-clear-all"
-            phx-target={@myself}
-            data-confirm={"Remove all ghosted versions for #{@name}? They will be offered again on the next deployment check."}
+            phx-click="ghosted-clear-request"
           >
             Clear All
           </button>
@@ -84,10 +80,8 @@ defmodule DeployexWeb.ApplicationsLive.Ghosted do
                     <button
                       id={"ghosted-remove-#{version_id(version.version)}"}
                       class="btn btn-xs btn-outline btn-error"
-                      phx-click="ghosted-remove"
+                      phx-click="ghosted-remove-request"
                       phx-value-version={version.version}
-                      phx-target={@myself}
-                      data-confirm={"Remove version #{version.version} from the ghosted list?"}
                     >
                       Remove
                     </button>
@@ -110,19 +104,6 @@ defmodule DeployexWeb.ApplicationsLive.Ghosted do
       |> assign(:ghosted_list, Status.ghosted_version_list(name))
 
     {:ok, socket}
-  end
-
-  @impl true
-  def handle_event("ghosted-remove", %{"version" => version}, %{assigns: %{name: name}} = socket) do
-    {:ok, ghosted_list} = Status.remove_ghosted_version(name, version)
-
-    {:noreply, assign(socket, :ghosted_list, ghosted_list)}
-  end
-
-  def handle_event("ghosted-clear-all", _params, %{assigns: %{name: name}} = socket) do
-    {:ok, ghosted_list} = Status.clear_ghosted_versions(name)
-
-    {:noreply, assign(socket, :ghosted_list, ghosted_list)}
   end
 
   # The version becomes part of a DOM id, and a dot there would be read as a class selector

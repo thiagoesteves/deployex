@@ -75,13 +75,19 @@ defmodule DeployexWeb.Applications.GhostedTest do
     Deployer.StatusMock
     |> expect(:monitoring, monitoring_with_ghosted(name, "2.0.0"))
     |> expect(:subscribe, fn -> :ok end)
+    # the stored list, read back by the component after every change
     |> stub(:ghosted_version_list, fn ^name ->
-      [ghosted("2.0.0", "myelixir-abc123"), ghosted("1.5.0", "myelixir-def456")]
+      Process.get("ghosted", [
+        ghosted("2.0.0", "myelixir-abc123"),
+        ghosted("1.5.0", "myelixir-def456")
+      ])
     end)
     # no engine worker is running for this application, so the stored list is updated
     |> expect(:remove_ghosted_version, 1, fn ^name, "2.0.0" ->
+      remaining = [ghosted("1.5.0", "myelixir-def456")]
+      Process.put("ghosted", remaining)
       send(test_pid, {:removed, "2.0.0"})
-      {:ok, [ghosted("1.5.0", "myelixir-def456")]}
+      {:ok, remaining}
     end)
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
@@ -90,13 +96,41 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     html = index_live |> element("#ghosted-remove-2-0-0") |> render_click()
 
+    # nothing happens until the confirmation is accepted
+    assert html =~ "Remove Ghosted Version"
+    assert html =~ "Remove Version"
+    refute_receive {:removed, "2.0.0"}
+
+    index_live |> element("#confirm-button-ghosted") |> render_click()
+
     assert_receive {:removed, "2.0.0"}
 
     # only the removed row goes, the card keeps showing the last ghosted version it was
     # given by the monitoring update
     refute has_element?(index_live, "#ghosted-remove-2-0-0")
     assert has_element?(index_live, "#ghosted-remove-1-5-0")
-    assert html =~ "1 ghosted version"
+  end
+
+  @tag :capture_log
+  test "cancelling the confirmation leaves the list alone", %{conn: conn} do
+    name = "myelixir"
+
+    Deployer.StatusMock
+    |> expect(:monitoring, monitoring_with_ghosted(name, "2.0.0"))
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:ghosted_version_list, fn ^name -> [ghosted("2.0.0", "myelixir-abc123")] end)
+    |> expect(:remove_ghosted_version, 0, fn _name, _version -> {:ok, []} end)
+
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    index_live |> element("#app-ghosted-#{name}") |> render_click()
+    index_live |> element("#ghosted-remove-2-0-0") |> render_click()
+
+    html = index_live |> element("#cancel-button-ghosted") |> render_click()
+
+    # cancelling goes back to the list it was opened from, not out of it
+    refute html =~ "Remove Ghosted Version"
+    assert has_element?(index_live, "#ghosted-remove-2-0-0")
   end
 
   @tag :capture_log
@@ -108,9 +142,13 @@ defmodule DeployexWeb.Applications.GhostedTest do
     |> expect(:monitoring, monitoring_with_ghosted(name, "2.0.0"))
     |> expect(:subscribe, fn -> :ok end)
     |> stub(:ghosted_version_list, fn ^name ->
-      [ghosted("2.0.0", "myelixir-abc123"), ghosted("1.5.0", "myelixir-def456")]
+      Process.get("ghosted", [
+        ghosted("2.0.0", "myelixir-abc123"),
+        ghosted("1.5.0", "myelixir-def456")
+      ])
     end)
     |> expect(:clear_ghosted_versions, 1, fn ^name ->
+      Process.put("ghosted", [])
       send(test_pid, :cleared)
       {:ok, []}
     end)
@@ -121,10 +159,18 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     html = index_live |> element("#ghosted-clear-all") |> render_click()
 
+    assert html =~ "Clear Ghosted Versions"
+    assert html =~ "Yes, Clear All"
+    refute_receive :cleared
+
+    index_live |> element("#danger-button-ghosted") |> render_click()
+
     assert_receive :cleared
 
-    assert html =~ "No ghosted versions"
-    refute html =~ "Clear All"
+    # send_update is handled after the click returns, so the list is read again on the
+    # render that follows
+    assert render(index_live) =~ "No ghosted versions"
+    refute has_element?(index_live, "#ghosted-clear-all")
   end
 
   @tag :capture_log
