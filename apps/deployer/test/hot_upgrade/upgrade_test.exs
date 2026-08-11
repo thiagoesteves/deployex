@@ -510,7 +510,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       root
     end)
     |> expect(:call, fn ^node, :systools, :make_relup, _params, @expected_timeout ->
-      :ok
+      {:ok, :relup, :systools_relup, []}
     end)
 
     assert :ok =
@@ -589,7 +589,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       root
     end)
     |> expect(:call, fn ^node, :systools, :make_relup, _params, @expected_timeout ->
-      :ok
+      {:ok, :relup, :systools_relup, []}
     end)
 
     assert :ok =
@@ -655,6 +655,88 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                         to_version: to_version
                       })
            end) =~ "Error while unpacking the release #{to_version}, reason: :badrpc"
+  end
+
+  @tag :capture_log
+  test "make_relup/1 logs the reason systools reports", %{
+    node: node,
+    sname: sname,
+    app_name: app_name,
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    root = ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
+
+    # the shape systools returns for the missing appup that broke a real upgrade
+    error = {:file_problem, {~c"#{root}/lib/elixir-1.20.3/ebin/elixir.appup", {:open, :enoent}}}
+
+    Foundation.RpcMock
+    |> expect(:call, fn ^node, :code, :root_dir, [], @expected_timeout -> root end)
+    |> expect(:call, fn ^node, :systools, :make_relup, params, @expected_timeout ->
+      # silent is what makes systools return the reason instead of printing it to stdout
+      assert :silent in List.last(params)
+      {:error, :systools_relup, error}
+    end)
+    |> expect(:call, fn ^node, :systools_relup, :format_error, [^error], @expected_timeout ->
+      ~c"Could not open file #{root}/lib/elixir-1.20.3/ebin/elixir.appup"
+    end)
+
+    log =
+      capture_log(fn ->
+        assert {:error, :make_relup} =
+                 UpgradeApp.make_relup(%Execute{
+                   node: node,
+                   sname: sname,
+                   name: app_name,
+                   language: "elixir",
+                   current_path: current_path,
+                   new_path: new_path,
+                   from_version: from_version,
+                   to_version: to_version
+                 })
+      end)
+
+    # the cause is in the log line, not on stdout detached from it
+    assert log =~ "elixir-1.20.3/ebin/elixir.appup"
+    assert log =~ "#{app_name} #{from_version} -> #{to_version}"
+  end
+
+  @tag :capture_log
+  test "make_relup/1 falls back to the raw term when format_error is unusable", %{
+    node: node,
+    sname: sname,
+    app_name: app_name,
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    root = ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
+
+    Foundation.RpcMock
+    |> expect(:call, fn ^node, :code, :root_dir, [], @expected_timeout -> root end)
+    |> expect(:call, fn ^node, :systools, :make_relup, _params, @expected_timeout ->
+      {:error, :systools_relup, :some_reason}
+    end)
+    |> expect(:call, fn ^node, :systools_relup, :format_error, _args, @expected_timeout ->
+      {:badrpc, :nodedown}
+    end)
+
+    assert capture_log(fn ->
+             assert {:error, :make_relup} =
+                      UpgradeApp.make_relup(%Execute{
+                        node: node,
+                        sname: sname,
+                        name: app_name,
+                        language: "elixir",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
+           end) =~ ":some_reason"
   end
 
   @tag :capture_log
@@ -1188,7 +1270,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1251,7 +1333,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1329,7 +1411,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/deployex"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1429,7 +1511,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/deployex"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1523,7 +1605,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/deployex"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1617,7 +1699,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/deployex"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}
@@ -1717,7 +1799,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ~c"/tmp/deployex/varlib/service/deployex"
 
       ^node, :systools, :make_relup, _params, @expected_timeout ->
-        :ok
+        {:ok, :relup, :systools_relup, []}
 
       ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
         {:ok, :any, :any}

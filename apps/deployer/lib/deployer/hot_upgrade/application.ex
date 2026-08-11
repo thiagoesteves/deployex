@@ -442,6 +442,10 @@ defmodule Deployer.HotUpgrade.Application do
         [root ++ ~c"/releases/#{name}-" ++ from_version],
         [root ++ ~c"/releases/#{name}-" ++ from_version],
         [
+          # NOTE: silent stops systools printing the reason to stdout, where it lands
+          #       unprefixed and detached from the failure, and returns it instead. The
+          #       relup file is still written, only noexec skips that
+          :silent,
           {:path, [root ++ ~c"/lib/*/ebin"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
@@ -449,8 +453,20 @@ defmodule Deployer.HotUpgrade.Application do
       @rpc_timeout
     )
     |> case do
-      :ok ->
+      {:ok, _relup, _module, []} ->
         :ok
+
+      {:ok, _relup, module, warnings} ->
+        Logger.warning("systools:make_relup warnings: #{format_systools(node, module, warnings)}")
+        :ok
+
+      {:error, module, error} ->
+        Logger.error(
+          "systools:make_relup failed for #{name} #{from_version} -> #{to_version}, " <>
+            "reason: #{format_systools(node, module, error)}"
+        )
+
+        {:error, :make_relup}
 
       reason ->
         Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
@@ -824,6 +840,20 @@ defmodule Deployer.HotUpgrade.Application do
           {:halt, {:error, {:config_provider_failed, mod, reason}}}
       end
     end)
+  end
+
+  # systools reports through format_error/1 on the module it returns, which turns a term
+  # such as {file_problem, {File, {open, enoent}}} into the sentence it would have printed
+  defp format_systools(node, module, term) do
+    case Rpc.call(node, module, :format_error, [term], @rpc_timeout) do
+      formatted when is_list(formatted) or is_binary(formatted) ->
+        formatted |> IO.chardata_to_string() |> String.trim()
+
+      _ ->
+        inspect(term)
+    end
+  rescue
+    _ -> inspect(term)
   end
 
   defp check_jellyfish_files(files, from_version, to_version) do
