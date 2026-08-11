@@ -14,11 +14,13 @@ defmodule Deployer.EngineTest do
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
-    # Every worker subscribes on start up, the tests that care about the notification
-    # override this with their own expectation
+    # Every worker subscribes and then reads the list on start up, the tests that care about
+    # the ghosted list override these with their own expectations
     stub(Deployer.StatusMock, :subscribe_ghosted_versions, fn name ->
       Phoenix.PubSub.subscribe(Deployer.PubSub, "deployex::ghosted_versions::#{name}")
     end)
+
+    stub(Deployer.StatusMock, :ghosted_version_list, fn _name -> [] end)
 
     FixtureCatalog.cleanup()
   end
@@ -334,6 +336,7 @@ defmodule Deployer.EngineTest do
       |> expect(:update, 1, fn _sname -> :ok end)
       |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
       |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> stub(:ghosted_version_list, fn ^name -> [%{version: ghosted_version}] end)
 
       Deployer.MonitorMock
       |> expect(:start_service, 1, fn _service ->
@@ -368,8 +371,7 @@ defmodule Deployer.EngineTest do
                    deploy_rollback_timeout_ms: 1_000,
                    deploy_schedule_interval_ms: 100,
                    name: name,
-                   language: language,
-                   ghosted_version_list: [%{version: ghosted_version}]
+                   language: language
                  })
 
         assert_receive {:handle_ref_event, ^ref}, 1_000
@@ -1064,15 +1066,18 @@ defmodule Deployer.EngineTest do
 
       Deployer.StatusMock
       |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:ghosted_version_list, 1, fn ^name -> [ghosted] end)
 
       assert {:ok, pid} =
                Engine.Worker.start_link(%Engine.Worker{
                  deploy_rollback_timeout_ms: 60_000,
                  deploy_schedule_interval_ms: 60_000,
                  name: name,
-                 language: "elixir",
-                 ghosted_version_list: [ghosted]
+                 language: "elixir"
                })
+
+      # read on start up, not handed in by whoever started the worker
+      assert :sys.get_state(pid).ghosted_version_list == [ghosted]
 
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,
@@ -1088,21 +1093,62 @@ defmodule Deployer.EngineTest do
     end
 
     @tag :capture_log
-    test "The worker ignores a change made on another node" do
+    test "A change made while the worker starts up is not lost" do
       name = "myelixir"
       ghosted = %Foundation.Catalog.Version{version: "2.0.0", name: name}
+      test_pid = self()
 
       Deployer.StatusMock
       |> expect(:list_installed_apps, fn _name -> [] end)
+      # stands in for a change landing between the subscribe and the read. Subscribing first
+      # is what turns it into a message the worker still gets, rather than a lost update
+      |> expect(:subscribe_ghosted_versions, fn ^name ->
+        :ok = Phoenix.PubSub.subscribe(Deployer.PubSub, "deployex::ghosted_versions::#{name}")
+
+        Phoenix.PubSub.broadcast(
+          Deployer.PubSub,
+          "deployex::ghosted_versions::#{name}",
+          {:ghosted_versions_updated, Node.self(), name, [ghosted]}
+        )
+
+        send(test_pid, :subscribed)
+        :ok
+      end)
+      |> expect(:ghosted_version_list, 1, fn ^name -> [] end)
 
       assert {:ok, pid} =
                Engine.Worker.start_link(%Engine.Worker{
                  deploy_rollback_timeout_ms: 60_000,
                  deploy_schedule_interval_ms: 60_000,
                  name: name,
-                 language: "elixir",
-                 ghosted_version_list: [ghosted]
+                 language: "elixir"
                })
+
+      assert_receive :subscribed
+
+      # the read returned the list from before the change, the message carries the change
+      assert :sys.get_state(pid).ghosted_version_list == [ghosted]
+    end
+
+    @tag :capture_log
+    test "The worker ignores a change made on another node" do
+      name = "myelixir"
+      ghosted = %Foundation.Catalog.Version{version: "2.0.0", name: name}
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:ghosted_version_list, 1, fn ^name -> [ghosted] end)
+
+      assert {:ok, pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 deploy_rollback_timeout_ms: 60_000,
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir"
+               })
+
+      # read on start up, not handed in by whoever started the worker
+      assert :sys.get_state(pid).ghosted_version_list == [ghosted]
 
       Phoenix.PubSub.broadcast(
         Deployer.PubSub,

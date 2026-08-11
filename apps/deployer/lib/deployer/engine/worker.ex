@@ -72,9 +72,11 @@ defmodule Deployer.Engine.Worker do
       ) do
     Logger.info("Initializing Engine Server for #{name}")
 
-    # The list is loaded once when the worker starts and kept in step from here on, anything
-    # changing it announces the new list rather than reaching into this process
+    # Subscribe before reading, in this order. A change made in between then arrives as a
+    # message instead of being lost in the gap. Reading here is also what makes a restarted
+    # worker current, the supervisor hands back the list captured when it was first started
     Status.subscribe_ghosted_versions(name)
+    ghosted_version_list = Status.ghosted_version_list(name)
 
     schedule_new_deployment(deploy_schedule_interval_ms)
 
@@ -118,6 +120,7 @@ defmodule Deployer.Engine.Worker do
      %{
        state
        | deployments: deployments,
+         ghosted_version_list: ghosted_version_list,
          available_ports: build_ports_by_index(replica_ports, replicas)
      }}
   end
