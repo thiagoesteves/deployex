@@ -48,6 +48,11 @@ defmodule Deployer.HotUpgrade.Deployex do
       {:ok, check}
     else
       {:ok, %Check{deploy: :full_deployment}} ->
+        Logger.warning(
+          "Hot upgrade not supported for this release, #{current_version} -> #{to_version}, " <>
+            "it requires a full deployment"
+        )
+
         {:error, :full_deployment}
 
       {:error, {:otp_mismatch, _versions} = reason} ->
@@ -87,37 +92,56 @@ defmodule Deployer.HotUpgrade.Deployex do
       })
     end
 
-    with {:ok, check} <- check(download_path),
-         %Execute{} = upgrade_data <-
-           struct(
-             %Execute{
-               node: Node.self(),
-               make_permanent_async: make_permanent_async,
-               sync_execution: sync_execution,
-               after_async_make_permanent: after_async_make_permanent
-             },
-             Map.from_struct(check)
-           ),
-         :ok <- HotUpgradeApp.execute(upgrade_data) do
-      log_requested(sync_execution, current_version, to_version)
-      :ok
-    else
-      {:error, reason} = error ->
-        # Nothing here restarts DeployEx. Whatever the stage, it carries on serving with
-        # the code it already had, and a failure before install_release leaves no trace,
-        # the unpacked release is removed
-        Logger.error(
-          "Hot upgrade in #{@deployex_name} failed, #{current_version} -> #{to_version}, " <>
-            "reason: #{inspect(reason)}. #{@deployex_name} is still running #{current_version}."
+    # A failure from check/1 is refused before the upgrade is attempted and reports itself,
+    # only the upgrade's own outcome is logged here
+    with {:ok, check} <- check(download_path) do
+      upgrade_data =
+        struct(
+          %Execute{
+            node: Node.self(),
+            make_permanent_async: make_permanent_async,
+            sync_execution: sync_execution,
+            after_async_make_permanent: after_async_make_permanent
+          },
+          Map.from_struct(check)
         )
 
-        error
+      case HotUpgradeApp.execute(upgrade_data) do
+        :ok ->
+          log_requested(sync_execution, current_version, to_version)
+          :ok
+
+        error ->
+          log_failure(error, current_version, to_version)
+          error
+      end
     end
   end
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # Nothing here restarts DeployEx, it carries on serving either way, but which code it is
+  # serving depends on how far the upgrade got. Before install_release nothing was touched
+  # and the unpacked release is removed, so the previous version is still the one running
+  defp log_failure({:error, {:not_installed, reason}}, current_version, to_version) do
+    Logger.error(
+      "Hot upgrade in #{@deployex_name} failed, #{current_version} -> #{to_version}, " <>
+        "reason: #{inspect(reason)}. Nothing was installed, #{@deployex_name} is still " <>
+        "running #{current_version}."
+    )
+  end
+
+  # Past install_release the new code is already loaded, so claiming the previous version is
+  # still running would be wrong
+  defp log_failure({:error, reason}, current_version, to_version) do
+    Logger.error(
+      "Hot upgrade in #{@deployex_name} failed, #{current_version} -> #{to_version}, " <>
+        "reason: #{inspect(reason)}. The release was installed before it failed, " <>
+        "#{@deployex_name} may already be running #{to_version}."
+    )
+  end
 
   # NOTE: an asynchronous execution is a cast, so :ok means the request was accepted and
   #       says nothing about the upgrade itself, which has not run yet. Only the

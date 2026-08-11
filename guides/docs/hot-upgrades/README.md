@@ -100,15 +100,18 @@ this installation runs, or apply it as a full deployment.
 
 ### When a hot upgrade fails
 
-DeployEx does not fall back to a full deployment for itself, unlike a monitored application.
-It keeps running the version it already had, at every stage, and logs why the upgrade stopped:
+DeployEx does not fall back to a full deployment for itself.
+It keeps running and logs why the upgrade stopped:
 
 ```bash
 [error] Hot upgrade in deployex failed, 0.9.0 -> 0.9.1, reason: :make_relup.
-deployex is still running 0.9.0.
+Nothing was installed, deployex is still running 0.9.0.
 ```
 
 The reason `systools` reports is included in that message, and the release unpacked by the attempt is removed, so the same version can be applied again once the cause is fixed.
+
+Everything up to installing the release only writes files and builds the relup, so a failure there leaves the node running exactly the code it had, which is what `Nothing was installed` reports.
+Past that point the new code is already loaded, and the message says so instead.
 
 > [!NOTE]
 > The UI applies the upgrade asynchronously, so the log records that it started and the outcome follows on a later line.
@@ -126,6 +129,29 @@ Example GitHub CI workflow for hot-upgrading applications:
 4. Generate release with hot-upgrade information
 
 See [example workflow](https://github.com/thiagoesteves/calori/blob/main/.github/workflows/hot-upgrade.yaml) for implementation details.
+
+### When a hot upgrade fails
+
+A release only reaches the hot upgrade path when it shipped the `.appup` or `jellyfish.json` files saying it supports one.
+What DeployEx does when that upgrade fails depends on whether the running node was already changed.
+
+If it failed before the release was installed, nothing on the node was touched, so there is nothing to recover and no reason to restart it.
+The version is ghosted and the application carries on serving what it already runs:
+
+```bash
+[error] Hot upgrade failed before the release was installed at sname: myphoenixapp-63wu32,
+reason: :make_relup. myphoenixapp is still running 1.0.0, ghosting version 1.1.0.
+```
+
+A ghosted version is skipped by every following deployment, so the same broken release is not attempted again.
+Publish a new version once the cause is fixed, the application is not stuck waiting for it.
+
+If the release was already installed and a later step failed, the node is running code that was never made permanent.
+There DeployEx does fall back to a full deployment, which restarts the instance on the new version:
+
+```bash
+[error] Hot Upgrade failed, running for full deployment
+```
 
 # Additional Resources
 
