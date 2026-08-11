@@ -135,7 +135,7 @@ See [example workflow](https://github.com/thiagoesteves/calori/blob/main/.github
 A release only reaches the hot upgrade path when it shipped the `.appup` or `jellyfish.json` files saying it supports one.
 What DeployEx does when that upgrade fails depends on whether the running node was already changed.
 
-If it failed before the release was installed, nothing on the node was touched and there is nothing a restart would recover.
+If it failed before the release was installed, nothing on the node was touched, so there is nothing to recover and no reason to restart it.
 The version is ghosted and the application carries on serving what it already runs:
 
 ```bash

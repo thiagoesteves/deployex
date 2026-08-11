@@ -656,8 +656,8 @@ defmodule Deployer.Engine.Worker do
 
   # The release said it could hot upgrade, through its appup or jellyfish file, otherwise
   # this deployment would never have reached here. It then failed without the node having
-  # been touched, so there is nothing to recover from with a restart. Ghost the version so
-  # the engine stops offering it and the application keeps serving what it already runs
+  # been touched, so there is nothing to recover and no reason to restart it. Ghost the
+  # version so the engine stops offering it and the application keeps serving what it runs
   defp handle_hot_upgrade_result(
          {:error, {:not_installed, reason}},
          %{name: name} = state,
