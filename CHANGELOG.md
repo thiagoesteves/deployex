@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.11 ()
+
+### Backwards incompatible changes from 0.9.10
+ * None
+
+### Bug fixes
+ * [`PULL-272`](https://github.com/thiagoesteves/deployex/pull/272) Refuse a DeployEx hot upgrade built for a different OTP
+
+### Enhancements
+ * None
+
 ## 0.9.10 🚀 (2026-08-10)
 
 ### Backwards incompatible changes from 0.9.9
