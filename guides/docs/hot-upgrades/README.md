@@ -80,6 +80,42 @@ Use the DeployEx web interface to download a release from GitHub:
 5. Click **Apply**
 6. Monitor the progress modal until the hot-upgrade completes successfully
 
+### Choosing the right release file
+
+Each release publishes one artifact per OTP line, `deployex-ubuntu-24.04-otp-27.tar.gz` and `deployex-ubuntu-24.04-otp-28.tar.gz`.
+The file has to match the `otp_version` the installation runs, which is the one in its `deployex.yaml`.
+Picking the wrong one is the easiest way to hit the first entry in the list above, updating Erlang OTP, without meaning to.
+
+A hot upgrade replaces application code inside the running VM, it cannot replace the VM or the language runtime underneath it.
+A release built for another OTP brings a different Erlang and Elixir, and `systools:make_relup/4` needs an `.appup` for every application whose version changes, which neither ships.
+
+The wrong file is refused while the release is validated, before anything is unpacked, naming the OTP the installation runs:
+
+```bash
+[error] Hot upgrade refused, this release was built for a different OTP. deployex runs
+OTP 27 with erts 15.2.7.11 and the release brings erts 16.4.0.4. A hot upgrade cannot
+replace the runtime under a running system. Use the artifact matching the otp_version
+this installation runs, or apply it as a full deployment.
+```
+
+### When a hot upgrade fails
+
+DeployEx does not fall back to a full deployment for itself, unlike a monitored application.
+It keeps running the version it already had, at every stage, and logs why the upgrade stopped:
+
+```bash
+[error] Hot upgrade in deployex failed, 0.9.0 -> 0.9.1, reason: :make_relup.
+deployex is still running 0.9.0.
+```
+
+The reason `systools` reports is included in that message, and the release unpacked by the attempt is removed, so the same version can be applied again once the cause is fixed.
+
+> [!NOTE]
+> The UI applies the upgrade asynchronously, so the log records that it started and the outcome follows on a later line.
+> The progress modal shows the result as it happens.
+> The installer script applies it synchronously, so there `Hot upgrade in deployex installed with success` is written once the upgrade has actually finished.
+
+
 ## Hot-Upgrading Monitored Applications
 
 Example GitHub CI workflow for hot-upgrading applications:

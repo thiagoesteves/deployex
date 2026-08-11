@@ -8,6 +8,7 @@
 ### Bug fixes
  * [`PULL-272`](https://github.com/thiagoesteves/deployex/pull/272) Refuse a DeployEx hot upgrade built for a different OTP
  * [`PULL-273`](https://github.com/thiagoesteves/deployex/pull/273) Remove the unpacked release left behind by a failed hot upgrade
+ * [`PULL-274`](https://github.com/thiagoesteves/deployex/pull/274) Stop reporting a DeployEx hot upgrade as successful before it has run
 
 ### Enhancements
  * None

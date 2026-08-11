@@ -90,9 +90,29 @@ defmodule Deployer.HotUpgrade.DeployexTest do
     with_mock HotUpgradeApp, [:passthrough],
       check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
       execute: fn _check -> :ok end do
+      # the default is synchronous, so :ok really is the upgrade having finished
       assert capture_log(fn ->
                assert :ok = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
              end) =~ "Hot upgrade in deployex installed with success"
+    end
+  end
+
+  test "execute/1 asynchronous does not claim the upgrade succeeded" do
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, []} end)
+
+    with_mock HotUpgradeApp, [:passthrough],
+      check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
+      # a cast returns :ok as soon as the request is accepted, the upgrade has not run
+      execute: fn _check -> :ok end do
+      log =
+        capture_log(fn ->
+          assert :ok = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", sync_execution: false)
+        end)
+
+      assert log =~ "started"
+      assert log =~ "the outcome follows"
+      refute log =~ "installed with success"
     end
   end
 
@@ -106,7 +126,25 @@ defmodule Deployer.HotUpgrade.DeployexTest do
       assert capture_log(fn ->
                assert {:error, :no_match_versions} =
                         Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
-             end) =~ "Hot upgrade failed: :no_match_versions"
+             end) =~ "reason: :no_match_versions"
+    end
+  end
+
+  test "execute/1 error says DeployEx keeps running" do
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, []} end)
+
+    with_mock HotUpgradeApp, [:passthrough],
+      check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
+      execute: fn _check -> {:error, :make_relup} end do
+      log =
+        capture_log(fn ->
+          assert {:error, :make_relup} = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
+        end)
+
+      # nothing restarts DeployEx, whatever stage the upgrade reached
+      assert log =~ "is still running"
+      assert log =~ "failed"
     end
   end
 end
