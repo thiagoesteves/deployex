@@ -124,6 +124,21 @@ defmodule Deployer.Status do
   def ghosted_version_list(name), do: default().ghosted_version_list(name)
 
   @doc """
+  Remove one version from the ghosted version list, returning the remaining list
+  """
+  @impl true
+  @spec remove_ghosted_version(name :: String.t(), version :: String.t()) :: {:ok, list()}
+  def remove_ghosted_version(name, version),
+    do: default().remove_ghosted_version(name, version)
+
+  @doc """
+  Remove every version from the ghosted version list
+  """
+  @impl true
+  @spec clear_ghosted_versions(name :: String.t()) :: {:ok, list()}
+  def clear_ghosted_versions(name), do: default().clear_ghosted_versions(name)
+
+  @doc """
   Retrieve the history version list by name
   """
   @impl true

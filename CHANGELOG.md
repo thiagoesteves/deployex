@@ -13,7 +13,7 @@
  * [`PULL-276`](https://github.com/thiagoesteves/deployex/pull/276) Ghost the version instead of forcing a full deployment when a hot upgrade never installed the release
 
 ### Enhancements
- * None
+ * [`PULL-277`](https://github.com/thiagoesteves/deployex/pull/277) Add a ghosted version list to the UI with clear all and clear one actions
 
 ## 0.9.10 🚀 (2026-08-10)
 

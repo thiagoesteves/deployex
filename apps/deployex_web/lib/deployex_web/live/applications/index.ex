@@ -5,6 +5,7 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Status
+  alias DeployexWeb.ApplicationsLive.Ghosted
   alias DeployexWeb.ApplicationsLive.Logs
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
@@ -78,6 +79,21 @@ defmodule DeployexWeb.ApplicationsLive do
         sname={@selected_sname}
         title={@page_title}
         action={@live_action}
+        patch={~p"/applications"}
+      />
+    </.modal>
+
+    <.modal
+      :if={@live_action in [:ghosted]}
+      id="app-ghosted-modal"
+      show
+      on_cancel={JS.patch(~p"/applications")}
+    >
+      <.live_component
+        module={Ghosted}
+        id={"ghosted-#{@selected_name}"}
+        name={@selected_name}
+        title={@page_title}
         patch={~p"/applications"}
       />
     </.modal>
@@ -427,6 +443,13 @@ defmodule DeployexWeb.ApplicationsLive do
     |> assign(:selected_sname, nil)
   end
 
+  defp apply_action(socket, :ghosted, %{"name" => name}) do
+    socket
+    |> assign(:page_title, "#{name} ghosted versions")
+    |> assign(:selected_name, name)
+    |> assign(:selected_sname, nil)
+  end
+
   defp apply_action(socket, :restart, %{"name" => name, "sname" => sname}) do
     socket
     |> assign(:page_title, "Restart application")
@@ -573,6 +596,10 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("app-versions-click", %{"name" => name}, socket) do
     {:noreply, push_patch(socket, to: ~p"/applications/#{name}/versions")}
+  end
+
+  def handle_event("app-ghosted-click", %{"name" => name}, socket) do
+    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/ghosted")}
   end
 
   def handle_event("restart", %{"id" => "deployex"}, socket) do

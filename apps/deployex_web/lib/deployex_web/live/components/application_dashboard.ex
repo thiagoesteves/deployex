@@ -220,6 +220,14 @@ defmodule DeployexWeb.Components.ApplicationDashboard do
                     </path>
                   </svg>
                   <span class="text-sm font-medium text-base-content">Last Ghosted</span>
+                  <button
+                    id={"app-ghosted-#{@monitored_app.name}"}
+                    class="ml-auto btn btn-xs btn-ghost text-warning"
+                    phx-click="app-ghosted-click"
+                    phx-value-name={@monitored_app.name}
+                  >
+                    View all
+                  </button>
                 </div>
                 <div class="bg-warning/30 border border-warning/20 rounded-lg px-3 py-2">
                   <span class="text-sm font-mono text-warning-content">

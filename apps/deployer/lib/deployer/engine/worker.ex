@@ -187,6 +187,26 @@ defmodule Deployer.Engine.Worker do
     {:noreply, state}
   end
 
+  # The worker keeps its own copy of the ghosted list and consults it on every deployment
+  # check, so the removal has to go through it. Removing straight from the catalog would
+  # leave the running worker still skipping the version until it was restarted
+  @impl true
+  def handle_call({:remove_ghosted_version, version}, _from, %__MODULE__{name: name} = state) do
+    Logger.info("Removing ghosted version #{version} for #{name}, it can be deployed again")
+
+    {:ok, ghosted_version_list} = Status.remove_ghosted_version(name, version)
+
+    {:reply, {:ok, ghosted_version_list}, %{state | ghosted_version_list: ghosted_version_list}}
+  end
+
+  def handle_call(:clear_ghosted_versions, _from, %__MODULE__{name: name} = state) do
+    Logger.info("Clearing the ghosted version list for #{name}, they can be deployed again")
+
+    {:ok, ghosted_version_list} = Status.clear_ghosted_versions(name)
+
+    {:reply, {:ok, ghosted_version_list}, %{state | ghosted_version_list: ghosted_version_list}}
+  end
+
   @impl true
   def handle_cast(:restart_deployments, %__MODULE__{} = state) do
     {:noreply, do_restart_deployments(state)}

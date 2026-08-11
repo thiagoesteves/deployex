@@ -302,6 +302,23 @@ defmodule Foundation.Catalog do
   def add_ghosted_version(version), do: default().add_ghosted_version(version)
 
   @doc """
+  Remove one version from the ghosted version history, returning the remaining list
+
+  A version that is not ghosted is not an error, the list simply comes back unchanged.
+  """
+  @impl true
+  @spec remove_ghosted_version(String.t(), String.t()) :: {:ok, list()}
+  def remove_ghosted_version(name, version),
+    do: default().remove_ghosted_version(name, version)
+
+  @doc """
+  Remove every version from the ghosted version history
+  """
+  @impl true
+  @spec clear_ghosted_versions(String.t()) :: {:ok, list()}
+  def clear_ghosted_versions(name), do: default().clear_ghosted_versions(name)
+
+  @doc """
   Add a user session token (This data is not persistent)
   """
   @impl true

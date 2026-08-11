@@ -332,6 +332,37 @@ defmodule Foundation.Catalog.Local do
   end
 
   @impl true
+  def remove_ghosted_version(name, version) do
+    path = ghosted_version_path(name)
+
+    # Entries are stored one file per version, named by the timestamp they were ghosted at,
+    # so the file holding a version is found by reading it back
+    path
+    |> File.ls!()
+    |> Enum.each(fn file ->
+      entry_path = "#{path}/#{file}"
+
+      case read_term(entry_path) do
+        %{version: ^version} -> File.rm(entry_path)
+        _ -> :ok
+      end
+    end)
+
+    {:ok, ghosted_versions(name)}
+  end
+
+  @impl true
+  def clear_ghosted_versions(name) do
+    path = ghosted_version_path(name)
+
+    path
+    |> File.ls!()
+    |> Enum.each(&File.rm("#{path}/#{&1}"))
+
+    {:ok, []}
+  end
+
+  @impl true
   def config(name) do
     name
     |> config_path()
@@ -406,10 +437,12 @@ defmodule Foundation.Catalog.Local do
   defp list(path) do
     path
     |> File.ls!()
-    |> Enum.map(fn file ->
-      ("#{path}/" <> file)
-      |> File.read!()
-      |> Plug.Crypto.non_executable_binary_to_term()
-    end)
+    |> Enum.map(&read_term("#{path}/#{&1}"))
+  end
+
+  defp read_term(path) do
+    path
+    |> File.read!()
+    |> Plug.Crypto.non_executable_binary_to_term()
   end
 end

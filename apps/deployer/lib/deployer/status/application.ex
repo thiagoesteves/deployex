@@ -209,6 +209,12 @@ defmodule Deployer.Status.Application do
   def ghosted_version_list(name), do: Catalog.ghosted_versions(name)
 
   @impl true
+  def remove_ghosted_version(name, version), do: Catalog.remove_ghosted_version(name, version)
+
+  @impl true
+  def clear_ghosted_versions(name), do: Catalog.clear_ghosted_versions(name)
+
+  @impl true
   def history_version_list(name, options), do: Catalog.versions(name, options)
 
   @impl true

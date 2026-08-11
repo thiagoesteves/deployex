@@ -1050,6 +1050,60 @@ defmodule Deployer.EngineTest do
     end
   end
 
+  describe "Ghosted version list" do
+    @tag :capture_log
+    test "Remove one ghosted version updates the worker state" do
+      name = "myelixir"
+      ghosted = %Foundation.Catalog.Version{version: "2.0.0", name: name}
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:remove_ghosted_version, 1, fn ^name, "2.0.0" -> {:ok, []} end)
+
+      assert {:ok, pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 deploy_rollback_timeout_ms: 60_000,
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir",
+                 ghosted_version_list: [ghosted]
+               })
+
+      assert {:ok, []} = Engine.remove_ghosted_version(name, "2.0.0")
+
+      # the worker consults its own copy on every deployment check, so it has to be the one
+      # that changed, not only the stored list
+      assert %{ghosted_version_list: []} = :sys.get_state(pid)
+    end
+
+    @tag :capture_log
+    test "Clear all ghosted versions updates the worker state" do
+      name = "myelixir"
+
+      ghosted = [
+        %Foundation.Catalog.Version{version: "2.0.0", name: name},
+        %Foundation.Catalog.Version{version: "3.0.0", name: name}
+      ]
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> expect(:clear_ghosted_versions, 1, fn ^name -> {:ok, []} end)
+
+      assert {:ok, pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 deploy_rollback_timeout_ms: 60_000,
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir",
+                 ghosted_version_list: ghosted
+               })
+
+      assert {:ok, []} = Engine.clear_ghosted_versions(name)
+
+      assert %{ghosted_version_list: []} = :sys.get_state(pid)
+    end
+  end
+
   describe "Deployment rollback" do
     @tag :capture_log
     test "Rollback a version after timeout" do

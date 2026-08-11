@@ -36,6 +36,45 @@ defmodule Foundation.CatalogTest do
     assert [^version] = Catalog.ghosted_versions(name)
   end
 
+  test "remove_ghosted_version/2", %{name: name} do
+    keep = %Catalog.Version{version: "1.0.0", name: name}
+    remove = %Catalog.Version{version: "2.0.0", name: name}
+
+    assert {:ok, _} = Catalog.add_ghosted_version(keep)
+    assert {:ok, _} = Catalog.add_ghosted_version(remove)
+
+    assert {:ok, [^keep]} = Catalog.remove_ghosted_version(name, "2.0.0")
+    assert [^keep] = Catalog.ghosted_versions(name)
+  end
+
+  test "remove_ghosted_version/2 with a version that is not ghosted", %{name: name} do
+    version = %Catalog.Version{version: "1.0.0", name: name}
+    assert {:ok, _} = Catalog.add_ghosted_version(version)
+
+    # removing something that was never ghosted leaves the list as it is
+    assert {:ok, [^version]} = Catalog.remove_ghosted_version(name, "9.9.9")
+  end
+
+  test "remove_ghosted_version/2 allows the version to be ghosted again", %{name: name} do
+    version = %Catalog.Version{version: "1.0.0", name: name}
+
+    assert {:ok, _} = Catalog.add_ghosted_version(version)
+    assert {:ok, []} = Catalog.remove_ghosted_version(name, "1.0.0")
+    assert {:ok, [^version]} = Catalog.add_ghosted_version(version)
+  end
+
+  test "clear_ghosted_versions/1", %{name: name} do
+    assert {:ok, _} = Catalog.add_ghosted_version(%Catalog.Version{version: "1.0.0", name: name})
+    assert {:ok, _} = Catalog.add_ghosted_version(%Catalog.Version{version: "2.0.0", name: name})
+
+    assert {:ok, []} = Catalog.clear_ghosted_versions(name)
+    assert [] == Catalog.ghosted_versions(name)
+  end
+
+  test "clear_ghosted_versions/1 with an empty list", %{name: name} do
+    assert {:ok, []} = Catalog.clear_ghosted_versions(name)
+  end
+
   test "add_user_session_token/1" do
     user_session = %UserToken{token: "123456789"}
     assert :ok = Catalog.add_user_session_token(user_session)
