@@ -108,7 +108,7 @@ It keeps running and logs why the upgrade stopped:
 Nothing was installed, deployex is still running 0.9.0.
 ```
 
-The reason `systools` reports is included in that message, and the release unpacked by the attempt is removed, so the same version can be applied again once the cause is fixed.
+The reason `systools` reports is included in that message, and the release unpacked by the attempt is unregistered, so the same version can be applied again once the cause is fixed.
 
 Everything up to installing the release only writes files and builds the relup, so a failure there leaves the node running exactly the code it had, which is what `Nothing was installed` reports.
 Past that point the new code is already loaded, and the message says so instead.
