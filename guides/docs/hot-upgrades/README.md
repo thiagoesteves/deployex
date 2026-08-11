@@ -89,7 +89,7 @@ Picking the wrong one is the easiest way to hit the first entry in the list abov
 A hot upgrade replaces application code inside the running VM, it cannot replace the VM or the language runtime underneath it.
 A release built for another OTP brings a different Erlang and Elixir, and `systools:make_relup/4` needs an `.appup` for every application whose version changes, which neither ships.
 
-From `0.9.11` the wrong file is refused while the release is validated, before anything is unpacked, naming the OTP the installation runs:
+The wrong file is refused while the release is validated, before anything is unpacked, naming the OTP the installation runs:
 
 ```bash
 [error] Hot upgrade refused, this release was built for a different OTP. deployex runs
@@ -98,20 +98,17 @@ replace the runtime under a running system. Use the artifact matching the otp_ve
 this installation runs, or apply it as a full deployment.
 ```
 
-Earlier versions accepted the file and failed later, after unpacking, with a missing `elixir.appup` that said nothing about the file being wrong.
-
 ### When a hot upgrade fails
 
 DeployEx does not fall back to a full deployment for itself, unlike a monitored application.
 It keeps running the version it already had, at every stage, and logs why the upgrade stopped:
 
 ```bash
-[error] Hot upgrade in deployex failed, 0.9.10 -> 0.9.11, reason: :make_relup.
-deployex is still running 0.9.10.
+[error] Hot upgrade in deployex failed, 0.9.0 -> 0.9.1, reason: :make_relup.
+deployex is still running 0.9.0.
 ```
 
-From `0.9.11` the reason `systools` reports is included rather than printed separately to stdout, and the release unpacked by the failed attempt is removed.
-Without that removal the next attempt at the same version fails with `{:existing_release, version}` before it starts, and has to be cleared by hand.
+The reason `systools` reports is included in that message, and the release unpacked by the attempt is removed, so the same version can be applied again once the cause is fixed.
 
 > [!NOTE]
 > The UI applies the upgrade asynchronously, so the log records that it started and the outcome follows on a later line.

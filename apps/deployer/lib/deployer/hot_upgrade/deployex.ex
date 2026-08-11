@@ -110,9 +110,9 @@ defmodule Deployer.HotUpgrade.Deployex do
   ### ==========================================================================
 
   # NOTE: an asynchronous execution is a cast, so :ok means the request was accepted and
-  #       says nothing about the upgrade. Reporting success here claimed a failed upgrade
-  #       had installed, three seconds before the release was even unpacked. The outcome
-  #       arrives later, on the hot upgrade events topic.
+  #       says nothing about the upgrade itself, which has not run yet. Only the
+  #       synchronous path can report an installation. The asynchronous outcome arrives
+  #       later, on the hot upgrade events topic.
   defp log_requested(false, current_version, to_version) do
     Logger.info(
       "Hot upgrade in #{@deployex_name} started, #{current_version} -> #{to_version}, " <>
