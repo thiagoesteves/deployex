@@ -584,8 +584,18 @@ defmodule Deployer.HotUpgrade.Application do
   it starts, and the files sitting in the release directory are the ones from the attempt
   that failed, which may not be the ones the next attempt intends to install.
 
-  Only a release still marked `unpacked` is removed. Once it is `current` or `permanent`
-  the code is in use, and `release_handler` refuses to remove a permanent release anyway.
+  Only a release still marked `unpacked` is unregistered. Once it is `current` or
+  `permanent` the code is in use, and `release_handler` refuses to touch a permanent
+  release anyway.
+
+  `release_handler:set_removed/1` is used rather than `remove_release/1`. The latter also
+  deletes every library the removed release brought that no *other* release in `RELEASES`
+  declares, and an Elixir release ships no `RELEASES` file, so `release_handler` invents an
+  entry for the running release with an empty library list. Every library would then look
+  unused, including the ones the running release needs, and `lib/` would be emptied under a
+  node that keeps working only until it is restarted. `set_removed/1` unregisters the
+  version and leaves the files alone, which is all that is needed for the version to be
+  applied again.
   """
   @spec remove_unpacked_release(Execute.t()) :: :ok
   def remove_unpacked_release(%Execute{node: node, to_version: to_version}) do
@@ -593,9 +603,12 @@ defmodule Deployer.HotUpgrade.Application do
 
     case List.keyfind(which_releases(node), version, 1) do
       {:unpacked, ^version} ->
-        case Rpc.call(node, :release_handler, :remove_release, [version], @rpc_timeout) do
+        case Rpc.call(node, :release_handler, :set_removed, [version], @rpc_timeout) do
           :ok ->
-            Logger.info("Removed the unpacked release #{to_version} left by the failed upgrade")
+            Logger.info(
+              "Unregistered the unpacked release #{to_version} left by the failed upgrade, " <>
+                "the version can be applied again"
+            )
 
           reason ->
             Logger.error(

@@ -1879,7 +1879,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
   describe "remove_unpacked_release/1" do
     @tag :capture_log
-    test "removes a release that was unpacked but never installed", %{node: node} do
+    test "unregisters a release that was unpacked but never installed", %{node: node} do
       test_pid = self()
 
       Foundation.RpcMock
@@ -1887,9 +1887,12 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ^node, :release_handler, :which_releases, [], @expected_timeout ->
           [{~c"testapp", ~c"0.2.0", [], :unpacked}, {~c"testapp", ~c"0.1.0", [], :permanent}]
 
-        ^node, :release_handler, :remove_release, [version], @expected_timeout ->
+        ^node, :release_handler, :set_removed, [version], @expected_timeout ->
           send(test_pid, {:removed, version})
           :ok
+
+        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+          flunk(remove_release_warning())
       end)
 
       assert :ok =
@@ -1906,7 +1909,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
           # already in use, removing it would pull the running code away
           [{~c"testapp", ~c"0.2.0", [], :current}]
 
-        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+        ^node, :release_handler, :set_removed, _args, @expected_timeout ->
           flunk("must not remove a release that is in use")
       end)
 
@@ -1921,7 +1924,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ^node, :release_handler, :which_releases, [], @expected_timeout ->
           [{~c"testapp", ~c"0.1.0", [], :permanent}]
 
-        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+        ^node, :release_handler, :set_removed, _args, @expected_timeout ->
           flunk("nothing to remove")
       end)
 
@@ -1936,7 +1939,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         ^node, :release_handler, :which_releases, [], @expected_timeout ->
           [{~c"testapp", ~c"0.2.0", [], :unpacked}]
 
-        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+        ^node, :release_handler, :set_removed, _args, @expected_timeout ->
           {:error, :enoent}
       end)
 
@@ -1948,5 +1951,15 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                         })
              end) =~ "Error while removing the unpacked release"
     end
+  end
+
+  defp remove_release_warning do
+    """
+    release_handler:remove_release must never be called here. It deletes every library the
+    removed release brought that no other release in RELEASES declares, and an Elixir
+    release ships no RELEASES file, so release_handler invents an entry for the running
+    release with an empty library list. Every library looks unused and lib/ is emptied
+    under a node that keeps working only until it is restarted.
+    """
   end
 end
