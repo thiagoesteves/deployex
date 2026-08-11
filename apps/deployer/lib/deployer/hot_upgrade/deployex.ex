@@ -126,7 +126,8 @@ defmodule Deployer.HotUpgrade.Deployex do
     end
   end
 
-  defp compare_otp_version(erts, erts), do: :ok
+  defp compare_otp_version(running_erts, package_erts) when running_erts == package_erts,
+    do: :ok
 
   defp compare_otp_version(running_erts, package_erts) do
     versions = %{
