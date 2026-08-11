@@ -1181,6 +1181,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
 
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
+
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
 
@@ -1240,6 +1243,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     |> stub(:call, fn
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
+
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
 
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
@@ -1315,6 +1321,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     |> stub(:call, fn
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
+
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
 
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/deployex"
@@ -1413,6 +1422,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
 
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
+
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/deployex"
 
@@ -1504,6 +1516,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
 
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
+
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/deployex"
 
@@ -1594,6 +1609,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     |> stub(:call, fn
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
+
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
 
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/deployex"
@@ -1692,6 +1710,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
         {:ok, to_version}
 
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        []
+
       ^node, :code, :root_dir, [], @expected_timeout ->
         ~c"/tmp/deployex/varlib/service/deployex"
 
@@ -1770,6 +1791,79 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                               1_000
              end) =~
                "Error while trying to set a permanent version for 0.2.0, reason: {:error, :no_match_versions}"
+    end
+  end
+
+  describe "remove_unpacked_release/1" do
+    @tag :capture_log
+    test "removes a release that was unpacked but never installed", %{node: node} do
+      test_pid = self()
+
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          [{~c"testapp", ~c"0.2.0", [], :unpacked}, {~c"testapp", ~c"0.1.0", [], :permanent}]
+
+        ^node, :release_handler, :remove_release, [version], @expected_timeout ->
+          send(test_pid, {:removed, version})
+          :ok
+      end)
+
+      assert :ok =
+               UpgradeApp.remove_unpacked_release(%Execute{node: node, to_version: "0.2.0"})
+
+      assert_receive {:removed, ~c"0.2.0"}
+    end
+
+    @tag :capture_log
+    test "leaves an installed release alone", %{node: node} do
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          # already in use, removing it would pull the running code away
+          [{~c"testapp", ~c"0.2.0", [], :current}]
+
+        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+          flunk("must not remove a release that is in use")
+      end)
+
+      assert :ok =
+               UpgradeApp.remove_unpacked_release(%Execute{node: node, to_version: "0.2.0"})
+    end
+
+    @tag :capture_log
+    test "does nothing when the release was never unpacked", %{node: node} do
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          [{~c"testapp", ~c"0.1.0", [], :permanent}]
+
+        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+          flunk("nothing to remove")
+      end)
+
+      assert :ok =
+               UpgradeApp.remove_unpacked_release(%Execute{node: node, to_version: "0.2.0"})
+    end
+
+    @tag :capture_log
+    test "reports a removal failure without raising", %{node: node} do
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          [{~c"testapp", ~c"0.2.0", [], :unpacked}]
+
+        ^node, :release_handler, :remove_release, _args, @expected_timeout ->
+          {:error, :enoent}
+      end)
+
+      assert capture_log(fn ->
+               assert :ok =
+                        UpgradeApp.remove_unpacked_release(%Execute{
+                          node: node,
+                          to_version: "0.2.0"
+                        })
+             end) =~ "Error while removing the unpacked release"
     end
   end
 end

@@ -208,6 +208,7 @@ defmodule Deployer.HotUpgrade.Application do
       :ok
     else
       error ->
+        remove_unpacked_release(data)
         notify_error(data.sname, error)
         error
     end
@@ -532,6 +533,42 @@ defmodule Deployer.HotUpgrade.Application do
 
         {:error, reason}
     end
+  end
+
+  @doc """
+  Remove a release that was unpacked but never installed.
+
+  `release_handler:unpack_release/1` registers the release before the upgrade continues,
+  so a failure anywhere after it leaves the version behind with status `unpacked`. The
+  next attempt at the same version then fails with `{:existing_release, version}` before
+  it starts, and the files sitting in the release directory are the ones from the attempt
+  that failed, which may not be the ones the next attempt intends to install.
+
+  Only a release still marked `unpacked` is removed. Once it is `current` or `permanent`
+  the code is in use, and `release_handler` refuses to remove a permanent release anyway.
+  """
+  @spec remove_unpacked_release(Execute.t()) :: :ok
+  def remove_unpacked_release(%Execute{node: node, to_version: to_version}) do
+    version = to_charlist(to_version)
+
+    case List.keyfind(which_releases(node), version, 1) do
+      {:unpacked, ^version} ->
+        case Rpc.call(node, :release_handler, :remove_release, [version], @rpc_timeout) do
+          :ok ->
+            Logger.info("Removed the unpacked release #{to_version} left by the failed upgrade")
+
+          reason ->
+            Logger.error(
+              "Error while removing the unpacked release #{to_version}, reason: #{inspect(reason)}"
+            )
+        end
+
+      _ ->
+        # Either never unpacked, or already installed and in use
+        :ok
+    end
+
+    :ok
   end
 
   @spec which_releases(node()) :: list()
