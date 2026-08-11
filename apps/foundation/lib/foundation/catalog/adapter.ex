@@ -26,6 +26,8 @@ defmodule Foundation.Catalog.Adapter do
   @callback add_version(map()) :: :ok
   @callback ghosted_versions(String.t()) :: list()
   @callback add_ghosted_version(map()) :: {:ok, list()}
+  @callback remove_ghosted_version(String.t(), String.t()) :: {:ok, list()}
+  @callback clear_ghosted_versions(String.t()) :: {:ok, list()}
   @callback add_user_session_token(Accounts.UserToken.t()) :: :ok
   @callback get_user_session_token_by_token(String.t()) :: Accounts.UserToken.t() | nil
   @callback config(String.t()) :: Catalog.Config.t()

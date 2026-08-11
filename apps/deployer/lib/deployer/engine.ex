@@ -4,7 +4,6 @@ defmodule Deployer.Engine do
   require Logger
 
   alias Deployer.Engine
-  alias Deployer.Status
   alias Foundation.Catalog
   alias Foundation.Yaml.Application, as: YamlApplication
 
@@ -19,14 +18,9 @@ defmodule Deployer.Engine do
     application |> Map.from_struct() |> init_worker()
   end
 
-  def init_worker(%{name: name} = application) do
-    ghosted_version_list = Status.ghosted_version_list(name)
-
-    service =
-      struct(
-        %Engine.Worker{ghosted_version_list: ghosted_version_list},
-        application
-      )
+  def init_worker(%{} = application) do
+    # The ghosted list is read by the worker itself, after it has subscribed
+    service = struct(%Engine.Worker{}, application)
 
     Engine.Supervisor.start_deployment(service)
 

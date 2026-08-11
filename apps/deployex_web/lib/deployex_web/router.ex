@@ -62,6 +62,7 @@ defmodule DeployexWeb.Router do
       live "/embedded-observer", ObserverLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:name/versions", ApplicationsLive, :versions
+      live "/applications/:name/ghosted", ApplicationsLive, :ghosted
       live "/applications/:name/restart", ApplicationsLive, :full_restart
       live "/applications/:name/:sname/logs/stdout", ApplicationsLive, :logs_stdout
       live "/applications/:name/:sname/logs/stderr", ApplicationsLive, :logs_stderr

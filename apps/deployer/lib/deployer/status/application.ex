@@ -18,6 +18,7 @@ defmodule Deployer.Status.Application do
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
+  @ghosted_versions_topic "deployex::ghosted_versions"
 
   @manual_version_max_list 10
 
@@ -203,10 +204,26 @@ defmodule Deployer.Status.Application do
   end
 
   @impl true
-  def add_ghosted_version(version), do: Catalog.add_ghosted_version(version)
+  def add_ghosted_version(%{name: name} = version) do
+    version |> Catalog.add_ghosted_version() |> broadcast_ghosted_versions(name)
+  end
 
   @impl true
   def ghosted_version_list(name), do: Catalog.ghosted_versions(name)
+
+  @impl true
+  def remove_ghosted_version(name, version) do
+    name |> Catalog.remove_ghosted_version(version) |> broadcast_ghosted_versions(name)
+  end
+
+  @impl true
+  def clear_ghosted_versions(name) do
+    name |> Catalog.clear_ghosted_versions() |> broadcast_ghosted_versions(name)
+  end
+
+  @impl true
+  def subscribe_ghosted_versions(name),
+    do: Phoenix.PubSub.subscribe(Deployer.PubSub, ghosted_versions_topic(name))
 
   @impl true
   def history_version_list(name, options), do: Catalog.versions(name, options)
@@ -245,6 +262,22 @@ defmodule Deployer.Status.Application do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # Anything holding a copy of the ghosted list has to hear about a change, the engine worker
+  # consults its own copy on every deployment check. The node is carried in the message so a
+  # subscriber can tell whose list changed, the storage is local to each DeployEx instance
+  defp broadcast_ghosted_versions({:ok, ghosted_version_list} = result, name) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      ghosted_versions_topic(name),
+      {:ghosted_versions_updated, Node.self(), name, ghosted_version_list}
+    )
+
+    result
+  end
+
+  defp ghosted_versions_topic(name), do: "#{@ghosted_versions_topic}::#{name}"
+
   defp do_set_mode(name, :automatic = mode, _version) do
     config = Catalog.config(name)
     Catalog.config_update(name, %{config | mode: mode})

@@ -72,6 +72,12 @@ defmodule Deployer.Engine.Worker do
       ) do
     Logger.info("Initializing Engine Server for #{name}")
 
+    # Subscribe before reading, in this order. A change made in between then arrives as a
+    # message instead of being lost in the gap. Reading here is also what makes a restarted
+    # worker current, the supervisor hands back the list captured when it was first started
+    Status.subscribe_ghosted_versions(name)
+    ghosted_version_list = Status.ghosted_version_list(name)
+
     schedule_new_deployment(deploy_schedule_interval_ms)
 
     check_installled_apps = fn
@@ -114,6 +120,7 @@ defmodule Deployer.Engine.Worker do
      %{
        state
        | deployments: deployments,
+         ghosted_version_list: ghosted_version_list,
          available_ports: build_ports_by_index(replica_ports, replicas)
      }}
   end
@@ -139,6 +146,20 @@ defmodule Deployer.Engine.Worker do
       end
 
     {:noreply, new_state}
+  end
+
+  # Only a change on this node matters, the ghosted list is stored by the DeployEx instance
+  # that owns the application
+  def handle_info(
+        {:ghosted_versions_updated, source_node, _name, ghosted_version_list},
+        %__MODULE__{} = state
+      )
+      when source_node == node() do
+    {:noreply, %{state | ghosted_version_list: ghosted_version_list}}
+  end
+
+  def handle_info({:ghosted_versions_updated, _source_node, _name, _list}, state) do
+    {:noreply, state}
   end
 
   def handle_info(

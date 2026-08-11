@@ -146,6 +146,10 @@ reason: :make_relup. myphoenixapp is still running 1.0.0, ghosting version 1.1.0
 A ghosted version is skipped by every following deployment, so the same broken release is not attempted again.
 Publish a new version once the cause is fixed, the application is not stuck waiting for it.
 
+The application card on the Applications page shows the last ghosted version, and `View all` opens the full list.
+From there a single version or all of them can be removed, which makes the engine offer them again on its next check.
+That is the way to retry a version that was ghosted for a reason that no longer applies.
+
 If the release was already installed and a later step failed, the node is running code that was never made permanent.
 There DeployEx does fall back to a full deployment, which restarts the instance on the new version:
 
