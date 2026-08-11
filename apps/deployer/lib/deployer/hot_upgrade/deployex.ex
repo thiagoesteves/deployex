@@ -89,11 +89,17 @@ defmodule Deployer.HotUpgrade.Deployex do
              Map.from_struct(check)
            ),
          :ok <- HotUpgradeApp.execute(upgrade_data) do
-      Logger.warning("Hot upgrade in #{@deployex_name} installed with success")
+      log_requested(sync_execution, current_version, to_version)
       :ok
     else
       {:error, reason} = error ->
-        Logger.error("Hot upgrade failed: #{inspect(reason)}")
+        # Nothing here restarts DeployEx. Whatever the stage, it carries on serving with
+        # the code it already had, and a failure before install_release leaves no trace,
+        # the unpacked release is removed
+        Logger.error(
+          "Hot upgrade in #{@deployex_name} failed, #{current_version} -> #{to_version}, " <>
+            "reason: #{inspect(reason)}. #{@deployex_name} is still running #{current_version}."
+        )
 
         error
     end
@@ -102,6 +108,23 @@ defmodule Deployer.HotUpgrade.Deployex do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # NOTE: an asynchronous execution is a cast, so :ok means the request was accepted and
+  #       says nothing about the upgrade. Reporting success here claimed a failed upgrade
+  #       had installed, three seconds before the release was even unpacked. The outcome
+  #       arrives later, on the hot upgrade events topic.
+  defp log_requested(false, current_version, to_version) do
+    Logger.info(
+      "Hot upgrade in #{@deployex_name} started, #{current_version} -> #{to_version}, " <>
+        "the outcome follows"
+    )
+  end
+
+  defp log_requested(true, current_version, to_version) do
+    Logger.warning(
+      "Hot upgrade in #{@deployex_name} installed with success, #{current_version} -> #{to_version}"
+    )
+  end
 
   # A hot upgrade replaces application code inside the running VM, it cannot replace the VM
   # underneath it. A release built for another OTP brings a different Erlang and Elixir, and
