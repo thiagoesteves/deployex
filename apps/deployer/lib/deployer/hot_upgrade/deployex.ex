@@ -16,9 +16,14 @@ defmodule Deployer.HotUpgrade.Deployex do
 
   @spec check(download_path :: String.t()) :: {:ok, Check.t()} | {:error, any()}
   def check(download_path) do
+    with {:ok, to_version} <- parse_version(download_path) do
+      check_release(download_path, to_version)
+    end
+  end
+
+  defp check_release(download_path, to_version) do
     deployex_path = Application.fetch_env!(:foundation, :install_path)
     current_version = Application.spec(:foundation, :vsn)
-    to_version = parse_version(download_path)
 
     # Temporary path to extract the release
     new_path = "/tmp/hotupgrade/#{@deployex_name}"
@@ -60,10 +65,15 @@ defmodule Deployer.HotUpgrade.Deployex do
   @spec execute(download_path :: String.t(), options :: Keyword.t()) ::
           :ok | {:error, any()}
   def execute(download_path, options) do
+    with {:ok, to_version} <- parse_version(download_path) do
+      execute_release(download_path, to_version, options)
+    end
+  end
+
+  defp execute_release(download_path, to_version, options) do
     sync_execution = Keyword.get(options, :sync_execution, true)
     make_permanent_async = Keyword.get(options, :make_permanent_async, true)
     current_version = Application.spec(:foundation, :vsn)
-    to_version = parse_version(download_path)
 
     Logger.info("#{@deployex_name} hot upgrade requested: #{current_version} -> #{to_version}")
 
@@ -170,12 +180,24 @@ defmodule Deployer.HotUpgrade.Deployex do
     {:error, {:otp_mismatch, versions}}
   end
 
+  # A release file is named deployex-<version>.tar.gz and the version is read from the name,
+  # there is nothing else to read it from before the file is extracted. Any other name is not
+  # a DeployEx release, most often a monitored application's package picked by mistake, and
+  # has to be refused here rather than while splitting the name apart
   defp parse_version(download_path) do
-    [_, to_version] =
-      download_path
-      |> Path.basename(".tar.gz")
-      |> String.split("#{@deployex_name}-")
+    filename = Path.basename(download_path, ".tar.gz")
 
-    to_version
+    case String.split(filename, "#{@deployex_name}-") do
+      [_, to_version] when to_version != "" ->
+        {:ok, to_version}
+
+      _ ->
+        Logger.error(
+          "Hot upgrade refused, #{inspect(Path.basename(download_path))} is not a " <>
+            "#{@deployex_name} release. Expected a file named #{@deployex_name}-<version>.tar.gz."
+        )
+
+        {:error, :invalid_release_file}
+    end
   end
 end
