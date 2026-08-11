@@ -208,6 +208,7 @@ defmodule Deployer.HotUpgrade.Application do
       :ok
     else
       error ->
+        remove_unpacked_release(data)
         notify_error(data.sname, error)
         error
     end
@@ -441,6 +442,10 @@ defmodule Deployer.HotUpgrade.Application do
         [root ++ ~c"/releases/#{name}-" ++ from_version],
         [root ++ ~c"/releases/#{name}-" ++ from_version],
         [
+          # NOTE: silent stops systools printing the reason to stdout, where it lands
+          #       unprefixed and detached from the failure, and returns it instead. The
+          #       relup file is still written, only noexec skips that
+          :silent,
           {:path, [root ++ ~c"/lib/*/ebin"]},
           {:outdir, [root ++ ~c"/releases/" ++ to_version]}
         ]
@@ -448,8 +453,20 @@ defmodule Deployer.HotUpgrade.Application do
       @rpc_timeout
     )
     |> case do
-      :ok ->
+      {:ok, _relup, _module, []} ->
         :ok
+
+      {:ok, _relup, module, warnings} ->
+        Logger.warning("systools:make_relup warnings: #{format_systools(node, module, warnings)}")
+        :ok
+
+      {:error, module, error} ->
+        Logger.error(
+          "systools:make_relup failed for #{name} #{from_version} -> #{to_version}, " <>
+            "reason: #{format_systools(node, module, error)}"
+        )
+
+        {:error, :make_relup}
 
       reason ->
         Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
@@ -532,6 +549,42 @@ defmodule Deployer.HotUpgrade.Application do
 
         {:error, reason}
     end
+  end
+
+  @doc """
+  Remove a release that was unpacked but never installed.
+
+  `release_handler:unpack_release/1` registers the release before the upgrade continues,
+  so a failure anywhere after it leaves the version behind with status `unpacked`. The
+  next attempt at the same version then fails with `{:existing_release, version}` before
+  it starts, and the files sitting in the release directory are the ones from the attempt
+  that failed, which may not be the ones the next attempt intends to install.
+
+  Only a release still marked `unpacked` is removed. Once it is `current` or `permanent`
+  the code is in use, and `release_handler` refuses to remove a permanent release anyway.
+  """
+  @spec remove_unpacked_release(Execute.t()) :: :ok
+  def remove_unpacked_release(%Execute{node: node, to_version: to_version}) do
+    version = to_charlist(to_version)
+
+    case List.keyfind(which_releases(node), version, 1) do
+      {:unpacked, ^version} ->
+        case Rpc.call(node, :release_handler, :remove_release, [version], @rpc_timeout) do
+          :ok ->
+            Logger.info("Removed the unpacked release #{to_version} left by the failed upgrade")
+
+          reason ->
+            Logger.error(
+              "Error while removing the unpacked release #{to_version}, reason: #{inspect(reason)}"
+            )
+        end
+
+      _ ->
+        # Either never unpacked, or already installed and in use
+        :ok
+    end
+
+    :ok
   end
 
   @spec which_releases(node()) :: list()
@@ -787,6 +840,20 @@ defmodule Deployer.HotUpgrade.Application do
           {:halt, {:error, {:config_provider_failed, mod, reason}}}
       end
     end)
+  end
+
+  # systools reports through format_error/1 on the module it returns, which turns a term
+  # such as {file_problem, {File, {open, enoent}}} into the sentence it would have printed
+  defp format_systools(node, module, term) do
+    case Rpc.call(node, module, :format_error, [term], @rpc_timeout) do
+      formatted when is_list(formatted) or is_binary(formatted) ->
+        formatted |> IO.chardata_to_string() |> String.trim()
+
+      _ ->
+        inspect(term)
+    end
+  rescue
+    _ -> inspect(term)
   end
 
   defp check_jellyfish_files(files, from_version, to_version) do
