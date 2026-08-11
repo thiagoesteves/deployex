@@ -188,9 +188,9 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- prepare_release(data) do
       install(data, node)
     else
-      error ->
+      {:error, reason} = error ->
         report_failure(data, error)
-        not_installed(error)
+        {:error, {:not_installed, reason}}
     end
   end
 
@@ -237,9 +237,6 @@ defmodule Deployer.HotUpgrade.Application do
     remove_unpacked_release(data)
     notify_error(data.sname, error)
   end
-
-  defp not_installed({:error, reason}), do: {:error, {:not_installed, reason}}
-  defp not_installed(error), do: {:error, {:not_installed, error}}
 
   def do_check(%Check{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do
