@@ -125,6 +125,55 @@ defmodule Deployer.Status.ApplicationTest do
     assert length(StatusApp.ghosted_version_list(name_1)) == 2
   end
 
+  test "remove_ghosted_version/2 and clear_ghosted_versions/1", %{
+    name_1: name_1,
+    sname_1: sname_1
+  } do
+    version_map = StatusApp.current_version_map(sname_1)
+
+    assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
+    assert {:ok, _} = StatusApp.add_ghosted_version(%{version_map | version: "1.1.1"})
+    assert length(StatusApp.ghosted_version_list(name_1)) == 2
+
+    assert {:ok, remaining} = StatusApp.remove_ghosted_version(name_1, "1.1.1")
+    assert length(remaining) == 1
+
+    assert {:ok, []} = StatusApp.clear_ghosted_versions(name_1)
+    assert Enum.empty?(StatusApp.ghosted_version_list(name_1))
+  end
+
+  test "every ghosted version change is announced to the subscribers", %{
+    name_1: name_1,
+    sname_1: sname_1
+  } do
+    assert :ok = StatusApp.subscribe_ghosted_versions(name_1)
+
+    version_map = StatusApp.current_version_map(sname_1)
+    node = Node.self()
+
+    assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
+    assert_receive {:ghosted_versions_updated, ^node, ^name_1, [_ghosted]}
+
+    assert {:ok, _} = StatusApp.remove_ghosted_version(name_1, version_map.version)
+    assert_receive {:ghosted_versions_updated, ^node, ^name_1, []}
+
+    assert {:ok, _} = StatusApp.clear_ghosted_versions(name_1)
+    assert_receive {:ghosted_versions_updated, ^node, ^name_1, []}
+  end
+
+  test "a subscriber only hears about the application it subscribed to", %{
+    name_1: name_1,
+    name_2: name_2,
+    sname_1: sname_1
+  } do
+    assert :ok = StatusApp.subscribe_ghosted_versions(name_2)
+
+    version_map = StatusApp.current_version_map(sname_1)
+    assert {:ok, _} = StatusApp.add_ghosted_version(version_map)
+
+    refute_receive {:ghosted_versions_updated, _node, ^name_1, _list}
+  end
+
   test "history_version_list", %{name_1: name_1, name_2: name_2, name_3: name_3} do
     version_list_1 = StatusApp.history_version_list(name_1, [])
     version_list_2 = StatusApp.history_version_list(name_2, [])

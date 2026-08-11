@@ -139,6 +139,13 @@ defmodule Deployer.Status do
   def clear_ghosted_versions(name), do: default().clear_ghosted_versions(name)
 
   @doc """
+  Subscribe to the ghosted version list changes for the application
+  """
+  @impl true
+  @spec subscribe_ghosted_versions(name :: String.t()) :: :ok
+  def subscribe_ghosted_versions(name), do: default().subscribe_ghosted_versions(name)
+
+  @doc """
   Retrieve the history version list by name
   """
   @impl true

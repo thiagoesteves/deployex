@@ -3,7 +3,7 @@ defmodule DeployexWeb.ApplicationsLive.Ghosted do
 
   require Logger
 
-  alias Deployer.Engine
+  alias Deployer.Status
 
   attr :name, :string, required: true
 
@@ -107,20 +107,20 @@ defmodule DeployexWeb.ApplicationsLive.Ghosted do
     socket =
       socket
       |> assign(assigns)
-      |> assign(:ghosted_list, Engine.ghosted_version_list(name))
+      |> assign(:ghosted_list, Status.ghosted_version_list(name))
 
     {:ok, socket}
   end
 
   @impl true
   def handle_event("ghosted-remove", %{"version" => version}, %{assigns: %{name: name}} = socket) do
-    {:ok, ghosted_list} = Engine.remove_ghosted_version(name, version)
+    {:ok, ghosted_list} = Status.remove_ghosted_version(name, version)
 
     {:noreply, assign(socket, :ghosted_list, ghosted_list)}
   end
 
   def handle_event("ghosted-clear-all", _params, %{assigns: %{name: name}} = socket) do
-    {:ok, ghosted_list} = Engine.clear_ghosted_versions(name)
+    {:ok, ghosted_list} = Status.clear_ghosted_versions(name)
 
     {:noreply, assign(socket, :ghosted_list, ghosted_list)}
   end

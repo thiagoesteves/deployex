@@ -14,6 +14,12 @@ defmodule Deployer.EngineTest do
   alias Foundation.Fixture.Catalog, as: FixtureCatalog
 
   setup do
+    # Every worker subscribes on start up, the tests that care about the notification
+    # override this with their own expectation
+    stub(Deployer.StatusMock, :subscribe_ghosted_versions, fn name ->
+      Phoenix.PubSub.subscribe(Deployer.PubSub, "deployex::ghosted_versions::#{name}")
+    end)
+
     FixtureCatalog.cleanup()
   end
 
@@ -1052,13 +1058,12 @@ defmodule Deployer.EngineTest do
 
   describe "Ghosted version list" do
     @tag :capture_log
-    test "Remove one ghosted version updates the worker state" do
+    test "The worker takes the new list from the broadcast" do
       name = "myelixir"
       ghosted = %Foundation.Catalog.Version{version: "2.0.0", name: name}
 
       Deployer.StatusMock
       |> expect(:list_installed_apps, fn _name -> [] end)
-      |> expect(:remove_ghosted_version, 1, fn ^name, "2.0.0" -> {:ok, []} end)
 
       assert {:ok, pid} =
                Engine.Worker.start_link(%Engine.Worker{
@@ -1069,25 +1074,26 @@ defmodule Deployer.EngineTest do
                  ghosted_version_list: [ghosted]
                })
 
-      assert {:ok, []} = Engine.remove_ghosted_version(name, "2.0.0")
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        "deployex::ghosted_versions::#{name}",
+        {:ghosted_versions_updated, Node.self(), name, []}
+      )
 
-      # the worker consults its own copy on every deployment check, so it has to be the one
-      # that changed, not only the stored list
-      assert %{ghosted_version_list: []} = :sys.get_state(pid)
+      # the worker consults its own copy on every deployment check, so that is what has to
+      # end up changed
+      # :sys.get_state queues behind the broadcast the worker was just sent, so by the time
+      # it replies the message has been handled
+      assert :sys.get_state(pid).ghosted_version_list == []
     end
 
     @tag :capture_log
-    test "Clear all ghosted versions updates the worker state" do
+    test "The worker ignores a change made on another node" do
       name = "myelixir"
-
-      ghosted = [
-        %Foundation.Catalog.Version{version: "2.0.0", name: name},
-        %Foundation.Catalog.Version{version: "3.0.0", name: name}
-      ]
+      ghosted = %Foundation.Catalog.Version{version: "2.0.0", name: name}
 
       Deployer.StatusMock
       |> expect(:list_installed_apps, fn _name -> [] end)
-      |> expect(:clear_ghosted_versions, 1, fn ^name -> {:ok, []} end)
 
       assert {:ok, pid} =
                Engine.Worker.start_link(%Engine.Worker{
@@ -1095,12 +1101,18 @@ defmodule Deployer.EngineTest do
                  deploy_schedule_interval_ms: 60_000,
                  name: name,
                  language: "elixir",
-                 ghosted_version_list: ghosted
+                 ghosted_version_list: [ghosted]
                })
 
-      assert {:ok, []} = Engine.clear_ghosted_versions(name)
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        "deployex::ghosted_versions::#{name}",
+        {:ghosted_versions_updated, :other@node, name, []}
+      )
 
-      assert %{ghosted_version_list: []} = :sys.get_state(pid)
+      # the ghosted list is stored by the instance that owns the application, another node
+      # changing its own says nothing about this one
+      assert :sys.get_state(pid).ghosted_version_list == [ghosted]
     end
   end
 

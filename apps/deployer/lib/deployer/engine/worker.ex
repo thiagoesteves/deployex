@@ -72,6 +72,10 @@ defmodule Deployer.Engine.Worker do
       ) do
     Logger.info("Initializing Engine Server for #{name}")
 
+    # The list is loaded once when the worker starts and kept in step from here on, anything
+    # changing it announces the new list rather than reaching into this process
+    Status.subscribe_ghosted_versions(name)
+
     schedule_new_deployment(deploy_schedule_interval_ms)
 
     check_installled_apps = fn
@@ -141,6 +145,20 @@ defmodule Deployer.Engine.Worker do
     {:noreply, new_state}
   end
 
+  # Only a change on this node matters, the ghosted list is stored by the DeployEx instance
+  # that owns the application
+  def handle_info(
+        {:ghosted_versions_updated, source_node, _name, ghosted_version_list},
+        %__MODULE__{} = state
+      )
+      when source_node == node() do
+    {:noreply, %{state | ghosted_version_list: ghosted_version_list}}
+  end
+
+  def handle_info({:ghosted_versions_updated, _source_node, _name, _list}, state) do
+    {:noreply, state}
+  end
+
   def handle_info(
         {:timeout_rollback, instance, sname},
         %{name: name, deployments: deployments, deployment_to_terminate: deployment_to_terminate} =
@@ -185,26 +203,6 @@ defmodule Deployer.Engine.Worker do
       end
 
     {:noreply, state}
-  end
-
-  # The worker keeps its own copy of the ghosted list and consults it on every deployment
-  # check, so the removal has to go through it. Removing straight from the catalog would
-  # leave the running worker still skipping the version until it was restarted
-  @impl true
-  def handle_call({:remove_ghosted_version, version}, _from, %__MODULE__{name: name} = state) do
-    Logger.info("Removing ghosted version #{version} for #{name}, it can be deployed again")
-
-    {:ok, ghosted_version_list} = Status.remove_ghosted_version(name, version)
-
-    {:reply, {:ok, ghosted_version_list}, %{state | ghosted_version_list: ghosted_version_list}}
-  end
-
-  def handle_call(:clear_ghosted_versions, _from, %__MODULE__{name: name} = state) do
-    Logger.info("Clearing the ghosted version list for #{name}, they can be deployed again")
-
-    {:ok, ghosted_version_list} = Status.clear_ghosted_versions(name)
-
-    {:reply, {:ok, ghosted_version_list}, %{state | ghosted_version_list: ghosted_version_list}}
   end
 
   @impl true
