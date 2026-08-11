@@ -149,6 +149,25 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
         refute html =~ "Apply Hot Upgrade"
       end
     end
+
+    @tag :capture_log
+    test "displays error when the file is not a deployex release", %{conn: conn} do
+      Deployer.HotUpgradeMock
+      |> expect(:subscribe_events, fn -> :ok end)
+
+      with_mock Deployer.HotUpgrade, [:passthrough],
+        deployex_check: fn _path -> {:error, :invalid_release_file} end do
+        {:ok, live, _html} = live(conn, ~p"/hotupgrade")
+
+        # A monitored application's package picked by mistake
+        download_file(live, "myumbrella-0.3.1.tar.gz")
+
+        html = render(live)
+
+        assert html =~ "not a deployex release"
+        refute html =~ "Apply Hot Upgrade"
+      end
+    end
   end
 
   describe "hot upgrade execution" do

@@ -62,6 +62,33 @@ defmodule Deployer.HotUpgrade.DeployexTest do
     end
   end
 
+  test "check/1 refuses a file that is not a deployex release" do
+    # A monitored application's package uploaded by mistake. Nothing is extracted, the name
+    # is rejected before anything runs
+    log =
+      capture_log(fn ->
+        assert {:error, :invalid_release_file} = Deployex.check("/tmp/myumbrella-0.3.1.tar.gz")
+      end)
+
+    assert log =~ "is not a deployex release"
+  end
+
+  test "check/1 refuses a release file with no version" do
+    log =
+      capture_log(fn ->
+        assert {:error, :invalid_release_file} = Deployex.check("/tmp/deployex-.tar.gz")
+      end)
+
+    assert log =~ "is not a deployex release"
+  end
+
+  test "execute/2 refuses a file that is not a deployex release" do
+    assert capture_log(fn ->
+             assert {:error, :invalid_release_file} =
+                      Deployex.execute("/tmp/myumbrella-0.3.1.tar.gz", [])
+           end) =~ "is not a deployex release"
+  end
+
   test "check/1 fail to untar" do
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:error, ["invalid"]} end)
