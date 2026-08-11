@@ -38,11 +38,15 @@ defmodule Deployer.HotUpgrade.Deployex do
 
     with {:ok, _} <-
            Commander.run("tar -xf  #{download_path} -C #{new_path}", [:sync, :stdout, :stderr]),
+         :ok <- check_otp_version(new_path),
          {:ok, %Check{deploy: :hot_upgrade} = check} <- HotUpgradeApp.check(check) do
       {:ok, check}
     else
       {:ok, %Check{deploy: :full_deployment}} ->
         {:error, :full_deployment}
+
+      {:error, {:otp_mismatch, _versions} = reason} ->
+        {:error, reason}
 
       reason ->
         Logger.warning(
@@ -98,6 +102,50 @@ defmodule Deployer.HotUpgrade.Deployex do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # A hot upgrade replaces application code inside the running VM, it cannot replace the VM
+  # underneath it. A release built for another OTP brings a different Erlang and Elixir, and
+  # systools:make_relup needs an appup for every application whose version changes, which
+  # neither ships. The upgrade fails after the release is unpacked, complaining about a
+  # missing appup and saying nothing about the wrong artifact having been chosen.
+  #
+  # The release bundles its own erts directory, so its OTP is known before anything is
+  # installed. The erts version identifies the OTP release, OTP 27 ships erts 15 and OTP 28
+  # ships erts 16, so comparing it against the running one is the same check.
+  defp check_otp_version(new_path) do
+    running_erts = to_string(:erlang.system_info(:version))
+
+    case Path.wildcard("#{new_path}/erts-*") do
+      [directory] ->
+        package_erts = directory |> Path.basename() |> String.replace_prefix("erts-", "")
+        compare_otp_version(running_erts, package_erts)
+
+      _ ->
+        # No bundled erts to compare, leave it to the checks that follow
+        :ok
+    end
+  end
+
+  defp compare_otp_version(erts, erts), do: :ok
+
+  defp compare_otp_version(running_erts, package_erts) do
+    versions = %{
+      running_otp: to_string(:erlang.system_info(:otp_release)),
+      running_erts: running_erts,
+      package_erts: package_erts
+    }
+
+    Logger.error("""
+    Hot upgrade refused, this release was built for a different OTP. #{@deployex_name} runs \
+    OTP #{versions.running_otp} with erts #{running_erts} and the release brings erts \
+    #{package_erts}. A hot upgrade cannot replace the runtime under a running system. Use \
+    the artifact matching the otp_version this installation runs, or apply it as a full \
+    deployment.\
+    """)
+
+    {:error, {:otp_mismatch, versions}}
+  end
+
   defp parse_version(download_path) do
     [_, to_version] =
       download_path

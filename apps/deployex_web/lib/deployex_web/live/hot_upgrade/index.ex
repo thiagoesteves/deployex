@@ -1044,6 +1044,9 @@ defmodule DeployexWeb.HotUpgradeLive do
       {:error, :full_deployment} ->
         {:postpone, %{hotupgrade | error: "full deployment only"}}
 
+      {:error, {:otp_mismatch, %{running_otp: otp}}} ->
+        {:postpone, %{hotupgrade | error: "wrong OTP, this installation runs OTP #{otp}"}}
+
       {:error, _reason} ->
         {:postpone, %{hotupgrade | error: "invalid release"}}
     end
