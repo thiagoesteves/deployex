@@ -157,21 +157,42 @@ defmodule Deployer.HotUpgrade.DeployexTest do
     end
   end
 
-  test "execute/1 error says DeployEx keeps running" do
+  test "execute/1 error before the release is installed says DeployEx keeps running" do
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:ok, []} end)
 
     with_mock HotUpgradeApp, [:passthrough],
       check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
-      execute: fn _check -> {:error, :make_relup} end do
+      execute: fn _check -> {:error, {:not_installed, :make_relup}} end do
       log =
         capture_log(fn ->
-          assert {:error, :make_relup} = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
+          assert {:error, {:not_installed, :make_relup}} =
+                   Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
         end)
 
-      # nothing restarts DeployEx, whatever stage the upgrade reached
-      assert log =~ "is still running"
-      assert log =~ "failed"
+      # nothing was loaded, so the previous version really is the one still running
+      assert log =~ "Nothing was installed"
+      assert log =~ "is still running 0."
+      assert log =~ "reason: :make_relup"
+    end
+  end
+
+  test "execute/1 error after the release is installed does not claim the old version runs" do
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, []} end)
+
+    with_mock HotUpgradeApp, [:passthrough],
+      check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
+      execute: fn _check -> {:error, :make_permanent} end do
+      log =
+        capture_log(fn ->
+          assert {:error, :make_permanent} = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
+        end)
+
+      # the new code is already loaded at this point, claiming otherwise would be wrong
+      assert log =~ "was installed before it failed"
+      assert log =~ "may already be running 1.0.0"
+      refute log =~ "is still running"
     end
   end
 end

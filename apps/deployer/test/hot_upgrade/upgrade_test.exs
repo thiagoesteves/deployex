@@ -1349,7 +1349,8 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end)
 
     with_mock Node, [:passthrough], connect: fn ^node -> true end do
-      assert {:error, {:config_provider_failed, _mod, _reason}} =
+      # The node was never touched, which is what :not_installed reports to the caller
+      assert {:error, {:not_installed, {:config_provider_failed, _mod, _reason}}} =
                UpgradeApp.execute(%Execute{
                  node: node,
                  sname: sname,

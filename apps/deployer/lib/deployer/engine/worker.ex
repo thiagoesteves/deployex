@@ -617,39 +617,78 @@ defmodule Deployer.Engine.Worker do
     # For hot code reloading, the previous deployment code is not changed
     sname = state.deployments[instance].sname
 
-    :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
-      Logger.info("Hot upgrade instance: #{instance} sname: #{sname}")
+    result =
+      :global.trans({{__MODULE__, :deploy_lock}, self()}, fn ->
+        Logger.info("Hot upgrade instance: #{instance} sname: #{sname}")
 
-      from_version = Status.current_version(sname)
+        from_version = Status.current_version(sname)
 
-      %{node: node} = Catalog.node_info(sname)
+        %{node: node} = Catalog.node_info(sname)
 
-      upgrade_data = %Deployer.HotUpgrade.Execute{
-        node: node,
-        sname: sname,
+        upgrade_data = %Deployer.HotUpgrade.Execute{
+          node: node,
+          sname: sname,
+          name: name,
+          language: language,
+          current_path: Catalog.current_path(sname),
+          new_path: Catalog.new_path(sname),
+          from_version: from_version,
+          to_version: release.version
+        }
+
+        case HotUpgrade.execute(upgrade_data) do
+          :ok ->
+            Status.set_current_version_map(sname, release, deployment: :hot_upgrade)
+
+            # Cleanup Any folder left for the new sname
+            Catalog.cleanup(new_sname)
+
+            notify_application_running(sname)
+            :ok
+
+          error ->
+            error
+        end
+      end)
+
+    handle_hot_upgrade_result(result, state, sname, new_sname, release)
+  end
+
+  # The release said it could hot upgrade, through its appup or jellyfish file, otherwise
+  # this deployment would never have reached here. It then failed without the node having
+  # been touched, so there is nothing to recover from with a restart. Ghost the version so
+  # the engine stops offering it and the application keeps serving what it already runs
+  defp handle_hot_upgrade_result(
+         {:error, {:not_installed, reason}},
+         %{name: name} = state,
+         sname,
+         new_sname,
+         release
+       ) do
+    Logger.error(
+      "Hot upgrade failed before the release was installed at sname: #{sname}, " <>
+        "reason: #{inspect(reason)}. #{name} is still running " <>
+        "#{Status.current_version(sname)}, ghosting version #{release.version}."
+    )
+
+    # Nothing was installed, so the folders prepared for the new sname are unused
+    Catalog.cleanup(new_sname)
+
+    {:ok, ghosted_version_list} =
+      Status.add_ghosted_version(%Catalog.Version{
+        version: release.version,
+        hash: release.hash,
+        pre_commands: release.pre_commands,
         name: name,
-        language: language,
-        current_path: Catalog.current_path(sname),
-        new_path: Catalog.new_path(sname),
-        from_version: from_version,
-        to_version: release.version
-      }
+        sname: sname,
+        deployment: :hot_upgrade,
+        inserted_at: NaiveDateTime.utc_now()
+      })
 
-      case HotUpgrade.execute(upgrade_data) do
-        :ok ->
-          Status.set_current_version_map(sname, release, deployment: :hot_upgrade)
+    %{state | ghosted_version_list: ghosted_version_list}
+  end
 
-          # Cleanup Any folder left for the new sname
-          Catalog.cleanup(new_sname)
-
-          notify_application_running(sname)
-          :ok
-
-        _reason ->
-          :ok
-      end
-    end)
-
+  defp handle_hot_upgrade_result(_result, state, sname, new_sname, release) do
     if Status.current_version(sname) != release.version do
       Logger.error("Hot Upgrade failed, running for full deployment")
 

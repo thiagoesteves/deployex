@@ -181,38 +181,65 @@ defmodule Deployer.HotUpgrade.Application do
     })
   end
 
-  def do_execute(%Execute{from_version: from_version, to_version: to_version} = data) do
+  def do_execute(%Execute{} = data) do
     notify_progress(data.sname, "Starting upgrade for #{data.sname}...")
 
     with {:ok, node} <- connect(data.node),
-         :ok <- notify_progress(data.sname, "Unpacking release"),
+         :ok <- prepare_release(data) do
+      install(data, node)
+    else
+      error ->
+        report_failure(data, error)
+        not_installed(error)
+    end
+  end
+
+  # Everything here only writes files and builds the relup, the running node is never
+  # touched. Failing at any of these steps leaves it running exactly the code it had, which
+  # is what the caller is told through {:error, {:not_installed, reason}}
+  defp prepare_release(%Execute{sname: sname} = data) do
+    with :ok <- notify_progress(sname, "Unpacking release"),
          :ok <- unpack_release(data),
-         :ok <- notify_progress(data.sname, "Creating relup file"),
+         :ok <- notify_progress(sname, "Creating relup file"),
          :ok <- make_relup(data),
-         :ok <- notify_progress(data.sname, "Checking release can be installed"),
+         :ok <- notify_progress(sname, "Checking release can be installed"),
          :ok <- check_install_release(data),
-         :ok <- notify_progress(data.sname, "Resolving the runtime configuration"),
+         :ok <- notify_progress(sname, "Resolving the runtime configuration"),
          {:ok, runtime_config} <- resolve_runtime_config(data),
-         :ok <- notify_progress(data.sname, "Adding the runtime configuration to the relup"),
-         :ok <- install_runtime_config_hook(data, runtime_config),
-         :ok <- notify_progress(data.sname, "Installing release"),
+         :ok <- notify_progress(sname, "Adding the runtime configuration to the relup") do
+      install_runtime_config_hook(data, runtime_config)
+    end
+  end
+
+  # From install_release on the node is running the new code, so a failure has already
+  # changed it and the previous version can no longer be assumed to be in place
+  defp install(%Execute{from_version: from_version, to_version: to_version} = data, node) do
+    with :ok <- notify_progress(data.sname, "Installing release"),
          :ok <- install_release(data),
          :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
          :ok <- notify_complete_ok(data.make_permanent_async, data.sname) do
-      message =
+      Logger.info(
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
-
-      Logger.info(message)
+      )
 
       :ok
     else
       error ->
-        remove_unpacked_release(data)
-        notify_error(data.sname, error)
+        report_failure(data, error)
         error
     end
   end
+
+  defp report_failure(data, error) do
+    # remove_unpacked_release/1 only acts while the release is still unpacked, so an error
+    # after it was installed leaves it alone
+    remove_unpacked_release(data)
+    notify_error(data.sname, error)
+  end
+
+  defp not_installed({:error, reason}), do: {:error, {:not_installed, reason}}
+  defp not_installed(error), do: {:error, {:not_installed, error}}
 
   def do_check(%Check{from_version: from_version, to_version: to_version} = data)
       when is_binary(from_version) or is_binary(to_version) do

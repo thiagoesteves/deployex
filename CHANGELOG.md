@@ -10,6 +10,7 @@
  * [`PULL-273`](https://github.com/thiagoesteves/deployex/pull/273) Remove the unpacked release left behind by a failed hot upgrade
  * [`PULL-274`](https://github.com/thiagoesteves/deployex/pull/274) Stop reporting a DeployEx hot upgrade as successful before it has run
  * [`PULL-275`](https://github.com/thiagoesteves/deployex/pull/275) Refuse a file that is not a DeployEx release instead of crashing the upload
+ * [`PULL-276`](https://github.com/thiagoesteves/deployex/pull/276) Ghost the version instead of forcing a full deployment when a hot upgrade never installed the release
 
 ### Enhancements
  * None
