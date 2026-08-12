@@ -1183,7 +1183,7 @@ defmodule Deployer.EngineTest do
 
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
-        assert {:ok, pid} =
+        assert {:ok, _pid} =
                  Engine.Worker.start_link(%Engine.Worker{
                    deploy_rollback_timeout_ms: 60_000,
                    deploy_schedule_interval_ms: 100,
