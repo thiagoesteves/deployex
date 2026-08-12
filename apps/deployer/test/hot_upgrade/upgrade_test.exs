@@ -1386,6 +1386,42 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
   end
 
   @tag :capture_log
+  test "a failing after make permanent callback does not take the server down" do
+    node = Node.self()
+    pid = Process.whereis(UpgradeApp)
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+      :ok
+    end)
+
+    log =
+      capture_log(fn ->
+        send(
+          pid,
+          {:make_permanent,
+           %Execute{
+             node: node,
+             sname: "deployex",
+             to_version: "1.0.0",
+             make_permanent_async: true,
+             after_async_make_permanent:
+               {Deployer.HotUpgrade.TestCallback, :raise_error, ["boom"]}
+           }}
+        )
+
+        # queues behind the message, so by the time it replies the callback has run
+        :sys.get_state(pid)
+      end)
+
+    assert log =~ "Error while running the after make permanent callback"
+
+    # the upgrade is permanent by the time the callback runs, a failure there must not
+    # bring down the server that just applied it
+    assert Process.alive?(pid)
+    assert pid == Process.whereis(UpgradeApp)
+  end
+
   test "execute/5 Elixir Deployex success sync operation, make_permanent_async=true", %{
     current_path: current_path,
     new_path: new_path,
@@ -1435,9 +1471,9 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       ref = make_ref()
       test_pid = self()
 
-      after_async_make_permanent = fn ->
-        send(test_pid, {:handle_ref_event, ref})
-      end
+      # an MFA, not a function. install_release swaps this release in before the callback
+      # runs, and a function captured by the previous version does not survive that
+      after_async_make_permanent = {Deployer.HotUpgrade.TestCallback, :notify, [test_pid, ref]}
 
       assert :ok =
                UpgradeApp.execute(%Execute{

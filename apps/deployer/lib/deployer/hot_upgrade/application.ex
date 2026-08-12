@@ -135,15 +135,32 @@ defmodule Deployer.HotUpgrade.Application do
       :ok ->
         notify_complete_ok(params.sname)
 
-        if params.after_async_make_permanent do
-          params.after_async_make_permanent.()
-        end
+        apply_after_async_make_permanent(params.after_async_make_permanent)
 
       reason ->
         notify_error(params.sname, reason)
     end
 
     {:noreply, state}
+  end
+
+  # The callback is an MFA rather than a function, and it is applied rather than called, so
+  # it resolves to whatever version of the module is loaded now. install_release has already
+  # swapped this release in by the time it runs, and a function captured by the previous
+  # version raises BadFunctionError, killing this process with the work still undone
+  defp apply_after_async_make_permanent(nil), do: :ok
+
+  defp apply_after_async_make_permanent({module, function, args}) do
+    apply(module, function, args)
+  rescue
+    error ->
+      # The upgrade itself is finished and permanent at this point, whatever this was meant
+      # to record must not undo that
+      Logger.error(
+        "Error while running the after make permanent callback, reason: #{inspect(error)}"
+      )
+
+      :ok
   end
 
   # NOTE: One possible improvement for these functions is to use a
