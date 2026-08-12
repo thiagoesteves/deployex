@@ -96,6 +96,32 @@ defmodule Deployer.Github.Artifact do
     :ok
   end
 
+  @doc """
+  Report a download progress update, called by `Foundation.System.FinchStream`.
+
+  The initial `:ok` is skipped, the artifact still has to be unzipped before the download
+  counts as complete.
+  """
+  @spec notify_download_progress(map(), String.t(), any()) :: :ok
+  def notify_download_progress(_params, _file_path, :ok), do: :ok
+
+  def notify_download_progress(params, _file_path, result) do
+    Phoenix.PubSub.broadcast(
+      Deployer.PubSub,
+      @github_download_progress,
+      {:github_download_artifact, Node.self(), params, result}
+    )
+  end
+
+  @doc """
+  Report whether a download should carry on, called by `Foundation.System.FinchStream`.
+  """
+  @spec download_running?(String.t(), pid()) :: boolean()
+  def download_running?(id, request_pid) do
+    [{_, status}] = :ets.lookup(@github_artifacts_table, id)
+    Process.alive?(request_pid) and status == :run
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
@@ -184,30 +210,13 @@ defmodule Deployer.Github.Artifact do
 
     :ets.insert(@github_artifacts_table, {id, :run})
 
-    handle_progress = fn
-      _file_path, :ok ->
-        # Skip the initial :ok message.
-        # This module still needs to unzip the download before notifying
-        # that the download is fully completed.
-        :ok
-
-      _file_path, result ->
-        Phoenix.PubSub.broadcast(
-          Deployer.PubSub,
-          @github_download_progress,
-          {:github_download_artifact, Node.self(), new_params, result}
-        )
-    end
-
-    handle_continue = fn ->
-      [{_, status}] = :ets.lookup(@github_artifacts_table, id)
-      Process.alive?(params.request_pid) and status == :run
-    end
-
+    # A download runs for as long as the transfer takes, which is long enough for a hot
+    # upgrade to replace this module. The callbacks are named functions reached through the
+    # module rather than captured values, which would not survive being replaced
     with :ok <-
            FinchStream.download(download_url, file_path, headers,
-             handle_progress: handle_progress,
-             handle_continue: handle_continue
+             handle_progress: {__MODULE__, :notify_download_progress, [new_params]},
+             handle_continue: {__MODULE__, :download_running?, [id, params.request_pid]}
            ) do
       {:ok, new_params}
     end

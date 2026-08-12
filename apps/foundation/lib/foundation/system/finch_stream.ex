@@ -13,90 +13,56 @@ defmodule Foundation.System.FinchStream do
 
   ## Callbacks
 
-  You can provide optional callbacks to track progress and control the download.
+  Optional callbacks track progress and control the download.
+  Both are `{module, function, args}` and are applied rather than called.
+
+  A download can run for as long as the transfer takes, which is long enough for a hot
+  upgrade to replace the module that started it. A function value captured by the previous
+  version of that module does not survive being replaced and raises `BadFunctionError` when
+  applied, so the callbacks are named functions reached through their module, which resolves
+  to whatever is loaded at the time.
 
   ### handle_progress
 
-  A function that receives progress updates during the download. It will be called with:
+  Applied with the stored args followed by:
   - `file_path` - The path of the file being downloaded
   - `status` - One of:
     - `{:downloading, progress}` - Progress as a float (0.0 to 100.0)
     - `:ok` - Download completed successfully
     - `{:error, reason}` - Download failed
 
-  Example:
-
-      handle_progress = fn file_path, status ->
-        case status do
-          {:downloading, progress} ->
-            IO.puts("Downloading \#{file_path}: \#{progress}%")
-          
-          :ok ->
-            IO.puts("✓ Completed: \#{file_path}")
-          
-          {:error, reason} ->
-            IO.puts("✗ Failed: \#{file_path} - \#{inspect(reason)}")
-        end
-      end
-
-      FinchStream.download(url, file_path, headers, handle_progress: handle_progress)
-
   ### handle_continue
 
-  A function that determines whether the download should continue. Called before 
-  processing each data chunk. Return `true` to continue, `false` to cancel.
-
-  Example:
-
-      handle_continue = fn ->
-        # Cancel if user requested it
-        !Process.get(:cancel_download, false)
-      end
-
-      FinchStream.download(url, file_path, headers, handle_continue: handle_continue)
+  Applied with the stored args, before processing each data chunk.
+  Return `true` to continue, `false` to cancel.
 
   ## Full Example
 
       defmodule MyApp.Downloader do
         def download_with_tracking(url, file_path) do
-          # Track progress in process dictionary
-          Process.put(:download_progress, 0)
-          
-          handle_progress = fn _file_path, status ->
-            case status do
-              {:downloading, progress} ->
-                Process.put(:download_progress, progress)
-                Phoenix.PubSub.broadcast(
-                  MyApp.PubSub,
-                  "downloads",
-                  {:progress, file_path, progress}
-                )
-              
-              :ok ->
-                Logger.info("Download completed: \#{file_path}")
-              
-              {:error, reason} ->
-                Logger.error("Download failed: \#{file_path} - \#{inspect(reason)}")
-            end
-          end
-          
-          handle_continue = fn ->
-            # Stop if cancelled or if progress hasn't changed in too long
-            !Process.get(:cancel_download, false)
-          end
-          
           Foundation.System.FinchStream.download(
             url,
             file_path,
             [],
-            handle_progress: handle_progress,
-            handle_continue: handle_continue
+            handle_progress: {__MODULE__, :report_progress, [self()]},
+            handle_continue: {__MODULE__, :keep_going?, [self()]}
           )
         end
-        
-        def cancel_download do
-          Process.put(:cancel_download, true)
+
+        def report_progress(owner, file_path, {:downloading, progress}) do
+          Phoenix.PubSub.broadcast(MyApp.PubSub, "downloads", {:progress, file_path, progress})
+          send(owner, {:progress, progress})
         end
+
+        def report_progress(_owner, file_path, :ok) do
+          Logger.info("Download completed: \#{file_path}")
+        end
+
+        def report_progress(_owner, file_path, {:error, reason}) do
+          Logger.error("Download failed: \#{file_path} - \#{inspect(reason)}")
+        end
+
+        def keep_going?(owner), do: Process.alive?(owner)
       end
   """
 
@@ -110,8 +76,8 @@ defmodule Foundation.System.FinchStream do
           size: non_neg_integer() | nil,
           processed: non_neg_integer() | nil,
           file_pid: pid() | nil,
-          handle_progress: mfa(),
-          handle_continue: mfa(),
+          handle_progress: mfa() | nil,
+          handle_continue: mfa() | nil,
           error: String.t() | nil
         }
 
@@ -251,26 +217,32 @@ defmodule Foundation.System.FinchStream do
        )
        when size > 0 do
     progress = Float.round(processed * 100 / size, 1)
-    handle_progress.(file_path, {:downloading, progress})
+    apply_callback(handle_progress, [file_path, {:downloading, progress}])
   end
 
   defp do_handle_progress(
          %__MODULE__{handle_progress: handle_progress, file_path: file_path},
          :ok
        ) do
-    handle_progress.(file_path, :ok)
+    apply_callback(handle_progress, [file_path, :ok])
   end
 
   defp do_handle_progress(
          %__MODULE__{handle_progress: handle_progress, file_path: file_path},
          error
        ) do
-    handle_progress.(file_path, error)
+    apply_callback(handle_progress, [file_path, error])
   end
 
   def do_handle_continue(%__MODULE__{handle_continue: nil}), do: true
 
   def do_handle_continue(%__MODULE__{handle_continue: handle_continue}) do
-    handle_continue.()
+    apply_callback(handle_continue, [])
+  end
+
+  # Applied through the module rather than called as a value, so it resolves against the
+  # code loaded now and not the version that started the download
+  defp apply_callback({module, function, args}, extra_args) do
+    apply(module, function, args ++ extra_args)
   end
 end

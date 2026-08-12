@@ -200,9 +200,7 @@ defmodule Foundation.System.FinchStreamTest do
     test "handles error set in accumulator during streaming" do
       test_pid = self()
 
-      handle_progress = fn file_path, status ->
-        send(test_pid, {:notify, file_path, status})
-      end
+      handle_progress = {FinchStreamCallback, :notify, [test_pid]}
 
       with_mock Finch,
         build: fn :get, _url, _headers -> :mocked_request end,
@@ -227,9 +225,7 @@ defmodule Foundation.System.FinchStreamTest do
       test_pid = self()
       file_content = "test content for progress"
 
-      handle_progress = fn file_path, status ->
-        send(test_pid, {:notify, file_path, status})
-      end
+      handle_progress = {FinchStreamCallback, :notify, [test_pid]}
 
       with_mock Finch,
         build: fn :get, _url, _headers -> :mocked_request end,
@@ -252,9 +248,7 @@ defmodule Foundation.System.FinchStreamTest do
     test "calls handle_progress on error" do
       test_pid = self()
 
-      handle_progress = fn file_path, status ->
-        send(test_pid, {:notify, file_path, status})
-      end
+      handle_progress = {FinchStreamCallback, :notify, [test_pid]}
 
       with_mock Finch,
         build: fn :get, _url, _headers -> :mocked_request end,
@@ -273,10 +267,7 @@ defmodule Foundation.System.FinchStreamTest do
     test "respects handle_continue returning false" do
       test_pid = self()
 
-      handle_continue = fn ->
-        send(test_pid, :keep_downloading_check)
-        false
-      end
+      handle_continue = {FinchStreamCallback, :continue, [test_pid, false]}
 
       with_mock Finch,
         build: fn :get, _url, _headers -> :mocked_request end,
@@ -298,10 +289,7 @@ defmodule Foundation.System.FinchStreamTest do
     test "continues downloading when handle_continue returns true" do
       test_pid = self()
 
-      handle_continue = fn ->
-        send(test_pid, :keep_downloading_check)
-        true
-      end
+      handle_continue = {FinchStreamCallback, :continue, [test_pid, true]}
 
       file_content = "download continues"
 
@@ -327,9 +315,7 @@ defmodule Foundation.System.FinchStreamTest do
       test_pid = self()
       chunk_size = 25
 
-      handle_progress = fn file_path, status ->
-        send(test_pid, {:notify, file_path, status})
-      end
+      handle_progress = {FinchStreamCallback, :notify, [test_pid]}
 
       with_mock Finch,
         build: fn :get, _url, _headers -> :mocked_request end,

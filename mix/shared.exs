@@ -38,6 +38,7 @@ defmodule Mix.Shared do
         # Foundation
         Foundation.Rpc,
         Foundation.RpcMock,
+        FinchStreamCallback,
         Foundation.Macros,
         Foundation.Application,
         Foundation.Catalog.Version,
