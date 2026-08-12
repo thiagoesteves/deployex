@@ -68,6 +68,13 @@ defmodule Foundation.System.FinchStream do
 
   require Logger
 
+  @typedoc """
+  A callback to apply, carrying the arguments to apply it with, which the stream appends to.
+
+  Not `mfa()`, whose third element is an arity rather than an argument list.
+  """
+  @type callback :: {module(), atom(), list()}
+
   @type t :: %__MODULE__{
           url: String.t() | nil,
           file_path: String.t() | nil,
@@ -76,8 +83,8 @@ defmodule Foundation.System.FinchStream do
           size: non_neg_integer() | nil,
           processed: non_neg_integer() | nil,
           file_pid: pid() | nil,
-          handle_progress: mfa() | nil,
-          handle_continue: mfa() | nil,
+          handle_progress: callback() | nil,
+          handle_continue: callback() | nil,
           error: String.t() | nil
         }
 

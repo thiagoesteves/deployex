@@ -2,6 +2,13 @@ defmodule Deployer.HotUpgrade.Execute do
   @moduledoc """
   Structure to handle the upgrade execute data
   """
+  @typedoc """
+  A callback to apply, carrying the arguments to apply it with.
+
+  Not `mfa()`, whose third element is an arity rather than an argument list.
+  """
+  @type callback :: {module(), atom(), list()}
+
   @type t :: %__MODULE__{
           node: atom(),
           sname: String.t() | nil,
@@ -13,7 +20,7 @@ defmodule Deployer.HotUpgrade.Execute do
           to_version: binary() | charlist() | nil,
           make_permanent_async: boolean(),
           sync_execution: boolean(),
-          after_async_make_permanent: mfa() | nil
+          after_async_make_permanent: callback() | nil
         }
 
   @derive Jason.Encoder
