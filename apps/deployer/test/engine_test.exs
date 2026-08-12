@@ -1074,7 +1074,7 @@ defmodule Deployer.EngineTest do
       subscribe_to_deployment_complete()
 
       pid = start_worker(name)
-      running_deployment(pid, sname, deploying?: true)
+      running_deployment(pid, sname, deploying?: true, terminating?: true)
 
       GenServer.cast(pid, {:application_running, sname})
 
@@ -1087,7 +1087,7 @@ defmodule Deployer.EngineTest do
     end
 
     @tag :capture_log
-    test "a report that does not complete a deployment is not announced as one" do
+    test "a version put into service at start up is reported as well" do
       name = "myelixir"
       sname = Catalog.create_sname(name)
 
@@ -1098,14 +1098,128 @@ defmodule Deployer.EngineTest do
       subscribe_to_deployment_complete()
 
       pid = start_worker(name)
-      running_deployment(pid, sname, deploying?: false)
+
+      # initialize_version/1 puts a version into service without a previous deployment to
+      # terminate, so the flag is set and there is nothing to stop afterwards
+      running_deployment(pid, sname, deploying?: true, terminating?: false)
+
+      GenServer.cast(pid, {:application_running, sname})
+
+      assert_receive {"deployment_complete", payload}, 1_000
+      assert payload.message == "Full deployment applied successfully, version 1.1.0"
+    end
+
+    @tag :capture_log
+    test "a report with nothing waiting for it is not announced as a deployment" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: false, terminating?: false)
 
       GenServer.cast(pid, {:application_running, sname})
 
       # a crash restart, a restart asked for from the UI and a hot upgrade all report an
-      # application running without a deployment waiting for it, and the hot upgrade has
-      # already sent its own notification with the versions it moved between
+      # application running with nothing waiting for it, and the hot upgrade has already
+      # sent its own notification with the versions it moved between
       refute_receive {"deployment_complete", _payload}, 300
+    end
+
+    @tag :capture_log
+    test "a hot upgrade does not close a window the start up left open" do
+      # Monitors live in a separate supervision tree, so an engine worker restart arms the
+      # rollback window for an application whose monitor is already running and will not
+      # report it running again. The hot upgrade that follows must not take that window
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      test_pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: from_version}]
+      end)
+      |> stub(:current_version, fn _sname ->
+        # 0 -> initialize_version, 1 -> check_deployment, 2 -> hot upgrade,
+        # 3 -> the upgrade result, which is what says the upgrade succeeded
+        called = Process.get("current_version", 0)
+        Process.put("current_version", called + 1)
+
+        if called > 2, do: to_version, else: from_version
+      end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, deployment: :hot_upgrade ->
+        send(test_pid, {:handle_ref_event, ref})
+        :ok
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} -> {:error, {:already_started, self()}} end)
+      |> expect(:run_pre_commands, 1, fn _sname, _release, :new -> {:ok, []} end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: to_version, hash: "local", pre_commands: []}
+      end)
+      |> expect(:download_release, 1, fn _app_name, ^to_version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn check -> {:ok, %{check | deploy: :hot_upgrade}} end)
+      |> expect(:execute, 1, fn %Deployer.HotUpgrade.Execute{to_version: ^to_version} -> :ok end)
+
+      subscribe_to_deployment_complete()
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        # the upgrade reported itself with the versions it moved between, and the window
+        # the start up left open must not turn the report it triggers into a full
+        # deployment of 2.0.0
+        refute_receive {"deployment_complete", _payload}, 300
+      end
+    end
+
+    test "code_change/3 fills the flag in for a deployment built by the previous version" do
+      # the previous version had no deploying? key at all, a struct default only applies to
+      # a struct being built
+      previous_version_deployment =
+        Map.delete(
+          %Deployer.Engine.Deployment{sname: "myelixir-1234", state: :active, ports: [4000]},
+          :deploying?
+        )
+
+      state = %Engine.Worker{deployments: %{1 => previous_version_deployment}}
+
+      assert {:ok, %Engine.Worker{deployments: %{1 => deployment}}} =
+               Engine.Worker.code_change("0.9.13", state, [])
+
+      assert %Deployer.Engine.Deployment{
+               sname: "myelixir-1234",
+               state: :active,
+               ports: [4000],
+               deploying?: false
+             } = deployment
     end
 
     @tag :capture_log
@@ -1123,7 +1237,7 @@ defmodule Deployer.EngineTest do
       subscribe_to_deployment_complete()
 
       pid = start_worker(name)
-      running_deployment(pid, sname, deploying?: true)
+      running_deployment(pid, sname, deploying?: true, terminating?: true)
 
       GenServer.cast(pid, {:application_running, sname})
       assert_receive {"deployment_complete", _payload}, 1_000
@@ -1133,7 +1247,8 @@ defmodule Deployer.EngineTest do
       GenServer.cast(pid, {:application_running, sname})
       refute_receive {"deployment_complete", _payload}, 300
 
-      assert %Deployer.Engine.Deployment{timer_ref: nil} = :sys.get_state(pid).deployments[1]
+      assert %Deployer.Engine.Deployment{timer_ref: nil, deploying?: false} =
+               :sys.get_state(pid).deployments[1]
     end
 
     defp subscribe_to_deployment_complete do
@@ -1155,22 +1270,22 @@ defmodule Deployer.EngineTest do
       pid
     end
 
-    # deployment_to_terminate is what the worker sets when it starts a full deployment and
-    # clears when the report it is waiting for arrives, so it is what tells a deployment
-    # apart from an application that is only reporting itself running again
-    defp running_deployment(pid, sname, deploying?: deploying?) do
+    # deploying? is set where a version is put into service, and a full deployment is the
+    # case that also leaves a previous deployment waiting to be terminated
+    defp running_deployment(pid, sname, deploying?: deploying?, terminating?: terminating?) do
       :sys.replace_state(pid, fn state ->
         deployment = %{
           state.deployments[state.current]
           | sname: sname,
             state: :active,
-            timer_ref: Process.send_after(pid, :ignored, 60_000)
+            timer_ref: Process.send_after(pid, :ignored, 60_000),
+            deploying?: deploying?
         }
 
         %{
           state
           | deployments: Map.put(state.deployments, state.current, deployment),
-            deployment_to_terminate: if(deploying?, do: %Deployer.Engine.Deployment{})
+            deployment_to_terminate: if(terminating?, do: %Deployer.Engine.Deployment{})
         }
       end)
     end

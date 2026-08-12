@@ -312,12 +312,12 @@ defmodule Deployer.Engine.Worker do
         #       reports running right after an engine worker restart
         if current_deployment.timer_ref, do: Process.cancel_timer(current_deployment.timer_ref)
 
-        # Only a full deployment sets deployment_to_terminate, and it is cleared as soon as
-        # the report it was waiting for arrives, so it is what says this report completes a
-        # deployment. Everything else that reports running, a crash restart, a restart asked
-        # for from the UI, or a hot upgrade that has already reported itself with the
-        # versions it moved between, is not a deployment and is not announced as one
-        if deployment_to_terminate, do: notify_deployment_complete(sname)
+        # deploying? is set where a version is put into service, by a full deployment and by
+        # the start up path, so it is what says this report completes one. Everything else
+        # that reports running, a crash restart, a restart asked for from the UI, or a hot
+        # upgrade that has already reported itself with the versions it moved between,
+        # finds it false and is not announced as a deployment
+        if current_deployment.deploying?, do: notify_deployment_complete(sname)
 
         new_instance =
           if state.current == state.replicas, do: 1, else: state.current + 1
@@ -334,10 +334,15 @@ defmodule Deployer.Engine.Worker do
 
         Logger.info(" # Moving to the next instance: #{new_instance}")
 
-        # The timer was cancelled above, so the reference goes with it, otherwise the
-        # deployment keeps one that reads as a rollback window still open
+        # This report closed the window: the timer was cancelled above and the flag goes
+        # with it, so a later report for the same deployment, e.g. after a crash restart,
+        # is not taken for another one
         deployments =
-          Map.put(state.deployments, state.current, %{current_deployment | timer_ref: nil})
+          Map.put(state.deployments, state.current, %{
+            current_deployment
+            | timer_ref: nil,
+              deploying?: false
+          })
 
         %{
           state
@@ -355,6 +360,20 @@ defmodule Deployer.Engine.Worker do
       end
 
     {:noreply, state}
+  end
+
+  # A deployment held in state was built by the version running before the hot upgrade, so
+  # it is a map without the deploying? key, and a struct default only applies to a struct
+  # being built. Rebuilding them through struct/2 fills it in, and false is the right value
+  # for anything already in service, the report that would have closed its window is gone
+  @impl true
+  def code_change(_old_vsn, %__MODULE__{} = state, _extra) do
+    deployments =
+      Map.new(state.deployments, fn {instance, deployment} ->
+        {instance, struct(Engine.Deployment, Map.from_struct(deployment))}
+      end)
+
+    {:ok, %{state | deployments: deployments}}
   end
 
   ### ==========================================================================
@@ -562,7 +581,8 @@ defmodule Deployer.Engine.Worker do
         current_deployment
         | timer_ref: timer_ref,
           sname: sname,
-          ports: ports
+          ports: ports,
+          deploying?: true
       })
 
     %{state | deployments: deployments}
@@ -735,7 +755,13 @@ defmodule Deployer.Engine.Worker do
 
       full_deployment(state, new_sname, release)
     else
-      state
+      # The upgrade reported itself with the versions it moved between, and the sname it
+      # ran on keeps running. A window left open on this instance, e.g. by a start up whose
+      # monitor was already running, would otherwise turn the report the upgrade triggers
+      # into a full deployment of this version
+      current_deployment = %{state.deployments[state.current] | deploying?: false}
+
+      %{state | deployments: Map.put(state.deployments, state.current, current_deployment)}
     end
   end
 
