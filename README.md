@@ -82,6 +82,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [**0.9.12**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.12) | **27.3.4.15**                                              | **28.5.0.4**                                               |
 | [**0.9.11**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.11) | **27.3.4.15**                                              | **28.5.0.4**                                               |
 | [**0.9.10**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.10) | **27.3.4.15**                                              | **28.5.0.4**                                               |
 | [**0.9.9**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.9) | **27.3.4.15**                                              | **28.5.0.4**                                               |
