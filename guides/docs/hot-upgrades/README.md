@@ -248,6 +248,19 @@ replace the runtime under a running system. Use the artifact matching the otp_ve
 this installation runs, or apply it as a full deployment.
 ```
 
+### Which version performs the upgrade
+
+A hot upgrade is carried out by the code already running, not by the code in the package.
+DeployEx unpacks the release, builds the relup and installs it using the version currently installed, and only afterwards is the new code in charge.
+
+That has one consequence worth remembering whenever a release fixes something in the hot upgrade path itself: the fix applies to upgrades performed **from** that version, not to the upgrade **into** it.
+Going from a version with the bug to a version with the fix still runs the bug, because the buggy code is what does the work.
+
+So when a release changes how hot upgrades behave, check its changelog before hot-upgrading into it.
+Where that matters the release says so under `Backwards incompatible changes`, and the answer there is to apply it as a full deployment once, after which hot upgrades carry on normally.
+
+The same applies to a monitored application whose own upgrade instructions changed, its `.appup` is executed by the release being replaced.
+
 ### When a hot upgrade fails
 
 DeployEx does not fall back to a full deployment for itself.
