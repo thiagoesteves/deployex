@@ -1,6 +1,6 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.11 ()
+## 0.9.11 🚀 (2026-08-12)
 
 ### Backwards incompatible changes from 0.9.10
  * None
