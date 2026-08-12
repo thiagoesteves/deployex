@@ -11,6 +11,7 @@
 
 ### Enhancements
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report the versions a hot upgrade moved between in the completion notification
+ * [`PULL-290`](https://github.com/thiagoesteves/deployex/pull/290) Add an application_ready event for every report that an application is running
 
 ## 0.9.12 🚀 (2026-08-12)
 
