@@ -296,6 +296,64 @@ After the PR is merged, pushing the version tag from main triggers `.github/work
 
 ---
 
+## Deciding Whether the Next Version Supports Hot Upgrade
+
+Every release has to state whether operators can hot-upgrade DeployEx into it or must deploy fully.
+Work through the checks below against the diff from the last released tag, and record the answer in `CHANGELOG.md`.
+
+Run them with the previous tag as the base:
+
+```bash
+PREV=0.9.11   # last released tag
+```
+
+**1. Toolchain.** Any change to Erlang or Elixir means the release cannot be hot-upgraded on that OTP line.
+A different Elixir makes `systools:make_relup/4` ask for an `elixir.appup` that no release ships.
+
+```bash
+git diff $PREV..HEAD -- devops/releases/otp-*/.tool-versions
+```
+
+**2. `runtime.exs`.** Added, removed or modified means a full deployment.
+
+```bash
+git diff --name-only $PREV..HEAD -- config/runtime.exs
+```
+
+**3. Config Providers.** Provider modules run on the node in its **current** version, so a change to them is not applied by the upgrade and only takes effect after a full deployment.
+
+```bash
+git diff --name-only $PREV..HEAD -- apps/foundation/lib/config_provider/
+```
+
+**4. Dependencies.** Every dependency whose version changes needs an appup, which `Jellyfish.generate/1` produces, but a dependency being replaceable at runtime is the dependency's property and not something the appup proves.
+Call out anything stateful.
+
+```bash
+git diff $PREV..HEAD -- mix.lock | grep -E "^[+-] +\{:"
+```
+
+**5. Values that cannot cross a code swap.** A function value is tied to the module version that created it, and `install_release` replaces every umbrella application because they all carry the release version.
+Anything that outlives the upgrade must be data, not a closure: GenServer state, ETS, `:persistent_term`, timers, and messages already queued.
+`Deployer.HotUpgrade.Execute` declares `after_async_make_permanent` as `mfa()` for exactly this reason.
+
+```bash
+git diff $PREV..HEAD -- apps/*/lib | grep -nE "^\+.*(fn |&[A-Z])"
+```
+
+**6. GenServer state shape.** If a `defstruct` backing a `GenServer` state changed, the release needs a `code_change/3`, since an appup can suspend and resume a process but only the project knows how to reshape what it was holding.
+
+**7. Supervision tree and applications.** Children added or removed, or a new application in the umbrella, need checking against the generated appup rather than assumed.
+
+### Recording the answer
+
+- Hot upgrade supported, nothing to add.
+- Not supported, add an entry under `### Backwards incompatible changes` naming the check that failed and telling operators to apply the release as a full deployment.
+
+The reasoning behind each check, and how to verify a built package, is in `guides/docs/hot-upgrades/README.md`.
+
+---
+
 ## Guides and Documentation
 
 - `guides/docs/` - deployment guides per cloud/language (AWS-Elixir, GCP-Elixir, Local-Erlang, etc.)
