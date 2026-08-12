@@ -24,7 +24,11 @@ defmodule Foundation.Certificates.Manager.SupervisorTest do
         acme_provider: SomeACMEProvider,
         acme_options: %{email: "ops@example.com"},
         importer: SomeImporter,
-        importer_options: %{}
+        importer_options: %{},
+        storage_options: %{
+          certificate_path: "/etc/ssl/device-ssl-cert.crt",
+          private_key_path: "/etc/ssl/device-ssl-key.crt"
+        }
       },
       overrides
     )
@@ -76,9 +80,29 @@ defmodule Foundation.Certificates.Manager.SupervisorTest do
           assert manager.dns_provider == SomeDNSProvider
           assert manager.acme_provider == SomeACMEProvider
           assert manager.importer == SomeImporter
+
+          # without this the renewal writes nothing and says nothing, the store step just
+          # returns on its nil clause
+          assert manager.storage_options == %{
+                   certificate_path: "/etc/ssl/device-ssl-cert.crt",
+                   private_key_path: "/etc/ssl/device-ssl-key.crt"
+                 }
+
           {:ok, self()}
         end do
         Supervisor.start_certificate_manager("my_app", domain_certificate())
+      end
+    end
+
+    test "leaves storage_options nil when the certificate has none" do
+      with_mock DynamicSupervisor, [:passthrough],
+        start_child: fn _sup, spec ->
+          {_mod, _fun, [manager]} = spec.start
+          assert manager.storage_options == nil
+          {:ok, self()}
+        end do
+        cert = domain_certificate(%{storage_options: nil, dns_options: nil, acme_options: nil})
+        Supervisor.start_certificate_manager("my_app", cert)
       end
     end
 
