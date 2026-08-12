@@ -350,6 +350,10 @@ git diff $PREV..HEAD -- apps/*/lib | grep -nE "^\+.*(fn |&[A-Z])"
 - Hot upgrade supported, nothing to add.
 - Not supported, add an entry under `### Backwards incompatible changes` naming the check that failed and telling operators to apply the release as a full deployment.
 
+One extra case, independent of the seven checks above: if the release fixes a bug in the hot upgrade path itself, that fix does not apply to the upgrade **into** this version, since the upgrade is performed by the version already installed.
+Check whether the bug being fixed would fire during that upgrade, and if it would, say so under `### Backwards incompatible changes` with what it does and that a full deployment avoids it.
+See the `0.9.11` section for an example.
+
 The reasoning behind each check, and how to verify a built package, is in `guides/docs/hot-upgrades/README.md`.
 
 ---
