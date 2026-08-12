@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.12 ()
+
+### Backwards incompatible changes from 0.9.11
+ * None
+
+### Bug fixes
+ * [`PULL-280`](https://github.com/thiagoesteves/deployex/pull/280) Record the version after a DeployEx self upgrade through an MFA, not a captured function
+
+### Enhancements
+ * None
+
 ## 0.9.11 🚀 (2026-08-12)
 
 ### Backwards incompatible changes from 0.9.10
