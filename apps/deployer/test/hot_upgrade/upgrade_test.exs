@@ -1458,6 +1458,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert pid == Process.whereis(UpgradeApp)
   end
 
+  @tag :capture_log
   test "execute/5 Elixir Deployex success sync operation, make_permanent_async=true", %{
     current_path: current_path,
     new_path: new_path,

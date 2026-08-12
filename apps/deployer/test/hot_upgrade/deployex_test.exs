@@ -99,6 +99,7 @@ defmodule Deployer.HotUpgrade.DeployexTest do
            end) =~ "Hot upgrade not supported for this release"
   end
 
+  @tag :capture_log
   test "check/1 invalid hotupgrade" do
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:ok, []} end)
