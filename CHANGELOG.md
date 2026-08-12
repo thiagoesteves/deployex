@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.12 🚀 (2026-08-12)
+
+### Backwards incompatible changes from 0.9.11
+ * Hot upgrade from `0.9.11` is supported. Applications using `storage_options` need one extra step afterwards, since a running certificate manager keeps the state it started with: comment the `certificates` section out of `deployex.yaml` and apply the change, then uncomment it and apply again. That restarts the manager with the fix from [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286).
+
+### Bug fixes
+ * [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286) Carry the certificate storage_options into the certificate manager so renewals are written to disk
+
+### Enhancements
+ * None
+
 ## 0.9.11 🚀 (2026-08-12)
 
 ### Backwards incompatible changes from 0.9.10
@@ -15,7 +26,6 @@
  * [`PULL-280`](https://github.com/thiagoesteves/deployex/pull/280) Record the version after a DeployEx self upgrade through an MFA, not a captured function
  * [`PULL-283`](https://github.com/thiagoesteves/deployex/pull/283) Apply the FinchStream download callbacks through an MFA instead of a captured function
  * [`PULL-284`](https://github.com/thiagoesteves/deployex/pull/284) Show why a release downloaded from GitHub was refused in the download panel
- * [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286) Carry the certificate storage_options into the certificate manager so renewals are written to disk
 
 ### Enhancements
  * [`PULL-277`](https://github.com/thiagoesteves/deployex/pull/277) Add a ghosted version list to the UI with clear all and clear one actions
