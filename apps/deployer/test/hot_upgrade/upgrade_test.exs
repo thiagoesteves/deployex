@@ -1386,6 +1386,42 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
   end
 
   @tag :capture_log
+  test "the completion notification carries the versions it upgraded between" do
+    node = Node.self()
+    pid = Process.whereis(UpgradeApp)
+
+    Foundation.RpcMock
+    |> stub(:call, fn ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+      :ok
+    end)
+
+    Phoenix.PubSub.subscribe(
+      Foundation.PubSub,
+      Foundation.Notifications.topic("deployment_complete")
+    )
+
+    send(
+      pid,
+      {:make_permanent,
+       %Execute{
+         node: node,
+         sname: "deployex",
+         from_version: ~c"0.9.12",
+         to_version: ~c"0.9.13",
+         make_permanent_async: true
+       }}
+    )
+
+    # the message is what every adapter renders, the payload keys are there for the ones
+    # that forward structured data
+    assert_receive {"deployment_complete", payload}, 1_000
+    assert payload.status == :ok
+    assert payload.message == "Hot upgrade applied successfully, 0.9.12 -> 0.9.13"
+    assert payload.from_version == "0.9.12"
+    assert payload.to_version == "0.9.13"
+  end
+
+  @tag :capture_log
   test "a failing after make permanent callback does not take the server down" do
     node = Node.self()
     pid = Process.whereis(UpgradeApp)
@@ -1514,7 +1550,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                      1_000
 
       assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
-                      "Hot upgrade applied successfully!"},
+                      "Hot upgrade applied successfully, 0.1.0 -> 0.2.0"},
                      1_000
 
       assert_receive {:handle_ref_event, ^ref}, 1_000
@@ -1610,7 +1646,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                      1_000
 
       assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
-                      "Hot upgrade applied successfully!"},
+                      "Hot upgrade applied successfully, 0.1.0 -> 0.2.0"},
                      1_000
     end
   end
@@ -1704,7 +1740,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                      1_000
 
       assert_receive {:hot_upgrade_complete, ^node, ^sname, :ok,
-                      "Hot upgrade applied successfully!"},
+                      "Hot upgrade applied successfully, 0.1.0 -> 0.2.0"},
                      1_000
     end
   end
@@ -1802,7 +1838,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                               1_000
 
                assert_receive {:hot_upgrade_complete, ^node, ^sname, :error,
-                               "Upgrade failed: {:error, {:error, :no_match_versions}}"},
+                               "Hot upgrade 0.1.0 -> 0.2.0 failed: {:error, {:error, :no_match_versions}}"},
                               1_000
              end) =~
                "Error while trying to set a permanent version for 0.2.0, reason: {:error, :no_match_versions}"
@@ -1906,7 +1942,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                               1_000
 
                assert_receive {:hot_upgrade_complete, ^node, ^sname, :error,
-                               "Upgrade failed: {:error, {:error, :no_match_versions}}"},
+                               "Hot upgrade 0.1.0 -> 0.2.0 failed: {:error, {:error, :no_match_versions}}"},
                               1_000
              end) =~
                "Error while trying to set a permanent version for 0.2.0, reason: {:error, :no_match_versions}"

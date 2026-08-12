@@ -335,7 +335,8 @@ git diff $PREV..HEAD -- mix.lock | grep -E "^[+-] +\{:"
 
 **5. Values that cannot cross a code swap.** A function value is tied to the module version that created it, and `install_release` replaces every umbrella application because they all carry the release version.
 Anything that outlives the upgrade must be data, not a closure: GenServer state, ETS, `:persistent_term`, timers, and messages already queued.
-`Deployer.HotUpgrade.Execute` declares `after_async_make_permanent` as `mfa()` for exactly this reason.
+`Deployer.HotUpgrade.Execute` declares `after_async_make_permanent` as `Deployer.HotUpgrade.Execute.callback()`, a `{module(), atom(), list()}` tuple applied rather than called, for exactly this reason.
+It is not `mfa()`, whose third element is an arity rather than an argument list.
 
 ```bash
 git diff $PREV..HEAD -- apps/*/lib | grep -nE "^\+.*(fn |&[A-Z])"

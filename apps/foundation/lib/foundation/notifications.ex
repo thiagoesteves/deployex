@@ -19,7 +19,7 @@ defmodule Foundation.Notifications do
   |----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------|
   | `"crash_restart"`                 | Monitored app crashed and is being restarted               | `node`, `sname`, `name`, `language`, `crash_restart_count`                 |
   | `"deployment_started"`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
-  | `"deployment_complete"`           | Hot-upgrade finished (success or failure)                  | `node`, `sname`, `status` (`:ok`/`:error`), `message`                      |
+  | `"deployment_complete"`           | Full deployment or hot upgrade finished (success or failure)| `node`, `sname`, `status` (`:ok`/`:error`), `message`, plus `version` for a full deployment and `from_version`/`to_version` for a hot upgrade |
   | `"watchdog_threshold_exceeded"`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
   | `"watchdog_threshold_warning"`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |

@@ -45,7 +45,7 @@ defmodule Foundation.Notifications.Slack do
       Crash count: *3*
 
       ✅ *deployment_complete* — `myapp-1` on `myapp@prod-1`
-      Status: *ok* — Hot upgrade applied successfully!
+      Status: *ok* — Hot upgrade applied successfully, 1.0.0 -> 1.1.0
 
   ## Supported events
 
