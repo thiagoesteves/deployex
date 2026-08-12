@@ -133,12 +133,12 @@ defmodule Deployer.HotUpgrade.Application do
   def handle_info({:make_permanent, params}, state) do
     case permfy(%{params | make_permanent_async: false}) do
       :ok ->
-        notify_complete_ok(params.sname)
+        notify_complete_ok(params)
 
         apply_after_async_make_permanent(params.after_async_make_permanent)
 
       reason ->
-        notify_error(params.sname, reason)
+        notify_error(params, reason)
     end
 
     {:noreply, state}
@@ -235,7 +235,7 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- install_release(data),
          :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
-         :ok <- notify_complete_ok(data.make_permanent_async, data.sname) do
+         :ok <- notify_complete_ok(data.make_permanent_async, data) do
       Logger.info(
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
       )
@@ -252,7 +252,7 @@ defmodule Deployer.HotUpgrade.Application do
     # remove_unpacked_release/1 only acts while the release is still unpacked, so an error
     # after it was installed leaves it alone
     remove_unpacked_release(data)
-    notify_error(data.sname, error)
+    notify_error(data, error)
   end
 
   def do_check(%Check{from_version: from_version, to_version: to_version} = data)
@@ -762,42 +762,42 @@ defmodule Deployer.HotUpgrade.Application do
     )
   end
 
-  @spec notify_complete_ok(skip :: boolean(), sname :: String.t()) :: :ok
-  defp notify_complete_ok(skip \\ false, sname)
+  @spec notify_complete_ok(skip :: boolean(), data :: Execute.t()) :: :ok
+  defp notify_complete_ok(skip \\ false, data)
 
-  defp notify_complete_ok(true, _sname), do: :ok
+  defp notify_complete_ok(true, _data), do: :ok
 
-  defp notify_complete_ok(_skip, sname) do
+  defp notify_complete_ok(_skip, %Execute{} = data) do
+    notify_outcome(data, :ok, "Hot upgrade applied successfully, #{versions(data)}")
+  end
+
+  @spec notify_error(data :: Execute.t(), result :: any()) :: :ok
+  defp notify_error(%Execute{} = data, result) do
+    notify_outcome(data, :error, "Hot upgrade #{versions(data)} failed: #{inspect(result)}")
+  end
+
+  # The versions are on the message rather than only on the payload, so every notification
+  # adapter reports them without having to know about this event
+  defp notify_outcome(%Execute{sname: sname} = data, status, message) do
     Phoenix.PubSub.broadcast(
       Deployer.PubSub,
       @events_topic,
-      {:hot_upgrade_complete, Node.self(), sname, :ok, "Hot upgrade applied successfully!"}
+      {:hot_upgrade_complete, Node.self(), sname, status, message}
     )
 
     Foundation.Notifications.notify("deployment_complete", %{
       node: node(),
       sname: sname,
-      status: :ok,
-      message: "Hot upgrade applied successfully!"
+      status: status,
+      message: message,
+      from_version: to_string(data.from_version),
+      to_version: to_string(data.to_version)
     })
   end
 
-  @spec notify_error(sname :: String.t(), result :: any()) :: :ok
-  defp notify_error(sname, result) do
-    message = "Upgrade failed: #{inspect(result)}"
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      @events_topic,
-      {:hot_upgrade_complete, Node.self(), sname, :error, message}
-    )
-
-    Foundation.Notifications.notify("deployment_complete", %{
-      node: node(),
-      sname: sname,
-      status: :error,
-      message: message
-    })
+  # Charlists by the time the upgrade runs, do_execute/1 converts them
+  defp versions(%Execute{from_version: from_version, to_version: to_version}) do
+    "#{from_version} -> #{to_version}"
   end
 
   @spec stash_runtime_config(node(), runtime_config()) :: :ok | {:error, any()}
