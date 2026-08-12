@@ -319,6 +319,11 @@ defmodule Deployer.Engine.Worker do
         # finds it false and is not announced as a deployment
         if current_deployment.deploying?, do: notify_deployment_complete(sname)
 
+        # Whatever put the application there, it is running and the system has qualified it
+        # as ready, which is the report itself. A crash restart and a restart asked for
+        # from the UI reach here too, and this is the event that says so
+        notify_application_ready(sname)
+
         new_instance =
           if state.current == state.replicas, do: 1, else: state.current + 1
 
@@ -699,6 +704,14 @@ defmodule Deployer.Engine.Worker do
       end)
 
     handle_hot_upgrade_result(result, state, sname, new_sname, release)
+  end
+
+  defp notify_application_ready(sname) do
+    Foundation.Notifications.notify("application_ready", %{
+      node: node(),
+      sname: sname,
+      version: to_string(Status.current_version(sname))
+    })
   end
 
   # The deployment wrote the version to the catalog before the sname reported running, so

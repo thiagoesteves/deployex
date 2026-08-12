@@ -676,6 +676,7 @@ defmodule Foundation.YamlTest do
           crash_restart
           deployment_started
           deployment_complete
+          application_ready
           watchdog_threshold_exceeded
           watchdog_threshold_warning
           certificate_renewed

@@ -55,6 +55,7 @@ defmodule Foundation.Notifications.Slack do
   | `deployment_started`            | 🚀    | New deployment initiated                              |
   | `deployment_complete` (ok)      | ✅    | Deployment finished successfully                      |
   | `deployment_complete` (error)   | ❌    | Deployment finished with error                        |
+  | `application_ready`             | 🟢    | App reported itself running, whatever put it there    |
   | `deployment_shutdown`           | 🛑    | App force-terminated (will restart shortly)           |
   | `watchdog_threshold_exceeded`   | ⚠️    | Resource threshold crossed; app restarted             |
   | `watchdog_threshold_warning`    | 🔶/✅ | Resource crossed warning threshold or normalized      |
@@ -142,6 +143,13 @@ defmodule Foundation.Notifications.Slack do
     """
     ❌ *deployment_complete* — `#{payload.sname}` on `#{payload.node}`
     Status: *error* — #{payload.message}\
+    """
+  end
+
+  defp format_message("application_ready", payload) do
+    """
+    🟢 *application_ready* — `#{payload.sname}` on `#{payload.node}`
+    Version: *#{payload.version}*\
     """
   end
 
