@@ -3,19 +3,28 @@
 ## 0.9.13 🚀 (2026-08-14)
 
 ### Backwards incompatible changes from 0.9.12
- * Apply this release as a full deployment, do not hot-upgrade from `0.9.12`. [`PULL-289`](https://github.com/thiagoesteves/deployex/pull/289) adds a field to the deployment struct the engine worker holds in its state, and the release ships no `code_change/3` for it, so a worker that crossed a hot upgrade would hold deployments built by `0.9.12` and raise on the next deployment, restarting and rebuilding its state from the catalog. Deploying fully avoids it. Hot upgrades between later versions behave normally.
+ * Apply this release as a full deployment, do not hot-upgrade from `0.9.12`. The engine worker, the monitor, the logs server and the watchdog all changed the shape of the state they hold and the release ships no `code_change/3`, so a process that crossed a hot upgrade would raise and rebuild its state. Hot upgrades between later versions behave normally.
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) The DeployEx `monitoring` entries are now only evaluated when configured. Previously a DeployEx instance with no `memory` entry in the top level `monitoring` section still had its host memory checked against the built-in 75%/90% defaults with restart enabled. Add an explicit `- type: "memory"` entry to `deployex.yaml` to keep that protection.
 
 ### Bug fixes
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report a deployment as complete only when one has finished, not on a hot upgrade or an application restart
  * [`PULL-289`](https://github.com/thiagoesteves/deployex/pull/289) Mark a deployment in flight explicitly instead of inferring it, so the completion notification is not missed
+ * [`PULL-298`](https://github.com/thiagoesteves/deployex/pull/298) Start the log retention pruning timer when retention is enabled through a configuration change, not only at start up
+ * [`PULL-299`](https://github.com/thiagoesteves/deployex/pull/299) Stop the applications LiveView crashing when the host reports no total memory or a node reports a zero limit
+ * [`PULL-300`](https://github.com/thiagoesteves/deployex/pull/300) Decouple the restart backoff from the lifetime crash count and cap it at 5 minutes, so a recovered application is not held back by its whole crash history
 
 ### Enhancements
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report the versions a hot upgrade moved between in the completion notification
  * [`PULL-290`](https://github.com/thiagoesteves/deployex/pull/290) Add an application_ready event for every report that an application is running
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) Monitor the DeployEx atom, process and port limits alongside the host memory
  * [`PULL-293`](https://github.com/thiagoesteves/deployex/pull/293) Show the URLs each connected application is serving on, read from its own endpoints
+ * [`PULL-294`](https://github.com/thiagoesteves/deployex/pull/294) Report a resource reaching the critical level whether or not the restart is enabled
+ * [`PULL-295`](https://github.com/thiagoesteves/deployex/pull/295) Display the logo of a monitored application in its card, read from the application itself and cached per connection
  * [`PULL-296`](https://github.com/thiagoesteves/deployex/pull/296) Replace the Elixir and Erlang logos with the official ones and swap to a brighter variant on dark themes
+ * [`PULL-301`](https://github.com/thiagoesteves/deployex/pull/301) Clarify how an AI agent attributes itself in the PR guidelines
+ * [`PULL-302`](https://github.com/thiagoesteves/deployex/pull/302) Show which certificate fields changed in the configuration changes modal, not only that the certificate was modified
+ * [`PULL-303`](https://github.com/thiagoesteves/deployex/pull/303) Compact the logs and history logs chrome so more log rows fit in the viewport
+ * [`PULL-304`](https://github.com/thiagoesteves/deployex/pull/304) Restructure the hot-upgrade guide and correct the runtime.exs rule
  * [`PULL-305`](https://github.com/thiagoesteves/deployex/pull/305) Fetch the logo from the `<name>_web` child when the monitored application is a Phoenix umbrella
 
 ## 0.9.12 🚀 (2026-08-12)
