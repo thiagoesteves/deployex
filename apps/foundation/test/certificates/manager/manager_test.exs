@@ -240,6 +240,61 @@ defmodule Foundation.Certificates.ManagerTest do
     end
   end
 
+  describe "storage_options" do
+    @tag :capture_log
+    test "writes the renewed certificate to the configured paths" do
+      dir = Path.join(System.tmp_dir!(), "cert-storage-#{System.unique_integer([:positive])}")
+      cert_path = Path.join(dir, "device-ssl-cert.crt")
+      key_path = Path.join(dir, "device-ssl-key.crt")
+      on_exit(fn -> File.rm_rf(dir) end)
+
+      no_cert = %Certificate{certificate_pem: nil}
+
+      stored = %Certificate{
+        certificate_pem: "cert_pem",
+        chain_certificate_pem: "chain_pem",
+        private_key_pem: "key_pem"
+      }
+
+      with_mocks([
+        {Catalog, [],
+         [
+           certificate: fn _app -> stored end,
+           certificate_update: fn _app, c -> {:ok, c} end
+         ]},
+        {Catalog.Certificate, [],
+         [
+           new: fn _state -> no_cert end,
+           # due for renewal, so the storage step runs
+           valid?: fn _cert, _days -> false end,
+           metadata_from_cert_pem: fn _pem ->
+             {:ok,
+              %{
+                issuer: "TestCA",
+                valid_from: ~U[2024-01-01 00:00:00Z],
+                valid_until: ~U[2025-01-01 00:00:00Z]
+              }}
+           end,
+           split_certificate_chain: fn _pem -> {"cert_pem", "chain_pem"} end
+         ]},
+        {Network, [],
+         [
+           lookup: fn _domain_charlist, _class, _type, _options ->
+             ["_acme.example.com.", "token123"]
+           end
+         ]}
+      ]) do
+        config =
+          base_config(storage_options: %{certificate_path: cert_path, private_key_path: key_path})
+
+        assert {:ok, :renewed, _cert} = Manager.request_and_import_certificate(config)
+      end
+
+      assert File.read!(cert_path) =~ "cert_pem"
+      assert File.read!(key_path) == "key_pem"
+    end
+  end
+
   describe "wait_for_dns_propagation (via request_and_import_certificate)" do
     @tag :capture_log
     test "times out when DNS never propagates and returns {:error, :dns_propagation_timeout}" do

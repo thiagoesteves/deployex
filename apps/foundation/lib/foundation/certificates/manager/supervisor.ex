@@ -67,10 +67,13 @@ defmodule Foundation.Certificates.Manager.Supervisor do
       acme_provider: cert.acme_provider,
       acme_options: to_map(cert.acme_options),
       importer: cert.importer,
-      importer_options: to_map(cert.importer_options)
+      importer_options: to_map(cert.importer_options),
+      storage_options: to_map(cert.storage_options)
     }
   end
 
+  # Every options field is optional, and a missing one has to stay missing rather than raise
+  defp to_map(nil), do: nil
   defp to_map(value) when is_struct(value), do: Map.from_struct(value)
   defp to_map(value) when is_map(value), do: value
 end
