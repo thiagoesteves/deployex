@@ -15,6 +15,7 @@
 
 ### Enhancements
  * [`PULL-277`](https://github.com/thiagoesteves/deployex/pull/277) Add a ghosted version list to the UI with clear all and clear one actions
+ * [`PULL-281`](https://github.com/thiagoesteves/deployex/pull/281) Document the good practices for a hot-upgradeable project and how to check a release
 
 ## 0.9.10 🚀 (2026-08-10)
 
