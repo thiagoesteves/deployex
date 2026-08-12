@@ -45,10 +45,19 @@ file /var/lib/deployex/service/myphoenixapp/myphoenixapp-4pvclf/current/lib/elix
 Pin the toolchain in `.tool-versions` and keep it identical across the two builds.
 Bumping Erlang or Elixir is a full deployment, not a hot upgrade.
 
-**Change your own code, not your dependencies.**
-Every application whose version changes needs an appup, and each one is real code being swapped inside a live node.
-[Jellyfish][jyf] generates them, but generating an appup is not the same as knowing the dependency survives being replaced under load.
-Group dependency bumps into a release you deploy fully, and keep hot upgrades for your own code.
+**Assess every dependency you upgrade, one at a time.**
+Dependencies can be hot-upgraded, [Jellyfish][jyf] generates their appups the same way it does for your own applications.
+An appup only describes how to load the new code though, it says nothing about whether that library survives being replaced under load, so each one is a decision rather than a default.
+
+What to review is in the warning above.
+Do it per dependency, not per release, and keep the number moving in a single hot upgrade small enough that the review stays realistic.
+
+Reading a dependency diff is worth handing to an LLM.
+Ask it to summarise what changed between the two versions and, specifically, whether anything there affects state held by a running process or the shape of a supervision tree.
+Treat the answer as a place to start looking, not as the verdict, and confirm what it reports against the changelog and the diff itself.
+
+Erlang/OTP applications and Elixir itself are the exception and are never in scope.
+They are the runtime the upgrade runs on, not libraries loaded into it, so a release that changes them is a full deployment.
 
 **Never hold an anonymous function across an upgrade.**
 A function value is tied to the version of the module that created it.
@@ -95,7 +104,8 @@ Nothing listed means the release was built without hot-upgrade information and c
 
 **Check the versions it claims to upgrade from.**
 Extract a `jellyfish.json` and read its `from` and `to`.
-The `from` has to be the version currently running, which the Applications page shows, so a release built against an older version is not applicable no matter how well formed it is.
+For a `"project"` entry the `from` has to be the version currently running, which the Applications page shows, so a release built against an older version is not applicable no matter how well formed it is.
+A `"dependency"` entry carries the library's own versions instead, since dependencies are versioned independently from the project.
 
 **Let DeployEx answer for you.**
 For a monitored application the decision is made at deployment time and written to the log:
@@ -129,9 +139,14 @@ A version left as `unpacked` is one a previous attempt started and did not insta
 
 Hot-upgrades can be applied to:
 - **Monitored Applications** - Your deployed Elixir/Erlang/Gleam applications
+- **Dependencies** - The libraries those applications use, once you have checked the ones you are moving can be replaced in a running node
 - **DeployEx Itself** - The DeployEx system can hot-upgrade without restart
 
+Erlang/OTP applications and Elixir are not in scope.
+They are the runtime rather than libraries loaded into it, and a release that changes either is a full deployment.
+
 DeployEx uses [Jellyfish][jyf] to automatically generate appup files, which can be customized if needed.
+Dependencies are versioned independently from the project, so DeployEx reports them separately, with `type: "dependency"` rather than `type: "project"`.
 
 ## Hot-Upgrading DeployEx
 
