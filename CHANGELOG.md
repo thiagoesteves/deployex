@@ -3,17 +3,7 @@
 ## 0.9.11 🚀 (2026-08-12)
 
 ### Backwards incompatible changes from 0.9.10
-
-#### Apply this release as a full deployment
-
-Do not hot-upgrade DeployEx from `0.9.10` to `0.9.11`.
-
-A hot upgrade is carried out by the version already installed, so the fixes in this release only take effect for upgrades applied **from** `0.9.11` onwards, not for the upgrade **into** it. Two of them matter for that one upgrade:
-
- 1. The callback that records the installed version is built by the running code before the release is swapped in. Under `0.9.10` it is an anonymous function, which does not survive its module being replaced, so the upgrade completes and is made permanent while the version is never recorded. The UI keeps reporting `0.9.10`, and `Deployer.HotUpgrade.Application` crashes with `BadFunctionError` and is restarted. Restarting DeployEx afterwards records the correct version. Fixed by [`PULL-280`](https://github.com/thiagoesteves/deployex/pull/280).
- 2. If that upgrade fails before the release is installed, `0.9.10` cleans up with `release_handler:remove_release/1`, which also deletes libraries it believes are unused. An Elixir release ships no `RELEASES` file, so every library looks unused, including the ones DeployEx itself needs. DeployEx keeps running and fails to start the next time it is restarted. Fixed by [`PULL-278`](https://github.com/thiagoesteves/deployex/pull/278).
-
-Hot upgrades between `0.9.11` and later versions behave normally, both fixes are then in the code performing the upgrade.
+ * Apply this release as a full deployment, do not hot-upgrade from `0.9.10`. A hot upgrade is performed by the version already installed, so the fixes in [`PULL-278`](https://github.com/thiagoesteves/deployex/pull/278) and [`PULL-280`](https://github.com/thiagoesteves/deployex/pull/280) only take effect from `0.9.11` onwards. Hot upgrades between later versions behave normally.
 
 ### Bug fixes
  * [`PULL-272`](https://github.com/thiagoesteves/deployex/pull/272) Refuse a DeployEx hot upgrade built for a different OTP
