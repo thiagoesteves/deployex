@@ -292,7 +292,7 @@ defmodule DeployexWeb.HotUpgradeLive do
                   </div>
                 </div>
 
-                <div :if={@github.download_error} class="alert alert-error">
+                <div :if={@github.download_error} id="github-download-error" class="alert alert-error">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       stroke-linecap="round"
@@ -796,6 +796,15 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   defp default_form_options, do: %{"github_url" => "", "github_token" => ""}
 
+  # The download panel renders download_error, so the reason stays where the operator was
+  # looking. A flash alone is missed easily, and github_new/2 would clear the field that
+  # exists to show it
+  defp github_download_failed(socket, msg) do
+    socket
+    |> assign(:github, %{github_new() | download_error: msg})
+    |> put_flash(:error, msg)
+  end
+
   defp github_new(id \\ nil, status \\ nil) do
     %{
       download_id: id,
@@ -975,19 +984,13 @@ defmodule DeployexWeb.HotUpgradeLive do
         msg = "Error while handling file: #{artifact_name}, reason: #{error}"
         Logger.error(msg)
 
-        {:noreply,
-         socket
-         |> assign(:github, github_new())
-         |> put_flash(:error, msg)}
+        {:noreply, github_download_failed(socket, msg)}
 
       error ->
         msg = "Error while handling file: #{artifact_name}"
         Logger.error(msg <> ", reason: #{inspect(error)}")
 
-        {:noreply,
-         socket
-         |> assign(:github, github_new())
-         |> put_flash(:error, msg)}
+        {:noreply, github_download_failed(socket, msg)}
     end
   end
 
