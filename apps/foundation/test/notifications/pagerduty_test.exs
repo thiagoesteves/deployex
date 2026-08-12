@@ -163,6 +163,7 @@ defmodule Foundation.Notifications.PagerDutyTest do
         {"deployment_complete", %{node: :n@h, sname: "s", status: :ok, message: "ok"}, "info"},
         {"deployment_complete", %{node: :n@h, sname: "s", status: :error, message: "fail"},
          "error"},
+        {"application_ready", %{node: :n@h, sname: "s", version: "1.0"}, "info"},
         {"deployment_shutdown", %{node: :n@h, sname: "s"}, "warning"},
         {"watchdog_threshold_exceeded",
          %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95},

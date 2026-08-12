@@ -40,6 +40,7 @@ defmodule Foundation.Notifications.PagerDuty do
   | `deployment_started`          | `info`             |
   | `deployment_complete` (ok)    | `info`             |
   | `deployment_complete` (error) | `error`            |
+  | `application_ready`           | `info`             |
   | `watchdog_threshold_exceeded` | `critical`         |
   | `watchdog_threshold_warning`  | `warning` / `info` |
   | `certificate_renewed`         | `info`             |
@@ -132,6 +133,9 @@ defmodule Foundation.Notifications.PagerDuty do
   defp format_summary("deployment_complete", payload),
     do: "deployment_complete (#{payload.status}) — #{payload.sname} on #{payload.node}"
 
+  defp format_summary("application_ready", payload),
+    do: "application_ready — #{payload.sname} on #{payload.node} (version #{payload.version})"
+
   defp format_summary("watchdog_threshold_exceeded", payload),
     do:
       "watchdog_threshold_exceeded — #{payload.type} at #{payload.current_percentage}% on #{payload.node}"
@@ -171,6 +175,7 @@ defmodule Foundation.Notifications.PagerDuty do
   defp event_severity("deployment_started", _payload), do: "info"
   defp event_severity("deployment_complete", %{status: :ok}), do: "info"
   defp event_severity("deployment_complete", %{status: :error}), do: "error"
+  defp event_severity("application_ready", _payload), do: "info"
   defp event_severity("watchdog_threshold_exceeded", _payload), do: "critical"
   defp event_severity("watchdog_threshold_warning", %{action: :warning}), do: "warning"
   defp event_severity("watchdog_threshold_warning", %{action: :normalized}), do: "info"

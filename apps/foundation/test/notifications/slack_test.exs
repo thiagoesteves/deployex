@@ -138,6 +138,7 @@ defmodule Foundation.Notifications.SlackTest do
         {"deployment_started", %{node: :n@h, sname: "s-1", version: "1.0.0"}},
         {"deployment_complete", %{node: :n@h, sname: "s-1", status: :ok, message: "done"}},
         {"deployment_complete", %{node: :n@h, sname: "s-1", status: :error, message: "fail"}},
+        {"application_ready", %{node: :n@h, sname: "s-1", version: "1.0.0"}},
         {"deployment_shutdown", %{node: :n@h, sname: "s-1"}},
         {"watchdog_threshold_exceeded",
          %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95}},

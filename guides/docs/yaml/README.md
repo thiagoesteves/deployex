@@ -87,6 +87,7 @@ notifications:
       - "crash_restart"                                  # Monitored app crashed and was restarted
       - "deployment_started"                             # New deployment was initiated
       - "deployment_complete"                            # Deployment finished (success or failure)
+      - "application_ready"                              # App reported itself running, whatever put it there
       - "deployment_shutdown"                            # App was force-terminated (will restart)
       - "watchdog_threshold_exceeded"                    # Resource threshold crossed; app restarted
       - "watchdog_threshold_warning"                     # Resource crossed warning threshold (or normalized)

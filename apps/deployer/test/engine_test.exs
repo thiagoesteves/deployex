@@ -1291,6 +1291,66 @@ defmodule Deployer.EngineTest do
     end
   end
 
+  describe "Application ready notification" do
+    @tag :capture_log
+    test "a report that is not a deployment is still announced as ready" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      subscribe_to_application_ready()
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: false, terminating?: false)
+
+      GenServer.cast(pid, {:application_running, sname})
+
+      # a crash restart and a restart asked for from the UI put the application back into
+      # service without deploying anything, and this is the event that reports them
+      assert_receive {"application_ready", payload}, 1_000
+      assert payload.sname == sname
+      assert payload.node == node()
+      assert payload.version == "1.1.0"
+
+      refute_receive {"deployment_complete", _payload}, 300
+    end
+
+    @tag :capture_log
+    test "a deployment is announced as ready as well as complete" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      Deployer.MonitorMock
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+
+      subscribe_to_application_ready()
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: true, terminating?: true)
+
+      GenServer.cast(pid, {:application_running, sname})
+
+      assert_receive {"deployment_complete", _payload}, 1_000
+      assert_receive {"application_ready", %{version: "1.1.0"}}, 1_000
+    end
+
+    defp subscribe_to_application_ready do
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("application_ready")
+      )
+    end
+  end
+
   describe "Ghosted version list" do
     @tag :capture_log
     test "The worker takes the new list from the broadcast" do
