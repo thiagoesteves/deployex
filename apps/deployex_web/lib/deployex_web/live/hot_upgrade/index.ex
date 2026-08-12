@@ -789,7 +789,7 @@ defmodule DeployexWeb.HotUpgradeLive do
       accept: [".gz"],
       max_entries: 1,
       auto_upload: true,
-      max_file_size: 100_000_000,
+      max_file_size: 300_000_000,
       progress: &handle_progress/3
     )
   end
