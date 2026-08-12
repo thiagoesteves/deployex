@@ -53,7 +53,7 @@ defmodule Foundation.Notifications.Webhook do
   |---------------------------------|--------------------------------------------------------------------------------------------------------|
   | `crash_restart`                 | `node`, `sname`, `name`, `language`, `crash_restart_count`                                            |
   | `deployment_started`            | `node`, `sname`, `version`                                                                             |
-  | `deployment_complete`           | `node`, `sname`, `status` (`:ok`/`:error`), `message`                                                 |
+  | `deployment_complete`           | `node`, `sname`, `status` (`:ok`/`:error`), `message`, plus `version` for a full deployment and `from_version`/`to_version` for a hot upgrade |
   | `deployment_shutdown`           | `node`, `sname`                                                                                        |
   | `watchdog_threshold_exceeded`   | `node`, `type`, `current_percentage`, `restart_threshold_percent`                                      |
   | `watchdog_threshold_warning`    | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |

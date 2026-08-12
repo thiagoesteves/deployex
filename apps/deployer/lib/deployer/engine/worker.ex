@@ -312,12 +312,12 @@ defmodule Deployer.Engine.Worker do
         #       reports running right after an engine worker restart
         if current_deployment.timer_ref, do: Process.cancel_timer(current_deployment.timer_ref)
 
-        Foundation.Notifications.notify("deployment_complete", %{
-          node: node(),
-          sname: sname,
-          status: :ok,
-          message: "Full deployment applied successfully!"
-        })
+        # Only a full deployment sets deployment_to_terminate, and it is cleared as soon as
+        # the report it was waiting for arrives, so it is what says this report completes a
+        # deployment. Everything else that reports running, a crash restart, a restart asked
+        # for from the UI, or a hot upgrade that has already reported itself with the
+        # versions it moved between, is not a deployment and is not announced as one
+        if deployment_to_terminate, do: notify_deployment_complete(sname)
 
         new_instance =
           if state.current == state.replicas, do: 1, else: state.current + 1
@@ -334,9 +334,15 @@ defmodule Deployer.Engine.Worker do
 
         Logger.info(" # Moving to the next instance: #{new_instance}")
 
+        # The timer was cancelled above, so the reference goes with it, otherwise the
+        # deployment keeps one that reads as a rollback window still open
+        deployments =
+          Map.put(state.deployments, state.current, %{current_deployment | timer_ref: nil})
+
         %{
           state
           | current: new_instance,
+            deployments: deployments,
             deployment_to_terminate: nil,
             available_ports: available_ports
         }
@@ -673,6 +679,20 @@ defmodule Deployer.Engine.Worker do
       end)
 
     handle_hot_upgrade_result(result, state, sname, new_sname, release)
+  end
+
+  # The deployment wrote the version to the catalog before the sname reported running, so
+  # the notification reads it from there instead of threading it through the call
+  defp notify_deployment_complete(sname) do
+    version = Status.current_version(sname)
+
+    Foundation.Notifications.notify("deployment_complete", %{
+      node: node(),
+      sname: sname,
+      status: :ok,
+      message: "Full deployment applied successfully, version #{version}",
+      version: to_string(version)
+    })
   end
 
   # The release said it could hot upgrade, through its appup or jellyfish file, otherwise

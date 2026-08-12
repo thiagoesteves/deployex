@@ -6,7 +6,7 @@
  * None
 
 ### Bug fixes
- * None
+ * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report a deployment as complete only when one has finished, not on a hot upgrade or an application restart
 
 ### Enhancements
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report the versions a hot upgrade moved between in the completion notification

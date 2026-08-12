@@ -1058,6 +1058,124 @@ defmodule Deployer.EngineTest do
     end
   end
 
+  describe "Deployment complete notification" do
+    @tag :capture_log
+    test "a full deployment reports the version it deployed" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      Deployer.MonitorMock
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: true)
+
+      GenServer.cast(pid, {:application_running, sname})
+
+      # the message is what every adapter renders, the payload key is there for the ones
+      # that forward structured data
+      assert_receive {"deployment_complete", payload}, 1_000
+      assert payload.status == :ok
+      assert payload.message == "Full deployment applied successfully, version 1.1.0"
+      assert payload.version == "1.1.0"
+    end
+
+    @tag :capture_log
+    test "a report that does not complete a deployment is not announced as one" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: false)
+
+      GenServer.cast(pid, {:application_running, sname})
+
+      # a crash restart, a restart asked for from the UI and a hot upgrade all report an
+      # application running without a deployment waiting for it, and the hot upgrade has
+      # already sent its own notification with the versions it moved between
+      refute_receive {"deployment_complete", _payload}, 300
+    end
+
+    @tag :capture_log
+    test "the same deployment is not reported twice" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn ^sname -> "1.1.0" end)
+
+      Deployer.MonitorMock
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+
+      subscribe_to_deployment_complete()
+
+      pid = start_worker(name)
+      running_deployment(pid, sname, deploying?: true)
+
+      GenServer.cast(pid, {:application_running, sname})
+      assert_receive {"deployment_complete", _payload}, 1_000
+
+      # the application reporting running again, e.g. after a crash restart, finds the
+      # deployment already completed
+      GenServer.cast(pid, {:application_running, sname})
+      refute_receive {"deployment_complete", _payload}, 300
+
+      assert %Deployer.Engine.Deployment{timer_ref: nil} = :sys.get_state(pid).deployments[1]
+    end
+
+    defp subscribe_to_deployment_complete do
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("deployment_complete")
+      )
+    end
+
+    defp start_worker(name) do
+      assert {:ok, pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 deploy_rollback_timeout_ms: 60_000,
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir"
+               })
+
+      pid
+    end
+
+    # deployment_to_terminate is what the worker sets when it starts a full deployment and
+    # clears when the report it is waiting for arrives, so it is what tells a deployment
+    # apart from an application that is only reporting itself running again
+    defp running_deployment(pid, sname, deploying?: deploying?) do
+      :sys.replace_state(pid, fn state ->
+        deployment = %{
+          state.deployments[state.current]
+          | sname: sname,
+            state: :active,
+            timer_ref: Process.send_after(pid, :ignored, 60_000)
+        }
+
+        %{
+          state
+          | deployments: Map.put(state.deployments, state.current, deployment),
+            deployment_to_terminate: if(deploying?, do: %Deployer.Engine.Deployment{})
+        }
+      end)
+    end
+  end
+
   describe "Ghosted version list" do
     @tag :capture_log
     test "The worker takes the new list from the broadcast" do
