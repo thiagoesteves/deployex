@@ -82,16 +82,6 @@ defmodule Deployer.HotUpgrade.Deployex do
 
     Logger.info("#{@deployex_name} hot upgrade requested: #{current_version} -> #{to_version}")
 
-    after_async_make_permanent = fn ->
-      Catalog.add_version(%Catalog.Version{
-        version: to_version,
-        sname: @deployex_name,
-        name: @deployex_name,
-        deployment: :hot_upgrade,
-        inserted_at: NaiveDateTime.utc_now()
-      })
-    end
-
     # A failure from check/1 is refused before the upgrade is attempted and reports itself,
     # only the upgrade's own outcome is logged here
     with {:ok, check} <- check(download_path) do
@@ -101,7 +91,7 @@ defmodule Deployer.HotUpgrade.Deployex do
             node: Node.self(),
             make_permanent_async: make_permanent_async,
             sync_execution: sync_execution,
-            after_async_make_permanent: after_async_make_permanent
+            after_async_make_permanent: {__MODULE__, :add_hot_upgrade_version, [to_version]}
           },
           Map.from_struct(check)
         )
@@ -116,6 +106,25 @@ defmodule Deployer.HotUpgrade.Deployex do
           error
       end
     end
+  end
+
+  @doc """
+  Record a version installed by a hot upgrade of DeployEx itself.
+
+  Called once the release has been made permanent, through the module name rather than a
+  captured function. `install_release` swaps this module before the call happens, and an
+  anonymous function built by the previous version does not survive that, it raises
+  `BadFunctionError` and takes the caller down with the version unrecorded.
+  """
+  @spec add_hot_upgrade_version(to_version :: String.t()) :: :ok
+  def add_hot_upgrade_version(to_version) do
+    Catalog.add_version(%Catalog.Version{
+      version: to_version,
+      sname: @deployex_name,
+      name: @deployex_name,
+      deployment: :hot_upgrade,
+      inserted_at: NaiveDateTime.utc_now()
+    })
   end
 
   ### ==========================================================================

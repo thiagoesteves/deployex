@@ -157,6 +157,37 @@ defmodule Deployer.HotUpgrade.DeployexTest do
     end
   end
 
+  test "execute/1 hands an MFA to the after make permanent callback, not a function" do
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, []} end)
+
+    test_pid = self()
+
+    with_mock HotUpgradeApp, [:passthrough],
+      check: fn _check -> {:ok, %Check{deploy: :hot_upgrade}} end,
+      execute: fn %{after_async_make_permanent: callback} ->
+        send(test_pid, {:callback, callback})
+        :ok
+      end do
+      assert capture_log(fn ->
+               assert :ok = Deployex.execute("/tmp/deployex-1.0.0.tar.gz", [])
+             end) =~ "installed with success"
+    end
+
+    # a captured function would be built by the code being replaced and would not survive
+    # install_release, an MFA resolves to whatever is loaded when it runs
+    assert_receive {:callback, callback}
+    assert {Deployex, :add_hot_upgrade_version, ["1.0.0"]} = callback
+    refute is_function(callback)
+  end
+
+  test "add_hot_upgrade_version/1 records the version as a hot upgrade" do
+    assert :ok = Deployex.add_hot_upgrade_version("1.2.3")
+
+    assert %Foundation.Catalog.Version{version: "1.2.3", deployment: :hot_upgrade} =
+             Enum.at(Foundation.Catalog.versions("deployex", sname: "deployex"), 0)
+  end
+
   test "execute/1 error before the release is installed says DeployEx keeps running" do
     Host.CommanderMock
     |> expect(:run, fn _command, _options -> {:ok, []} end)

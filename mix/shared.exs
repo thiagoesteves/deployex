@@ -26,6 +26,7 @@ defmodule Mix.Shared do
         Deployer.Release.Version,
         Deployer.Monitor.Service,
         Deployer.Fixture.Files,
+        Deployer.HotUpgrade.TestCallback,
         # DeployEx Web
         DeployexWeb.Application,
         DeployexWeb.Layouts,

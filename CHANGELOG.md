@@ -12,6 +12,7 @@
  * [`PULL-275`](https://github.com/thiagoesteves/deployex/pull/275) Refuse a file that is not a DeployEx release instead of crashing the upload
  * [`PULL-276`](https://github.com/thiagoesteves/deployex/pull/276) Ghost the version instead of forcing a full deployment when a hot upgrade never installed the release
  * [`PULL-278`](https://github.com/thiagoesteves/deployex/pull/278) Stop the failed hot upgrade cleanup from deleting the running release libraries
+ * [`PULL-280`](https://github.com/thiagoesteves/deployex/pull/280) Record the version after a DeployEx self upgrade through an MFA, not a captured function
 
 ### Enhancements
  * [`PULL-277`](https://github.com/thiagoesteves/deployex/pull/277) Add a ghosted version list to the UI with clear all and clear one actions
