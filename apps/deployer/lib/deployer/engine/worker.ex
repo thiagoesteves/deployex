@@ -367,20 +367,6 @@ defmodule Deployer.Engine.Worker do
     {:noreply, state}
   end
 
-  # A deployment held in state was built by the version running before the hot upgrade, so
-  # it is a map without the deploying? key, and a struct default only applies to a struct
-  # being built. Rebuilding them through struct/2 fills it in, and false is the right value
-  # for anything already in service, the report that would have closed its window is gone
-  @impl true
-  def code_change(_old_vsn, %__MODULE__{} = state, _extra) do
-    deployments =
-      Map.new(state.deployments, fn {instance, deployment} ->
-        {instance, struct(Engine.Deployment, Map.from_struct(deployment))}
-      end)
-
-    {:ok, %{state | deployments: deployments}}
-  end
-
   ### ==========================================================================
   ### Public API
   ### ==========================================================================

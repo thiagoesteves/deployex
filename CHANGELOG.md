@@ -1,8 +1,9 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.13 ()
+## 0.9.13 🚀 (2026-08-14)
 
 ### Backwards incompatible changes from 0.9.12
+ * Apply this release as a full deployment, do not hot-upgrade from `0.9.12`. [`PULL-289`](https://github.com/thiagoesteves/deployex/pull/289) adds a field to the deployment struct the engine worker holds in its state, and the release ships no `code_change/3` for it, so a worker that crossed a hot upgrade would hold deployments built by `0.9.12` and raise on the next deployment, restarting and rebuilding its state from the catalog. Deploying fully avoids it. Hot upgrades between later versions behave normally.
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) The DeployEx `monitoring` entries are now only evaluated when configured. Previously a DeployEx instance with no `memory` entry in the top level `monitoring` section still had its host memory checked against the built-in 75%/90% defaults with restart enabled. Add an explicit `- type: "memory"` entry to `deployex.yaml` to keep that protection.
 
 ### Bug fixes
