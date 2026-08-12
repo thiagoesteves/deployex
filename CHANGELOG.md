@@ -3,7 +3,7 @@
 ## 0.9.12 🚀 (2026-08-12)
 
 ### Backwards incompatible changes from 0.9.11
- * Only for applications using `storage_options`. A running certificate manager keeps the state it started with, so after a hot upgrade the fix in [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286) only applies once it is restarted. Remove the `certificates` section of the application from `deployex.yaml`, save, then add it back. Restarting DeployEx has the same effect.
+ * Hot upgrade from `0.9.11` is supported. Applications using `storage_options` need one extra step afterwards, since a running certificate manager keeps the state it started with: comment the `certificates` section out of `deployex.yaml` and apply the change, then uncomment it and apply again. That restarts the manager with the fix from [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286).
 
 ### Bug fixes
  * [`PULL-286`](https://github.com/thiagoesteves/deployex/pull/286) Carry the certificate storage_options into the certificate manager so renewals are written to disk
