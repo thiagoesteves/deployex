@@ -1421,6 +1421,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert payload.to_version == "0.9.13"
   end
 
+  @tag :capture_log
   test "a failing after make permanent callback does not take the server down" do
     node = Node.self()
     pid = Process.whereis(UpgradeApp)
