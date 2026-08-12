@@ -19,6 +19,7 @@
  * [`PULL-281`](https://github.com/thiagoesteves/deployex/pull/281) Document the good practices for a hot-upgradeable project and how to check a release
  * [`PULL-282`](https://github.com/thiagoesteves/deployex/pull/282) Add the checks for deciding whether the next version supports hot upgrade to AGENTS.md
  * [`PULL-283`](https://github.com/thiagoesteves/deployex/pull/283) Apply the FinchStream download callbacks through an MFA instead of a captured function
+ * [`PULL-284`](https://github.com/thiagoesteves/deployex/pull/284) Show why a release downloaded from GitHub was refused in the download panel
 
 ## 0.9.10 🚀 (2026-08-10)
 

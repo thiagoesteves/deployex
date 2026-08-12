@@ -308,6 +308,61 @@ defmodule DeployexWeb.HotUpgrade.GithubTest do
     end
 
     @tag :capture_log
+    test "keeps the reason on the page when the release is refused", %{conn: conn} do
+      test_pid = self()
+      download_id = Common.uuid4()
+
+      Deployer.HotUpgradeMock
+      |> expect(:subscribe_events, fn -> :ok end)
+
+      capture_log(fn ->
+        with_mock Deployer.Github, [:passthrough],
+          download_artifact: fn _url, _token ->
+            send(test_pid, :download_started)
+            {:ok, download_id}
+          end do
+          with_mock Deployer.HotUpgrade, [:passthrough],
+            deployex_check: fn _path -> {:error, {:otp_mismatch, %{running_otp: "28"}}} end do
+            {:ok, live, _html} = live(conn, ~p"/hotupgrade")
+
+            live |> element("a", "GitHub URL") |> render_click()
+
+            url = "https://github.com/user/repo/actions/runs/123/artifacts/456"
+
+            live
+            |> form("#github-download-form", %{"github_url" => url, "github_token" => ""})
+            |> render_change()
+
+            live |> element("#github-download-form") |> render_submit()
+
+            assert_receive :download_started, 1_000
+
+            artifact_name = "deployex-0.9.10.tar.gz"
+            artifact_path = Path.join(System.tmp_dir!(), artifact_name)
+            File.write!(artifact_path, "fake content")
+
+            send(
+              live.pid,
+              {:github_download_artifact, Node.self(),
+               %Artifact{
+                 artifact_path: artifact_path,
+                 artifact_name: artifact_name,
+                 id: download_id
+               }, :ok}
+            )
+
+            # the download panel has a place for this, a flash the operator may not be
+            # looking at is not enough on its own
+            assert has_element?(live, "#github-download-error")
+            assert render(live) =~ "wrong OTP, this installation runs OTP 28"
+
+            File.rm(artifact_path)
+          end
+        end
+      end)
+    end
+
+    @tag :capture_log
     test "handles github download completion with invalid file", %{conn: conn} do
       test_pid = self()
       download_id = Common.uuid4()
