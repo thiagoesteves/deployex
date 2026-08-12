@@ -71,8 +71,8 @@ defmodule Deployer.Github.ArtifactTest do
              handle_progress = Keyword.get(opts, :handle_progress)
 
              if handle_progress do
-               handle_progress.(file_path, {:downloading, 50.0})
-               handle_progress.(file_path, {:downloading, 100.0})
+               apply_callback(handle_progress, [file_path, {:downloading, 50.0}])
+               apply_callback(handle_progress, [file_path, {:downloading, 100.0}])
              end
 
              :ok
@@ -122,8 +122,8 @@ defmodule Deployer.Github.ArtifactTest do
 
              if handle_progress do
                # This :ok should be skipped by the handle_progress
-               handle_progress.(file_path, :ok)
-               handle_progress.(file_path, {:downloading, 100.0})
+               apply_callback(handle_progress, [file_path, :ok])
+               apply_callback(handle_progress, [file_path, {:downloading, 100.0}])
              end
 
              :ok
@@ -398,7 +398,7 @@ defmodule Deployer.Github.ArtifactTest do
 
              # Simulate initial progress
              if handle_progress do
-               handle_progress.(file_path, {:downloading, 25.0})
+               apply_callback(handle_progress, [file_path, {:downloading, 25.0}])
              end
 
              {:error, "Download was cancelled"}
@@ -441,7 +441,7 @@ defmodule Deployer.Github.ArtifactTest do
              handle_continue = Keyword.get(opts, :handle_continue)
 
              # Verify keep_downloading returns true
-             assert handle_continue.() == true
+             assert apply_callback(handle_continue, []) == true
 
              :ok
            end
@@ -501,5 +501,10 @@ defmodule Deployer.Github.ArtifactTest do
                       {:error, "Download was cancelled"}},
                      1000
     end
+  end
+
+  # mirrors how Foundation.System.FinchStream applies the callbacks
+  defp apply_callback({module, function, args}, extra_args) do
+    apply(module, function, args ++ extra_args)
   end
 end

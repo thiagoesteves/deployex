@@ -59,8 +59,8 @@ Treat the answer as a place to start looking, not as the verdict, and confirm wh
 Erlang/OTP applications and Elixir itself are the exception and are never in scope.
 They are the runtime the upgrade runs on, not libraries loaded into it, so a release that changes them is a full deployment.
 
-**Never hold an anonymous function across an upgrade.**
-A function value is tied to the version of the module that created it.
+**Do not let an anonymous function outlive the call that created it.**
+A function value is tied to the version of the module that built it.
 Once that module is replaced the value is dead, and calling it raises:
 
 ```bash
@@ -68,8 +68,46 @@ Once that module is replaced the value is dead, and calling it raises:
 likely because it points to an old version of the code
 ```
 
-Store `{module, function, args}` and call it with `apply/3` instead, which resolves against whatever is loaded at the time.
-This applies to anything that outlives the upgrade: GenServer state, ETS tables, `:persistent_term`, timers, and messages already sitting in a mailbox.
+This is about lifetime, not about anonymous functions being risky in themselves.
+Almost all of them are fine, and rewriting them would make the code worse for no gain.
+
+Fine, the value is created and used within the same call, so no upgrade can land between the two:
+
+```elixir
+def totals(entries) do
+  entries
+  |> Enum.filter(fn entry -> entry.status == :running end)
+  |> Enum.map(& &1.size)
+end
+
+def report(entries) do
+  render = fn entry -> "#{entry.name} #{entry.size}" end
+  Enum.map_join(entries, "\n", render)
+end
+```
+
+A problem, the value is stored and called later, and later can be after an upgrade:
+
+```elixir
+# in GenServer state
+{:ok, %{on_complete: fn result -> notify(result) end}}
+
+# in a message the process will handle afterwards
+send(self(), {:finished, fn -> cleanup(path) end})
+
+# handed to something that runs for a while
+Downloader.stream(url, on_progress: fn pct -> broadcast(pct) end)
+```
+
+Store `{module, function, args}` in those places and reach it with `apply/3`, which resolves against whatever is loaded at the time.
+
+Ask one question about a function value: **can this still be called after the current call returns?**
+If it can, it needs to be an MFA.
+The places where the answer is yes are GenServer state, ETS tables, `:persistent_term`, timers, messages already sitting in a mailbox, and callbacks handed to something long-running such as a download or a stream.
+
+Captures have the same lifetime rule.
+`&Module.fun/1` of a public function is as safe as an MFA, since it is resolved through the module.
+`&private_fun/1` and `&(&1 + n)` are closures over the current module version and are not.
 
 **Keep functions out of your configuration.**
 Application environment is written to `sys.config` and read back with `file:consult/1`, so every value has to be a term that can be written down and parsed again.
