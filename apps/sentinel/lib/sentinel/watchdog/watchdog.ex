@@ -7,6 +7,7 @@ defmodule Sentinel.Watchdog do
   use GenServer
   require Logger
 
+  alias Deployer.Deployex
   alias Deployer.Monitor
   alias Foundation.Catalog
   alias Host.Info
@@ -16,6 +17,13 @@ defmodule Sentinel.Watchdog do
   @watchdog_check_interval :timer.seconds(1)
   @monitored_app_limits [:port, :atom, :process]
   @monitored_app_metrics ["vm.port.total", "vm.atom.total", "vm.process.total", "vm.memory.total"]
+  # DeployEx watches the same Beam VM limits as any monitored application. Its memory is handled
+  # apart, it tracks the host memory reported by Host.Info instead of the VM allocated memory
+  @deployex_limits [:port, :atom, :process]
+  @deployex_metrics ["vm.port.total", "vm.atom.total", "vm.process.total"]
+  # The termination is the only explanation an operator gets for DeployEx disappearing, so the
+  # delay has to outlive the round trip of the notification announcing it, not only its dispatch
+  @deployex_terminate_delay :timer.seconds(3)
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
@@ -73,6 +81,9 @@ defmodule Sentinel.Watchdog do
       Enum.each(@monitored_app_metrics, &Telemetry.subscribe_for_new_data(node, &1))
     end)
 
+    # Subscribe to receive DeployEx own Beam vm metrics from Observer Web
+    Enum.each(@deployex_metrics, &Telemetry.subscribe_for_new_data(Node.self(), &1))
+
     watchdog_check_interval =
       Keyword.get(args, :watchdog_check_interval, @watchdog_check_interval)
 
@@ -81,6 +92,8 @@ defmodule Sentinel.Watchdog do
     {:ok,
      %{
        watchdog_check_interval: watchdog_check_interval,
+       deployex_terminate_delay:
+         Keyword.get(args, :deployex_terminate_delay, @deployex_terminate_delay),
        monitored_nodes: monitored_nodes,
        self_node: Node.self()
      }}
@@ -110,24 +123,19 @@ defmodule Sentinel.Watchdog do
   @impl true
   def handle_info(
         :watchdog_check,
-        %{monitored_nodes: monitored_nodes, watchdog_check_interval: watchdog_check_interval} =
-          state
+        %{
+          monitored_nodes: monitored_nodes,
+          watchdog_check_interval: watchdog_check_interval,
+          deployex_terminate_delay: deployex_terminate_delay
+        } = state
       ) do
     check_monitored_app_limits = fn node ->
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
 
-        if config.enabled do
-          # credo:disable-for-lines:1
-          case get_app_data(node, type) do
-            %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
-              :ok
-
-            %Data{current: count, limit: limit} ->
-              current_percentage = trunc(count / limit * 100)
-              threshold_check_monitored_apps_limits(node, type, current_percentage, config)
-          end
-        end
+        with_percentage(config, get_app_data(node, type), fn current_percentage ->
+          threshold_check_monitored_apps_limits(node, type, current_percentage, config)
+        end)
       end)
     end
 
@@ -135,21 +143,35 @@ defmodule Sentinel.Watchdog do
       # Check the application with highest usage in memory
       top_consumer_node = app_with_highest_usage(monitored_nodes)
 
-      config = get_deployex_memory_config()
+      config = get_deployex_config(:memory)
 
-      case get_deployex_memory_data() do
-        %Data{current: count, limit: limit} when is_nil(count) or is_nil(limit) ->
-          :ok
+      with_percentage(config, get_deployex_data(:memory), fn current_percentage ->
+        threshold_check_deployex_memory(top_consumer_node, current_percentage, config)
+      end)
+    end
 
-        %Data{current: count, limit: limit} ->
-          current_percentage = trunc(count / limit * 100)
+    # A restart tears down the whole node, so the first resource asking for one ends the sweep
+    check_deployex_limits = fn ->
+      Enum.find(@deployex_limits, fn type ->
+        config = get_deployex_config(type)
 
-          threshold_check_deployex_memory(top_consumer_node, current_percentage, config)
-      end
+        :restarting ==
+          with_percentage(config, get_deployex_data(type), fn current_percentage ->
+            threshold_check_deployex_limits(
+              type,
+              current_percentage,
+              config,
+              deployex_terminate_delay
+            )
+          end)
+      end)
     end
 
     # Check System Memory
     check_deployex_memory_limits.()
+
+    # Check DeployEx Beam VM limits
+    check_deployex_limits.()
 
     # Check Applications limits
     Enum.each(monitored_nodes, &check_monitored_app_limits.(&1))
@@ -184,14 +206,9 @@ defmodule Sentinel.Watchdog do
   def handle_info(
         {:metrics_new_data, source_node, "vm.port.total",
          %Telemetry.Data{measurements: %{total: count, limit: limit}}},
-        %{monitored_nodes: monitored_nodes} = state
+        state
       ) do
-    if source_node in monitored_nodes do
-      :ets.insert(
-        @watchdog_data,
-        {{source_node, :data, :port}, %Data{current: count, limit: limit}}
-      )
-    end
+    store_vm_limit(source_node, :port, %Data{current: count, limit: limit}, state)
 
     {:noreply, state}
   end
@@ -199,14 +216,9 @@ defmodule Sentinel.Watchdog do
   def handle_info(
         {:metrics_new_data, source_node, "vm.atom.total",
          %Telemetry.Data{measurements: %{total: count, limit: limit}}},
-        %{monitored_nodes: monitored_nodes} = state
+        state
       ) do
-    if source_node in monitored_nodes do
-      :ets.insert(
-        @watchdog_data,
-        {{source_node, :data, :atom}, %Data{current: count, limit: limit}}
-      )
-    end
+    store_vm_limit(source_node, :atom, %Data{current: count, limit: limit}, state)
 
     {:noreply, state}
   end
@@ -214,14 +226,9 @@ defmodule Sentinel.Watchdog do
   def handle_info(
         {:metrics_new_data, source_node, "vm.process.total",
          %Telemetry.Data{measurements: %{total: count, limit: limit}}},
-        %{monitored_nodes: monitored_nodes} = state
+        state
       ) do
-    if source_node in monitored_nodes do
-      :ets.insert(
-        @watchdog_data,
-        {{source_node, :data, :process}, %Data{current: count, limit: limit}}
-      )
-    end
+    store_vm_limit(source_node, :process, %Data{current: count, limit: limit}, state)
 
     {:noreply, state}
   end
@@ -288,15 +295,15 @@ defmodule Sentinel.Watchdog do
     config
   end
 
-  @spec get_deployex_memory_data() :: Data.t()
-  def get_deployex_memory_data do
-    [{_, data}] = :ets.lookup(@watchdog_data, {:deployex, :data, :memory})
+  @spec get_deployex_data(type :: atom()) :: Data.t()
+  def get_deployex_data(type) do
+    [{_, data}] = :ets.lookup(@watchdog_data, {:deployex, :data, type})
     data
   end
 
-  @spec get_deployex_memory_config() :: map()
-  def get_deployex_memory_config do
-    [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, :memory})
+  @spec get_deployex_config(type :: atom()) :: map()
+  def get_deployex_config(type) do
+    [{_, config}] = :ets.lookup(@watchdog_data, {:deployex, :config, type})
     config
   end
 
@@ -346,11 +353,43 @@ defmodule Sentinel.Watchdog do
     target_node
   end
 
-  defp reset_deployex_statistic do
-    config = load_deployex_config(:memory)
+  # A resource is only evaluated when it is configured and both ends of the ratio are known,
+  # the data starts empty and stays empty until the first metric for that resource arrives
+  defp with_percentage(%{enabled: false}, _data, _fun), do: :ok
 
-    :ets.insert(@watchdog_data, {{:deployex, :config, :memory}, config})
-    :ets.insert(@watchdog_data, {{:deployex, :data, :memory}, %Data{}})
+  defp with_percentage(_config, %Data{current: count, limit: limit}, _fun)
+       when is_nil(count) or is_nil(limit),
+       do: :ok
+
+  defp with_percentage(_config, %Data{current: count, limit: limit}, fun) do
+    fun.(trunc(count / limit * 100))
+  end
+
+  defp store_vm_limit(source_node, type, %Data{} = data, %{
+         self_node: self_node,
+         monitored_nodes: monitored_nodes
+       }) do
+    cond do
+      source_node == self_node ->
+        :ets.insert(@watchdog_data, {{:deployex, :data, type}, data})
+
+      source_node in monitored_nodes ->
+        :ets.insert(@watchdog_data, {{source_node, :data, type}, data})
+
+      true ->
+        :ok
+    end
+  end
+
+  defp reset_deployex_statistic do
+    Enum.each([:memory | @deployex_limits], fn type ->
+      config = load_deployex_config(type)
+
+      :ets.insert(@watchdog_data, {{:deployex, :config, type}, config})
+      :ets.insert(@watchdog_data, {{:deployex, :data, type}, %Data{}})
+    end)
+
+    :ok
   end
 
   defp reset_application_statistic(node) do
@@ -540,4 +579,92 @@ defmodule Sentinel.Watchdog do
   end
 
   defp threshold_check_deployex_memory(_node, _current, _config), do: :ok
+
+  # DeployEx exhausting its own Beam VM limits can only be cleared by restarting DeployEx itself,
+  # restarting a monitored application would not release the atoms, processes or ports leaked here.
+  # When installed as a systemd service the termination is followed by an automatic restart
+  defp threshold_check_deployex_limits(
+         type,
+         current_percentage,
+         %{
+           enable_restart: true,
+           restart_threshold_percent: restart_threshold_percent
+         },
+         terminate_delay
+       )
+       when current_percentage > restart_threshold_percent do
+    Logger.error(
+      "[deployex] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
+    )
+
+    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
+      node: Node.self(),
+      type: type,
+      current_percentage: current_percentage,
+      restart_threshold_percent: restart_threshold_percent
+    })
+
+    Deployex.force_terminate(terminate_delay)
+
+    :restarting
+  end
+
+  defp threshold_check_deployex_limits(
+         type,
+         current_percentage,
+         %{
+           warning_log_flag: false,
+           warning_threshold_percent: warning_threshold_percent
+         } = config,
+         _terminate_delay
+       )
+       when current_percentage > warning_threshold_percent do
+    Logger.warning(
+      "[deployex] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
+    )
+
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
+      node: Node.self(),
+      type: type,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :warning
+    })
+
+    # Set flag indicating that warning log was emitted
+    :ets.insert(@watchdog_data, {{:deployex, :config, type}, %{config | warning_log_flag: true}})
+
+    :ok
+  end
+
+  defp threshold_check_deployex_limits(
+         type,
+         current_percentage,
+         %{
+           warning_log_flag: true,
+           warning_threshold_percent: warning_threshold_percent
+         } = config,
+         _terminate_delay
+       )
+       when current_percentage <= warning_threshold_percent do
+    Logger.warning(
+      "[deployex] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
+    )
+
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
+      node: Node.self(),
+      type: type,
+      current_percentage: current_percentage,
+      warning_threshold_percent: warning_threshold_percent,
+      action: :normalized
+    })
+
+    # Reset warning log flag, current value was normalized
+    :ets.insert(@watchdog_data, {{:deployex, :config, type}, %{config | warning_log_flag: false}})
+
+    :ok
+  end
+
+  defp threshold_check_deployex_limits(_type, _current_percentage, _config, _terminate_delay),
+    do: :ok
 end

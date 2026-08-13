@@ -19,6 +19,9 @@ defmodule Foundation.Yaml do
   @default_var_path "/var/lib/deployex"
   @default_log_path "/var/log/deployex"
   @default_monitored_app_log_path "/var/log/monitored-apps"
+  @default_monitoring_enable_restart true
+  @default_monitoring_warning_threshold_percent 75
+  @default_monitoring_restart_threshold_percent 90
   @default_certificate_renew_before_days 30
   @default_certificate_check_interval_ms 86_400_000
   @default_certificate_dns_propagation_timeout_ms 120_000
@@ -394,7 +397,7 @@ defmodule Foundation.Yaml do
       metrics_retention_time_ms:
         data["metrics_retention_time_ms"] || @default_metrics_retention_time_ms,
       logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,
-      monitoring: parse_monitoring_list(data["monitoring"]),
+      monitoring: parse_monitoring_list(data["monitoring"], &parse_deployex_monitoring_type/1),
       applications: parse_applications(data["applications"]),
       notifications: parse_notifications(data["notifications"]),
       config_checksum: checksum
@@ -411,20 +414,43 @@ defmodule Foundation.Yaml do
   defp release_adapter("local"), do: Deployer.Release.Local
   defp release_adapter(adapter), do: raise("Release #{adapter} not supported")
 
-  defp parse_monitoring_list(nil), do: []
+  defp parse_monitoring_list(nil, _parse_type), do: []
 
-  defp parse_monitoring_list(monitoring_list) do
-    Enum.map(monitoring_list, &parse_monitoring/1)
+  defp parse_monitoring_list(monitoring_list, parse_type) do
+    Enum.map(monitoring_list, &parse_monitoring(&1, parse_type))
   end
 
-  defp parse_monitoring(data) do
-    {data["type"] |> String.to_atom(),
+  defp parse_monitoring(data, parse_type) do
+    {parse_type.(data["type"]),
      %Foundation.Yaml.Monitoring{
-       enable_restart: data["enable_restart"],
-       warning_threshold_percent: data["warning_threshold_percent"],
-       restart_threshold_percent: data["restart_threshold_percent"]
+       enable_restart: parse_enable_restart(data["enable_restart"]),
+       warning_threshold_percent:
+         data["warning_threshold_percent"] || @default_monitoring_warning_threshold_percent,
+       restart_threshold_percent:
+         data["restart_threshold_percent"] || @default_monitoring_restart_threshold_percent
      }}
   end
+
+  # NOTE: memory only means something for DeployEx, where it tracks the host memory. Applications
+  #       report the memory allocated by their Beam VM, a value with no limit to compare against
+  defp parse_deployex_monitoring_type("memory"), do: :memory
+
+  defp parse_deployex_monitoring_type(type),
+    do: parse_beam_monitoring_type(type, "memory, atom, process or port")
+
+  defp parse_application_monitoring_type(type),
+    do: parse_beam_monitoring_type(type, "atom, process or port")
+
+  defp parse_beam_monitoring_type("atom", _supported), do: :atom
+  defp parse_beam_monitoring_type("process", _supported), do: :process
+  defp parse_beam_monitoring_type("port", _supported), do: :port
+
+  defp parse_beam_monitoring_type(type, supported),
+    do: raise("Monitoring type #{type} not supported, expected one of: #{supported}")
+
+  # NOTE: enable_restart is a boolean, || would promote an explicit false to the default
+  defp parse_enable_restart(nil), do: @default_monitoring_enable_restart
+  defp parse_enable_restart(enable_restart), do: enable_restart
 
   defp parse_applications(nil), do: []
 
@@ -443,7 +469,7 @@ defmodule Foundation.Yaml do
         data["deploy_schedule_interval_ms"] || @default_deploy_schedule_interval_ms,
       replica_ports: parse_ports(data["replica_ports"]),
       env: parse_env(data["env"]),
-      monitoring: parse_monitoring_list(data["monitoring"]),
+      monitoring: parse_monitoring_list(data["monitoring"], &parse_application_monitoring_type/1),
       certificates: parse_certificates(data["certificates"])
     }
   end

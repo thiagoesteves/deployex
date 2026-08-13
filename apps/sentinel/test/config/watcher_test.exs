@@ -151,6 +151,21 @@ defmodule Sentinel.Config.WatcherTest do
                    enable_restart: true,
                    warning_threshold_percent: 10,
                    restart_threshold_percent: 20
+                 },
+                 atom: %{
+                   enable_restart: true,
+                   warning_threshold_percent: 10,
+                   restart_threshold_percent: 20
+                 },
+                 process: %{
+                   enable_restart: true,
+                   warning_threshold_percent: 10,
+                   restart_threshold_percent: 20
+                 },
+                 port: %{
+                   enable_restart: false,
+                   warning_threshold_percent: 10,
+                   restart_threshold_percent: 20
                  }
                ],
                logs_retention_time_ms: 3_600_000,

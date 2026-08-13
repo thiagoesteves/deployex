@@ -83,6 +83,21 @@ config :foundation,
       enable_restart: true,
       warning_threshold_percent: 75,
       restart_threshold_percent: 95
+    },
+    atom: %{
+      enable_restart: false,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
+    },
+    process: %{
+      enable_restart: false,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
+    },
+    port: %{
+      enable_restart: false,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
     }
   ],
   notifications: [

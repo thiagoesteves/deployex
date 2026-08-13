@@ -33,7 +33,7 @@ defmodule DeployexWeb.Components.DeployexCard do
           pending_config_changes={@pending_config_changes}
         />
 
-        <div class="card-body grid grid-cols-3 gap-6">
+        <div class="card-body grid grid-cols-2 gap-6">
           <!-- App Header -->
           <div class="gap-6">
             <div class="flex items-center gap-6 mb-8">
@@ -293,7 +293,7 @@ defmodule DeployexWeb.Components.DeployexCard do
             </div>
           </div>
           <!-- Monitoring View -->
-          <div>
+          <div class="col-span-full">
             <Monitoring.content
               monitoring={@deployex.monitoring}
               id="deployex"

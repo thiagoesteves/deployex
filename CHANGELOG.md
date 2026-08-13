@@ -3,7 +3,7 @@
 ## 0.9.13 ()
 
 ### Backwards incompatible changes from 0.9.12
- * None
+ * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) The DeployEx `monitoring` entries are now only evaluated when configured. Previously a DeployEx instance with no `memory` entry in the top level `monitoring` section still had its host memory checked against the built-in 75%/90% defaults with restart enabled. Add an explicit `- type: "memory"` entry to `deployex.yaml` to keep that protection.
 
 ### Bug fixes
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report a deployment as complete only when one has finished, not on a hot upgrade or an application restart
@@ -12,6 +12,7 @@
 ### Enhancements
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report the versions a hot upgrade moved between in the completion notification
  * [`PULL-290`](https://github.com/thiagoesteves/deployex/pull/290) Add an application_ready event for every report that an application is running
+ * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) Monitor the DeployEx atom, process and port limits alongside the host memory
 
 ## 0.9.12 🚀 (2026-08-12)
 

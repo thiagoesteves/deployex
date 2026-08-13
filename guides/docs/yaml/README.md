@@ -121,14 +121,33 @@ notifications:
       routing_key: "abc123def456..."                     # PagerDuty integration key (required)
 
 # ============================================================================
-# HOST-LEVEL MONITORING (optional)
+# DEPLOYEX MONITORING (optional)
 # ============================================================================
 
 monitoring:
+  # Supported types are memory, atom, process and port, any other type is rejected. A type that
+  # is not listed here is not monitored at all, while a listed type without thresholds falls
+  # back to the defaults below
+  # Host memory. Exceeding the restart threshold restarts the monitored application
+  # consuming the most memory, not DeployEx
   - type: "memory"
     enable_restart: true           # Restart app if memory exceeds restart threshold (default: true)
     warning_threshold_percent: 75  # Issue warning at this memory usage (default: 75)
     restart_threshold_percent: 90  # Restart app at this memory usage (default: 90)
+  # DeployEx own Beam VM limits. Exceeding the restart threshold terminates DeployEx
+  # itself, which systemd then restarts, so enable_restart is opt-in
+  - type: "atom"
+    enable_restart: false          # Terminate DeployEx if the atom table exceeds the restart threshold (default: true)
+    warning_threshold_percent: 75  # Issue warning at this atom table usage (default: 75)
+    restart_threshold_percent: 90  # Terminate DeployEx at this atom table usage (default: 90)
+  - type: "process"
+    enable_restart: false          # Terminate DeployEx if the process count exceeds the restart threshold (default: true)
+    warning_threshold_percent: 75  # Issue warning at this process count usage (default: 75)
+    restart_threshold_percent: 90  # Terminate DeployEx at this process count usage (default: 90)
+  - type: "port"
+    enable_restart: false          # Terminate DeployEx if the port count exceeds the restart threshold (default: true)
+    warning_threshold_percent: 75  # Issue warning at this port count usage (default: 75)
+    restart_threshold_percent: 90  # Terminate DeployEx at this port count usage (default: 90)
 
 # ============================================================================
 # MONITORED APPLICATIONS
@@ -169,6 +188,7 @@ applications:
         value: "sa-east-1"
     
     # Application-Level Monitoring (optional with defaults)
+    # Supported types are atom, process and port, any other type is rejected
     monitoring:
       - type: "atom"                   # Monitor atom table usage
         enable_restart: true           # Restart if exceeded (default: true)
@@ -249,7 +269,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 #### DeployEx Level (Runtime Upgradable)
 - `logs_retention_time_ms` - Log data retention period
 - `metrics_retention_time_ms` - Metrics data retention period
-- `monitoring` - Host-level monitoring settings (memory thresholds)
+- `monitoring` - DeployEx monitoring settings (host memory, atom, process, port thresholds)
 - `notifications` - External notification channels (workers are stopped and restarted on apply)
 
 #### Application Level (Runtime Upgradable)
