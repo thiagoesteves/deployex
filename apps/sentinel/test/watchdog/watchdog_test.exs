@@ -884,6 +884,59 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     refute message =~ "[deployex] process threshold"
   end
 
+  @tag :capture_log
+  test "Deployex limits - a resource missing from the monitoring section is not evaluated" do
+    memory_free = 100_000
+    memory_total = 1_000_000
+    self_node = Node.self()
+
+    monitoring = Application.fetch_env!(:foundation, :monitoring)
+
+    # Only port remains configured, memory, atom and process are left out of the section
+    Application.put_env(:foundation, :monitoring, Keyword.take(monitoring, [:port]))
+    on_exit(fn -> Application.put_env(:foundation, :monitoring, monitoring) end)
+
+    sname = Catalog.create_sname("myelixir")
+    %{node: node} = Catalog.node_info(sname)
+
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [sname] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    # Host memory, atom and process usages are all far above their restart thresholds
+    FixtureHost.send_update_sys_info_message(pid, self_node, memory_free, memory_total)
+
+    deployex_statistic = %{
+      port_limit: 1_000,
+      port_count: 10,
+      atom_limit: 1_000,
+      atom_count: 900,
+      process_limit: 1_000,
+      process_count: 900
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, self_node, deployex_statistic)
+    FixtureTelemetry.send_update_app_message(pid, node, %{total_memory: 300_000})
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message == ""
+
+    assert %{enabled: false} = Watchdog.get_deployex_config(:memory)
+    assert %{enabled: false} = Watchdog.get_deployex_config(:atom)
+    assert %{enabled: false} = Watchdog.get_deployex_config(:process)
+    assert %{enabled: true} = Watchdog.get_deployex_config(:port)
+  end
+
   # Note: Fetching the state guarantees that handle_info will be executed and the ETS table will be updated.
   defp wait_message_processing(pid) do
     %{monitored_nodes: _monitored_nodes} = :sys.get_state(pid)

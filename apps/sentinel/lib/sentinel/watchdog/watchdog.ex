@@ -21,7 +21,9 @@ defmodule Sentinel.Watchdog do
   # apart, it tracks the host memory reported by Host.Info instead of the VM allocated memory
   @deployex_limits [:port, :atom, :process]
   @deployex_metrics ["vm.port.total", "vm.atom.total", "vm.process.total"]
-  @deployex_terminate_delay 300
+  # The termination is the only explanation an operator gets for DeployEx disappearing, so the
+  # delay has to outlive the round trip of the notification announcing it, not only its dispatch
+  @deployex_terminate_delay :timer.seconds(3)
   @watchdog_data :deployex_watchdog_data
 
   @type t :: %__MODULE__{
@@ -150,22 +152,18 @@ defmodule Sentinel.Watchdog do
 
     # A restart tears down the whole node, so the first resource asking for one ends the sweep
     check_deployex_limits = fn ->
-      Enum.reduce_while(@deployex_limits, :ok, fn type, acc ->
+      Enum.find(@deployex_limits, fn type ->
         config = get_deployex_config(type)
 
-        config
-        |> with_percentage(get_deployex_data(type), fn current_percentage ->
-          threshold_check_deployex_limits(
-            type,
-            current_percentage,
-            config,
-            deployex_terminate_delay
-          )
-        end)
-        |> case do
-          :restarting -> {:halt, :restarting}
-          _ -> {:cont, acc}
-        end
+        :restarting ==
+          with_percentage(config, get_deployex_data(type), fn current_percentage ->
+            threshold_check_deployex_limits(
+              type,
+              current_percentage,
+              config,
+              deployex_terminate_delay
+            )
+          end)
       end)
     end
 
