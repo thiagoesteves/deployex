@@ -11,10 +11,11 @@ defmodule Deployer.Status.Application do
   alias Deployer.Github
   alias Deployer.Monitor
   alias Deployer.Status
+  alias Deployer.Status.Endpoints
+  alias Deployer.Status.Versions
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
   alias Foundation.Common
-  alias Foundation.Rpc
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
@@ -321,6 +322,7 @@ defmodule Deployer.Status.Application do
           base: Application.get_env(:deployex_web, DeployexWeb.Endpoint)[:http][:port]
         }
       ],
+      urls: node_urls(node, true),
       replicas: 1,
       deploy_rollback_timeout_ms: 0,
       deploy_schedule_interval_ms: 0,
@@ -362,13 +364,16 @@ defmodule Deployer.Status.Application do
         :not_connected
     end
 
+    otp = check_otp_monitored_app.(node, status)
+
     %Status{
       name: name,
       sname: sname,
       node: node,
       ports: ports,
+      urls: node_urls(node, otp == :connected),
       version: current_version(sname),
-      otp: check_otp_monitored_app.(node, status),
+      otp: otp,
       tls: mtls_certificate(),
       last_deployment: current_version_map(sname).deployment,
       status: status,
@@ -414,29 +419,37 @@ defmodule Deployer.Status.Application do
     end
   end
 
+  # The cache is dropped as soon as the node stops answering, so a redeployment that changes the
+  # served address is picked up instead of the previous one being reported for the new release
+  defp node_urls(node, false) do
+    Process.delete({node, :urls})
+    []
+  end
+
+  defp node_urls(node, true) do
+    cache_in_process({node, :urls}) do
+      case Endpoints.urls(node) do
+        {:ok, []} -> {:error, nil}
+        other -> other
+      end
+    end || []
+  end
+
   defp node_otp_version(node) do
     cache_in_process({node, :otp}) do
-      rpc_string(node, :erlang, :system_info, [:otp_release])
+      Versions.otp_version(node)
     end
   end
 
   defp node_elixir_version(node) do
     cache_in_process({node, :elixir}) do
-      rpc_string(node, Application, :spec, [:elixir, :vsn])
+      Versions.elixir_version(node)
     end
   end
 
   defp node_phoenix_version(node) do
     cache_in_process({node, :phoenix}) do
-      rpc_string(node, Application, :spec, [:phoenix, :vsn])
-    end
-  end
-
-  defp rpc_string(node, module, functions, args) do
-    case Rpc.call(node, module, functions, args, 1000) do
-      {:badrpc, {:EXIT, {:undef, _}}} -> {:ok, nil}
-      {:badrpc, _} -> {:error, nil}
-      version -> {:ok, "#{version}"}
+      Versions.phoenix_version(node)
     end
   end
 end

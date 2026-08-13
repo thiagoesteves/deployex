@@ -51,6 +51,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Provides a friendly UI that only authenticated users can access.
 - Allows setting a previously configured version in the UI, enabling DeployEx to enforce deployment of a specific version.
 - Supports individual application restarts via the UI, including DeployEx itself.
+- Shows the URLs each connected application is serving on, read from the application itself.
 - Provides easy access to the application shell:
   - IEx shell for monitored Elixir apps and DeployEx.
   - Erlang shell for monitored Gleam/Erlang apps.
