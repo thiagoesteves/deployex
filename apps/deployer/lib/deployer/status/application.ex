@@ -12,10 +12,10 @@ defmodule Deployer.Status.Application do
   alias Deployer.Monitor
   alias Deployer.Status
   alias Deployer.Status.Endpoints
+  alias Deployer.Status.Versions
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
   alias Foundation.Common
-  alias Foundation.Rpc
 
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
@@ -448,27 +448,19 @@ defmodule Deployer.Status.Application do
 
   defp node_otp_version(node) do
     cache_in_process({node, :otp}) do
-      rpc_string(node, :erlang, :system_info, [:otp_release])
+      Versions.otp_version(node)
     end
   end
 
   defp node_elixir_version(node) do
     cache_in_process({node, :elixir}) do
-      rpc_string(node, Application, :spec, [:elixir, :vsn])
+      Versions.elixir_version(node)
     end
   end
 
   defp node_phoenix_version(node) do
     cache_in_process({node, :phoenix}) do
-      rpc_string(node, Application, :spec, [:phoenix, :vsn])
-    end
-  end
-
-  defp rpc_string(node, module, functions, args) do
-    case Rpc.call(node, module, functions, args, 1000) do
-      {:badrpc, {:EXIT, {:undef, _}}} -> {:ok, nil}
-      {:badrpc, _} -> {:error, nil}
-      version -> {:ok, "#{version}"}
+      Versions.phoenix_version(node)
     end
   end
 end
