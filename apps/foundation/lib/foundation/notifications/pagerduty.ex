@@ -136,6 +136,10 @@ defmodule Foundation.Notifications.PagerDuty do
   defp format_summary("application_ready", payload),
     do: "application_ready — #{payload.sname} on #{payload.node} (version #{payload.version})"
 
+  defp format_summary("watchdog_threshold_exceeded", %{action: :no_restart} = payload),
+    do:
+      "watchdog_threshold_exceeded — #{payload.type} at #{payload.current_percentage}% on #{payload.node} (restart disabled)"
+
   defp format_summary("watchdog_threshold_exceeded", payload),
     do:
       "watchdog_threshold_exceeded — #{payload.type} at #{payload.current_percentage}% on #{payload.node}"

@@ -66,6 +66,10 @@ defmodule DeployexWeb.Terminal.IndexTest do
     with_mock Foundation.Common, random_number: fn _from, _to -> 1 end do
       {:ok, index_live, _html} = live(conn, ~p"/terminal")
 
+      # NOTE: The key only reaches the terminal once the LiveView knows the process to write to,
+      #       and that is reported after the connection is open
+      FixtureTerminal.wait_for_connection()
+
       # NOTE: Force handle_event in the live component
       index_live
       |> element("#host-shell-1")

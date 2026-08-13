@@ -141,7 +141,21 @@ defmodule Foundation.Notifications.SlackTest do
         {"application_ready", %{node: :n@h, sname: "s-1", version: "1.0.0"}},
         {"deployment_shutdown", %{node: :n@h, sname: "s-1"}},
         {"watchdog_threshold_exceeded",
-         %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95}},
+         %{
+           node: :n@h,
+           type: :memory,
+           current_percentage: 96,
+           restart_threshold_percent: 95,
+           action: :restart
+         }},
+        {"watchdog_threshold_exceeded",
+         %{
+           node: :n@h,
+           type: :atom,
+           current_percentage: 96,
+           restart_threshold_percent: 95,
+           action: :no_restart
+         }},
         {"watchdog_threshold_warning",
          %{
            node: :n@h,

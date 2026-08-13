@@ -114,7 +114,14 @@ defmodule DeployexWeb.TerminalLive do
      |> push_event("print-host-shell-#{socket.assigns.id}", %{data: message})}
   end
 
+  # NOTE: The terminal server opens the connection in a continue, so the page is rendered before
+  #       the process it writes to is known. A key pressed inside that window is dropped, sending
+  #       it to a process that does not exist yet takes the whole terminal down
   @impl true
+  def handle_event("key", _params, %{assigns: %{terminal_process: nil}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event(
         "key",
         %{"key" => key},

@@ -1,5 +1,8 @@
 defmodule Foundation.CatalogTest do
-  use ExUnit.Case, async: true
+  # NOTE: The setup wipes var_path, a directory the whole suite shares, so this module cannot run
+  #       next to the async ones. Removing it while Foundation.CatalogExDocTest walks the same
+  #       tree makes its mkdir_p fail with :enotdir
+  use ExUnit.Case, async: false
 
   alias Foundation.Accounts.UserToken
   alias Foundation.Catalog

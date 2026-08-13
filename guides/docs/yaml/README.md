@@ -89,7 +89,7 @@ notifications:
       - "deployment_complete"                            # Deployment finished (success or failure)
       - "application_ready"                              # App reported itself running, whatever put it there
       - "deployment_shutdown"                            # App was force-terminated (will restart)
-      - "watchdog_threshold_exceeded"                    # Resource threshold crossed; app restarted
+      - "watchdog_threshold_exceeded"                    # Resource reached the restart threshold, restarted or not
       - "watchdog_threshold_warning"                     # Resource crossed warning threshold (or normalized)
       - "certificate_renewed"                            # TLS certificate successfully renewed
       - "certificate_valid"                              # Periodic check found a still-valid certificate

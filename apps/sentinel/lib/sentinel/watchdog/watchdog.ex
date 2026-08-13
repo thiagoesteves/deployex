@@ -26,17 +26,19 @@ defmodule Sentinel.Watchdog do
   @deployex_terminate_delay :timer.seconds(3)
   @watchdog_data :deployex_watchdog_data
 
+  @type level :: :ok | :warning | :critical
+
   @type t :: %__MODULE__{
           enabled: boolean(),
           enable_restart: boolean(),
-          warning_log_flag: boolean(),
+          level: level(),
           warning_threshold_percent: nil | non_neg_integer(),
           restart_threshold_percent: nil | non_neg_integer()
         }
 
   defstruct enabled: true,
             enable_restart: true,
-            warning_log_flag: false,
+            level: :ok,
             warning_threshold_percent: 75,
             restart_threshold_percent: 90
 
@@ -133,9 +135,16 @@ defmodule Sentinel.Watchdog do
       Enum.each(@monitored_app_limits, fn type ->
         config = get_app_config(node, type)
 
-        with_percentage(config, get_app_data(node, type), fn current_percentage ->
-          threshold_check_monitored_apps_limits(node, type, current_percentage, config)
-        end)
+        resource = %{
+          owner: node,
+          type: type,
+          label: "[#{node}] #{type}",
+          node: node,
+          repeat_restart: true,
+          restart: fn -> restart_application(node) end
+        }
+
+        with_percentage(config, get_app_data(node, type), &check_level(resource, config, &1))
       end)
     end
 
@@ -145,9 +154,16 @@ defmodule Sentinel.Watchdog do
 
       config = get_deployex_config(:memory)
 
-      with_percentage(config, get_deployex_data(:memory), fn current_percentage ->
-        threshold_check_deployex_memory(top_consumer_node, current_percentage, config)
-      end)
+      resource = %{
+        owner: :deployex,
+        type: :memory,
+        label: "Total Memory",
+        node: Node.self(),
+        repeat_restart: true,
+        restart: fn -> restart_top_memory_consumer(top_consumer_node) end
+      }
+
+      with_percentage(config, get_deployex_data(:memory), &check_level(resource, config, &1))
     end
 
     # A restart tears down the whole node, so the first resource asking for one ends the sweep
@@ -155,15 +171,17 @@ defmodule Sentinel.Watchdog do
       Enum.find(@deployex_limits, fn type ->
         config = get_deployex_config(type)
 
+        resource = %{
+          owner: :deployex,
+          type: type,
+          label: "[deployex] #{type}",
+          node: Node.self(),
+          repeat_restart: false,
+          restart: fn -> terminate_deployex(deployex_terminate_delay) end
+        }
+
         :restarting ==
-          with_percentage(config, get_deployex_data(type), fn current_percentage ->
-            threshold_check_deployex_limits(
-              type,
-              current_percentage,
-              config,
-              deployex_terminate_delay
-            )
-          end)
+          with_percentage(config, get_deployex_data(type), &check_level(resource, config, &1))
       end)
     end
 
@@ -405,266 +423,143 @@ defmodule Sentinel.Watchdog do
     :ok
   end
 
-  defp threshold_check_monitored_apps_limits(
-         node,
-         type,
-         current_percentage,
-         %{
-           enable_restart: true,
-           restart_threshold_percent: restart_threshold_percent
-         }
-       )
-       when current_percentage > restart_threshold_percent do
+  # Every resource is watched through the level its usage falls into. Reporting follows the
+  # changes of level, a resource sitting above a threshold repeats neither its log line nor its
+  # notification, and a resource that crosses both thresholds at once is reported for the level
+  # it actually reached. Restarting follows the level itself, see restart_on_level/4
+  defp check_level(resource, config, current_percentage) do
+    level = current_level(current_percentage, config)
+    level_changed? = level != config.level
+
+    if level_changed? do
+      :ets.insert(
+        @watchdog_data,
+        {{resource.owner, :config, resource.type}, %{config | level: level}}
+      )
+
+      report_level(level, resource, config, current_percentage)
+    end
+
+    restart_on_level(level, level_changed?, resource, config)
+  end
+
+  # A resource that stays critical is restarted on every check, the usage only comes down once the
+  # right application has gone away and the next check picks the next candidate. Terminating
+  # DeployEx is the exception, it happens once, the node is already on its way down and repeating
+  # it would only re-announce the same shutdown
+  defp restart_on_level(
+         :critical,
+         _level_changed?,
+         %{repeat_restart: true} = resource,
+         %{enable_restart: true}
+       ),
+       do: resource.restart.()
+
+  defp restart_on_level(:critical, true, resource, %{enable_restart: true}),
+    do: resource.restart.()
+
+  defp restart_on_level(_level, _level_changed?, _resource, _config), do: :ok
+
+  defp current_level(current_percentage, %{
+         warning_threshold_percent: warning_threshold_percent,
+         restart_threshold_percent: restart_threshold_percent
+       }) do
+    cond do
+      current_percentage >= restart_threshold_percent -> :critical
+      current_percentage >= warning_threshold_percent -> :warning
+      true -> :ok
+    end
+  end
+
+  # NOTE: enable_restart decides what DeployEx is allowed to do about a resource, not whether the
+  #       resource is worth reporting, so reaching the restart threshold is announced either way
+  defp report_level(:critical, resource, %{enable_restart: true} = config, current_percentage) do
     Logger.error(
-      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
+      "#{resource.label} threshold exceeded: current #{current_percentage}% >= restart #{config.restart_threshold_percent}%. Initiating restart..."
     )
 
+    notify_threshold_exceeded(resource, config, current_percentage, :restart)
+
+    :ok
+  end
+
+  defp report_level(:critical, resource, config, current_percentage) do
+    Logger.error(
+      "#{resource.label} threshold exceeded: current #{current_percentage}% >= restart #{config.restart_threshold_percent}%. Restart is disabled, no action taken."
+    )
+
+    notify_threshold_exceeded(resource, config, current_percentage, :no_restart)
+
+    :ok
+  end
+
+  defp report_level(:warning, resource, config, current_percentage) do
+    Logger.warning(
+      "#{resource.label} threshold exceeded: current #{current_percentage}% >= warning #{config.warning_threshold_percent}%."
+    )
+
+    notify_threshold_warning(resource, config, current_percentage, :warning)
+
+    :ok
+  end
+
+  defp report_level(:ok, resource, config, current_percentage) do
+    Logger.warning(
+      "#{resource.label} threshold normalized: current #{current_percentage}% < warning #{config.warning_threshold_percent}%."
+    )
+
+    notify_threshold_warning(resource, config, current_percentage, :normalized)
+
+    :ok
+  end
+
+  defp notify_threshold_exceeded(resource, config, current_percentage, action) do
+    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
+      node: resource.node,
+      type: resource.type,
+      current_percentage: current_percentage,
+      restart_threshold_percent: config.restart_threshold_percent,
+      action: action
+    })
+  end
+
+  defp notify_threshold_warning(resource, config, current_percentage, action) do
+    Foundation.Notifications.notify("watchdog_threshold_warning", %{
+      node: resource.node,
+      type: resource.type,
+      current_percentage: current_percentage,
+      warning_threshold_percent: config.warning_threshold_percent,
+      action: action
+    })
+  end
+
+  defp restart_application(node) do
     %{sname: sname} = Catalog.node_info(node)
     Monitor.restart(sname)
 
-    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
-      node: node,
-      type: type,
-      current_percentage: current_percentage,
-      restart_threshold_percent: restart_threshold_percent
-    })
+    :ok
+  end
+
+  # The host memory is exhausted by the applications DeployEx monitors, so the heaviest one is
+  # restarted. There is nothing to restart when DeployEx is not monitoring any application yet
+  defp restart_top_memory_consumer(nil) do
+    Logger.error("There is no monitored application to restart")
 
     :ok
   end
 
-  defp threshold_check_monitored_apps_limits(
-         node,
-         type,
-         current_percentage,
-         %{
-           warning_log_flag: false,
-           warning_threshold_percent: warning_threshold_percent
-         } = config
-       )
-       when current_percentage > warning_threshold_percent do
-    Logger.warning(
-      "[#{node}] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
-    )
+  defp restart_top_memory_consumer(node) do
+    Logger.error("Restarting #{node}, the application consuming the most memory")
 
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: node,
-      type: type,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :warning
-    })
-
-    # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: true}})
-
-    :ok
+    restart_application(node)
   end
-
-  defp threshold_check_monitored_apps_limits(
-         node,
-         type,
-         current_percentage,
-         %{
-           warning_log_flag: true,
-           warning_threshold_percent: warning_threshold_percent
-         } = config
-       )
-       when current_percentage <= warning_threshold_percent do
-    Logger.warning(
-      "[#{node}] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: node,
-      type: type,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :normalized
-    })
-
-    # Reset warning log flag, current value was normalized
-    :ets.insert(@watchdog_data, {{node, :config, type}, %{config | warning_log_flag: false}})
-
-    :ok
-  end
-
-  defp threshold_check_monitored_apps_limits(_node, _type, _current_percentage, _config), do: :ok
-
-  defp threshold_check_deployex_memory(nil, _current_percentage, _config), do: :ok
-
-  defp threshold_check_deployex_memory(
-         node,
-         current_percentage,
-         %{
-           enable_restart: true,
-           restart_threshold_percent: restart_threshold_percent
-         }
-       )
-       when current_percentage > restart_threshold_percent do
-    Logger.error(
-      "Total Memory threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart for #{node} ..."
-    )
-
-    %{sname: sname} = Catalog.node_info(node)
-    Monitor.restart(sname)
-
-    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
-      node: node,
-      type: :memory,
-      current_percentage: current_percentage,
-      restart_threshold_percent: restart_threshold_percent
-    })
-
-    :ok
-  end
-
-  defp threshold_check_deployex_memory(
-         _node,
-         current_percentage,
-         %{
-           warning_log_flag: false,
-           warning_threshold_percent: warning_threshold_percent
-         } = config
-       )
-       when current_percentage > warning_threshold_percent do
-    Logger.warning(
-      "Total Memory threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: node(),
-      type: :memory,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :warning
-    })
-
-    # Set flag indicating that warning log was emitted
-    :ets.insert(
-      @watchdog_data,
-      {{:deployex, :config, :memory}, %{config | warning_log_flag: true}}
-    )
-
-    :ok
-  end
-
-  defp threshold_check_deployex_memory(
-         _node,
-         current_percentage,
-         %{
-           warning_log_flag: true,
-           warning_threshold_percent: warning_threshold_percent
-         } = config
-       )
-       when current_percentage <= warning_threshold_percent do
-    Logger.warning(
-      "Total Memory threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: node(),
-      type: :memory,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :normalized
-    })
-
-    # Reset warning log flag, current value was normalized
-    :ets.insert(
-      @watchdog_data,
-      {{:deployex, :config, :memory}, %{config | warning_log_flag: false}}
-    )
-
-    :ok
-  end
-
-  defp threshold_check_deployex_memory(_node, _current, _config), do: :ok
 
   # DeployEx exhausting its own Beam VM limits can only be cleared by restarting DeployEx itself,
   # restarting a monitored application would not release the atoms, processes or ports leaked here.
   # When installed as a systemd service the termination is followed by an automatic restart
-  defp threshold_check_deployex_limits(
-         type,
-         current_percentage,
-         %{
-           enable_restart: true,
-           restart_threshold_percent: restart_threshold_percent
-         },
-         terminate_delay
-       )
-       when current_percentage > restart_threshold_percent do
-    Logger.error(
-      "[deployex] #{type} threshold exceeded: current #{current_percentage}% > restart #{restart_threshold_percent}%. Initiating restart..."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_exceeded", %{
-      node: Node.self(),
-      type: type,
-      current_percentage: current_percentage,
-      restart_threshold_percent: restart_threshold_percent
-    })
-
+  defp terminate_deployex(terminate_delay) do
     Deployex.force_terminate(terminate_delay)
 
     :restarting
   end
-
-  defp threshold_check_deployex_limits(
-         type,
-         current_percentage,
-         %{
-           warning_log_flag: false,
-           warning_threshold_percent: warning_threshold_percent
-         } = config,
-         _terminate_delay
-       )
-       when current_percentage > warning_threshold_percent do
-    Logger.warning(
-      "[deployex] #{type} threshold exceeded: current #{current_percentage}% > warning #{warning_threshold_percent}%."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: Node.self(),
-      type: type,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :warning
-    })
-
-    # Set flag indicating that warning log was emitted
-    :ets.insert(@watchdog_data, {{:deployex, :config, type}, %{config | warning_log_flag: true}})
-
-    :ok
-  end
-
-  defp threshold_check_deployex_limits(
-         type,
-         current_percentage,
-         %{
-           warning_log_flag: true,
-           warning_threshold_percent: warning_threshold_percent
-         } = config,
-         _terminate_delay
-       )
-       when current_percentage <= warning_threshold_percent do
-    Logger.warning(
-      "[deployex] #{type} threshold normalized: current #{current_percentage}% <= warning #{warning_threshold_percent}%."
-    )
-
-    Foundation.Notifications.notify("watchdog_threshold_warning", %{
-      node: Node.self(),
-      type: type,
-      current_percentage: current_percentage,
-      warning_threshold_percent: warning_threshold_percent,
-      action: :normalized
-    })
-
-    # Reset warning log flag, current value was normalized
-    :ets.insert(@watchdog_data, {{:deployex, :config, type}, %{config | warning_log_flag: false}})
-
-    :ok
-  end
-
-  defp threshold_check_deployex_limits(_type, _current_percentage, _config, _terminate_delay),
-    do: :ok
 end
