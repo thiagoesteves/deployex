@@ -16,6 +16,9 @@ defmodule Foundation.YamlTest do
   @yaml_gcp_path "#{@file_paths}/deployex-gcp.yaml"
   @yaml_aws_monitoring "#{@file_paths}/deployex-aws-monitoring.yaml"
   @yaml_aws_monitoring_multiple_apps "#{@file_paths}/deployex-aws-monitoring-multiple-apps.yaml"
+  @yaml_aws_monitoring_defaults "#{@file_paths}/deployex-aws-monitoring-defaults.yaml"
+  @yaml_aws_monitoring_invalid_type "#{@file_paths}/deployex-aws-monitoring-invalid-type.yaml"
+  @yaml_aws_monitoring_app_memory "#{@file_paths}/deployex-aws-monitoring-app-memory.yaml"
   @yaml_aws_optional "#{@file_paths}/deployex-aws-optional.yaml"
   @yaml_deployex_aws_no_replica_ports "#{@file_paths}/deployex-aws-no-replica-ports.yaml"
   @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
@@ -71,6 +74,63 @@ defmodule Foundation.YamlTest do
         assert monitoring.enable_restart == true
         assert monitoring.warning_threshold_percent == 75
         assert monitoring.restart_threshold_percent == 85
+      end
+    end
+
+    test "applies the monitoring defaults to the fields the yaml file omits" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring_defaults end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert [:memory, :atom, :process, :port] ==
+                 Enum.map(config.monitoring, fn {type, _monitoring} -> type end)
+
+        Enum.each([:memory, :atom, :process], fn type ->
+          assert %Monitoring{
+                   enable_restart: true,
+                   warning_threshold_percent: 75,
+                   restart_threshold_percent: 90
+                 } = config.monitoring[type]
+        end)
+
+        # An explicit false is kept, it is not promoted to the default
+        assert %Monitoring{
+                 enable_restart: false,
+                 warning_threshold_percent: 75,
+                 restart_threshold_percent: 90
+               } = config.monitoring[:port]
+
+        [app] = config.applications
+
+        assert %Monitoring{
+                 enable_restart: true,
+                 warning_threshold_percent: 75,
+                 restart_threshold_percent: 90
+               } = app.monitoring[:atom]
+      end
+    end
+
+    test "rejects an unsupported deployex monitoring type" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring_invalid_type end]}
+      ]) do
+        assert_raise RuntimeError,
+                     "Monitoring type atoms not supported, expected one of: memory, atom, process or port",
+                     fn -> Yaml.load() end
+      end
+    end
+
+    test "rejects the memory monitoring type for a monitored application" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_monitoring_app_memory end]}
+      ]) do
+        assert_raise RuntimeError,
+                     "Monitoring type memory not supported, expected one of: atom, process or port",
+                     fn -> Yaml.load() end
       end
     end
 

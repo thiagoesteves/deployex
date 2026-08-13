@@ -125,6 +125,9 @@ notifications:
 # ============================================================================
 
 monitoring:
+  # Supported types are memory, atom, process and port, any other type is rejected. A type that
+  # is not listed here is not monitored at all, while a listed type without thresholds falls
+  # back to the defaults below
   # Host memory. Exceeding the restart threshold restarts the monitored application
   # consuming the most memory, not DeployEx
   - type: "memory"
@@ -185,6 +188,7 @@ applications:
         value: "sa-east-1"
     
     # Application-Level Monitoring (optional with defaults)
+    # Supported types are atom, process and port, any other type is rejected
     monitoring:
       - type: "atom"                   # Monitor atom table usage
         enable_restart: true           # Restart if exceeded (default: true)
