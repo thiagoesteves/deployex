@@ -13,6 +13,7 @@
  * [`PULL-288`](https://github.com/thiagoesteves/deployex/pull/288) Report the versions a hot upgrade moved between in the completion notification
  * [`PULL-290`](https://github.com/thiagoesteves/deployex/pull/290) Add an application_ready event for every report that an application is running
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) Monitor the DeployEx atom, process and port limits alongside the host memory
+ * [`PULL-293`](https://github.com/thiagoesteves/deployex/pull/293) Show the URLs each connected application is serving on, read from its own endpoints
 
 ## 0.9.12 🚀 (2026-08-12)
 

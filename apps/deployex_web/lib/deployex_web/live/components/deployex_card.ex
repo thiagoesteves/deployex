@@ -109,6 +109,7 @@ defmodule DeployexWeb.Components.DeployexCard do
                   <% end %>
                 </div>
               </div>
+              <.served_urls id={@deployex.sname} urls={@deployex.urls} />
             </div>
           </div>
           <div>

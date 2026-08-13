@@ -135,6 +135,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                   <% end %>
                 </div>
               </div>
+              <.served_urls id={@application.sname} urls={@application.urls} />
             </div>
           </div>
           <div>

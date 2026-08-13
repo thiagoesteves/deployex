@@ -11,6 +11,7 @@ defmodule Deployer.Status.Application do
   alias Deployer.Github
   alias Deployer.Monitor
   alias Deployer.Status
+  alias Deployer.Status.Endpoints
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
   alias Foundation.Common
@@ -19,6 +20,9 @@ defmodule Deployer.Status.Application do
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
   @ghosted_versions_topic "deployex::ghosted_versions"
+  # A node serving no url is asked again from time to time, an application can connect to the
+  # distribution before its endpoint is up. A node serving urls keeps them until it stops running
+  @urls_recheck_interval_ms :timer.seconds(30)
 
   @manual_version_max_list 10
 
@@ -321,6 +325,7 @@ defmodule Deployer.Status.Application do
           base: Application.get_env(:deployex_web, DeployexWeb.Endpoint)[:http][:port]
         }
       ],
+      urls: node_urls(node, true),
       replicas: 1,
       deploy_rollback_timeout_ms: 0,
       deploy_schedule_interval_ms: 0,
@@ -362,13 +367,16 @@ defmodule Deployer.Status.Application do
         :not_connected
     end
 
+    otp = check_otp_monitored_app.(node, status)
+
     %Status{
       name: name,
       sname: sname,
       node: node,
       ports: ports,
+      urls: node_urls(node, otp == :connected),
       version: current_version(sname),
-      otp: check_otp_monitored_app.(node, status),
+      otp: otp,
       tls: mtls_certificate(),
       last_deployment: current_version_map(sname).deployment,
       status: status,
@@ -411,6 +419,30 @@ defmodule Deployer.Status.Application do
         value ->
           value
       end
+    end
+  end
+
+  # The cache is dropped as soon as the node stops answering, so a redeployment that changes the
+  # served address is picked up instead of the previous one being reported for the new release
+  defp node_urls(node, false) do
+    Process.delete({node, :urls})
+    []
+  end
+
+  defp node_urls(node, true) do
+    now = System.monotonic_time(:millisecond)
+
+    case Process.get({node, :urls}) do
+      {[] = _none_found, checked_at} when now - checked_at < @urls_recheck_interval_ms ->
+        []
+
+      {urls, _checked_at} when urls != [] ->
+        urls
+
+      _expired_or_never_checked ->
+        urls = Endpoints.urls(node)
+        Process.put({node, :urls}, {urls, now})
+        urls
     end
   end
 

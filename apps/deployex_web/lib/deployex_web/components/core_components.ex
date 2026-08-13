@@ -551,6 +551,58 @@ defmodule DeployexWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders the urls an application is serving on as links opening in a new tab.
+  """
+  attr :id, :string, required: true
+  attr :urls, :list, required: true
+
+  def served_urls(assigns) do
+    ~H"""
+    <div
+      :if={@urls != []}
+      class="bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-100/30 transition-colors"
+    >
+      <div class="flex items-center gap-2 mb-2">
+        <svg
+          class="w-3 h-3 text-base-content/60"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          >
+          </path>
+        </svg>
+        <div class="text-xs font-medium text-base-content/60">URLs</div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <%= for url <- @urls do %>
+          <div class="inline-flex items-center bg-base-100 border border-base-300 rounded-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+            <.copy_to_clipboard
+              id={"c2c-url-#{@id}-#{url}"}
+              message={url}
+              class="px-2.5 py-1.5 text-base-content/60 hover:text-base-content border-r border-base-300 transition-colors"
+            />
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="px-3 py-1.5 text-xs font-mono font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+            >
+              {url}
+            </a>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   attr :id, :string, required: true
   attr :message, :string, required: true
   attr :class, :any, default: "text-gray-500"

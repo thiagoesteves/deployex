@@ -57,6 +57,7 @@ defmodule DeployexWeb.Fixture.Status do
       status: :running,
       uptime: "short time",
       ports: [%{key: "PORT", base: 8765}],
+      urls: ["http://localhost:8765"],
       certificates: [default_public_key()]
     }
 
@@ -98,6 +99,7 @@ defmodule DeployexWeb.Fixture.Status do
       crash_restart_count: 0,
       uptime: "long time",
       ports: [%{key: "PORT", base: 5678}],
+      urls: ["http://localhost:5678"],
       certificates: [default_public_key()],
       otp_version: "27",
       elixir_version: "1.20",

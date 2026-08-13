@@ -360,6 +360,71 @@ defmodule Deployer.Status.ApplicationTest do
            )
   end
 
+  test "update monitoring apps discovers, caches and drops the served urls", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    %{node: node_1} = Catalog.node_info(sname_1)
+    test_pid = self()
+
+    Deployer.MonitorMock
+    |> expect(:state, 9, fn sname ->
+      %Deployer.Monitor{
+        current_pid: nil,
+        sname: sname,
+        status: :running,
+        crash_restart_count: 0,
+        force_restart_count: 0,
+        start_time: nil
+      }
+    end)
+    |> expect(:list, 3, fn -> [sname_1, sname_2, sname_3] end)
+
+    Deployer.HotUpgradeMock
+    |> stub(:connect, fn _node -> {:ok, :connected} end)
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      node, :erlang, :registered, [], _timeout ->
+        send(test_pid, {:registered_called, node})
+        [:"Elixir.MyAppWeb.Endpoint"]
+
+      _node, :"Elixir.MyAppWeb.Endpoint", :url, [], _timeout ->
+        "http://localhost:4000"
+
+      _node, _module, _function, _args, _timeout ->
+        nil
+    end)
+
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+    assert [%{urls: ["http://localhost:4000"]}] = parent_app.children
+
+    assert_received {:registered_called, ^node_1}
+
+    # A second sweep answers from the cache instead of asking the node again
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+    assert [%{urls: ["http://localhost:4000"]}] = parent_app.children
+
+    refute_received {:registered_called, ^node_1}
+
+    # Once the node stops answering the urls are dropped, they belong to the release that was running
+    Deployer.HotUpgradeMock
+    |> stub(:connect, fn _node -> {:error, :not_connected} end)
+
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    parent_app = Enum.find(monitoring, &(&1.name == "myelixir"))
+    assert [%{urls: [], otp: :not_connected}] = parent_app.children
+  end
+
   test "update monitoring apps with running state and with ghosted version list", %{
     name_1: name_1,
     sname_1: sname_1,

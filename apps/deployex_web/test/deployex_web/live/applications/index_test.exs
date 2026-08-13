@@ -297,6 +297,36 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "Auto-restart disabled"
   end
 
+  @tag :capture_log
+  test "GET /applications renders the served urls as links", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, _view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "URLs"
+    assert html =~ ~s(href="http://localhost:8765")
+    assert html =~ ~s(href="http://localhost:5678")
+    assert html =~ ~s(rel="noopener noreferrer")
+  end
+
+  @tag :capture_log
+  test "GET /applications omits the urls block when nothing is served", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok, [FixtureStatus.deployex(%{urls: []}), FixtureStatus.application(%{urls: []})]}
+    end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, _view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "Listing Applications"
+    refute html =~ "URLs"
+  end
+
   %{
     1 => %{metric: :port},
     2 => %{metric: :process},
