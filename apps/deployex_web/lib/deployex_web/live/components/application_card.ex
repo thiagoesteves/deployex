@@ -37,7 +37,11 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <div class="flex items-center gap-6 mb-8">
               <div class="avatar">
                 <div class="w-20 h-20 rounded-xl bg-base-200/30 flex items-center justify-center">
-                  <img src={"/images/#{@application.language}.ico"} alt="" class="w-12 h-12" />
+                  <img
+                    src={@application.favicon || "/images/#{@application.language}.ico"}
+                    alt=""
+                    class="w-12 h-12"
+                  />
                 </div>
               </div>
               <div class="flex-1">
