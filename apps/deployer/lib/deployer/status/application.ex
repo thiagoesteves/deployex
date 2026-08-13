@@ -20,9 +20,6 @@ defmodule Deployer.Status.Application do
   @update_apps_interval :timer.seconds(1)
   @apps_data_updated_topic "deployex::monitoring_app_updated"
   @ghosted_versions_topic "deployex::ghosted_versions"
-  # A node serving no url is asked again from time to time, an application can connect to the
-  # distribution before its endpoint is up. A node serving urls keeps them until it stops running
-  @urls_recheck_interval_ms :timer.seconds(30)
 
   @manual_version_max_list 10
 
@@ -430,20 +427,9 @@ defmodule Deployer.Status.Application do
   end
 
   defp node_urls(node, true) do
-    now = System.monotonic_time(:millisecond)
-
-    case Process.get({node, :urls}) do
-      {[] = _none_found, checked_at} when now - checked_at < @urls_recheck_interval_ms ->
-        []
-
-      {urls, _checked_at} when urls != [] ->
-        urls
-
-      _expired_or_never_checked ->
-        urls = Endpoints.urls(node)
-        Process.put({node, :urls}, {urls, now})
-        urls
-    end
+    cache_in_process({node, :urls}) do
+      Endpoints.urls(node)
+    end || []
   end
 
   defp node_otp_version(node) do

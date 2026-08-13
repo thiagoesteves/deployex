@@ -27,7 +27,7 @@ defmodule Deployer.Status.EndpointsTest do
       "http://localhost:4000"
     end)
 
-    assert ["http://localhost:4000"] = Endpoints.urls(@node)
+    assert {:ok, ["http://localhost:4000"]} = Endpoints.urls(@node)
   end
 
   test "urls/1 returns every endpoint when the application serves more than one" do
@@ -40,7 +40,7 @@ defmodule Deployer.Status.EndpointsTest do
       @node, :"Elixir.MyAppWeb.AdminEndpoint", :url, [], _timeout -> "http://localhost:4001"
     end)
 
-    assert ["http://localhost:4001", "https://example.com"] = Endpoints.urls(@node)
+    assert {:ok, ["http://localhost:4001", "https://example.com"]} = Endpoints.urls(@node)
   end
 
   test "urls/1 does not ask a name outside the endpoint convention for a url" do
@@ -50,7 +50,7 @@ defmodule Deployer.Status.EndpointsTest do
     end)
 
     # verify_on_exit! fails the test if any of the names above is asked for a url
-    assert [] = Endpoints.urls(@node)
+    assert {:ok, []} = Endpoints.urls(@node)
   end
 
   test "urls/1 discards a registered endpoint that does not export url/0" do
@@ -62,14 +62,14 @@ defmodule Deployer.Status.EndpointsTest do
       {:badrpc, {:EXIT, {:undef, []}}}
     end)
 
-    assert [] = Endpoints.urls(@node)
+    assert {:ok, []} = Endpoints.urls(@node)
   end
 
-  test "urls/1 returns no url when the node is unreachable" do
+  test "urls/1 returns an error when the node is unreachable" do
     Foundation.RpcMock
     |> expect(:call, fn @node, :erlang, :registered, [], _timeout -> {:badrpc, :nodedown} end)
 
-    assert [] = Endpoints.urls(@node)
+    assert :error = Endpoints.urls(@node)
   end
 
   test "urls/1 reports the same url once when two endpoints resolve to it" do
@@ -79,6 +79,6 @@ defmodule Deployer.Status.EndpointsTest do
     |> expect(:call, fn @node, :erlang, :registered, [], _timeout -> registered end)
     |> stub(:call, fn @node, _module, :url, [], _timeout -> "http://localhost:4000" end)
 
-    assert ["http://localhost:4000"] = Endpoints.urls(@node)
+    assert {:ok, ["http://localhost:4000"]} = Endpoints.urls(@node)
   end
 end

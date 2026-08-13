@@ -21,15 +21,24 @@ defmodule Deployer.Status.Endpoints do
   ### ==========================================================================
 
   @doc """
-  Return the urls the node is serving on, empty when the node is unreachable or serves none.
+  Return the urls the node is serving on, empty when it serves none.
+  Returns `:error` when the node is unreachable.
   """
-  @spec urls(node :: node()) :: [String.t()]
+  @spec urls(node :: node()) :: {:ok, [String.t()]} | :error
   def urls(node) do
-    node
-    |> endpoint_candidates()
-    |> Enum.flat_map(&endpoint_url(node, &1))
-    |> Enum.uniq()
-    |> Enum.sort()
+    case endpoint_candidates(node) do
+      {:ok, names} ->
+        urls =
+          names
+          |> Enum.flat_map(&endpoint_url(node, &1))
+          |> Enum.uniq()
+          |> Enum.sort()
+
+        {:ok, urls}
+
+      :error ->
+        :error
+    end
   end
 
   ### ==========================================================================
@@ -38,8 +47,8 @@ defmodule Deployer.Status.Endpoints do
 
   defp endpoint_candidates(node) do
     case Rpc.call(node, :erlang, :registered, [], @rpc_timeout) do
-      names when is_list(names) -> Enum.filter(names, &endpoint_module?/1)
-      _unreachable -> []
+      names when is_list(names) -> {:ok, Enum.filter(names, &endpoint_module?/1)}
+      _unreachable -> :error
     end
   end
 
