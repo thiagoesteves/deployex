@@ -386,7 +386,7 @@ defmodule Deployer.Status.Application do
       otp_version: node_otp_version(node),
       elixir_version: node_elixir_version(node),
       phoenix_version: node_phoenix_version(node),
-      favicon: node_favicon(node, otp == :connected)
+      favicon: node_favicon(node, otp == :connected, name)
     }
   end
 
@@ -455,10 +455,10 @@ defmodule Deployer.Status.Application do
     end
   end
 
-  defp node_favicon(node, connected?) do
+  defp node_favicon(node, connected?, name) do
     if connected? do
       cache_in_process({node, :favicon}) do
-        Favicon.image(node)
+        Favicon.image(node, name)
       end
     else
       Process.delete({node, :favicon})
