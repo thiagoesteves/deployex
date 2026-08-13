@@ -863,25 +863,30 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do
-    subscribe_app_if_new = fn %{node: node, monitoring: monitoring}, monitored_nodes ->
+    self_node = Node.self()
+
+    # DeployEx memory is the host memory reported by Host.Info, not a Beam VM series,
+    # so it is the only configured resource without a metric to subscribe to
+    subscribe_if_new = fn node, monitoring ->
       if node not in current.monitored_nodes do
         monitoring
         |> Keyword.keys()
+        |> Enum.reject(&(node == self_node and &1 == :memory))
         |> Enum.each(&Telemetry.subscribe_for_new_data(node, "vm.#{&1}.total"))
       end
-
-      monitored_nodes ++ [node]
     end
 
     new_monitored_nodes =
-      Enum.reduce(monitoring_apps_data, [Node.self()], fn app, acc ->
-        case app.children do
-          [] ->
-            acc
+      Enum.reduce(monitoring_apps_data, [self_node], fn
+        %{name: "deployex", monitoring: monitoring}, acc ->
+          subscribe_if_new.(self_node, monitoring)
+          acc
 
-          children ->
-            Enum.reduce(children, acc, &subscribe_app_if_new.(&1, &2))
-        end
+        app, acc ->
+          Enum.reduce(app.children, acc, fn child, monitored_nodes ->
+            subscribe_if_new.(child.node, child.monitoring)
+            monitored_nodes ++ [child.node]
+          end)
       end)
 
     %{current | monitored_nodes: new_monitored_nodes}

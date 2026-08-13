@@ -398,6 +398,68 @@ defmodule DeployexWeb.Applications.IndexTest do
     end
   end)
 
+  %{
+    1 => %{metric: :port},
+    2 => %{metric: :process},
+    3 => %{metric: :atom}
+  }
+  |> Enum.each(fn {element, %{metric: metric}} ->
+    @tag :capture_log
+    test "#{element} - GET /applications with deployex monitoring enabled for metric: #{metric}",
+         %{
+           conn: conn
+         } do
+      topic = "test-topic"
+      metric = unquote(metric)
+
+      deployex =
+        FixtureStatus.deployex(%{
+          node: Node.self(),
+          monitoring: add_metrics([:memory, metric])
+        })
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, html} = live(conn, ~p"/applications")
+
+      assert html =~ "Listing Applications"
+      assert html =~ "Resource Monitoring"
+
+      # Normal
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(8)}
+      )
+
+      html = render(view)
+      assert html =~ "text-success\">\n          8%"
+
+      # Warning
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(11)}
+      )
+
+      html = render(view)
+      assert html =~ "text-warning\">\n          11%"
+
+      # Restart
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(21)}
+      )
+
+      html = render(view)
+      assert html =~ "text-error\">\n          21%"
+    end
+  end)
+
   defp add_metrics(metrics, enabled \\ true) do
     Enum.map(metrics, fn metric ->
       {metric,

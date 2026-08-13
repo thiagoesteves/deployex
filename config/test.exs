@@ -11,6 +11,21 @@ config :foundation,
       enable_restart: true,
       warning_threshold_percent: 10,
       restart_threshold_percent: 20
+    },
+    atom: %{
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
+    },
+    process: %{
+      enable_restart: true,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
+    },
+    port: %{
+      enable_restart: false,
+      warning_threshold_percent: 10,
+      restart_threshold_percent: 20
     }
   ],
   applications: [

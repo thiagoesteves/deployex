@@ -44,7 +44,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
 
     wait_message_processing(pid)
 
-    assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_deployex_memory_data()
+    assert %{current: ^memory_used, limit: ^memory_total} = Watchdog.get_deployex_data(:memory)
   end
 
   @tag :capture_log
@@ -63,7 +63,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     FixtureHost.send_update_sys_info_message(pid, :other@node, memory_free, memory_total)
 
     wait_message_processing(pid)
-    assert %Data{} = Watchdog.get_deployex_memory_data()
+    assert %Data{} = Watchdog.get_deployex_data(:memory)
   end
 
   @tag :capture_log
@@ -493,7 +493,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message == ""
 
     # Check Alarm is clear
-    assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:memory)
   end
 
   @tag :capture_log
@@ -531,7 +531,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold exceeded: current 11% > warning 10%."
 
     # Check Alarm is set
-    assert %{warning_log_flag: true} = Watchdog.get_deployex_memory_config()
+    assert %{warning_log_flag: true} = Watchdog.get_deployex_config(:memory)
 
     memory_free = 900_000
 
@@ -549,7 +549,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
     assert message =~ "Total Memory threshold normalized: current 10% <= warning 10%."
 
     # Check Alarm is clear
-    assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:memory)
   end
 
   @tag :capture_log
@@ -599,7 +599,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_2} ..."
 
     # Check Alarm is clear after Node Down
-    assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:memory)
 
     # Check next app available for restarting is the other node
     wait_message_processing(pid)
@@ -615,7 +615,7 @@ defmodule Sentinel.Watchdog.WatchdogTest do
              "Total Memory threshold exceeded: current 21% > restart 20%. Initiating restart for #{node_1} ..."
 
     # Check Alarm is clear after Node Down
-    assert %{warning_log_flag: false} = Watchdog.get_deployex_memory_config()
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:memory)
 
     # Add node_1 again
     send(pid, {:new_deploy, Node.self(), sname_1})
@@ -664,6 +664,224 @@ defmodule Sentinel.Watchdog.WatchdogTest do
       end)
 
     assert message == ""
+  end
+
+  @tag :capture_log
+  test "Deployex limits - update deployex statistics from its own node" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:port)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:atom)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:process)
+
+    node_statistic = %{
+      total_memory: 1_000_000,
+      port_limit: 1_000,
+      port_count: 100,
+      atom_limit: 2_000,
+      atom_count: 200,
+      process_limit: 3_000,
+      process_count: 300
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    assert %Data{current: 100, limit: 1000} = Watchdog.get_deployex_data(:port)
+    assert %Data{current: 200, limit: 2000} = Watchdog.get_deployex_data(:atom)
+    assert %Data{current: 300, limit: 3000} = Watchdog.get_deployex_data(:process)
+
+    # The deployex memory keeps tracking the host memory, it is not fed by the Beam VM series
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:memory)
+
+    Watchdog.reset_app_statistics("deployex")
+
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:port)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:atom)
+    assert %Data{limit: nil, current: nil} = Watchdog.get_deployex_data(:process)
+  end
+
+  @tag :capture_log
+  test "Deployex limits - No warning if the statistic is inside the threshold" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    node_statistic = %{
+      port_limit: 1_000,
+      port_count: 50,
+      atom_limit: 1_000,
+      atom_count: 50,
+      process_limit: 1_000,
+      process_count: 50
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message == ""
+
+    # Check Alarm is clear
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:port)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:atom)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:process)
+  end
+
+  @tag :capture_log
+  test "Deployex limits - statistic warning" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    node_statistic = %{
+      port_limit: 1_000,
+      port_count: 110,
+      atom_limit: 2_000,
+      atom_count: 220,
+      process_limit: 3_000,
+      process_count: 330
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message =~ "[deployex] port threshold exceeded: current 11% > warning 10%."
+    assert message =~ "[deployex] atom threshold exceeded: current 11% > warning 10%."
+    assert message =~ "[deployex] process threshold exceeded: current 11% > warning 10%."
+
+    # Check Alarm raised
+    assert %{warning_log_flag: true} = Watchdog.get_deployex_config(:port)
+    assert %{warning_log_flag: true} = Watchdog.get_deployex_config(:atom)
+    assert %{warning_log_flag: true} = Watchdog.get_deployex_config(:process)
+
+    node_statistic = %{
+      port_limit: 1_000,
+      port_count: 100,
+      atom_limit: 2_000,
+      atom_count: 200,
+      process_limit: 3_000,
+      process_count: 300
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message =~ "[deployex] port threshold normalized: current 10% <= warning 10%."
+    assert message =~ "[deployex] atom threshold normalized: current 10% <= warning 10%."
+    assert message =~ "[deployex] process threshold normalized: current 10% <= warning 10%."
+
+    # Check Alarm cleared
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:port)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:atom)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:process)
+  end
+
+  @tag :capture_log
+  test "Deployex limits - ignore nil data" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    assert {:ok, pid} = Watchdog.start_link(watchdog_check_interval: 10_000)
+
+    node_statistic = %{
+      port_limit: nil,
+      port_count: 110,
+      atom_limit: nil,
+      atom_count: 220,
+      process_limit: nil,
+      process_count: 330
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    send(pid, :watchdog_check)
+
+    wait_message_processing(pid)
+
+    # Check Alarm is clear
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:port)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:atom)
+    assert %{warning_log_flag: false} = Watchdog.get_deployex_config(:process)
+  end
+
+  @tag :capture_log
+  test "Deployex limits - terminate deployex and stop checking the remaining resources" do
+    Deployer.MonitorMock
+    |> expect(:list, fn -> [] end)
+    |> expect(:subscribe_new_deploy, fn -> :ok end)
+
+    # NOTE: port has enable_restart: false in the test config, so it only warns while atom, the
+    #       next resource in the list, triggers the termination and halts the process check
+    Host.CommanderMock
+    |> expect(:run, fn _command, _options -> {:ok, []} end)
+
+    assert {:ok, pid} =
+             Watchdog.start_link(watchdog_check_interval: 10_000, deployex_terminate_delay: 0)
+
+    node_statistic = %{
+      port_limit: 1_000,
+      port_count: 210,
+      atom_limit: 2_000,
+      atom_count: 420,
+      process_limit: 3_000,
+      process_count: 630
+    }
+
+    FixtureTelemetry.send_update_app_message(pid, Node.self(), node_statistic)
+
+    wait_message_processing(pid)
+
+    message =
+      capture_log(fn ->
+        send(pid, :watchdog_check)
+
+        wait_message_processing(pid)
+      end)
+
+    assert message =~ "[deployex] port threshold exceeded: current 21% > warning 10%."
+
+    assert message =~
+             "[deployex] atom threshold exceeded: current 21% > restart 20%. Initiating restart..."
+
+    assert message =~ "Deployex was requested to terminate, see you soon!!!"
+
+    refute message =~ "[deployex] process threshold"
   end
 
   # Note: Fetching the state guarantees that handle_info will be executed and the ETS table will be updated.

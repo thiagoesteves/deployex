@@ -54,7 +54,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Provides easy access to the application shell:
   - IEx shell for monitored Elixir apps and DeployEx.
   - Erlang shell for monitored Gleam/Erlang apps.
-- Provides monitoring and restart mechanisms for host memory thresholds and beam statistics of monitored applications, including port, atom, and process metrics.
+- Provides monitoring and restart mechanisms for host memory thresholds and beam statistics, including port, atom, and process metrics, for monitored applications and for DeployEx itself.
 - Supports access to live log files (stdout and stderr) for both monitored apps and DeployEx.
 - Supports observability for all connected applications via [Observer Web][owb].
 - Supports safe tracing for all connected applications.
