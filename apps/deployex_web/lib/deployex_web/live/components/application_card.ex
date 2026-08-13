@@ -37,7 +37,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
             <div class="flex items-center gap-6 mb-8">
               <div class="w-20 h-20 shrink-0 rounded-xl bg-base-200/30 flex items-center justify-center">
                 <img
-                  src={@application.favicon || "/images/#{@application.language}.ico"}
+                  src={@application.logo || "/images/#{@application.language}.ico"}
                   alt=""
                   class="w-full h-full object-contain"
                 />

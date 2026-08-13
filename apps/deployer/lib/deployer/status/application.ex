@@ -12,7 +12,7 @@ defmodule Deployer.Status.Application do
   alias Deployer.Monitor
   alias Deployer.Status
   alias Deployer.Status.Endpoints
-  alias Deployer.Status.Favicon
+  alias Deployer.Status.Logo
   alias Deployer.Status.Versions
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
@@ -386,7 +386,7 @@ defmodule Deployer.Status.Application do
       otp_version: node_otp_version(node),
       elixir_version: node_elixir_version(node),
       phoenix_version: node_phoenix_version(node),
-      favicon: node_favicon(node, otp == :connected, name)
+      logo: node_logo(node, otp == :connected, name)
     }
   end
 
@@ -455,13 +455,13 @@ defmodule Deployer.Status.Application do
     end
   end
 
-  defp node_favicon(node, connected?, name) do
+  defp node_logo(node, connected?, name) do
     if connected? do
-      cache_in_process({node, :favicon}) do
-        Favicon.image(node, name)
+      cache_in_process({node, :logo}) do
+        Logo.image(node, name)
       end
     else
-      Process.delete({node, :favicon})
+      Process.delete({node, :logo})
       nil
     end
   end

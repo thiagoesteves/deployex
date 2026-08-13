@@ -37,7 +37,7 @@ defmodule Deployer.Status do
           otp_version: String.t() | nil,
           elixir_version: String.t() | nil,
           phoenix_version: String.t() | nil,
-          favicon: String.t() | nil
+          logo: String.t() | nil
         }
 
   defstruct name: nil,
@@ -65,7 +65,7 @@ defmodule Deployer.Status do
             otp_version: nil,
             elixir_version: nil,
             phoenix_version: nil,
-            favicon: nil
+            logo: nil
 
   @behaviour Deployer.Status.Adapter
 

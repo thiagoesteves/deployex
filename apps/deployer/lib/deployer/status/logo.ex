@@ -1,4 +1,4 @@
-defmodule Deployer.Status.Favicon do
+defmodule Deployer.Status.Logo do
   @moduledoc """
   Reads the logo of a monitored application so it can be shown in the UI.
 
