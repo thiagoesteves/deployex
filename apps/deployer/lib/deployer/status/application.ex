@@ -455,10 +455,20 @@ defmodule Deployer.Status.Application do
     end
   end
 
+  # The logo lookup always answers, so it does not go through cache_in_process:
+  # the absence of a logo is cached like any other answer, which keeps every
+  # application in an umbrella from being asked for a logo it does not have on
+  # every refresh.
   defp node_logo(node, connected?, name) do
     if connected? do
-      cache_in_process({node, :logo}) do
-        Logo.image(node, name)
+      case Process.get({node, :logo}, :not_available_yet) do
+        :not_available_yet ->
+          {:ok, logo} = Logo.image(node, name)
+          Process.put({node, :logo}, logo)
+          logo
+
+        logo ->
+          logo
       end
     else
       Process.delete({node, :logo})
