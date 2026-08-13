@@ -35,10 +35,12 @@ defmodule DeployexWeb.Components.ApplicationCard do
           <!-- App Header -->
           <div class="gap-6">
             <div class="flex items-center gap-6 mb-8">
-              <div class="avatar">
-                <div class="w-20 h-20 rounded-xl bg-base-200/30 flex items-center justify-center">
-                  <img src={"/images/#{@application.language}.ico"} alt="" class="w-12 h-12" />
-                </div>
+              <div class="w-20 h-20 shrink-0 rounded-xl bg-base-200/30 flex items-center justify-center">
+                <img
+                  src={@application.logo || "/images/#{@application.language}.ico"}
+                  alt=""
+                  class="w-full h-full object-contain"
+                />
               </div>
               <div class="flex-1">
                 <h1 class="text-3xl font-bold text-base-content mb-2">{@application.name}</h1>

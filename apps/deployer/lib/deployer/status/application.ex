@@ -12,6 +12,7 @@ defmodule Deployer.Status.Application do
   alias Deployer.Monitor
   alias Deployer.Status
   alias Deployer.Status.Endpoints
+  alias Deployer.Status.Logo
   alias Deployer.Status.Versions
   alias Foundation.Catalog
   alias Foundation.Certificates.PublicKey
@@ -384,7 +385,8 @@ defmodule Deployer.Status.Application do
       monitoring: monitoring,
       otp_version: node_otp_version(node),
       elixir_version: node_elixir_version(node),
-      phoenix_version: node_phoenix_version(node)
+      phoenix_version: node_phoenix_version(node),
+      logo: node_logo(node, otp == :connected, name)
     }
   end
 
@@ -450,6 +452,17 @@ defmodule Deployer.Status.Application do
   defp node_phoenix_version(node) do
     cache_in_process({node, :phoenix}) do
       Versions.phoenix_version(node)
+    end
+  end
+
+  defp node_logo(node, connected?, name) do
+    if connected? do
+      cache_in_process({node, :logo}) do
+        Logo.image(node, name)
+      end
+    else
+      Process.delete({node, :logo})
+      nil
     end
   end
 end
