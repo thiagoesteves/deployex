@@ -47,7 +47,10 @@ npm-debug.log
 /priv/static/robots-*
 /priv/static/*.txt.gz
 /priv/static/images/elixir-*
+!/priv/static/images/elixir-dark.ico
+!/priv/static/images/elixir-dark.png
 /priv/static/images/erlang-*
+!/priv/static/images/erlang-dark.ico
 /priv/static/images/gleam-*
 /priv/static/images/phoenix-*
 /priv/static/images/unknown-*
