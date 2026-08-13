@@ -462,13 +462,8 @@ defmodule Sentinel.Config.Watcher do
             {name, %{status: :modified, changes: changes}} ->
               # credo:disable-for-lines:3
               Enum.each(changes, fn
-                {:certificates, %{details: %{domains: %{status: status}}}}
-                when status in [:removed, :modified] ->
-                  # credo:disable-for-lines:2
-                  Logger.warning("ConfigWatcher: Removing certificate manager for #{name}")
-                  Certificate.stop_certificate_manager(name)
-
-                  :ok
+                {:certificates, %{details: cert_details}} ->
+                  stop_certificate_manager_if_changed(name, cert_details)
 
                 _others ->
                   :ok
@@ -516,11 +511,8 @@ defmodule Sentinel.Config.Watcher do
                   Sentinel.Watchdog.reset_app_statistics(name)
                   :ok
 
-                {:certificates, %{details: %{domains: %{status: status, config: config}}}}
-                when status in [:added, :modified] ->
-                  Certificate.start_certificate_manager(name, [config])
-
-                  :ok
+                {:certificates, %{details: cert_details}} ->
+                  start_certificate_managers_for_added(name, cert_details)
 
                 {field, %{old: _old, new: new}} ->
                   # NOTE: the application restat occurs based on the field change
@@ -554,6 +546,32 @@ defmodule Sentinel.Config.Watcher do
           :ok
       end
     end)
+  end
+
+  # The details map is keyed by certificate type (:acme, :importer, ...), not by
+  # :domains. A single manager owns all of them, so stop it once for any removed
+  # or modified certificate type.
+  defp stop_certificate_manager_if_changed(name, cert_details) do
+    if Enum.any?(cert_details, fn {_type, %{status: status}} ->
+         status in [:removed, :modified]
+       end) do
+      Logger.warning("ConfigWatcher: Removing certificate manager for #{name}")
+      Certificate.stop_certificate_manager(name)
+    end
+
+    :ok
+  end
+
+  # Start (or restart) the certificate manager for each added or modified
+  # certificate type. The details map is keyed by certificate type.
+  defp start_certificate_managers_for_added(name, cert_details) do
+    cert_details
+    |> Enum.filter(fn {_type, %{status: status}} -> status in [:added, :modified] end)
+    |> Enum.each(fn {_type, %{config: config}} ->
+      Certificate.start_certificate_manager(name, [config])
+    end)
+
+    :ok
   end
 
   defp build_config_updates(summary) do

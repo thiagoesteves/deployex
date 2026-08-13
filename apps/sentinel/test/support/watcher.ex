@@ -274,7 +274,7 @@ defmodule Sentinel.Fixture.Watcher do
 
   def build_pending_changes_with_certificates do
     cert = %Foundation.Yaml.Certificate{
-      type: :domains,
+      type: :acme,
       domains: ["*.example.com"],
       certificate_check_interval_ms: 86_400_000,
       dns_propagation_timeout_ms: 120_000,
@@ -301,7 +301,7 @@ defmodule Sentinel.Fixture.Watcher do
                   old: [],
                   new: [cert],
                   details: %{
-                    domains: %{status: :added, config: cert}
+                    acme: %{status: :added, config: cert}
                   },
                   apply_strategy: :immediate
                 }

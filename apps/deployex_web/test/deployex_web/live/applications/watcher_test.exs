@@ -145,7 +145,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
     html = render(liveview)
     assert html =~ "myphoenixapp"
     assert html =~ "Certificates"
-    assert html =~ "DOMAINS"
+    assert html =~ "ACME"
     assert html =~ "*.example.com"
   end
 

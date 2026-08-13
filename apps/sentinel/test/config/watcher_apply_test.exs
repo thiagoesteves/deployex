@@ -63,4 +63,117 @@ defmodule Sentinel.Config.WatcherApplyTest do
       assert log =~ "ConfigWatcher: Removing application: myumbrella"
     end
   end
+
+  test "applies certificate changes by stopping and starting the manager" do
+    cert = %Foundation.Yaml.Certificate{
+      type: :acme,
+      domains: ["*.example.com"],
+      certificate_check_interval_ms: 86_400_000,
+      dns_propagation_timeout_ms: 120_000,
+      dns_check_interval_ms: 5000,
+      renew_before_days: 30,
+      dns_provider: :cloudflare,
+      dns_options: nil,
+      acme_provider: :lets_encrypt,
+      acme_options: nil,
+      importer: nil,
+      importer_options: nil
+    }
+
+    pending_changes =
+      Sentinel.Fixture.Watcher.build_pending_changes_with_certificates()
+
+    with_mocks([
+      {Upgradable, [], [from_app_env: fn -> @default_upgradable end]},
+      {Certificate, [],
+       [
+         start_certificate_manager: fn _name, _certificates -> :ok end,
+         stop_certificate_manager: fn _name -> :ok end
+       ]},
+      {Application, [:passthrough], [put_all_env: fn _config_updates -> :ok end]}
+    ]) do
+      capture_log(fn ->
+        {:ok, pid} = Watcher.start_link(name: :test_apply_certificates)
+
+        :sys.replace_state(pid, fn state ->
+          %{state | pending_config: %Upgradable{}, pending_changes: pending_changes}
+        end)
+
+        assert :ok = Watcher.apply_changes(pid)
+      end)
+
+      # An added certificate type starts the manager with the new config
+      assert_called(Certificate.start_certificate_manager("myphoenixapp", [cert]))
+    end
+  end
+
+  test "applies removed certificate by stopping the manager" do
+    cert = %Foundation.Yaml.Certificate{
+      type: :acme,
+      domains: ["*.example.com"],
+      certificate_check_interval_ms: 86_400_000,
+      dns_propagation_timeout_ms: 120_000,
+      dns_check_interval_ms: 5000,
+      renew_before_days: 30,
+      dns_provider: :cloudflare,
+      dns_options: nil,
+      acme_provider: :lets_encrypt,
+      acme_options: nil,
+      importer: nil,
+      importer_options: nil
+    }
+
+    # Build a pending changes where the certificate type is :removed
+    pending_changes = %Sentinel.Config.Changes{
+      summary: %{
+        applications: %{
+          old: [],
+          new: [],
+          details: %{
+            "myphoenixapp" => %{
+              status: :modified,
+              changes: %{
+                certificates: %{
+                  old: [cert],
+                  new: [],
+                  details: %{
+                    acme: %{status: :removed, config: cert}
+                  },
+                  apply_strategy: :immediate
+                }
+              },
+              apply_strategies: [:immediate]
+            }
+          }
+        }
+      },
+      timestamp: ~U[2025-11-14 23:41:07.000464Z],
+      changes_count: 1
+    }
+
+    with_mocks([
+      {Upgradable, [], [from_app_env: fn -> @default_upgradable end]},
+      {Certificate, [],
+       [
+         start_certificate_manager: fn _name, _certificates -> :ok end,
+         stop_certificate_manager: fn _name -> :ok end
+       ]},
+      {Application, [:passthrough], [put_all_env: fn _config_updates -> :ok end]}
+    ]) do
+      capture_log(fn ->
+        {:ok, pid} = Watcher.start_link(name: :test_apply_cert_removed)
+
+        :sys.replace_state(pid, fn state ->
+          %{state | pending_config: %Upgradable{}, pending_changes: pending_changes}
+        end)
+
+        assert :ok = Watcher.apply_changes(pid)
+      end)
+
+      # A removed certificate type stops the manager
+      assert_called(Certificate.stop_certificate_manager("myphoenixapp"))
+      # And does not start it again
+      assert_not_called(Certificate.start_certificate_manager(:_, :_))
+    end
+  end
 end
