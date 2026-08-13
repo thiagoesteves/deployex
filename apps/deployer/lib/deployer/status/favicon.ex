@@ -18,24 +18,18 @@ defmodule Deployer.Status.Favicon do
   Return the icon as a `data:` URI for the node, or `nil` when no icon
   is found. Returns `:error` when the node is unreachable.
   """
-  @spec image(node :: node(), app :: String.t()) :: {:ok, String.t() | nil} | :error
-  def image(node, app) do
-    case Rpc.call(node, :code, :priv_dir, [String.to_atom(app)], @rpc_timeout) do
-      priv_dir when is_binary(priv_dir) or is_list(priv_dir) ->
-        priv_dir = to_string(priv_dir)
-
-        with patterns = icon_patterns(priv_dir),
-             matches when is_list(matches) and matches != [] <-
-               Rpc.call(node, :filelib, :wildcard, [patterns], @rpc_timeout),
-             path <- choose_match(matches),
-             {:ok, binary} <- Rpc.call(node, :file, :read_file, [path], @rpc_timeout) do
-          {:ok, "data:#{mime(path)};base64," <> Base.encode64(binary)}
-        else
-          _ -> {:ok, nil}
-        end
-
-      _ ->
-        :error
+  @spec image(node :: node(), name :: String.t()) :: {:ok, String.t() | nil} | :error
+  def image(node, name) do
+    with {:ok, priv_dir} <- app_priv_dir(node, name),
+         patterns = icon_patterns(priv_dir),
+         matches when is_list(matches) and matches != [] <-
+           Rpc.call(node, :filelib, :wildcard, [patterns], @rpc_timeout),
+         path <- choose_match(matches),
+         {:ok, binary} <- Rpc.call(node, :file, :read_file, [path], @rpc_timeout) do
+      {:ok, "data:#{mime(path)};base64," <> Base.encode64(binary)}
+    else
+      :error -> :error
+      _ -> {:ok, nil}
     end
   end
 
@@ -43,12 +37,31 @@ defmodule Deployer.Status.Favicon do
   ### Private functions
   ### ==========================================================================
 
-  defp icon_patterns(priv_dir) do
-    Enum.flat_map([priv_dir, Path.join(priv_dir, "*")], fn dir ->
-      Enum.map(["logo.*", "favicon.*"], fn file ->
-        Path.join([dir, file]) |> String.to_charlist()
-      end)
+  defp app_priv_dir(node, name) do
+    [to_existing_or_new_atom(name), String.to_atom("#{name}_web")]
+    |> Enum.find_value(fn app ->
+      case Rpc.call(node, :code, :priv_dir, [app], @rpc_timeout) do
+        priv_dir when is_binary(priv_dir) or is_list(priv_dir) -> to_string(priv_dir)
+        _ -> nil
+      end
     end)
+    |> case do
+      nil -> :error
+      priv_dir -> {:ok, priv_dir}
+    end
+  end
+
+  defp to_existing_or_new_atom(name) do
+    String.to_existing_atom(name)
+  rescue
+    ArgumentError -> String.to_atom(name)
+  end
+
+  defp icon_patterns(priv_dir) do
+    for dir <- [priv_dir, Path.join(priv_dir, "*")],
+        file <- [~c"logo.*", ~c"favicon.*"] do
+      ~c"#{Path.join([dir, to_string(file)])}"
+    end
   end
 
   defp choose_match(matches) do
