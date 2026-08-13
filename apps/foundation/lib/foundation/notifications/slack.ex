@@ -57,7 +57,7 @@ defmodule Foundation.Notifications.Slack do
   | `deployment_complete` (error)   | ❌    | Deployment finished with error                        |
   | `application_ready`             | 🟢    | App reported itself running, whatever put it there    |
   | `deployment_shutdown`           | 🛑    | App force-terminated (will restart shortly)           |
-  | `watchdog_threshold_exceeded`   | ⚠️    | Resource threshold crossed; app restarted             |
+  | `watchdog_threshold_exceeded`   | ⚠️    | Restart threshold reached, restarted or not           |
   | `watchdog_threshold_warning`    | 🔶/✅ | Resource crossed warning threshold or normalized      |
   | `certificate_renewed`           | 🔒    | TLS certificate successfully renewed                  |
   | `certificate_failed`            | 🔓    | TLS certificate renewal failed                        |
@@ -150,6 +150,13 @@ defmodule Foundation.Notifications.Slack do
     """
     🟢 *application_ready* — `#{payload.sname}` on `#{payload.node}`
     Version: *#{payload.version}*\
+    """
+  end
+
+  defp format_message("watchdog_threshold_exceeded", %{action: :no_restart} = payload) do
+    """
+    ⚠️ *watchdog_threshold_exceeded* — `#{payload.node}`, restart is disabled
+    Resource: *#{payload.type}* at *#{payload.current_percentage}%* (threshold: #{payload.restart_threshold_percent}%)\
     """
   end
 

@@ -166,8 +166,21 @@ defmodule Foundation.Notifications.PagerDutyTest do
         {"application_ready", %{node: :n@h, sname: "s", version: "1.0"}, "info"},
         {"deployment_shutdown", %{node: :n@h, sname: "s"}, "warning"},
         {"watchdog_threshold_exceeded",
-         %{node: :n@h, type: :memory, current_percentage: 96, restart_threshold_percent: 95},
-         "critical"},
+         %{
+           node: :n@h,
+           type: :memory,
+           current_percentage: 96,
+           restart_threshold_percent: 95,
+           action: :restart
+         }, "critical"},
+        {"watchdog_threshold_exceeded",
+         %{
+           node: :n@h,
+           type: :atom,
+           current_percentage: 96,
+           restart_threshold_percent: 95,
+           action: :no_restart
+         }, "critical"},
         {"watchdog_threshold_warning",
          %{
            node: :n@h,

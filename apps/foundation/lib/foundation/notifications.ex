@@ -21,7 +21,7 @@ defmodule Foundation.Notifications do
   | `"deployment_started"`            | New deployment was initiated for an sname                  | `node`, `sname`, `version`                                                  |
   | `"deployment_complete"`           | Full deployment or hot upgrade finished (success or failure)| `node`, `sname`, `status` (`:ok`/`:error`), `message`, plus `version` for a full deployment and `from_version`/`to_version` for a hot upgrade |
   | `"application_ready"`             | Monitored application reported itself running, whatever put it there | `node`, `sname`, `version`                                       |
-  | `"watchdog_threshold_exceeded"`   | Watchdog exceeded a resource threshold and restarted an app| `node`, `type`, `current_percentage`, `restart_threshold_percent`          |
+  | `"watchdog_threshold_exceeded"`   | Resource reached the restart threshold, restarted or not   | `node`, `type`, `current_percentage`, `restart_threshold_percent`, `action` (`:restart`/`:no_restart`) |
   | `"watchdog_threshold_warning"`    | Resource crossed the warning threshold (or returned below) | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`           | TLS certificate was successfully renewed                   | `app_name`, `domains`                                                       |
   | `"certificate_valid"`             | Periodic check found a still-valid certificate (no renewal)| `app_name`, `domains`                                                       |

@@ -44,7 +44,7 @@ defmodule Foundation.Notifications.Adapter do
   | `"deployment_complete"`        | `node`, `sname`, `status` (`:ok`/`:error`), `message`, plus `version` for a full deployment and `from_version`/`to_version` for a hot upgrade |
   | `"application_ready"`          | `node`, `sname`, `version`                                                                    |
   | `"deployment_shutdown"`        | `node`, `sname`                                                                               |
-  | `"watchdog_threshold_exceeded"`| `node`, `type`, `current_percentage`, `restart_threshold_percent`                             |
+  | `"watchdog_threshold_exceeded"`| `node`, `type`, `current_percentage`, `restart_threshold_percent`, `action` (`:restart`/`:no_restart`) |
   | `"watchdog_threshold_warning"` | `node`, `type`, `current_percentage`, `warning_threshold_percent`, `action` (`:warning`/`:normalized`) |
   | `"certificate_renewed"`        | `app_name`, `domains`                                                                         |
   | `"certificate_valid"`          | `app_name`, `domains`                                                                         |
