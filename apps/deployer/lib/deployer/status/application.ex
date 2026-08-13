@@ -428,7 +428,10 @@ defmodule Deployer.Status.Application do
 
   defp node_urls(node, true) do
     cache_in_process({node, :urls}) do
-      Endpoints.urls(node)
+      case Endpoints.urls(node) do
+        {:ok, []} -> {:error, nil}
+        other -> other
+      end
     end || []
   end
 
