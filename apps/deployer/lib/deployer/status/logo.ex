@@ -7,9 +7,11 @@ defmodule Deployer.Status.Logo do
   directory, and returned as a base64 `data:` URI ready to be used as an
   `<img>` source.
 
-  Lookup is best effort: an unknown application, an unreachable node or a
-  missing file all yield `nil` rather than an error, so a missing logo
-  never prevents the application from being rendered.
+  Lookup is best effort and never prevents an application from being
+  rendered. It distinguishes an application that answered and has no logo,
+  which is a definitive answer, from a lookup that could not be performed
+  because the node did not reply, so that a transient failure is not
+  remembered as a missing logo.
   """
 
   alias Foundation.Rpc
@@ -24,10 +26,15 @@ defmodule Deployer.Status.Logo do
   Return the logo of the application `name` running on `node` as a base64
   `data:` URI.
 
-  Returns `{:ok, nil}` when the application is unknown, the node is
-  unreachable or the node has no `logo.svg`.
+  Returns `{:ok, nil}` when the node answered but has no `logo.svg`, which
+  is a definitive answer and safe for the caller to cache.
+
+  Returns `:error` when the question could not be answered at all, because
+  the name is not a known application or the node did not reply. The caller
+  is expected to treat this as "unknown for now" and ask again later rather
+  than remembering the absence of a logo.
   """
-  @spec image(node :: node(), name :: String.t()) :: {:ok, String.t() | nil}
+  @spec image(node :: node(), name :: String.t()) :: {:ok, String.t() | nil} | :error
   def image(node, name) do
     with {:ok, app} <- existing_atom(name),
          {:ok, priv_dir} <- app_priv_dir(node, app),
@@ -35,6 +42,7 @@ defmodule Deployer.Status.Logo do
          {:ok, binary} <- Rpc.call(node, :file, :read_file, [path], @rpc_timeout) do
       {:ok, "data:image/svg+xml;base64," <> Base.encode64(binary)}
     else
+      :error -> :error
       _ -> {:ok, nil}
     end
   end

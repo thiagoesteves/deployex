@@ -44,22 +44,33 @@ defmodule Deployer.Status.LogoTest do
     assert {:ok, nil} = Logo.image(@node, @name)
   end
 
-  test "image/2 returns nil when the application is not loaded on the node" do
+  test "image/2 errors when the application is not loaded on the node" do
     Foundation.RpcMock
     |> expect(:call, fn @node, :code, :priv_dir, [@app], _timeout -> {:error, :bad_name} end)
 
-    assert {:ok, nil} = Logo.image(@node, @name)
+    assert :error = Logo.image(@node, @name)
   end
 
-  test "image/2 returns nil when the node is unreachable" do
+  test "image/2 errors when the node is unreachable" do
     Foundation.RpcMock
     |> expect(:call, fn @node, :code, :priv_dir, [@app], _timeout -> {:badrpc, :nodedown} end)
 
-    assert {:ok, nil} = Logo.image(@node, @name)
+    assert :error = Logo.image(@node, @name)
   end
 
-  test "image/2 returns nil for an unknown application name without calling the node" do
+  test "image/2 errors for an unknown application name without calling the node" do
     # verify_on_exit! fails the test if the unknown name reaches the node
-    assert {:ok, nil} = Logo.image(@node, "unknown_#{System.unique_integer([:positive])}")
+    assert :error = Logo.image(@node, "unknown_#{System.unique_integer([:positive])}")
+  end
+
+  test "image/2 separates a node with no logo from a node that did not answer" do
+    # only the first is a definitive answer, so only it is safe for the caller to cache
+    Foundation.RpcMock
+    |> expect(:call, fn @node, :code, :priv_dir, [@app], _timeout -> @priv_dir end)
+    |> expect(:call, fn @node, :file, :read_file, [_path], _timeout -> {:error, :enoent} end)
+    |> expect(:call, fn @node, :code, :priv_dir, [@app], _timeout -> {:badrpc, :nodedown} end)
+
+    assert {:ok, nil} = Logo.image(@node, @name)
+    assert :error = Logo.image(@node, @name)
   end
 end
