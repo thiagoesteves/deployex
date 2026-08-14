@@ -15,7 +15,7 @@
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) Monitor the DeployEx atom, process and port limits alongside the host memory
  * [`PULL-293`](https://github.com/thiagoesteves/deployex/pull/293) Show the URLs each connected application is serving on, read from its own endpoints
  * [`PULL-296`](https://github.com/thiagoesteves/deployex/pull/296) Replace the Elixir and Erlang logos with the official ones and swap to a brighter variant on dark themes
- * [`PULL-297`](https://github.com/thiagoesteves/deployex/pull/297) Fetch the logo from the `<name>_web` child when the monitored application is a Phoenix umbrella
+ * [`PULL-305`](https://github.com/thiagoesteves/deployex/pull/305) Fetch the logo from the `<name>_web` child when the monitored application is a Phoenix umbrella
 
 ## 0.9.12 🚀 (2026-08-12)
 
