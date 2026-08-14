@@ -5,6 +5,7 @@ defmodule DeployexWeb.Applications.IndexTest do
   import Mox
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias Host.Info
 
   setup [
     :set_mox_global,
@@ -489,6 +490,98 @@ defmodule DeployexWeb.Applications.IndexTest do
       assert html =~ "text-error\">\n          21%"
     end
   end)
+
+  describe "division by zero guards" do
+    @tag :capture_log
+    test "GET /applications handles vm metric with limit 0 without crashing", %{conn: conn} do
+      topic = "test-topic"
+
+      deployex =
+        FixtureStatus.deployex(%{
+          node: Node.self(),
+          monitoring: add_metrics([:memory, :port])
+        })
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, _html} = live(conn, ~p"/applications")
+
+      # Send a metric with limit 0 - should not crash the LiveView
+      zero_limit_data = %ObserverWeb.Telemetry.Data{
+        timestamp: :rand.uniform(2_000_000_000_000),
+        value: 0,
+        unit: " kilobyte",
+        tags: %{},
+        measurements: %{
+          limit: 0,
+          total: 0
+        }
+      }
+
+      Phoenix.PubSub.broadcast(
+        Deployer.PubSub,
+        topic,
+        {:metrics_new_data, Node.self(), "vm.port.total", zero_limit_data}
+      )
+
+      # The LiveView should still be alive and renderable
+      assert Process.alive?(view.pid)
+      assert render(view) =~ "Resource Monitoring"
+    end
+
+    @tag :capture_log
+    test "GET /applications handles nil memory_total without crashing", %{conn: conn} do
+      topic = "test-topic"
+
+      deployex =
+        FixtureStatus.deployex(%{
+          node: Node.self(),
+          monitoring: add_metrics([:memory])
+        })
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, _html} = live(conn, ~p"/applications")
+
+      # Send system info with nil memory_total - should not crash the LiveView
+      send(view.pid, {:update_system_info, %Info{memory_total: nil, memory_free: nil}})
+
+      # The LiveView should still be alive and renderable
+      assert Process.alive?(view.pid)
+      assert render(view) =~ "Resource Monitoring"
+    end
+
+    @tag :capture_log
+    test "GET /applications handles zero memory_total without crashing", %{conn: conn} do
+      topic = "test-topic"
+
+      deployex =
+        FixtureStatus.deployex(%{
+          node: Node.self(),
+          monitoring: add_metrics([:memory])
+        })
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, _html} = live(conn, ~p"/applications")
+
+      # Send system info with 0 memory_total - should not crash the LiveView
+      send(view.pid, {:update_system_info, %Info{memory_total: 0, memory_free: 0}})
+
+      # The LiveView should still be alive and renderable
+      assert Process.alive?(view.pid)
+      assert render(view) =~ "Resource Monitoring"
+    end
+  end
 
   defp add_metrics(metrics, enabled \\ true) do
     Enum.map(metrics, fn metric ->
