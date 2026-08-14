@@ -326,4 +326,44 @@ defmodule Sentinel.Logs.ServerTest do
     |> Map.put(:node, node)
     |> Map.put(:pid, pid)
   end
+
+  test "starts the pruning timer when retention is enabled after init", %{pid: existing_pid} do
+    # Stop the server from the shared setup so we can start our own with nil retention
+    GenServer.stop(existing_pid)
+
+    sname = Catalog.create_sname("myelixir")
+    Catalog.setup_new_node(sname)
+
+    Host.CommanderMock
+    |> stub(:run, fn _command, _options -> {:ok, self(), "123456"} end)
+    |> stub(:stop, fn _pid -> :ok end)
+
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [sname] end)
+    |> stub(:subscribe_new_deploy, fn -> :ok end)
+
+    # Start with retention disabled (nil)
+    {:ok, pid} =
+      with_mock Host.Terminal, new: fn %Host.Terminal{} -> :ok end do
+        Server.start_link(data_retention_period: nil)
+      end
+
+    # Sanity: no timer ref in state
+    assert %{prune_timer_ref: nil} = :sys.get_state(pid)
+
+    # Enable retention: the timer should start
+    Server.update_data_retention_period(:timer.minutes(1))
+    :timer.sleep(50)
+
+    assert %{prune_timer_ref: ref} = :sys.get_state(pid)
+    assert ref != nil
+
+    # Disable retention: the timer should be cancelled
+    Server.update_data_retention_period(nil)
+    :timer.sleep(50)
+
+    assert %{prune_timer_ref: nil} = :sys.get_state(pid)
+
+    GenServer.stop(pid)
+  end
 end

@@ -26,13 +26,15 @@ defmodule Sentinel.Logs.Server do
           snames: [String.t()],
           sname_logs_tables: map(),
           persist_data?: boolean(),
-          data_retention_period: nil | non_neg_integer()
+          data_retention_period: nil | non_neg_integer(),
+          prune_timer_ref: nil | :timer.tref()
         }
 
   defstruct snames: [],
             sname_logs_tables: %{},
             persist_data?: false,
-            data_retention_period: nil
+            data_retention_period: nil,
+            prune_timer_ref: nil
 
   ### ==========================================================================
   ### Callback functions
@@ -51,14 +53,13 @@ defmodule Sentinel.Logs.Server do
 
     data_retention_period = Keyword.fetch!(args, :data_retention_period)
 
-    persist_data? = fn ->
+    {persist_data?, prune_timer_ref} =
       if data_retention_period do
-        :timer.send_interval(@retention_data_delete_interval, :prune_expired_entries)
-        true
+        {:ok, ref} = :timer.send_interval(@retention_data_delete_interval, :prune_expired_entries)
+        {true, ref}
       else
-        false
+        {false, nil}
       end
-    end
 
     # Subscribe to receive notifications if any node is UP or Down
     :net_kernel.monitor_nodes(true)
@@ -80,9 +81,10 @@ defmodule Sentinel.Logs.Server do
     {:ok,
      %{
        expected_snames: expected_snames,
-       persist_data?: persist_data?.(),
+       persist_data?: persist_data?,
        sname_logs_tables: sname_logs_tables,
-       data_retention_period: data_retention_period
+       data_retention_period: data_retention_period,
+       prune_timer_ref: prune_timer_ref
      }}
   end
 
@@ -211,7 +213,25 @@ defmodule Sentinel.Logs.Server do
       prune_old_data_immediately(state, retention_period)
     end
 
-    {:noreply, %{state | data_retention_period: retention_period}}
+    # Start or cancel the periodic pruning timer based on the new retention period
+    new_prune_timer_ref =
+      cond do
+        retention_period && is_nil(state.prune_timer_ref) ->
+          {:ok, ref} =
+            :timer.send_interval(@retention_data_delete_interval, :prune_expired_entries)
+
+          ref
+
+        is_nil(retention_period) && state.prune_timer_ref ->
+          :timer.cancel(state.prune_timer_ref)
+          nil
+
+        true ->
+          state.prune_timer_ref
+      end
+
+    {:noreply,
+     %{state | data_retention_period: retention_period, prune_timer_ref: new_prune_timer_ref}}
   end
 
   ### ==========================================================================

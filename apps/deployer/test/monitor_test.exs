@@ -681,6 +681,58 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
+    test "consecutive_crash_count resets to 0 after application reports running", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_event_ref = make_ref()
+      test_pid_process = self()
+      os_pid = 123_456
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0"}
+      end)
+
+      Host.CommanderMock
+      |> stub(:run_link, fn _command, _options ->
+        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> stub(:run, fn _commands, _options -> {:ok, test_pid_process} end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert {:ok, pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 timeout_app_ready: 10
+               })
+
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+      assert %{status: :running, crash_restart_count: 0, consecutive_crash_count: 0} =
+               MonitorApp.state(sname)
+
+      # Crash the application
+      send(pid, {:EXIT, test_pid_process, :forcing_restart})
+
+      # Wait for the backoff (2 * 1 * 1000 = 2000ms) plus margin for check_running
+      :timer.sleep(2_500)
+
+      # After the restart and check_running fires, the backoff counter resets while
+      # the lifetime crash_restart_count is preserved
+      assert %{status: :running, crash_restart_count: 1, consecutive_crash_count: 0} =
+               MonitorApp.state(sname)
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
     test "Don't restart Application if EXIT message is not valid", %{
       elixir_name: name,
       elixir_sname: sname,

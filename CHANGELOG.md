@@ -14,6 +14,7 @@
  * [`PULL-290`](https://github.com/thiagoesteves/deployex/pull/290) Add an application_ready event for every report that an application is running
  * [`PULL-292`](https://github.com/thiagoesteves/deployex/pull/292) Monitor the DeployEx atom, process and port limits alongside the host memory
  * [`PULL-293`](https://github.com/thiagoesteves/deployex/pull/293) Show the URLs each connected application is serving on, read from its own endpoints
+ * [`PULL-296`](https://github.com/thiagoesteves/deployex/pull/296) Replace the Elixir and Erlang logos with the official ones and swap to a brighter variant on dark themes
 
 ## 0.9.12 🚀 (2026-08-12)
 

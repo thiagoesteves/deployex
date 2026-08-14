@@ -196,7 +196,9 @@ Also include the risk assessment in the commit message body so it survives outsi
 For bug fixes, state how the bug was reproduced (ideally a test that fails without the fix).
 
 When a PR is authored by an AI agent, credit it at the end of the description with:
-`🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+`🤖 Generated with [Devin](https://devin.ai) (<model name>)` when running through Devin,
+or `🤖 Generated with [Claude Code](https://claude.com/claude-code) (<model name>)` when running through Claude Code directly.
+`<model name>` is the model the agent is running on (e.g. `GLM-5.2 High`, `Claude Sonnet 4.5`).
 Never add the agent as commit co-author.
 
 ---
