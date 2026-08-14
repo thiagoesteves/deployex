@@ -554,6 +554,9 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   end
 
   defp render_certificate_change(%{status: %{status: :modified}} = assigns) do
+    assigns =
+      assign(assigns, :field_changes, Map.get(assigns.status, :changes, %{}))
+
     ~H"""
     <div class="bg-warning/10 border-l-4 border-warning rounded-lg p-3">
       <div class="flex items-center gap-2">
@@ -564,6 +567,16 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
       </div>
       <div class="text-sm text-base-content/70 ml-4 mt-1">
         {Enum.join(@status.config.domains, ", ")}
+      </div>
+      <div :if={map_size(@field_changes) > 0} class="mt-2 space-y-1">
+        <%= for {field, %{old: old, new: new}} <- @field_changes do %>
+          <div class="flex gap-2 items-center text-xs">
+            <span class="text-base-content/50 font-mono">{field}</span>
+            <span class="text-error line-through">{format_cert_value(old)}</span>
+            <span class="text-base-content/50">→</span>
+            <span class="text-success">{format_cert_value(new)}</span>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -610,6 +623,27 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   defp format_value(:env, list), do: Enum.join(list, " ")
 
   defp format_value(_, value), do: to_string(value)
+
+  defp format_cert_value(nil), do: "none"
+
+  defp format_cert_value([]), do: "[]"
+
+  defp format_cert_value(list) when is_list(list) do
+    Enum.map_join(list, ", ", &format_cert_value/1)
+  end
+
+  defp format_cert_value(%_{} = struct) do
+    struct
+    |> Map.from_struct()
+    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+    |> Enum.map_join(", ", fn {k, v} -> "#{k}: #{format_cert_value(v)}" end)
+  end
+
+  defp format_cert_value(value) when is_atom(value) do
+    value |> to_string() |> String.replace_prefix("Elixir.", "")
+  end
+
+  defp format_cert_value(value), do: to_string(value)
 
   defp format_timestamp(timestamp) do
     Calendar.strftime(timestamp, "%Y-%m-%d %H:%M:%S UTC")
