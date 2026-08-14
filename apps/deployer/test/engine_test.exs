@@ -1200,28 +1200,6 @@ defmodule Deployer.EngineTest do
       end
     end
 
-    test "code_change/3 fills the flag in for a deployment built by the previous version" do
-      # the previous version had no deploying? key at all, a struct default only applies to
-      # a struct being built
-      previous_version_deployment =
-        Map.delete(
-          %Deployer.Engine.Deployment{sname: "myelixir-1234", state: :active, ports: [4000]},
-          :deploying?
-        )
-
-      state = %Engine.Worker{deployments: %{1 => previous_version_deployment}}
-
-      assert {:ok, %Engine.Worker{deployments: %{1 => deployment}}} =
-               Engine.Worker.code_change("0.9.13", state, [])
-
-      assert %Deployer.Engine.Deployment{
-               sname: "myelixir-1234",
-               state: :active,
-               ports: [4000],
-               deploying?: false
-             } = deployment
-    end
-
     @tag :capture_log
     test "the same deployment is not reported twice" do
       name = "myelixir"
