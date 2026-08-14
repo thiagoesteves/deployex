@@ -63,15 +63,15 @@ defmodule DeployexWeb.Layouts do
           <.theme_toggle />
         </div>
       </div>
-      
-    <!-- Main Content -->
+
+      <!-- Main Content -->
       <div class="drawer-content flex flex-col min-h-screen">
         <main class="flex-1">
           {render_slot(@inner_block)}
         </main>
       </div>
-      
-    <!-- Navigation Sidebar -->
+
+      <!-- Navigation Sidebar -->
       <.live_component
         module={DeployexWeb.Components.NavMenu}
         ui_settings={@ui_settings}

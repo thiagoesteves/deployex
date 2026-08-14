@@ -2,8 +2,6 @@ defmodule DeployexWeb.Components.Monitoring do
   @moduledoc false
   use DeployexWeb, :html
 
-  use Phoenix.Component
-
   alias DeployexWeb.Helper
 
   attr :monitoring, :list, required: true
@@ -121,8 +119,8 @@ defmodule DeployexWeb.Components.Monitoring do
           {@status_text}
         </div>
       </div>
-      
-    <!-- Combined Progress Bar -->
+
+      <!-- Combined Progress Bar -->
       <div class="space-y-3">
         <div class="bg-base-200 border border-base-300 rounded-lg p-4">
           <!-- Current Usage Display -->
@@ -167,8 +165,8 @@ defmodule DeployexWeb.Components.Monitoring do
               </div>
             </div>
           </div>
-          
-    <!-- Threshold Legend -->
+
+          <!-- Threshold Legend -->
           <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-base-300">
             <div class="flex items-center gap-2">
               <div class="w-3 h-3 bg-warning rounded"></div>

@@ -4,8 +4,6 @@ defmodule Sentinel.Logs.Server do
   """
   use GenServer
 
-  require Logger
-
   @behaviour Sentinel.Logs.Adapter
 
   alias Deployer.Monitor

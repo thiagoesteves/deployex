@@ -1,8 +1,6 @@
 defmodule Deployer.Engine do
   @moduledoc false
 
-  require Logger
-
   alias Deployer.Engine
   alias Foundation.Catalog
   alias Foundation.Yaml.Application, as: YamlApplication

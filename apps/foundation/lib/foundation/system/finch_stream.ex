@@ -66,8 +66,6 @@ defmodule Foundation.System.FinchStream do
       end
   """
 
-  require Logger
-
   @typedoc """
   A callback to apply, carrying the arguments to apply it with, which the stream appends to.
 
