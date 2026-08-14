@@ -25,11 +25,11 @@ defmodule DeployexWeb.LogsLive do
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
         <div class="bg-base-100 border-b border-base-200 shadow-sm">
-          <div class="max-w-7xl mx-auto px-4 py-4">
+          <div class="max-w-8xl mx-auto px-4 py-2">
             <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-3xl font-bold text-base-content">Live Logs</h1>
-                <p class="text-base-content/60 mt-1">Real-time application logs monitoring</p>
+              <div class="flex items-baseline gap-2">
+                <h1 class="text-xl font-bold text-base-content">Live Logs</h1>
+                <p class="text-sm text-base-content/50">Real-time application logs monitoring</p>
               </div>
               <div class="flex items-center gap-4">
                 <button
@@ -54,11 +54,10 @@ defmodule DeployexWeb.LogsLive do
           </div>
         </div>
         <!-- Main Content -->
-        <div class="max-w-8xl mx-auto px-3 py-3">
+        <div class="max-w-8xl mx-auto px-3 py-2">
           <!-- Filters Card -->
-          <div class="card bg-base-100 shadow-sm mb-6">
-            <div class="card-body p-6">
-              <h2 class="card-title text-lg mb-4">Log Filters</h2>
+          <div class="card bg-base-100 shadow-sm mb-3">
+            <div class="card-body p-3">
               <MultiSelect.content
                 id="logs-live-multi-select"
                 selected_text="Selected logs"

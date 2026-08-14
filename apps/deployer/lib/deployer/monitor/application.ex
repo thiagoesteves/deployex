@@ -16,6 +16,7 @@ defmodule Deployer.Monitor.Application do
 
   @monitor_table "monitor-table"
   @new_deploy_topic "deployex::new_deploy"
+  @max_backoff_ms :timer.minutes(5)
 
   ### ==========================================================================
   ### Callback functions
@@ -137,7 +138,12 @@ defmodule Deployer.Monitor.Application do
 
     Engine.notify_application_running(sname)
 
-    {:noreply, update_non_blocking_state(%{state | status: :running})}
+    # NOTE: The application reached a stable state, so the backoff sequence starts
+    #       over on the next crash. The crash_restart_count is a lifetime total and
+    #       is never reset here.
+    state = %{state | status: :running, consecutive_crash_count: 0}
+
+    {:noreply, update_non_blocking_state(state)}
   end
 
   def handle_info({:check_running, _pid, _sname}, state) do
@@ -162,6 +168,9 @@ defmodule Deployer.Monitor.Application do
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
+    # Crashes since the application was last seen running, it drives the backoff only
+    consecutive_crash_count = state.consecutive_crash_count + 1
+
     Foundation.Notifications.notify("crash_restart", %{
       node: Node.self(),
       sname: state.sname,
@@ -170,14 +179,16 @@ defmodule Deployer.Monitor.Application do
       crash_restart_count: crash_restart_count
     })
 
-    # Retry with backoff pattern
-    trigger_run_service(state.sname, 2 * crash_restart_count * 1000)
+    # Retry with backoff pattern, capped to avoid unbounded growth
+    backoff = min(2 * consecutive_crash_count * 1000, @max_backoff_ms)
+    trigger_run_service(state.sname, backoff)
 
     {:noreply,
      update_non_blocking_state(%{
        state
        | current_pid: nil,
-         crash_restart_count: crash_restart_count
+         crash_restart_count: crash_restart_count,
+         consecutive_crash_count: consecutive_crash_count
      })}
   end
 

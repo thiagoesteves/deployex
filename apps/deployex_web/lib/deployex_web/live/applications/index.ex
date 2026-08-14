@@ -528,7 +528,8 @@ defmodule DeployexWeb.ApplicationsLive do
         {:metrics_new_data, source_node, metric_key,
          %Telemetry.Data{measurements: %{total: count, limit: limit}}},
         %{assigns: %{metrics: metrics}} = socket
-      ) do
+      )
+      when is_integer(limit) and limit > 0 do
     if source_node in metrics.monitored_nodes do
       current_percentage = trunc(count / limit * 100)
 
@@ -551,7 +552,8 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, socket}
   end
 
-  def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket) do
+  def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket)
+      when is_integer(host_info.memory_total) and host_info.memory_total > 0 do
     # Sync ui_settings from cache to ensure NavMenu has latest state
     ui_settings = UiSettings.get()
 
@@ -570,6 +572,12 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:host_info, host_info)
      |> assign(:metrics, Map.put(metrics, node, new_node_metrics))
      |> assign(:ui_settings, ui_settings)}
+  end
+
+  # NOTE: Ignore system info when memory_total is nil or 0 to avoid division by zero
+  def handle_info({:update_system_info, host_info}, socket) do
+    ui_settings = UiSettings.get()
+    {:noreply, socket |> assign(:host_info, host_info) |> assign(:ui_settings, ui_settings)}
   end
 
   def handle_info(
