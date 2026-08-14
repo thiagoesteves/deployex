@@ -704,8 +704,8 @@ defmodule DeployexWeb.CoreComponents do
 
   def modern_history_logs_table(assigns) do
     ~H"""
-    <div class="max-h-[600px] overflow-y-auto" id={"#{@id}-container"}>
-      <table class="table table-zebra table-pin-rows">
+    <div class="max-h-[calc(100vh-240px)] overflow-y-auto" id={"#{@id}-container"}>
+      <table class="table table-sm table-zebra table-pin-rows">
         <thead>
           <tr class="bg-base-200">
             <th class="w-40">
@@ -790,11 +790,11 @@ defmodule DeployexWeb.CoreComponents do
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
                 </div>
-                <span class="badge badge-neutral truncate">{log_message.service}</span>
+                <span class="badge badge-sm badge-neutral truncate">{log_message.service}</span>
               </div>
             </td>
             <td>
-              <div class={["font-mono text-xs badge", log_type_badge(log_message.type)]}>
+              <div class={["font-mono text-xs badge badge-sm", log_type_badge(log_message.type)]}>
                 {log_message.type}
               </div>
             </td>
@@ -835,8 +835,8 @@ defmodule DeployexWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="h-[600px] overflow-y-auto" id={"#{@id}-container"} phx-hook="ScrollBottom">
-      <table class="table table-zebra table-pin-rows">
+    <div class="h-[calc(100vh-200px)] overflow-y-auto" id={"#{@id}-container"} phx-hook="ScrollBottom">
+      <table class="table table-sm table-zebra table-pin-rows">
         <thead>
           <tr class="bg-base-200">
             <th class="w-32">
@@ -906,11 +906,11 @@ defmodule DeployexWeb.CoreComponents do
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" style={"background-color: #{log_message.color};"}>
                 </div>
-                <span class="badge badge-neutral truncate">{log_message.service}</span>
+                <span class="badge badge-sm badge-neutral truncate">{log_message.service}</span>
               </div>
             </td>
             <td>
-              <div class={["font-mono text-xs badge", log_type_badge(log_message.type)]}>
+              <div class={["font-mono text-xs badge badge-sm", log_type_badge(log_message.type)]}>
                 {log_message.type}
               </div>
             </td>

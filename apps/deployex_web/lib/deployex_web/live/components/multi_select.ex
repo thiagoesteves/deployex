@@ -20,13 +20,13 @@ defmodule DeployexWeb.Components.MultiSelect do
   def content(assigns) do
     ~H"""
     <div class="w-full">
-      <!-- Selected Items Display -->
-      <div class="flex flex-wrap gap-2 mb-4">
-        <div class="badge badge-neutral badge-lg">{@selected_text}</div>
+      <!-- Selected Items Display + Toggle -->
+      <div class="flex flex-wrap items-center gap-2 mb-2">
+        <div class="badge badge-neutral badge-sm">{@selected_text}</div>
 
         <%= for item <- @selected do %>
           <%= for key <- item.keys do %>
-            <div class={["badge badge-lg gap-2", badge_color(item.name)]}>
+            <div class={["badge badge-sm gap-1", badge_color(item.name)]}>
               <span class="text-xs font-medium">{"#{item.name}:#{key}"}</span>
               <button
                 id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-remove-item")}
@@ -48,16 +48,13 @@ defmodule DeployexWeb.Components.MultiSelect do
             </div>
           <% end %>
         <% end %>
-      </div>
-      
-    <!-- Toggle Button -->
-      <div class="flex justify-center mb-4">
+
         <button
           id={Helper.normalize_id("#{@id}-toggle-options")}
-          class="btn btn-outline btn-sm"
+          class="btn btn-outline btn-xs ml-auto"
           phx-click="toggle-options"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               :if={!@show_options}
               stroke-linecap="round"
@@ -75,14 +72,14 @@ defmodule DeployexWeb.Components.MultiSelect do
             >
             </path>
           </svg>
-          {if @show_options, do: "Hide Options", else: "Show Options"}
+          {if @show_options, do: "Hide", else: "Options"}
         </button>
       </div>
       
     <!-- Available Options -->
       <div :if={@show_options} class="collapse collapse-open bg-base-200 rounded-lg">
         <div
-          class="collapse-content p-4"
+          class="collapse-content p-3"
           phx-mounted={
             JS.transition(
               {"first:ease-in duration-300", "first:opacity-0 first:scale-95",
@@ -92,18 +89,18 @@ defmodule DeployexWeb.Components.MultiSelect do
           }
         >
           <%= for item <- @unselected do %>
-            <div class="mb-6 last:mb-0">
-              <h3 class="text-sm font-semibold text-base-content mb-3 flex items-center gap-2">
-                <div class={["w-3 h-3 rounded-full", category_color(item.name)]}></div>
+            <div class="mb-3 last:mb-0">
+              <h3 class="text-xs font-semibold text-base-content mb-2 flex items-center gap-2">
+                <div class={["w-2 h-2 rounded-full", category_color(item.name)]}></div>
                 {String.capitalize(item.name)}
               </h3>
 
-              <div class="flex flex-wrap gap-2">
+              <div class="flex flex-wrap gap-1">
                 <%= for key <- item.keys do %>
                   <button
                     id={Helper.normalize_id("#{@id}-#{item.name}-#{key}-add-item")}
                     class={[
-                      "btn btn-sm gap-2",
+                      "btn btn-xs gap-1",
                       if(key in item.unselected_highlight, do: "btn-success", else: "btn-neutral")
                     ]}
                     phx-click="multi-select-add-item"
