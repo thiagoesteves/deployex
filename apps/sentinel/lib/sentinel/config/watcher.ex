@@ -622,10 +622,38 @@ defmodule Sentinel.Config.Watcher do
           Map.put(acc, type, %{status: :removed, config: old_cert})
 
         normalize(old_cert) != normalize(new_cert) ->
-          Map.put(acc, type, %{status: :modified, config: new_cert})
+          changes = diff_certificate_fields(old_cert, new_cert)
+          Map.put(acc, type, %{status: :modified, config: new_cert, changes: changes})
 
         true ->
           acc
+      end
+    end)
+  end
+
+  defp diff_certificate_fields(old_cert, new_cert) do
+    [
+      :domains,
+      :renew_before_days,
+      :certificate_check_interval_ms,
+      :dns_propagation_timeout_ms,
+      :dns_check_interval_ms,
+      :dns_provider,
+      :dns_options,
+      :acme_provider,
+      :acme_options,
+      :importer,
+      :importer_options,
+      :storage_options
+    ]
+    |> Enum.reduce(%{}, fn field, acc ->
+      old_val = Map.get(old_cert, field)
+      new_val = Map.get(new_cert, field)
+
+      if normalize(old_val) != normalize(new_val) do
+        Map.put(acc, field, %{old: old_val, new: new_val})
+      else
+        acc
       end
     end)
   end

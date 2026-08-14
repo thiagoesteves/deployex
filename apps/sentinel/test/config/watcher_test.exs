@@ -1681,6 +1681,126 @@ defmodule Sentinel.Config.WatcherTest do
     end
 
     @tag :capture_log
+    test "detects field-level changes for modified certificate" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [
+            Map.merge(@default_certificate, %{domains: ["example.com", "www.example.com"]})
+          ]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} =
+              Watcher.start_link(name: :test_cert_field_diff, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_field_diff)
+
+        cert_detail = changes.summary.applications.details["my_new_app"].changes.certificates
+        field_changes = cert_detail.details[:acme].changes
+
+        assert Map.has_key?(field_changes, :domains)
+        assert field_changes.domains.old == ["example.com"]
+        assert field_changes.domains.new == ["example.com", "www.example.com"]
+
+        refute Map.has_key?(field_changes, :acme_provider)
+        refute Map.has_key?(field_changes, :dns_provider)
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
+    test "detects field-level changes for modified acme_options" do
+      test_pid = self()
+      ref = make_ref()
+
+      old_applications = [
+        Map.merge(@default_application, %{certificates: [@default_certificate]})
+      ]
+
+      new_acme_options = %Foundation.Yaml.Certificate.AcmeOptions{
+        contact_email: "new@example.com",
+        url: "https://acme-v02.api.letsencrypt.org/directory",
+        key_size: 4096,
+        propagation_timeout_ms: 120_000,
+        check_interval_ms: 2000
+      }
+
+      new_applications = [
+        Map.merge(@default_application, %{
+          certificates: [Map.merge(@default_certificate, %{acme_options: new_acme_options})]
+        })
+      ]
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn ->
+             Map.merge(@default_upgradable, %{applications: old_applications})
+           end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{applications: new_applications})
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn %Yaml{config_checksum: "current_checksum"} ->
+             Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+             {:ok, %Yaml{}}
+           end
+         ]}
+      ]) do
+        log =
+          capture_log(fn ->
+            {:ok, _pid} =
+              Watcher.start_link(name: :test_cert_field_acme, check_interval_ms: 10)
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+          end)
+
+        {:ok, changes} = Watcher.get_pending_changes(:test_cert_field_acme)
+
+        cert_detail = changes.summary.applications.details["my_new_app"].changes.certificates
+        field_changes = cert_detail.details[:acme].changes
+
+        assert Map.has_key?(field_changes, :acme_options)
+        refute Map.has_key?(field_changes, :domains)
+
+        assert log =~ "Detected 1 change(s) in upgradable fields: [:applications]"
+      end
+    end
+
+    @tag :capture_log
     test "detects modified certificate acme_options" do
       test_pid = self()
       ref = make_ref()
