@@ -29,10 +29,13 @@ Dependencies are versioned independently from the project, so DeployEx reports t
 
 **DO NOT HOT-UPGRADE if:**
  * The new release is updating Erlang OTP
+ * The new release is updating Elixir version
  * The new release modified/deleted/added config_provider files
 
-The first entry is the runtime limit above, and picking a release artifact built for another OTP line is the easiest way to hit it by accident, see [Choosing the right release file](#choosing-the-right-release-file).
-The second one is about configuration, which behaves differently from the rest of the release and is worth understanding rather than memorising.
+The first two are the runtime limit above, and they are the same limit rather than two.
+Erlang and Elixir are both replaced from underneath the running code, and `systools` asks for an appup that upgrades them, which nobody ships.
+Picking a release artifact built for another OTP line is the easiest way to hit this by accident, see [Choosing the right release file](#choosing-the-right-release-file), and a mismatched Elixir is what produces the `make_relup` error in [Good practices](#good-practices-for-a-project-that-can-be-hot-upgraded).
+The third is about configuration, which behaves differently from the rest of the release and is worth understanding rather than memorising.
 
 **A changed `runtime.exs` is not on that list.** DeployEx resolves the new version's file and applies the result during the install, so those changes do take effect.
 It has one condition attached, which the next section covers: the file is evaluated by the code the running node has loaded.
