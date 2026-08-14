@@ -25,11 +25,11 @@ defmodule DeployexWeb.HistoryLive do
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
         <div class="bg-base-100 border-b border-base-200 shadow-sm">
-          <div class="max-w-7xl mx-auto px-4 py-4">
+          <div class="max-w-8xl mx-auto px-4 py-2">
             <div class="flex items-center justify-between">
-              <div>
-                <h1 class="text-3xl font-bold text-base-content">History Logs</h1>
-                <p class="text-base-content/60 mt-1">Browse historical application logs</p>
+              <div class="flex items-baseline gap-2">
+                <h1 class="text-xl font-bold text-base-content">History Logs</h1>
+                <p class="text-sm text-base-content/50">Browse historical application logs</p>
               </div>
               <div class="flex items-center gap-4">
                 <!-- Time Range Selector -->
@@ -87,11 +87,10 @@ defmodule DeployexWeb.HistoryLive do
           </div>
         </div>
         <!-- Main Content -->
-        <div class="max-w-8xl mx-auto px-3 py-3">
+        <div class="max-w-8xl mx-auto px-3 py-2">
           <!-- Filters Card -->
-          <div class="card bg-base-100 shadow-sm mb-6">
-            <div class="card-body p-6">
-              <h2 class="card-title text-lg mb-4">Log Filters</h2>
+          <div class="card bg-base-100 shadow-sm mb-3">
+            <div class="card-body p-3">
               <MultiSelect.content
                 id="logs-history-multi-select"
                 selected_text="Selected logs"
@@ -112,56 +111,44 @@ defmodule DeployexWeb.HistoryLive do
             </div>
           </div>
           <!-- Statistics Card -->
-          <div :if={length(@log_messages) > 0} class="stats shadow mb-6">
-            <div class="stat">
-              <div class="stat-figure text-primary">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  >
-                  </path>
-                </svg>
-              </div>
-              <div class="stat-title">Total Logs</div>
-              <div class="stat-value text-primary">{length(@log_messages)}</div>
-              <div class="stat-desc">Historical log entries</div>
+          <div :if={length(@log_messages) > 0} class="flex flex-wrap items-center gap-2 mb-3">
+            <div class="badge badge-sm gap-1 text-primary">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                >
+                </path>
+              </svg>
+              Total: {length(@log_messages)}
             </div>
 
-            <div class="stat">
-              <div class="stat-figure text-secondary">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  >
-                  </path>
-                </svg>
-              </div>
-              <div class="stat-title">Services</div>
-              <div class="stat-value text-secondary">{length(@node_info.selected_services)}</div>
-              <div class="stat-desc">Active services</div>
+            <div class="badge badge-sm gap-1 text-secondary">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                >
+                </path>
+              </svg>
+              Services: {length(@node_info.selected_services)}
             </div>
 
-            <div class="stat">
-              <div class="stat-figure text-accent">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-              </div>
-              <div class="stat-title">Time Range</div>
-              <div class="stat-value text-accent">{@form.params["start_time"] || "5m"}</div>
-              <div class="stat-desc">Looking back</div>
+            <div class="badge badge-sm gap-1 text-accent">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                >
+                </path>
+              </svg>
+              Range: {@form.params["start_time"] || "5m"}
             </div>
           </div>
           <!-- Logs Display Card -->
