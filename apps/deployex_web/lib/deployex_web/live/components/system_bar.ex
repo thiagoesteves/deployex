@@ -50,7 +50,7 @@ defmodule DeployexWeb.Components.SystemBar do
             <!-- Tech Stack -->
             <div class="flex items-center gap-6">
               <div class="flex items-center gap-3">
-                <img src="/images/erlang-otp.png" alt="OTP" class="w-8 h-8" />
+                <img alt="OTP" class="erlang-logo w-8 h-8" />
                 <div class="flex flex-col">
                   <span class="text-sm font-semibold text-base-content">OTP</span>
                   <span class="text-xs text-base-content/60">{System.otp_release()}</span>
@@ -58,7 +58,7 @@ defmodule DeployexWeb.Components.SystemBar do
               </div>
 
               <div class="flex items-center gap-3">
-                <img src="/images/elixir.png" alt="Elixir" class="w-8 h-8" />
+                <img alt="Elixir" class="elixir-logo w-8 h-8" />
                 <div class="flex flex-col">
                   <span class="text-sm font-semibold text-base-content">Elixir</span>
                   <span class="text-xs text-base-content/60">v{Application.spec(:elixir, :vsn)}</span>

@@ -99,6 +99,26 @@
 /* Use the data attribute for dark mode  */
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
+/* Swap the Elixir logo for a brighter version on dark themes */
+.elixir-logo {
+    content: url("/images/elixir.ico");
+}
+
+[data-theme="dark"] .elixir-logo,
+[data-theme="night"] .elixir-logo {
+    content: url("/images/elixir-dark.ico");
+}
+
+/* Swap the Erlang logo for a lighter version on dark themes */
+.erlang-logo {
+    content: url("/images/erlang.ico");
+}
+
+[data-theme="dark"] .erlang-logo,
+[data-theme="night"] .erlang-logo {
+    content: url("/images/erlang-dark.ico");
+}
+
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session],
 [data-phx-teleported-src] {

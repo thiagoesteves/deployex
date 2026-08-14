@@ -46,7 +46,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                 <h1 class="text-3xl font-bold text-base-content mb-2">{@application.name}</h1>
                 <div class="flex items-center gap-4">
                   <div class="flex items-center gap-2">
-                    <img src="/images/erlang-otp.png" alt="OTP" class="w-5 h-5" />
+                    <img alt="OTP" class="erlang-logo w-5 h-5" />
                     <div class="flex flex-col">
                       <span class="text-xs font-semibold text-base-content">OTP</span>
                       <span class="text-xs text-base-content/60">
@@ -55,7 +55,7 @@ defmodule DeployexWeb.Components.ApplicationCard do
                     </div>
                   </div>
                   <div :if={@application.elixir_version} class="flex items-center gap-2">
-                    <img src="/images/elixir.png" alt="Elixir" class="w-5 h-5" />
+                    <img alt="Elixir" class="elixir-logo w-5 h-5" />
                     <div class="flex flex-col">
                       <span class="text-xs font-semibold text-base-content">Elixir</span>
                       <span class="text-xs text-base-content/60">
