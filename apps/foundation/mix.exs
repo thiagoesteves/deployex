@@ -35,7 +35,7 @@ defmodule Foundation.MixProject do
     [
       {:jason, "~> 1.2"},
       {:finch, "~> 0.13"},
-      {:plug_crypto, "~> 2.1.0"},
+      {:plug_crypto, "~> 2.2"},
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix_pubsub, "~> 2.0"},
       # Certificate handling
@@ -43,7 +43,7 @@ defmodule Foundation.MixProject do
       {:ex_aws_acm, "~> 1.0"},
       {:ex_aws_route53, "~> 2.1"},
       # Used by Config Provider only
-      {:configparser_ex, "~> 4.0"},
+      {:configparser_ex, "~> 5.0"},
       {:ex_aws, "~> 2.1"},
       {:goth, "~> 1.4"},
       {:yaml_elixir, "~> 2.0"},

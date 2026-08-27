@@ -31,7 +31,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     end)
     |> expect(:subscribe, fn -> :ok end)
 
-    {:ok, _index_live, html} = live(conn, ~p"/applications")
+    {:ok, index_live, html} = live(conn, ~p"/applications")
 
     assert html =~ "1.0.1"
     assert html =~ "1.0.2"
@@ -48,7 +48,7 @@ defmodule DeployexWeb.Applications.ModeTest do
     refute html =~ "1.0.39"
     refute html =~ "1.0.40"
 
-    assert html =~ "<option selected=\"selected\" value=\"automatic\">automatic</option>"
+    assert has_element?(index_live, ~s(option[selected][value="automatic"]), "automatic")
   end
 
   @tag :capture_log
@@ -80,8 +80,7 @@ defmodule DeployexWeb.Applications.ModeTest do
 
     refute has_element?(index_live, "#cancel-button-mode")
 
-    assert render(index_live) =~
-             "<option selected=\"selected\" value=\"automatic\">automatic</option>"
+    assert has_element?(index_live, ~s(option[selected][value="automatic"]), "automatic")
   end
 
   @tag :capture_log
@@ -195,9 +194,9 @@ defmodule DeployexWeb.Applications.ModeTest do
     end)
     |> expect(:subscribe, fn -> :ok end)
 
-    {:ok, _index_live, html} = live(conn, ~p"/applications")
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    assert html =~ "<option selected=\"selected\" value=\"1.0.2\">1.0.2</option>"
+    assert has_element?(index_live, ~s(option[selected][value="1.0.2"]), "1.0.2")
   end
 
   @tag :capture_log

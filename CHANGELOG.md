@@ -1,5 +1,16 @@
 # CHANGELOG (0.9.X)
 
+## 0.9.14 ()
+
+### Backwards incompatible changes from 0.9.13
+ * None
+
+### Bug fixes
+ * None
+
+### Enhancements
+ * None
+
 ## 0.9.13 🚀 (2026-08-14)
 
 ### Backwards incompatible changes from 0.9.12
