@@ -9,7 +9,7 @@
  * None
 
 ### Enhancements
- * None
+ * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Update dependencies to their latest versions
 
 ## 0.9.13 🚀 (2026-08-14)
 
