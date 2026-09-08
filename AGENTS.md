@@ -7,7 +7,7 @@ It monitors running nodes, performs full deployments and hot upgrades, manages T
 It does **not** use Docker or Kubernetes - it relies purely on OTP distribution.
 
 The project version lives in `mix/shared.exs` (`Mix.Shared.version/0`) - do not hardcode it elsewhere.
-Elixir requirement is `~> 1.16`; the exact toolchain is pinned in `.tool-versions` (Erlang 28.5.0.6, Elixir 1.19.5-otp-28).
+Elixir requirement is `~> 1.16`; the exact toolchain is pinned in `.tool-versions` (Erlang 29.0.6, Elixir 1.20.4-otp-29).
 
 ---
 
@@ -24,7 +24,7 @@ mix/
   shared.exs        # Shared version, Elixir requirement, test coverage config used by all apps
 devops/
   installer/        # Installer scripts
-  releases/         # Per-OTP release configs (otp-27/, otp-28/ with their own .tool-versions)
+  releases/         # Per-OTP release configs (otp-28/, otp-29/ with their own .tool-versions)
   scripts/          # Operational scripts
 ```
 
@@ -258,7 +258,7 @@ Exact versions are in `mix.lock`; do not trust version numbers written in docs.
 Releases are built via `mix release`.
 The `release` alias runs a `digest_docs` pre-step, and the release steps are `:assemble`, `Jellyfish.generate/1`, `:tar`.
 The release name is `deployex`.
-CI builds artifacts for both OTP-27 and OTP-28 using the `.tool-versions` files under `devops/releases/otp-27/` and `devops/releases/otp-28/`.
+CI builds artifacts for both OTP-28 and OTP-29 using the `.tool-versions` files under `devops/releases/otp-28/` and `devops/releases/otp-29/`.
 
 The release pipeline is in `.github/workflows/releases.yaml`.
 Hot upgrade testing has its own workflow: `.github/workflows/hot_upgrade.yaml`.

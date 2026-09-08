@@ -4,8 +4,6 @@ defmodule Foundation.ConfigProvider.Secrets.Gcp do
   """
   @behaviour Foundation.ConfigProvider.Secrets.Adapter
 
-  require Logger
-
   @doc """
   secrets/3.
 
