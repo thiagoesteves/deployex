@@ -43,3 +43,6 @@ config/*.override.exs
 
 # Override global gitignore — track CLAUDE.md in this repo
 !AGENTS.md
+
+# Ignore claude config
+.claude/
