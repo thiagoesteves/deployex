@@ -3,13 +3,14 @@
 ## 0.9.14 ()
 
 ### Backwards incompatible changes from 0.9.13
- * None
+ * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Apply this release as a full deployment, do not hot-upgrade from `0.9.13`. Bumping Erlang is a full deployment, not a hot upgrade, and this release moves the toolchain to `27.3.4.17` and `28.5.0.6`.
 
 ### Bug fixes
  * None
 
 ### Enhancements
  * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Update dependencies to their latest versions
+ * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Update OTP to 27.3.4.17 and 28.5.0.6
 
 ## 0.9.13 🚀 (2026-08-14)
 

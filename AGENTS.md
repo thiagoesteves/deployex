@@ -7,7 +7,7 @@ It monitors running nodes, performs full deployments and hot upgrades, manages T
 It does **not** use Docker or Kubernetes - it relies purely on OTP distribution.
 
 The project version lives in `mix/shared.exs` (`Mix.Shared.version/0`) - do not hardcode it elsewhere.
-Elixir requirement is `~> 1.16`; the exact toolchain is pinned in `.tool-versions` (Erlang 28.5.0.2, Elixir 1.19.5-otp-28).
+Elixir requirement is `~> 1.16`; the exact toolchain is pinned in `.tool-versions` (Erlang 28.5.0.6, Elixir 1.19.5-otp-28).
 
 ---
 
