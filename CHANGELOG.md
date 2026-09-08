@@ -1,12 +1,12 @@
 # CHANGELOG (0.9.X)
 
-## 0.9.14 ()
+## 0.9.14 🚀 (2026-09-08)
 
 ### Backwards incompatible changes from 0.9.13
  * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Apply this release as a full deployment, do not hot-upgrade from `0.9.13`. Bumping Erlang is a full deployment, not a hot upgrade, and this release moves the toolchain to `27.3.4.17` and `28.5.0.6`.
 
 ### Bug fixes
- * None
+ * [`PULL-307`](https://github.com/thiagoesteves/deployex/pull/307) Bump mint and erlexec to clear a CVE and a Hex retirement
 
 ### Enhancements
  * [`PULL-306`](https://github.com/thiagoesteves/deployex/pull/306) Update dependencies to their latest versions
