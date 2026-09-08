@@ -19,8 +19,7 @@ defmodule DeployexWeb.DocsLive do
           width="100%"
           height="100%"
           title="Deployex Docs"
-        >
-        </iframe>
+        ></iframe>
       </div>
     </Layouts.app>
     """

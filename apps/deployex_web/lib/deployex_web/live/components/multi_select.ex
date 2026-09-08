@@ -75,8 +75,8 @@ defmodule DeployexWeb.Components.MultiSelect do
           {if @show_options, do: "Hide", else: "Options"}
         </button>
       </div>
-      
-    <!-- Available Options -->
+
+      <!-- Available Options -->
       <div :if={@show_options} class="collapse collapse-open bg-base-200 rounded-lg">
         <div
           class="collapse-content p-3"

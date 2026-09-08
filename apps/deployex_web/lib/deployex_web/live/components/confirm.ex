@@ -57,15 +57,15 @@ defmodule DeployexWeb.Components.Confirm do
             </button>
           </div>
         </div>
-        
-    <!-- Content Section -->
+
+        <!-- Content Section -->
         <div class="px-8 py-6">
           <div class="text-base-content/90 text-lg leading-relaxed">
             {render_slot(@inner_block)}
           </div>
         </div>
-        
-    <!-- Footer Section -->
+
+        <!-- Footer Section -->
         <div class="px-8 py-6 bg-base-50/30 border-t border-base-200/50">
           <div class="flex gap-4 justify-end">
             {render_slot(@footer)}
