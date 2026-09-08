@@ -5,13 +5,13 @@
 ### Backwards incompatible changes from 0.9.14
 
 #### OTP support
- * From this version onwards, OTP-27 is no longer supported in favor of the new OTP-29 version
+ * [`PULL-218`](https://github.com/thiagoesteves/deployex/pull/218) From this version onwards, OTP-27 is no longer supported in favor of the new OTP-29 version
 
 ### Bug fixes
  * None
 
 ### Enhancements
- * None
+ * [`PULL-218`](https://github.com/thiagoesteves/deployex/pull/218) Add OTP-29 release binaries
 
 # Host Binaries Available
 
