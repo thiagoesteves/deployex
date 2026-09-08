@@ -81,36 +81,9 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 
 Since OTP distribution is heavily used between the DeployEx and Monitored Applications, users must ensure that both applications are running the same OTP Major version to prevent compatibility issues and system malfunctions. DeployEx releases will contain binaries for the following OTP versions:
 
-| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-27-green.svg"/> | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> | <img src="https://img.shields.io/badge/OTP-29-green.svg"/> |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| :soon: [**0.10.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.10.0) | -                                                          | **28.5.0.6**                                               | **29.0.6**                                                 |
-| [**0.9.14**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.14) | **27.3.4.17**                                              | **28.5.0.6**                                               | -                                                          |
-| [**0.9.13**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.13) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.12**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.12) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.11**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.11) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.10**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.10) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.9**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.9) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.8**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.8) | **27.3.4.15**                                              | **28.5.0.4**                                               | -                                                          |
-| [**0.9.7**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.7) | **27.3.4.14**                                              | **28.5.0.3**                                               | -                                                          |
-| [**0.9.6**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.6) | **27.3.4.14**                                              | **28.5.0.3**                                               | -                                                          |
-| [**0.9.5**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.5) | **27.3.4.14**                                              | **28.5.0.3**                                               | -                                                          |
-| [**0.9.4**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.4) | **27.3.4.13**                                              | **28.5.0.2**                                               | -                                                          |
-| [**0.9.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.3) | **27.3.4.13**                                              | **28.5.0.2**                                               | -                                                          |
-| [**0.9.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.2) | **27.3.4.13**                                              | **28.5.0.2**                                               | -                                                          |
-| [**0.9.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.1) | **27.3.4.9**                                               | **28.4.1**                                                 | -                                                          |
-| [**0.9.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.9.0) | **27.3.4.9**                                               | **28.4.1**                                                 | -                                                          |
-| [**0.8.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.8.0) | **27.3.4.3**                                               | **28.1.1**                                                 | -                                                          |
-| [**0.7.3**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.3) | **27.3.4.3**                                               | **28.1.1** [1]                                             | -                                                          |
-| [**0.7.2**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.2) | **27.3.4.3**                                               | **28.1** [1]                                               | -                                                          |
-| [**0.7.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.1) | **27.3.4.3**                                               | **28.1** [1]                                               | -                                                          |
-| [**0.7.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.7.0) | **27.3.4.3**                                               | **28.1** [1]                                               | -                                                          |
-| [**0.6.1**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.1) | **27.3.4.2**                                               | **28.0.2** [1]                                             | -                                                          |
-| [**0.6.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.6.0) | **27.3.4.2**                                               | **28.0.2** [1]                                             | -                                                          |
-
-- **[1]** - Binaries for `OTP-28` are compiled with Elixir [1.18.4-otp-27](https://github.com/elixir-lang/elixir/releases/tag/v1.18.4)
-
-> [!WARNING]
-> Release `0.10.0` will upgrade the OTP runtime to OTP-29. As DeployEx tracks only the two most recent OTP versions, OTP-27 will no longer be supported or included in this changelog.
+| DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> | <img src="https://img.shields.io/badge/OTP-29-green.svg"/> |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [**0.10.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.10.0) | **28.5.0.6**                                               | **29.0.6**                                                 |
 
 ### Running the application
 
@@ -119,15 +92,16 @@ You can kickstart the setup with the following commands, the default number of r
 ```bash
 mix deps.get
 iex --sname deployex --cookie cookie -S mix phx.server
-Erlang/OTP 28 [erts-16.1.1] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
+Erlang/OTP 29 [erts-17.0.6] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit]
 
-[info] Initializing HotUpgrade server                                                                                                            
+[info] Initializing Host Memory Server
+[info] Initializing HotUpgrade server                                                                                                         
 [info] Initializing Engine Server for myphoenixapp
 [info] Initializing ConfigWatcher for YAML configuration
 [info] Initializing Watchdog Server
-[info] Running DeployexWeb.Endpoint with Bandit 1.8.0 at 127.0.0.1:5001 (http)
+[info] Running DeployexWeb.Endpoint with Bandit 1.12.5 at 127.0.0.1:5001 (http)
 [info] Access DeployexWeb.Endpoint at http://localhost:5001
-Interactive Elixir (1.19.3) - press Ctrl+C to exit (type h() ENTER for help)
+Interactive Elixir (1.20.4) - press Ctrl+C to exit (type h() ENTER for help)
 [watch] build finished, watching for changes...
 
 Rebuilding...
