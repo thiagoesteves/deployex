@@ -18,9 +18,8 @@ defmodule DeployexWeb.Components.SystemBar do
         |> assign(description: "--")
         |> assign(memory_used: 0)
         |> assign(memory_max: "--")
-        |> assign(cpu: 0.00)
         |> assign(cpus_used: 0)
-        |> assign(cpus_max: "--")
+        |> assign(cores: "--")
         |> assign(uptime: "--")
       else
         memory_used = trunc((info.memory_total - info.memory_free) / info.memory_total * 100)
@@ -36,9 +35,8 @@ defmodule DeployexWeb.Components.SystemBar do
         |> assign(description: info.description)
         |> assign(memory_used: memory_used)
         |> assign(memory_max: memory_max)
-        |> assign(cpu: info.cpu)
         |> assign(cpus_used: cpus_used)
-        |> assign(cpus_max: cpus_max)
+        |> assign(cores: div(cpus_max, 100))
         |> assign(uptime: uptime)
       end
 
@@ -113,11 +111,11 @@ defmodule DeployexWeb.Components.SystemBar do
             <div class="flex items-center gap-3">
               <div class="flex flex-col items-end">
                 <span class="text-sm font-semibold text-base-content">CPU</span>
-                <span class="text-xs text-base-content/60">{@cpus_max}% Max</span>
+                <span class="text-xs text-base-content/60">{@cores} cores</span>
               </div>
               <div class="flex items-center gap-2">
                 <progress class="progress progress-warning w-20 h-2" value={@cpus_used} max="100"></progress>
-                <span class="text-sm font-bold text-warning min-w-[3rem] text-right">{@cpu}%</span>
+                <span class="text-sm font-bold text-warning min-w-[3rem] text-right">{@cpus_used}%</span>
               </div>
             </div>
           </div>
