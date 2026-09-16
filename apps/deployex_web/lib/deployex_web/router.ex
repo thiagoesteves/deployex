@@ -39,7 +39,8 @@ defmodule DeployexWeb.Router do
     live_session :redirect_if_user_is_authenticated,
       on_mount: [
         {DeployexWeb.UserAuth, :redirect_if_user_is_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings}
+        {DeployexWeb.UiSettings, :mount_ui_settings},
+        DeployexWeb.ProcessLabel
       ] do
       live "/users/log_in", UserLoginLive, :new
     end
@@ -53,7 +54,8 @@ defmodule DeployexWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [
         {DeployexWeb.UserAuth, :ensure_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings}
+        {DeployexWeb.UiSettings, :mount_ui_settings},
+        DeployexWeb.ProcessLabel
       ] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
