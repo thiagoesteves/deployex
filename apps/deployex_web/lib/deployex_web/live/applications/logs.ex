@@ -14,7 +14,7 @@ defmodule DeployexWeb.ApplicationsLive.Logs do
         <:subtitle>{@subtitle}</:subtitle>
       </.header>
 
-      <div class="bg-white w-full shadow-lg rounded">
+      <div class="bg-base-100 w-full shadow-lg rounded">
         <.table_logs
           id={Helper.normalize_id("application-live-logs-#{@id}")}
           rows={@streams.log_messages}
