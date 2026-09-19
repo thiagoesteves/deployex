@@ -87,6 +87,9 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 ### Running the application
 
+> [!TIP]
+> Common dev tasks are wrapped in a `Makefile` — run `make help` to list them (`make start`, `make test`, and `make dev-app` to build and publish a local sample app for monitoring/log testing).
+
 You can kickstart the setup with the following commands, the default number of replicas is 3:
 
 ```bash
