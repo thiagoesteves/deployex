@@ -15,11 +15,34 @@ BUCKET   ?= /tmp/deployex/bucket
 COOKIE   ?= cookie
 
 .DEFAULT_GOAL := help
-.PHONY: help preflight start stop test dev-app dev-app-clean
+.PHONY: help preflight setup start stop test dev-app dev-app-clean
 
-preflight: ## Check required tools are installed
-	@command -v mix >/dev/null 2>&1 || { echo "mix not found. Install Elixir per .tool-versions (see mise / asdf)."; exit 1; }
-	@command -v jq  >/dev/null 2>&1 || { echo "jq not found. Install it (e.g. brew install jq)."; exit 1; }
+preflight: ## Verify the local toolchain (.tool-versions) + tools for dev/test
+	@fail=0; \
+	exp_erl=$$(awk '/^erlang /{print $$2}' .tool-versions); \
+	exp_ex=$$(awk '/^elixir /{print $$2}' .tool-versions); exp_ex_short=$${exp_ex%%-*}; \
+	if command -v mise >/dev/null 2>&1; then \
+	  run="mise exec --"; printf '  ok    %-10s %s\n' mise "$$(mise --version 2>/dev/null | head -1)"; \
+	else \
+	  run=""; printf '  warn  %-10s not found; checking ambient toolchain. Install mise (or asdf) to match .tool-versions\n' mise; \
+	fi; \
+	if $$run elixir --version >/dev/null 2>&1; then \
+	  ver=$$($$run elixir --version 2>/dev/null | tr '\n' ' ' | tr -s ' '); \
+	  printf '  ok    %-10s %s\n' elixir "$$ver"; \
+	  echo "$$ver" | grep -q "Elixir $$exp_ex_short" || \
+	    printf '  warn  %-10s expected Elixir %s / Erlang %s per .tool-versions; run: mise install\n' "" "$$exp_ex_short" "$$exp_erl"; \
+	else \
+	  printf '  MISS  %-10s not runnable. Run: mise install  (expected Erlang %s / Elixir %s)\n' elixir "$$exp_erl" "$$exp_ex"; fail=1; \
+	fi; \
+	if command -v jq >/dev/null 2>&1; then printf '  ok    %-10s %s\n' jq "$$(jq --version 2>/dev/null)"; \
+	else printf '  MISS  %-10s install: brew install jq  (used by make dev-app)\n' jq; fail=1; fi; \
+	if [ $$fail -eq 0 ]; then echo "Local prerequisites OK - no need to run 'make setup'."; \
+	else echo "Missing prerequisites (see MISS above). Run 'make setup' to install the toolchain + deps."; exit 1; fi
+
+setup: ## Install the pinned toolchain (mise) + fetch deps
+	@command -v mise >/dev/null 2>&1 || { echo "mise not found. Install mise (https://mise.jdx.dev) or use asdf with .tool-versions."; exit 1; }
+	mise install
+	mise exec -- mix deps.get
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
