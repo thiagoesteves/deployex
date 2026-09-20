@@ -126,6 +126,9 @@ config :foundation, Foundation.Rpc, adapter: Foundation.RpcMock
 # Config Mock for Sentinel
 config :sentinel, Sentinel.Logs, adapter: Sentinel.LogsMock
 
+# Config Mock for OAuth provider
+config :deployex_web, DeployexWeb.OAuth, provider: DeployexWeb.OAuth.ProviderMock
+
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
