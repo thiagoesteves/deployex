@@ -56,6 +56,13 @@ defmodule DeployexWeb.Router do
     get "/:provider/callback", OAuthController, :callback
   end
 
+  ## Log out — available to authenticated users.
+  scope "/", DeployexWeb do
+    pipe_through :browser
+
+    delete "/users/log_out", UserSessionController, :delete
+  end
+
   scope "/", DeployexWeb do
     pipe_through [:browser, :require_authenticated_user]
 

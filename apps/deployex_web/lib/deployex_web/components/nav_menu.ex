@@ -350,9 +350,9 @@ defmodule DeployexWeb.Components.NavMenu do
           </li>
           <div class="divider my-1"></div>
           <li>
-            <a class="text-sm">
+            <.link href="/users/log_out" method="delete" class="text-sm">
               <.icon name="hero-arrow-right-on-rectangle" class="w-4 h-4" />Logout
-            </a>
+            </.link>
           </li>
         </ul>
       </div>
