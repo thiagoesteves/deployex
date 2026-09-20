@@ -48,6 +48,14 @@ defmodule DeployexWeb.Router do
     post "/users/log_in", UserSessionController, :create
   end
 
+  ## OAuth (3rd-party SSO) routes — accessible while logged out.
+  scope "/auth", DeployexWeb do
+    pipe_through :browser
+
+    get "/:provider", OAuthController, :request
+    get "/:provider/callback", OAuthController, :callback
+  end
+
   scope "/", DeployexWeb do
     pipe_through [:browser, :require_authenticated_user]
 
