@@ -9,7 +9,8 @@ defmodule DeployexWeb.UserLoginLiveTest do
     test "renders log in page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log_in")
 
-      assert html =~ "Login to your account"
+      assert html =~ "DeployEx"
+      assert html =~ "Sign in to the management console"
     end
 
     @tag :capture_log

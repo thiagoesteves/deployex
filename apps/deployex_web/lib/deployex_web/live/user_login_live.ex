@@ -11,15 +11,15 @@ defmodule DeployexWeb.UserLoginLive do
       <div class="relative p-4 w-full max-w-md h-full md:h-auto">
         <div class="relative bg-white rounded-lg shadow">
           <div class="p-5">
-            <h3 class="text-2xl mb-0.5 font-medium"></h3>
-            <p class="mb-4 text-sm font-normal text-gray-800"></p>
-
-            <div class="text-center">
-              <p class="mb-3 text-2xl font-semibold leading-5 text-slate-900">
-                Login to your account
+            <div class="text-center mb-4">
+              <div class="mx-auto mb-3 w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                <img src="/images/logo.svg" alt="DeployEx" class="w-7 h-7" />
+              </div>
+              <p class="text-2xl font-semibold leading-5 text-slate-900">
+                DeployEx
               </p>
               <p class="mt-2 text-sm leading-4 text-slate-600">
-                You must be logged in to perform this action.
+                Sign in to the management console
               </p>
             </div>
 
