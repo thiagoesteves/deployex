@@ -108,7 +108,10 @@ defmodule DeployexWeb.Components.NavMenu do
         </nav>
         <!-- User Profile -->
         <div class="p-4 border-t border-base-300">
-          <.user_profile collapsed={@ui_settings.nav_menu_collapsed} />
+          <.user_profile
+            collapsed={@ui_settings.nav_menu_collapsed}
+            current_user={@current_user}
+          />
         </div>
         <!-- Toggle Button as Menu Item -->
         <div class="px-3 pb-4">
@@ -325,7 +328,7 @@ defmodule DeployexWeb.Components.NavMenu do
       </div>
       <!-- User Info -->
       <div :if={@collapsed} class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-base-content truncate">Admin</p>
+        <p class="text-sm font-medium text-base-content truncate">{display_name(@current_user)}</p>
         <p class="text-xs text-base-content/60">Online</p>
       </div>
       <!-- Settings Menu -->
@@ -361,6 +364,12 @@ defmodule DeployexWeb.Components.NavMenu do
   end
 
   # Utility Functions
+  # The built-in password user has a username; an OAuth user is a plain map
+  # with an email. Show whichever identifies the logged-in user.
+  defp display_name(%{username: username}) when is_binary(username), do: username
+  defp display_name(%{email: email}) when is_binary(email), do: email
+  defp display_name(_), do: "Unknown"
+
   defp nav_bar_width(collapsed) do
     if collapsed do
       "width: 16rem;"
