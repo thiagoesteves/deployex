@@ -65,6 +65,8 @@ defmodule DeployexWeb.MixProject do
       {:dns_cluster, "~> 0.3"},
       {:bandit, "~> 1.5"},
       {:observer_web, "~> 0.2.0"},
+      {:ueberauth, "~> 0.10"},
+      {:ueberauth_github, "~> 0.8"},
       # Static Analysis
       {:mox, "~> 1.0", only: :test},
       {:mock, "~> 0.3.0", only: :test},
