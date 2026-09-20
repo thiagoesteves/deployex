@@ -188,3 +188,21 @@ config :foundation,
 config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,
   bucket: "/tmp/deployex/bucket"
+
+# OAuth (GitHub SSO) for local testing.
+# Enable by exporting these before starting DeployEx; leave unset to keep the
+# password login only:
+#   export GITHUB_CLIENT_ID=...        # from your GitHub OAuth app
+#   export GITHUB_CLIENT_SECRET=...    # from your GitHub OAuth app
+#   export OAUTH_ALLOWED_EMAILS=you@example.com   # comma-separated
+# GitHub OAuth app callback URL: http://localhost:5001/auth/github/callback
+config :ueberauth, Ueberauth.Strategy.Github.OAuth,
+  client_id: System.get_env("GITHUB_CLIENT_ID"),
+  client_secret: System.get_env("GITHUB_CLIENT_SECRET")
+
+config :deployex_web, DeployexWeb.OAuth,
+  client_id: System.get_env("GITHUB_CLIENT_ID"),
+  allowlist: %{
+    emails: "OAUTH_ALLOWED_EMAILS" |> System.get_env("") |> String.split(",", trim: true),
+    domains: []
+  }

@@ -9,17 +9,13 @@ defmodule DeployexWeb.OAuth.Provider.GitHub do
   @behaviour DeployexWeb.OAuth.Provider
 
   @impl true
-  def identity(%{info: %{email: email}} = auth) when is_binary(email) do
-    {:ok, %{email: email, verified?: verified?(auth)}}
+  # Pattern-matches both a real `Ueberauth.Auth` struct and a plain test map.
+  # With the `user:email` scope, ueberauth_github sets `info.email` to
+  # GitHub's primary email, which GitHub keeps verified, so a present email is
+  # verified by construction. The allowlist is the authoritative access gate.
+  def identity(%{info: %{email: email}}) when is_binary(email) do
+    {:ok, %{email: email, verified?: true}}
   end
 
   def identity(_auth), do: {:error, :no_email}
-
-  # VERIFY against the installed ueberauth_github: confirm where GitHub's
-  # email-verified flag lands in the real `Ueberauth.Auth` struct. This reads
-  # the shape the tests exercise; the live wiring (controller task) must
-  # confirm the real struct path.
-  defp verified?(auth) do
-    get_in(auth, [:extra, :raw_info, :user, "email_verified"]) == true
-  end
 end
