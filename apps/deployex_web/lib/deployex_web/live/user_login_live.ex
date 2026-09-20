@@ -47,6 +47,13 @@ defmodule DeployexWeb.UserLoginLive do
                 </.button>
               </:actions>
             </.simple_form>
+
+            <div :if={@oauth_configured?} class="mt-4">
+              <div class="divider text-xs text-slate-500">or</div>
+              <a href={~p"/auth/github"} class="btn btn-outline w-full">
+                Sign in with GitHub
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -57,6 +64,12 @@ defmodule DeployexWeb.UserLoginLive do
   def mount(_params, _session, socket) do
     email = Phoenix.Flash.get(socket.assigns.flash, :email)
     form = to_form(%{"email" => email}, as: "user")
-    {:ok, assign(socket, form: form), temporary_assigns: [form: form]}
+
+    socket =
+      socket
+      |> assign(form: form)
+      |> assign(oauth_configured?: DeployexWeb.OAuth.Config.configured?())
+
+    {:ok, socket, temporary_assigns: [form: form]}
   end
 end
