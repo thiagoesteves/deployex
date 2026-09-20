@@ -1,21 +1,43 @@
 defmodule DeployexWeb.OAuth.Provider.GitHub do
   @moduledoc """
-  Normalizes a GitHub `Ueberauth.Auth` result into `{:ok, %{email, verified?}}`.
+  GitHub provider backed by `assent`.
 
-  Only a verified primary email should grant access; the caller checks
-  `verified?` before consulting the allowlist.
+  Owns the OAuth flow: `authorize_url/0` and `callback/2`. With the
+  `user:email` scope, GitHub returns the verified primary email, so a present
+  email is verified by construction; the allowlist is the authoritative gate.
   """
 
   @behaviour DeployexWeb.OAuth.Provider
 
+  alias DeployexWeb.OAuth.Config
+
   @impl true
-  # Pattern-matches both a real `Ueberauth.Auth` struct and a plain test map.
-  # With the `user:email` scope, ueberauth_github sets `info.email` to
-  # GitHub's primary email, which GitHub keeps verified, so a present email is
-  # verified by construction. The allowlist is the authoritative access gate.
-  def identity(%{info: %{email: email}}) when is_binary(email) do
-    {:ok, %{email: email, verified?: true}}
+  def authorize_url do
+    Assent.Strategy.Github.authorize_url(assent_config())
   end
 
-  def identity(_auth), do: {:error, :no_email}
+  @impl true
+  def callback(params, session_params) do
+    config = Keyword.put(assent_config(), :session_params, session_params)
+
+    case Assent.Strategy.Github.callback(config, params) do
+      {:ok, %{user: %{"email" => email}}} when is_binary(email) ->
+        {:ok, %{email: email, verified?: true}}
+
+      {:ok, _other} ->
+        {:error, :no_email}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp assent_config do
+    [
+      client_id: Config.client_id(),
+      client_secret: Config.client_secret(),
+      redirect_uri: Config.redirect_uri(),
+      authorization_params: [scope: "user:email"]
+    ]
+  end
 end

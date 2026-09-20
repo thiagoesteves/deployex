@@ -23,6 +23,12 @@ defmodule DeployexWeb.OAuth.Config do
   @spec client_id() :: String.t() | nil
   def client_id, do: Keyword.get(config(), :client_id)
 
+  @spec client_secret() :: String.t() | nil
+  def client_secret, do: Keyword.get(config(), :client_secret)
+
+  @spec redirect_uri() :: String.t() | nil
+  def redirect_uri, do: Keyword.get(config(), :redirect_uri)
+
   @spec allowlist() :: map()
   def allowlist, do: Keyword.get(config(), :allowlist, @empty_allowlist)
 

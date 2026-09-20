@@ -2,12 +2,16 @@ defmodule DeployexWeb.OAuth.Provider do
   @moduledoc """
   Contract for an OAuth provider seam.
 
-  An implementation normalizes a provider-specific auth result into a plain
-  identity map, so the rest of the app never depends on the underlying
-  library. This keeps the provider (and the library behind it) swappable.
+  With a function-based library (assent) the provider owns the whole flow:
+  build the authorize URL, then exchange the callback for a normalized
+  identity. This keeps the controller lib-agnostic and the library swappable.
   """
 
   @type identity :: %{email: String.t(), verified?: boolean()}
 
-  @callback identity(auth :: any()) :: {:ok, identity()} | {:error, term()}
+  @callback authorize_url() ::
+              {:ok, %{url: String.t(), session_params: map()}} | {:error, term()}
+
+  @callback callback(params :: map(), session_params :: map()) ::
+              {:ok, identity()} | {:error, term()}
 end

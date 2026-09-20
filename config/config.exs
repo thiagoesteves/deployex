@@ -138,13 +138,8 @@ config :observer_web,
   data_retention_period: :timer.minutes(60),
   mode: :observer
 
-# OAuth (optional 3rd-party SSO). Providers are enabled only when the
-# deployex_web `auth` config carries a client_id (see DeployexWeb.OAuth.Config).
-# VERIFY option keys against the installed ueberauth_github version.
-config :ueberauth, Ueberauth,
-  providers: [
-    github: {Ueberauth.Strategy.Github, [default_scope: "user:email"]}
-  ]
+# OAuth (optional 3rd-party SSO) is backed by assent; provider config lives
+# under `config :deployex_web, DeployexWeb.OAuth` (see DeployexWeb.OAuth.Config).
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
