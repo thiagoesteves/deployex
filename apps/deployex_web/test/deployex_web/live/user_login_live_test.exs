@@ -32,6 +32,15 @@ defmodule DeployexWeb.UserLoginLiveTest do
     end
   end
 
+  describe "OAuth button" do
+    @tag :capture_log
+    test "is hidden when OAuth is not configured", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
+
+      refute html =~ "Sign in with GitHub"
+    end
+  end
+
   describe "user login" do
     @tag :capture_log
     test "redirects if user login with valid credentials", %{conn: conn} do
