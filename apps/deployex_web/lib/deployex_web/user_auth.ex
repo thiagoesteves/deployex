@@ -54,6 +54,24 @@ defmodule DeployexWeb.UserAuth do
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
+  @doc """
+  Logs the user out.
+
+  Clears the whole session (removing both the password `user_token` and the
+  OAuth `oauth_email`), disconnects any live sockets, and drops the remember-me
+  cookie. Works for both password and OAuth logins.
+  """
+  def log_out_user(conn) do
+    if live_socket_id = get_session(conn, :live_socket_id) do
+      DeployexWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    end
+
+    conn
+    |> renew_session()
+    |> delete_resp_cookie(@remember_me_cookie)
+    |> redirect(to: ~p"/users/log_in")
+  end
+
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
     put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
   end
