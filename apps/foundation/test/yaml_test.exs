@@ -32,6 +32,7 @@ defmodule Foundation.YamlTest do
   @yaml_endpoint_origin_empty_error "#{@file_paths}/deployex-endpoint-origin-empty-error.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
+  @yaml_auth "#{@file_paths}/deployex-auth.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -875,6 +876,36 @@ defmodule Foundation.YamlTest do
                  dist_base_url: nil,
                  installer_script: "/home/root/deployex.sh"
                }
+      end
+    end
+  end
+
+  describe "auth" do
+    test "parses the auth section" do
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert %Yaml.Auth{} = config.auth
+        assert config.auth.provider == DeployexWeb.OAuth.Provider.GitHub
+        assert config.auth.client_id == "Iv1.abc123"
+        assert config.auth.redirect_uri == "https://deployex.example.com/auth/github/callback"
+
+        assert config.auth.allowlist == %{
+                 emails: ["alice@example.com", "bob@example.com"],
+                 domains: ["example.com"]
+               }
+      end
+    end
+
+    test "defaults auth to nil when the section is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.auth == nil
       end
     end
   end
