@@ -104,6 +104,25 @@ defmodule Foundation.ConfigProvider.Env.Config do
             ]
           )
 
+        # Auth (OAuth) Config. The client_secret is added later by the secrets
+        # provider, not here.
+        updated_config =
+          if yaml_config.auth do
+            Config.Reader.merge(updated_config,
+              deployex_web: [
+                {DeployexWeb.OAuth,
+                 [
+                   provider: yaml_config.auth.provider,
+                   client_id: yaml_config.auth.client_id,
+                   redirect_uri: yaml_config.auth.redirect_uri,
+                   allowlist: yaml_config.auth.allowlist
+                 ]}
+              ]
+            )
+          else
+            updated_config
+          end
+
         # NOTE: Merge original config with the constructed config from yaml file
         Config.Reader.merge(config, updated_config)
 

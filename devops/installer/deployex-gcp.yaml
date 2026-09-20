@@ -12,6 +12,17 @@ otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
+# Optional single sign-on. Uncomment to enable. Access is deny-by-default: only
+# allow-listed emails or domains may sign in. Provide the secret separately
+# through the secrets adapter as DEPLOYEX_OAUTH_CLIENT_SECRET.
+# auth:
+#   provider: "github"
+#   client_id: "Iv1.abc123"
+#   redirect_uri: "https://deployex.example.com/auth/github/callback"
+#   allowed_emails:
+#     - "alice@example.com"
+#   allowed_domains:
+#     - "example.com"
 notifications:
   - adapter: "webhook"                                   # options: webhook, slack, pagerduty
     url: "https://example.com/hooks/deployex"
