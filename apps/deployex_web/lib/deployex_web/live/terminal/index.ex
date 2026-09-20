@@ -23,7 +23,7 @@ defmodule DeployexWeb.TerminalLive do
       |> assign(terminal_rows: @terminal_rows)
 
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path}>
+    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path} current_user={@current_user}>
       <div class="flex min-h-screen bg-gray-700">
         <div :if={@id}>
           <div
