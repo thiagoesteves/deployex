@@ -76,6 +76,7 @@ defmodule DeployexWeb.Layouts do
         module={DeployexWeb.Components.NavMenu}
         ui_settings={@ui_settings}
         current_path={Map.get(assigns, :current_path, "/")}
+        current_user={Map.get(assigns, :current_user)}
         id="navbar"
       />
     </div>
