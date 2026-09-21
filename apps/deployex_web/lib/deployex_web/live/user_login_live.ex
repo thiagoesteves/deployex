@@ -1,6 +1,8 @@
 defmodule DeployexWeb.UserLoginLive do
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.OAuth.Config
+
   def render(assigns) do
     ~H"""
     <div
@@ -71,7 +73,7 @@ defmodule DeployexWeb.UserLoginLive do
     socket =
       socket
       |> assign(form: form)
-      |> assign(oauth_configured?: DeployexWeb.OAuth.Config.configured?())
+      |> assign(oauth_configured?: Config.configured?())
 
     {:ok, socket, temporary_assigns: [form: form]}
   end
