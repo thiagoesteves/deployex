@@ -16,7 +16,12 @@ defmodule DeployexWeb.HotUpgradeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      ui_settings={@ui_settings}
+      current_path={@current_path}
+      current_user={@current_user}
+    >
       <div class="min-h-screen bg-base-300">
         <SystemBar.content info={@host_info} />
         <!-- Main Content -->

@@ -34,7 +34,10 @@ defmodule DeployexWeb.OAuth.ConfigTest do
   end
 
   test "provider_module can be overridden" do
-    Application.put_env(:deployex_web, DeployexWeb.OAuth, provider: DeployexWeb.OAuth.ProviderMock)
+    Application.put_env(:deployex_web, DeployexWeb.OAuth,
+      provider: DeployexWeb.OAuth.ProviderMock
+    )
+
     assert Config.provider_module() == DeployexWeb.OAuth.ProviderMock
   end
 
