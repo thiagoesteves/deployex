@@ -1009,7 +1009,7 @@ defmodule DeployexWeb.CoreComponents do
             <tr
               :for={row <- @rows}
               id={@row_id && @row_id.(row)}
-              class="group hover:bg-zinc-50"
+              class="group hover:bg-base-200/50"
               phx-mounted={
                 @transition &&
                   JS.transition(
@@ -1025,7 +1025,7 @@ defmodule DeployexWeb.CoreComponents do
                 class={["relative p-0", @row_click && "hover:cursor-pointer"]}
               >
                 <div class="block px-1 py-1 pr-6 text-xs font-mono max-20">
-                  <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
+                  <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-base-200/50 sm:rounded-l-xl" />
                   <span class={["relative", i == 0 && "whitespace-nowrap font-semibold text-zinc-900"]}>
                     {render_slot(col, @row_item.(row))}
                   </span>
