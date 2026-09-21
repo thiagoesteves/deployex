@@ -4,10 +4,16 @@ defmodule Foundation.ConfigProvider.Secrets.Env do
   """
   @behaviour Foundation.ConfigProvider.Secrets.Adapter
 
-  @secrets [
+  @required_secrets [
     "DEPLOYEX_ADMIN_HASHED_PASSWORD",
     "DEPLOYEX_SECRET_KEY_BASE",
     "DEPLOYEX_ERLANG_COOKIE"
+  ]
+
+  # Fetched only when set, so a deployment without the feature does not have to
+  # define them.
+  @optional_secrets [
+    "DEPLOYEX_OAUTH_CLIENT_SECRET"
   ]
 
   @doc """
@@ -20,8 +26,16 @@ defmodule Foundation.ConfigProvider.Secrets.Env do
   """
   @impl true
   def secrets(_config, _secret_path, _opts) do
-    Enum.reduce(@secrets, %{}, fn secret, acc ->
-      Map.put(acc, secret, System.fetch_env!(secret))
+    required =
+      Enum.reduce(@required_secrets, %{}, fn secret, acc ->
+        Map.put(acc, secret, System.fetch_env!(secret))
+      end)
+
+    Enum.reduce(@optional_secrets, required, fn secret, acc ->
+      case System.get_env(secret) do
+        nil -> acc
+        value -> Map.put(acc, secret, value)
+      end
     end)
   end
 end
