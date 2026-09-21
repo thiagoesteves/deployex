@@ -9,18 +9,19 @@ defmodule DeployexWeb.OAuth.Provider.GitHub do
 
   @behaviour DeployexWeb.OAuth.Provider
 
+  alias Assent.Strategy.Github, as: AssentGitHub
   alias DeployexWeb.OAuth.Config
 
   @impl true
   def authorize_url do
-    Assent.Strategy.Github.authorize_url(assent_config())
+    AssentGitHub.authorize_url(assent_config())
   end
 
   @impl true
   def callback(params, session_params) do
     config = Keyword.put(assent_config(), :session_params, session_params)
 
-    case Assent.Strategy.Github.callback(config, params) do
+    case AssentGitHub.callback(config, params) do
       {:ok, %{user: %{"email" => email}}} when is_binary(email) ->
         {:ok, %{email: email, verified?: true}}
 
