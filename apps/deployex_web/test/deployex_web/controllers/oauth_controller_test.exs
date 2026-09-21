@@ -51,7 +51,10 @@ defmodule DeployexWeb.OAuthControllerTest do
 
   test "callback with an allowed verified email logs in" do
     put_oauth_config(%{emails: ["me@co.com"], domains: []})
-    expect(ProviderMock, :callback, fn _params, _sp -> {:ok, %{email: "me@co.com", verified?: true}} end)
+
+    expect(ProviderMock, :callback, fn _params, _sp ->
+      {:ok, %{email: "me@co.com", verified?: true}}
+    end)
 
     conn =
       base_conn()
@@ -63,7 +66,10 @@ defmodule DeployexWeb.OAuthControllerTest do
 
   test "callback with a non-allow-listed email is denied" do
     put_oauth_config(%{emails: [], domains: []})
-    expect(ProviderMock, :callback, fn _p, _sp -> {:ok, %{email: "x@evil.com", verified?: true}} end)
+
+    expect(ProviderMock, :callback, fn _p, _sp ->
+      {:ok, %{email: "x@evil.com", verified?: true}}
+    end)
 
     conn =
       base_conn()

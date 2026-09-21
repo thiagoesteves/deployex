@@ -21,7 +21,12 @@ defmodule DeployexWeb.LogsLive do
       |> assign(services_unselected_highlight: Monitor.list() ++ [Helper.self_sname()])
 
     ~H"""
-    <Layouts.app flash={@flash} ui_settings={@ui_settings} current_path={@current_path} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      ui_settings={@ui_settings}
+      current_path={@current_path}
+      current_user={@current_user}
+    >
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
         <div class="bg-base-100 border-b border-base-200 shadow-sm">
