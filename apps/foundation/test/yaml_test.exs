@@ -766,8 +766,7 @@ defmodule Foundation.YamlTest do
   describe "endpoint scheme + check_origin" do
     test "parses scheme and check_origin from the yaml" do
       with_mocks([
-        {System, [:passthrough],
-         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint end]}
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint end]}
       ]) do
         {:ok, config} = Yaml.load()
         assert config.scheme == "https"
