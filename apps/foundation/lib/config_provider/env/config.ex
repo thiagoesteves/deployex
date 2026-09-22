@@ -54,16 +54,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        # Endpoint Config
+        # Endpoint Config. url carries the PUBLIC host + scheme (no internal port,
+        # so origins/URLs use the standard port for the scheme, correct behind a
+        # TLS-terminating proxy). http keeps the port DeployEx listens on.
+        url = maybe_put([host: yaml_config.hostname], :scheme, yaml_config.scheme)
+
+        endpoint_opts =
+          [url: url, http: [port: yaml_config.port]]
+          |> maybe_put(:check_origin, yaml_config.check_origin)
+
         updated_config =
           Config.Reader.merge(updated_config,
-            deployex_web: [
-              {DeployexWeb.Endpoint,
-               [
-                 url: [host: yaml_config.hostname],
-                 http: [port: yaml_config.port]
-               ]}
-            ]
+            deployex_web: [{DeployexWeb.Endpoint, endpoint_opts}]
           )
 
         # Telemetry Config
@@ -122,4 +124,9 @@ defmodule Foundation.ConfigProvider.Env.Config do
         config
     end
   end
+
+  # Adds key only when the value is not nil, so an absent yaml value keeps the
+  # existing (Phoenix default) config instead of overriding it with nil.
+  defp maybe_put(opts, _key, nil), do: opts
+  defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 end

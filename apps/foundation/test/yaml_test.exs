@@ -775,13 +775,13 @@ defmodule Foundation.YamlTest do
       end
     end
 
-    test "defaults scheme to https and check_origin to nil when absent" do
+    test "defaults scheme and check_origin to nil when absent (endpoint keeps its config)" do
       with_mocks([
         {System, [:passthrough],
          [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
       ]) do
         {:ok, config} = Yaml.load()
-        assert config.scheme == "https"
+        assert config.scheme == nil
         assert config.check_origin == nil
       end
     end

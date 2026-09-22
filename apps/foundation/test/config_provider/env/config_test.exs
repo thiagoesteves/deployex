@@ -17,10 +17,36 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_gcp_release_error "#{@file_paths}/deployex-gcp-release-error.yaml"
   @yaml_gcp_secrets_error "#{@file_paths}/deployex-gcp-secrets-error.yaml"
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
+  @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
 
   @tag :capture_log
   test "init/1 with success" do
     assert Config.init(:any) == []
+  end
+
+  @tag :capture_log
+  test "applies endpoint scheme + check_origin from the yaml" do
+    with_mocks([
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint end]}
+    ]) do
+      config = Config.load([], [])
+      endpoint = config[:deployex_web][DeployexWeb.Endpoint]
+      assert endpoint[:url][:scheme] == "https"
+      assert endpoint[:url][:host] == "deployex.example.com"
+      assert endpoint[:check_origin] == false
+    end
+  end
+
+  @tag :capture_log
+  test "omits check_origin and endpoint scheme when the yaml does not set them" do
+    with_mocks([
+      {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+    ]) do
+      config = Config.load([], [])
+      endpoint = config[:deployex_web][DeployexWeb.Endpoint]
+      refute Keyword.has_key?(endpoint, :check_origin)
+      refute Keyword.has_key?(endpoint[:url], :scheme)
+    end
   end
 
   @tag :capture_log
