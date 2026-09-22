@@ -15,6 +15,11 @@ defmodule DeployexWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  # Behind a TLS-terminating proxy (ALB/ACM or a CDN edge) the box sees plain
+  # HTTP; trust the proxy's forwarded headers so conn.scheme/host/port reflect
+  # the public request and generated URLs + force_ssl behave.
+  plug Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_proto, :x_forwarded_port]
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest
