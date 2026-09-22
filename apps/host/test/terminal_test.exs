@@ -36,9 +36,13 @@ defmodule Host.TerminalTest do
         metadata: "test"
       }
 
-      assert {:ok, _pid} = Terminal.new(state)
+      assert {:ok, pid} = Terminal.new(state)
 
       assert_receive {:terminal_update, _state}, 1_000
+
+      # Terminal servers are started anonymously, so the label is what identifies them.
+      assert {:dictionary, dictionary} = Process.info(pid, :dictionary)
+      assert Keyword.get(dictionary, :"$process_label") == {:terminal, node, commands}
 
       FixtureTerminal.terminate_all()
 

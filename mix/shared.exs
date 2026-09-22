@@ -1,7 +1,8 @@
 defmodule Mix.Shared do
   def version, do: "0.10.0"
 
-  def elixir, do: "~> 1.16"
+  # Process.set_label/1 (used to label anonymous workers and LiveView processes) is Elixir 1.17+.
+  def elixir, do: "~> 1.17"
 
   def elixirc_paths do
     if Mix.env() == :test do

@@ -42,6 +42,10 @@ defmodule Host.Terminal.Server do
   @impl true
   @spec init(any()) :: {:ok, any(), {:continue, :open_erlexec_connection}}
   def init(state) do
+    # Terminal servers are started anonymously by the DynamicSupervisor, one per session, so a
+    # label is the only thing that tells them apart in observability tools and crash reports.
+    Process.set_label({:terminal, state.node, state.commands})
+
     state =
       state
       |> Map.put(

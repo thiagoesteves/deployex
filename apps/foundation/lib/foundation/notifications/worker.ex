@@ -41,6 +41,10 @@ defmodule Foundation.Notifications.Worker do
   def init(%__MODULE__{adapter: adapter, enabled: enabled, events: events} = config) do
     Logger.info("Initializing Notifications Worker for adapter: #{inspect(adapter)}")
 
+    # Workers are started anonymously, one per `notifications:` entry, and several entries may
+    # share an adapter, so the label carries the adapter and whether the worker is subscribed.
+    Process.set_label({:notifications_worker, adapter, enabled: enabled})
+
     if enabled do
       Enum.each(events, fn event ->
         Phoenix.PubSub.subscribe(Foundation.PubSub, Notifications.topic(event))

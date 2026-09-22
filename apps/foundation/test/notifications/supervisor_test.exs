@@ -20,6 +20,12 @@ defmodule Foundation.Notifications.SupervisorTest do
       assert is_pid(pid)
       assert Process.alive?(pid)
 
+      # Workers are started anonymously, so the label is what identifies them.
+      assert {:dictionary, dictionary} = Process.info(pid, :dictionary)
+
+      assert Keyword.get(dictionary, :"$process_label") ==
+               {:notifications_worker, Foundation.Notifications.Webhook, enabled: true}
+
       GenServer.stop(pid)
     end
 
@@ -43,6 +49,11 @@ defmodule Foundation.Notifications.SupervisorTest do
       {:ok, pid} = NotifSupervisor.start_notification_worker(config)
 
       assert Process.alive?(pid)
+
+      assert {:dictionary, dictionary} = Process.info(pid, :dictionary)
+
+      assert Keyword.get(dictionary, :"$process_label") ==
+               {:notifications_worker, Foundation.Notifications.Webhook, enabled: false}
 
       GenServer.stop(pid)
     end
