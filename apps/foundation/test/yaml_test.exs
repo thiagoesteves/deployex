@@ -23,6 +23,7 @@ defmodule Foundation.YamlTest do
   @yaml_deployex_aws_no_replica_ports "#{@file_paths}/deployex-aws-no-replica-ports.yaml"
   @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
+  @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
 
   describe "load/0" do
@@ -758,6 +759,30 @@ defmodule Foundation.YamlTest do
       ]) do
         {:ok, config} = Yaml.load()
         assert config.notifications == []
+      end
+    end
+  end
+
+  describe "endpoint scheme + check_origin" do
+    test "parses scheme and check_origin from the yaml" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.scheme == "https"
+        assert config.check_origin == false
+      end
+    end
+
+    test "defaults scheme to https and check_origin to nil when absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.scheme == "https"
+        assert config.check_origin == nil
       end
     end
   end
