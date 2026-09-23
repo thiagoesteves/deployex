@@ -255,6 +255,7 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- install_release(data),
          :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
+         :ok <- prune_old_releases(data),
          :ok <- notify_complete_ok(data.make_permanent_async, data) do
       Logger.info(
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
@@ -696,6 +697,161 @@ defmodule Deployer.HotUpgrade.Application do
       error ->
         Logger.error("Could not read the releases of node: #{node}, reason: #{inspect(error)}")
         []
+    end
+  end
+
+  @doc """
+  Remove the release and library directories left by earlier hot upgrades.
+
+  Each hot upgrade unpacks `releases/<vsn>/` and one `lib/<app>-<vsn>/` per changed
+  application into `current/` and never removes the earlier ones, so disk grows one release
+  and its libraries per upgrade. The `releases_retention` config sets how many releases to
+  keep (default 2, floored at 2). The current and previous versions are always kept, the
+  furthest back OTP runs old code or a downgrade relup rolls back to, and any higher retention
+  keeps the next newest releases by mtime.
+
+  Files are removed directly, not through `release_handler:remove_release/1`: an Elixir
+  release ships no `RELEASES` file, so that call treats every library as unused and empties
+  `lib/` (`remove_unpacked_release/1` avoids it for the same reason).
+
+  The self-upgrade path makes the release permanent asynchronously (see `permfy/1`), so it is
+  not permanent yet here. DeployEx does not prune its own versions.
+  """
+  @spec prune_old_releases(Execute.t()) :: :ok
+  def prune_old_releases(%Execute{make_permanent_async: true}), do: :ok
+
+  def prune_old_releases(%Execute{
+        name: name,
+        current_path: current_path,
+        from_version: from_version,
+        to_version: to_version
+      }) do
+    keep_versions = versions_to_keep(current_path, from_version, to_version)
+
+    case kept_libs(current_path, name, keep_versions) do
+      {:ok, keep_libs} -> prune_lib_dirs(current_path, keep_libs)
+      :error -> :ok
+    end
+
+    prune_release_dirs(current_path, name, keep_versions)
+
+    :ok
+  end
+
+  # The current and previous versions are always kept. If releases_retention asks for more,
+  # the next newest release directories by mtime are added up to that count.
+  @spec versions_to_keep(String.t(), any(), any()) :: MapSet.t()
+  defp versions_to_keep(current_path, from_version, to_version) do
+    retention = max(Application.get_env(:foundation, :releases_retention, 2), 2)
+    base = [to_string(from_version), to_string(to_version)]
+
+    extra =
+      "#{current_path}/releases"
+      |> release_version_dirs()
+      |> Enum.reject(&(&1.version in base))
+      |> Enum.sort_by(& &1.mtime, :desc)
+      |> Enum.take(retention - length(base))
+      |> Enum.map(& &1.version)
+
+    MapSet.new(base ++ extra)
+  end
+
+  @spec release_version_dirs(String.t()) :: [%{version: String.t(), mtime: integer()}]
+  defp release_version_dirs(releases_dir) do
+    case File.ls(releases_dir) do
+      {:ok, entries} ->
+        entries
+        |> Enum.map(&{&1, "#{releases_dir}/#{&1}"})
+        |> Enum.filter(fn {_entry, path} -> File.dir?(path) end)
+        |> Enum.map(fn {entry, path} -> %{version: entry, mtime: mtime(path)} end)
+
+      _ ->
+        []
+    end
+  end
+
+  @spec mtime(String.t()) :: integer()
+  defp mtime(path) do
+    case File.stat(path, time: :posix) do
+      {:ok, %File.Stat{mtime: mtime}} -> mtime
+      _ -> 0
+    end
+  end
+
+  # The "<app>-<vsn>" library directories the kept releases still use, read from each kept
+  # release's .rel. :error if any .rel is unreadable, so the caller leaves lib/ alone rather
+  # than delete on an incomplete set.
+  @spec kept_libs(String.t(), String.t(), MapSet.t()) :: {:ok, MapSet.t()} | :error
+  defp kept_libs(current_path, name, keep_versions) do
+    Enum.reduce_while(keep_versions, {:ok, MapSet.new()}, fn version, {:ok, acc} ->
+      rel_file = "#{current_path}/releases/#{name}-#{version}.rel"
+
+      case :file.consult(rel_file) do
+        {:ok, [{:release, _name_vsn, _erts, apps}]} ->
+          libs = Enum.map(apps, fn app -> "#{elem(app, 0)}-#{elem(app, 1)}" end)
+          {:cont, {:ok, MapSet.union(acc, MapSet.new(libs))}}
+
+        reason ->
+          Logger.warning(
+            "Skipping library prune, cannot read #{rel_file}, reason: #{inspect(reason)}"
+          )
+
+          {:halt, :error}
+      end
+    end)
+  end
+
+  @spec prune_lib_dirs(String.t(), MapSet.t()) :: :ok
+  defp prune_lib_dirs(current_path, keep_libs) do
+    lib_dir = "#{current_path}/lib"
+
+    with {:ok, entries} <- File.ls(lib_dir) do
+      Enum.each(entries, fn entry ->
+        path = "#{lib_dir}/#{entry}"
+
+        if File.dir?(path) and not MapSet.member?(keep_libs, entry) do
+          File.rm_rf(path)
+          Logger.info("Pruned unused library directory: #{path}")
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  @spec prune_release_dirs(String.t(), String.t(), MapSet.t()) :: :ok
+  defp prune_release_dirs(current_path, name, keep_versions) do
+    releases_dir = "#{current_path}/releases"
+
+    with {:ok, entries} <- File.ls(releases_dir) do
+      Enum.each(entries, fn entry ->
+        path = "#{releases_dir}/#{entry}"
+
+        cond do
+          File.dir?(path) and not MapSet.member?(keep_versions, entry) ->
+            File.rm_rf(path)
+            Logger.info("Pruned old release directory: #{path}")
+
+          stale_rel_file?(entry, name, keep_versions) ->
+            File.rm(path)
+            Logger.info("Pruned old release file: #{path}")
+
+          true ->
+            :ok
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  # True for a <name>-<vsn>.rel whose version is not kept. Other files (RELEASES,
+  # start_erl.data) never match and are left alone.
+  @spec stale_rel_file?(String.t(), String.t(), MapSet.t()) :: boolean()
+  defp stale_rel_file?(entry, name, keep_versions) do
+    case Regex.run(~r/^#{Regex.escape(name)}-(.+)\.rel$/, entry) do
+      [_, version] -> not MapSet.member?(keep_versions, version)
+      _ -> false
     end
   end
 

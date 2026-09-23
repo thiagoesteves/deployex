@@ -11,6 +11,7 @@ defmodule Sentinel.Config.Upgradable do
 
   defstruct logs_retention_time_ms: nil,
             metrics_retention_time_ms: nil,
+            releases_retention: nil,
             monitoring: [],
             applications: [],
             notifications: [],
@@ -19,6 +20,7 @@ defmodule Sentinel.Config.Upgradable do
   @type t :: %__MODULE__{
           logs_retention_time_ms: non_neg_integer() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
+          releases_retention: non_neg_integer() | nil,
           monitoring: [{atom(), Yaml.Monitoring.t()}] | [],
           applications: [Yaml.Application.t()] | [],
           notifications: [Yaml.Notification.t()] | [],
@@ -33,6 +35,7 @@ defmodule Sentinel.Config.Upgradable do
     %__MODULE__{
       logs_retention_time_ms: config.logs_retention_time_ms,
       metrics_retention_time_ms: config.metrics_retention_time_ms,
+      releases_retention: config.releases_retention,
       monitoring: config.monitoring,
       applications: config.applications,
       notifications: config.notifications,
@@ -48,6 +51,7 @@ defmodule Sentinel.Config.Upgradable do
     %__MODULE__{
       logs_retention_time_ms: Application.get_env(:foundation, :logs_retention_time_ms),
       metrics_retention_time_ms: Application.get_env(:observer_web, :data_retention_period),
+      releases_retention: Application.get_env(:foundation, :releases_retention),
       monitoring: Application.get_env(:foundation, :monitoring, []),
       applications: Application.get_env(:foundation, :applications, []),
       notifications: Application.get_env(:foundation, :notifications, []),

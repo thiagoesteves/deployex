@@ -12,6 +12,7 @@ otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
+releases_retention: 2
 notifications:
   - adapter: "webhook"                                   # options: webhook, slack, pagerduty
     url: "https://example.com/hooks/deployex"

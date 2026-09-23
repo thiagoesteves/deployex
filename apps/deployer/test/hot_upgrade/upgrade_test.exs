@@ -2269,4 +2269,223 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     under a node that keeps working only until it is restarted.
     """
   end
+
+  # Seed one release directory with a controlled mtime, its .rel, and its library dirs.
+  defp seed_version!(current_path, name, version, mtime_posix, libs) do
+    File.mkdir_p!("#{current_path}/releases/#{version}")
+    write_rel!(current_path, name, version, libs)
+    for {app, vsn} <- libs, do: File.mkdir_p!("#{current_path}/lib/#{app}-#{vsn}")
+    File.touch!("#{current_path}/releases/#{version}", mtime_posix)
+  end
+
+  # A .rel :file.consult/1 can read back. The libraries it names are the ones prune keeps.
+  defp write_rel!(current_path, name, version, libs) do
+    apps = Enum.map_join(libs, ",", fn {app, vsn} -> "{#{app},\"#{vsn}\"}" end)
+
+    File.write!(
+      "#{current_path}/releases/#{name}-#{version}.rel",
+      "{release,{\"#{name}\",\"#{version}\"},{erts,\"14.1.1\"},[#{apps}]}.\n"
+    )
+  end
+
+  defp seed_release_layout!(current_path, name) do
+    File.mkdir_p!("#{current_path}/releases")
+    File.mkdir_p!("#{current_path}/lib")
+
+    # Three release directories, only 0.1.0 and 0.2.0 are kept
+    for version <- ["0.0.9", "0.1.0", "0.2.0"] do
+      File.mkdir_p!("#{current_path}/releases/#{version}")
+    end
+
+    # Files that are not <name>-<vsn>.rel must never be removed
+    File.write!("#{current_path}/releases/RELEASES", "")
+    File.write!("#{current_path}/releases/start_erl.data", "14.1.1 0.2.0")
+
+    # kept releases declare the shared dependency, the pruned release declares an old one
+    write_rel!(current_path, name, "0.1.0", [
+      {:kernel, "9.1"},
+      {name, "0.1.0"},
+      {:somedep, "1.0.0"}
+    ])
+
+    write_rel!(current_path, name, "0.2.0", [
+      {:kernel, "9.1"},
+      {name, "0.2.0"},
+      {:somedep, "1.0.0"}
+    ])
+
+    write_rel!(current_path, name, "0.0.9", [
+      {:kernel, "9.1"},
+      {name, "0.0.9"},
+      {:olddep, "0.5.0"}
+    ])
+
+    for lib <- [
+          "#{name}-0.0.9",
+          "#{name}-0.1.0",
+          "#{name}-0.2.0",
+          "somedep-1.0.0",
+          "olddep-0.5.0"
+        ] do
+      File.mkdir_p!("#{current_path}/lib/#{lib}")
+    end
+  end
+
+  describe "prune_old_releases/1" do
+    @tag :capture_log
+    test "keeps the current and previous versions and removes everything older", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      seed_release_layout!(current_path, app_name)
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0"
+               })
+
+      # Kept release directories and their .rel files
+      assert File.dir?("#{current_path}/releases/0.1.0")
+      assert File.dir?("#{current_path}/releases/0.2.0")
+      assert File.exists?("#{current_path}/releases/#{app_name}-0.1.0.rel")
+      assert File.exists?("#{current_path}/releases/#{app_name}-0.2.0.rel")
+
+      # Old release directory and its stale .rel file are gone
+      refute File.dir?("#{current_path}/releases/0.0.9")
+      refute File.exists?("#{current_path}/releases/#{app_name}-0.0.9.rel")
+
+      # Non-version files under releases/ are left alone
+      assert File.exists?("#{current_path}/releases/RELEASES")
+      assert File.exists?("#{current_path}/releases/start_erl.data")
+
+      # Library directories a kept release declares stay, dead ones go
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.1.0")
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.2.0")
+      assert File.dir?("#{current_path}/lib/somedep-1.0.0")
+      refute File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+      refute File.dir?("#{current_path}/lib/olddep-0.5.0")
+    end
+
+    @tag :capture_log
+    test "leaves libraries alone when a kept .rel cannot be read, still prunes release dirs", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      seed_release_layout!(current_path, app_name)
+      File.rm!("#{current_path}/releases/#{app_name}-0.2.0.rel")
+
+      log =
+        capture_log(fn ->
+          assert :ok =
+                   UpgradeApp.prune_old_releases(%Execute{
+                     name: app_name,
+                     current_path: current_path,
+                     from_version: "0.1.0",
+                     to_version: "0.2.0"
+                   })
+        end)
+
+      assert log =~ "Skipping library prune"
+
+      # No library directory is removed when the set to keep is incomplete
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+      assert File.dir?("#{current_path}/lib/olddep-0.5.0")
+
+      # Release directories are still pruned, that set does not depend on the .rel contents
+      refute File.dir?("#{current_path}/releases/0.0.9")
+    end
+
+    test "self-upgrade path is a no-op, the release is not permanent yet", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      seed_release_layout!(current_path, app_name)
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0",
+                 make_permanent_async: true
+               })
+
+      # Nothing is touched
+      assert File.dir?("#{current_path}/releases/0.0.9")
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+    end
+
+    @tag :capture_log
+    test "releases_retention keeps more than two, the newest by mtime", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      on_exit(fn -> Application.delete_env(:foundation, :releases_retention) end)
+      Application.put_env(:foundation, :releases_retention, 3)
+
+      seed_release_layout!(current_path, app_name)
+      # 0.0.9 (from the base layout) is the newest of the older versions
+      File.touch!("#{current_path}/releases/0.0.9", 3000)
+
+      seed_version!(current_path, app_name, "0.0.8", 2000, [
+        {app_name, "0.0.8"},
+        {"dep8", "0.1.0"}
+      ])
+
+      seed_version!(current_path, app_name, "0.0.7", 1000, [
+        {app_name, "0.0.7"},
+        {"dep7", "0.1.0"}
+      ])
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0"
+               })
+
+      # current, previous, and one more (the newest older version) are kept
+      assert File.dir?("#{current_path}/releases/0.2.0")
+      assert File.dir?("#{current_path}/releases/0.1.0")
+      assert File.dir?("#{current_path}/releases/0.0.9")
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+      assert File.dir?("#{current_path}/lib/olddep-0.5.0")
+
+      # Anything past the retention count is removed
+      refute File.dir?("#{current_path}/releases/0.0.8")
+      refute File.dir?("#{current_path}/releases/0.0.7")
+      refute File.dir?("#{current_path}/lib/#{app_name}-0.0.8")
+      refute File.dir?("#{current_path}/lib/dep8-0.1.0")
+      refute File.dir?("#{current_path}/lib/#{app_name}-0.0.7")
+      refute File.dir?("#{current_path}/lib/dep7-0.1.0")
+    end
+
+    @tag :capture_log
+    test "releases_retention below the floor is clamped to two", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      on_exit(fn -> Application.delete_env(:foundation, :releases_retention) end)
+      Application.put_env(:foundation, :releases_retention, 1)
+
+      seed_release_layout!(current_path, app_name)
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0"
+               })
+
+      # Still keeps current and previous, never fewer
+      assert File.dir?("#{current_path}/releases/0.1.0")
+      assert File.dir?("#{current_path}/releases/0.2.0")
+      refute File.dir?("#{current_path}/releases/0.0.9")
+    end
+  end
 end
