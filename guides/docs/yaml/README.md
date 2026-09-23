@@ -38,6 +38,8 @@ For installation examples, see:
 account_name: "prod"                                     # Cloud/Environment Account name
 hostname: "deployex.myphoenixapp.com"                    # Deployex hostname
 port: 5001                                               # Deployex port
+scheme: "https"                                          # Public URL scheme, set behind a TLS-terminating proxy (optional)
+check_origin: false                                      # Endpoint origin check: false, or a list of allowed origins (optional)
 
 # Release Distribution
 release_adapter: "s3"                                    # Release adapter: s3, gcp-storage or local
@@ -257,6 +259,32 @@ applications:
       - key: AWS_REGION
         value: "sa-east-1"
 ```
+
+## Running behind a TLS-terminating proxy
+
+DeployEx can run behind anything that terminates TLS and forwards plain HTTP to the box: an
+AWS ALB with ACM, a CDN edge, or nginx on the same host. The box itself then serves HTTP, and
+two optional endpoint keys make the dashboard behave as if it were served over HTTPS:
+
+- `scheme` — the public URL scheme, normally `"https"`. Generated URLs and origins use it (with
+  the standard port for the scheme, not the internal `port`), so links and redirects point at the
+  public HTTPS address rather than `http://host:5001`.
+- `check_origin` — the endpoint origin check for LiveView and websockets. Set `false` to disable it,
+  or give a list of allowed origins (for example `["//deployex.myphoenixapp.com"]`).
+
+DeployEx also trusts the proxy's `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`
+headers, so `conn.scheme`, host, and port reflect the original public request. Make sure the proxy
+sets those headers.
+
+```yaml
+hostname: "deployex.myphoenixapp.com"
+port: 5001            # what DeployEx listens on behind the proxy
+scheme: "https"       # what the public request arrives as
+check_origin: ["//deployex.myphoenixapp.com"]
+```
+
+Both keys are optional. Omit them (or leave `scheme` unset) to serve plain HTTP with the default
+origin check, which is the right setup when nothing terminates TLS in front of DeployEx.
 
 ## Runtime Configuration Upgrades
 
