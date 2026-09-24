@@ -4,6 +4,12 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
 
   `hot_upgrade/1` runs `deployex.sh --hot-upgrade`, passing `--set-version` so the
   target version comes from the reconciler, not the on-disk config.
+
+  On an instance provisioned before this feature the on-disk `deployex.sh` predates
+  `--set-version` (and cloud-init does not refresh it on a version bump), so the run is
+  gated on the script actually supporting the flag. Without the gate the old script would
+  reject the flag, the worker would latch the version, and self-upgrade would be silently
+  dead. See the hot-upgrades guide for the one-time refresh.
   """
 
   @behaviour Deployer.SelfUpgrade.Executor.Adapter
@@ -15,6 +21,37 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
   def hot_upgrade(version), do: run("--hot-upgrade", version)
 
   defp run(op, version) do
+    with :ok <- ensure_installer_supports_flags() do
+      do_run(op, version)
+    end
+  end
+
+  # The installer must know --set-version. An older on-box script does not, and would
+  # otherwise fail with a cryptic "Invalid option" that the worker latches. Report a clear,
+  # actionable error instead.
+  defp ensure_installer_supports_flags do
+    path = script()
+
+    case File.read(path) do
+      {:ok, contents} ->
+        if String.contains?(contents, "--set-version") do
+          :ok
+        else
+          Logger.error(
+            "Self-upgrade: #{path} predates --set-version. Refresh it with the new release's " <>
+              "deployex.sh before self-upgrade can run (see the hot-upgrades guide)."
+          )
+
+          {:error, :installer_outdated}
+        end
+
+      {:error, reason} ->
+        Logger.error("Self-upgrade: cannot read installer at #{path}: #{inspect(reason)}")
+        {:error, {:installer_unreadable, reason}}
+    end
+  end
+
+  defp do_run(op, version) do
     args = [op, config_file(), "--set-version", version] ++ dist_args()
 
     # The installer runs `deployex rpc` against the running node. That RPC needs
@@ -38,10 +75,18 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
   defp script, do: opts()[:script] || "/home/root/deployex.sh"
   defp config_file, do: opts()[:config_file] || "/home/root/deployex.yaml"
 
-  defp dist_args do
-    case opts()[:dist_base_url] do
-      nil -> []
-      url -> ["--dist", url]
-    end
+  defp dist_args, do: dist_args(opts()[:dist_base_url])
+
+  # `dist_base_url` is a base with per-version paths (e.g. .../releases/download), so
+  # append the installer's {version} placeholder unless the URL already has one. The
+  # installer uses a --dist URL without a placeholder as-is (flat bucket).
+  @doc false
+  @spec dist_args(String.t() | nil) :: [String.t()]
+  def dist_args(nil), do: []
+
+  def dist_args(url) do
+    if String.contains?(url, "{version}"),
+      do: ["--dist", url],
+      else: ["--dist", String.trim_trailing(url, "/") <> "/{version}"]
   end
 end

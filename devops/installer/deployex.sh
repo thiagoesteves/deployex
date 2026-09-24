@@ -231,12 +231,15 @@ download_and_verify_release() {
     rm -f deployex-*.tar.gz
     rm -f ${CHECKSUM_FILE}
     echo "#           Downloading files              #" >&2
-    wget ${BASE_RELEASE}/${CHECKSUM_FILE}
-    wget ${BASE_RELEASE}/${FILENAME}
-
-    if [ $? != 0 ]; then
-            echo "Error while trying to download from: ${BASE_RELEASE}" >&2
-            exit
+    # Bound each download so a stalled host fails instead of hanging the caller.
+    # Check both wgets: the previous single check only covered the second one.
+    if ! wget --timeout=30 --tries=3 ${BASE_RELEASE}/${CHECKSUM_FILE}; then
+      echo "Error while trying to download checksum from: ${BASE_RELEASE}" >&2
+      exit 1
+    fi
+    if ! wget --timeout=30 --tries=3 ${BASE_RELEASE}/${FILENAME}; then
+      echo "Error while trying to download release from: ${BASE_RELEASE}" >&2
+      exit 1
     fi
 
     echo "# Verify checksum                          #" >&2
@@ -317,7 +320,14 @@ hot_upgrade_deployex() {
 download_and_hot_upgrade_deployex() {
   local OS_TARGET=$1 OTP_VERSION=$2 BASE_RELEASE=$3
   local RELEASE_PATH VERSIONED_PATH
-  RELEASE_PATH=$(download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE")
+  # download_and_verify_release runs in a command substitution (a subshell), so its exit 1
+  # on a download or checksum failure does not stop this function on its own. Propagate it,
+  # otherwise the RPC below fires against a path that was never written.
+  RELEASE_PATH=$(download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE") || exit 1
+  if [ -z "$RELEASE_PATH" ]; then
+    echo "Error: release download/verify failed, aborting hot upgrade" >&2
+    exit 1
+  fi
   # deployex_execute parses the TARGET version from the filename and expects
   # deployex-<version>.tar.gz. The downloaded asset is named
   # deployex-<os_target>-otp-<otp>.tar.gz, so copy it to the version-named form

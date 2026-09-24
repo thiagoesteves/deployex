@@ -416,6 +416,11 @@ self-upgrade result. The AWS instance must enable metadata tags (`metadata_optio
 the guide modules already set. The hot upgrade runs `deployex rpc` against the running node; DeployEx passes the live distribution
 cookie to that call automatically, so you do not need to set `RELEASE_COOKIE` for the worker.
 
+On an instance provisioned before this feature, the on-disk `/home/root/deployex.sh` predates the `--set-version` flag the worker
+passes, and cloud-init does not refresh it on a version bump. Refresh it once before enabling self-upgrade:
+`wget -O /home/root/deployex.sh <dist_base_url>/<version>/deployex.sh && chmod +x /home/root/deployex.sh`. If the script is
+outdated the worker reports it and does not attempt the upgrade, rather than latching a cryptic failure.
+
 A failed version is latched: the worker does not retry it until the running version changes. This prevents a bad
 version from looping. After you fix the cause, retry the same version in one of two ways:
 
