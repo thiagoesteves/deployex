@@ -14,7 +14,8 @@ usage() {
     echo "  $0 --install [config_file] [--dist <base_url>]"
     echo "  $0 --update [config_file] [--dist <base_url>]"
     echo "  $0 --uninstall [config_file]"
-    echo "  $0 --hot-upgrade <release_path> [config_file]"
+    echo "  $0 --hot-upgrade [config_file] [--set-version <version>] [--dist <base_url>]"
+    echo "  $0 --hot-upgrade --release-path <path> [config_file]"
     echo "  $0 --help"
     echo
     echo "Options:"
@@ -24,9 +25,14 @@ usage() {
     echo "                            (default: ${DEFAULT_CONFIG_FILE})"
     echo "  --uninstall [config_file] Completely remove deployex from the system"
     echo "                            (default: ${DEFAULT_CONFIG_FILE})"
-    echo "  --hot-upgrade <release_path>    Perform hot upgrade with downloaded release tarball"
-    echo "                                  [config_file] (default: ${DEFAULT_CONFIG_FILE})"
-    echo "                                  Requires: RELEASE_COOKIE environment variable"
+    echo "  --hot-upgrade [config_file]     Hot upgrade deployex. Downloads the release"
+    echo "                                  (version from the config or --set-version) and"
+    echo "                                  hot-upgrades. Requires RELEASE_COOKIE."
+    echo "                                  (default config: ${DEFAULT_CONFIG_FILE})"
+    echo "  --release-path <path>     Hot upgrade from a local release tarball instead of"
+    echo "                            downloading (use with --hot-upgrade)"
+    echo "  --set-version <version>   Override the version read from the config file"
+    echo "                            (used with --hot-upgrade download mode)"
     echo "  --dist <base_url>         Base URL for downloading releases"
     echo "                            (default: ${DEFAULT_DIST_URL})"
     echo "  --help                    Print help"
@@ -50,11 +56,11 @@ usage() {
     echo "  Uninstall deployex completely:"
     echo "    $0 --uninstall"
     echo
-    echo "  Hot upgrade with local release file:"
-    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade /tmp/deployex-0.9.1.tar.gz"
+    echo "  Hot upgrade by downloading a version:"
+    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade --set-version 0.9.15"
     echo
-    echo "  Hot upgrade with custom config:"
-    echo "    $0 --hot-upgrade /tmp/deployex-0.9.1.tar.gz my-config.yaml"
+    echo "  Hot upgrade from a local release file:"
+    echo "    RELEASE_COOKIE=my_secret_cookie $0 --hot-upgrade --release-path /tmp/deployex-0.9.1.tar.gz"
     echo
     exit 1
 }
@@ -212,48 +218,58 @@ DEPLOYEX_SYSTEMD_FILE="
     echo "#    Deployex installed with success       #"
 }
 
-update_deployex() {
+download_and_verify_release() {
   local OS_TARGET=$1
   local OTP_VERSION=$2
   local BASE_RELEASE=$3
   local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
   local CHECKSUM_FILE="checksum.txt"
 
-    echo ""
-    echo "#           Updating Deployex              #"
+    echo "" >&2
     cd /tmp
-    echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}"
+    echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}" >&2
     rm -f deployex-*.tar.gz
     rm -f ${CHECKSUM_FILE}
-    echo "#           Downloading files              #"
+    echo "#           Downloading files              #" >&2
     wget ${BASE_RELEASE}/${CHECKSUM_FILE}
     wget ${BASE_RELEASE}/${FILENAME}
 
     if [ $? != 0 ]; then
-            echo "Error while trying to download from: ${BASE_RELEASE}"
+            echo "Error while trying to download from: ${BASE_RELEASE}" >&2
             exit
     fi
-    
-    echo "# Verify checksum                          #"
+
+    echo "# Verify checksum                          #" >&2
     # Extract the expected checksum for this specific file
     EXPECTED_CHECKSUM=$(cat ${CHECKSUM_FILE} | grep "${FILENAME}"  | awk '{print $1}')
-  
+
     if [ -z "$EXPECTED_CHECKSUM" ]; then
-      echo "Error: No checksum found for ${FILENAME}"
+      echo "Error: No checksum found for ${FILENAME}" >&2
       exit 1
     fi
-  
+
     # Calculate actual checksum
     ACTUAL_CHECKSUM=$(sha256sum "${FILENAME}" | awk '{print $1}')
-    
+
     if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
-      echo "Error: Checksum verification failed!"
-      echo "Expected: $EXPECTED_CHECKSUM"
-      echo "Got:      $ACTUAL_CHECKSUM"
+      echo "Error: Checksum verification failed!" >&2
+      echo "Expected: $EXPECTED_CHECKSUM" >&2
+      echo "Got:      $ACTUAL_CHECKSUM" >&2
       exit 1
     fi
-  
-    echo "# Checksum verified successfully           #"
+
+    echo "# Checksum verified successfully           #" >&2
+    echo "/tmp/${FILENAME}"
+}
+
+update_deployex() {
+  local OS_TARGET=$1
+  local OTP_VERSION=$2
+  local BASE_RELEASE=$3
+
+    echo ""
+    echo "#           Updating Deployex              #"
+    download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE" >/dev/null
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean inet tls info                      #"
@@ -298,11 +314,25 @@ hot_upgrade_deployex() {
     fi
 }
 
+download_and_hot_upgrade_deployex() {
+  local OS_TARGET=$1 OTP_VERSION=$2 BASE_RELEASE=$3
+  local RELEASE_PATH VERSIONED_PATH
+  RELEASE_PATH=$(download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE")
+  # deployex_execute parses the TARGET version from the filename and expects
+  # deployex-<version>.tar.gz. The downloaded asset is named
+  # deployex-<os_target>-otp-<otp>.tar.gz, so copy it to the version-named form
+  # first, otherwise the version check fails with :no_match_versions.
+  VERSIONED_PATH="/tmp/deployex-${version}.tar.gz"
+  cp "$RELEASE_PATH" "$VERSIONED_PATH"
+  hot_upgrade_deployex "$VERSIONED_PATH"
+}
+
 # Initialize variables
 operation=""
 config_file=""
 dist_url=${DEFAULT_DIST_URL}
 release_path=""
+set_version=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -343,21 +373,30 @@ while [[ $# -gt 0 ]]; do
         --hot-upgrade)
             operation=hot-upgrade
             shift
-            # Release path is required for hot-upgrade
-            if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
-                release_path="$1"
-                shift
-            else
-                echo "Error: --hot-upgrade requires a release path"
-                usage
-            fi
-            # Check for optional config file
+            # Optional config-file positional (default below). Local-file mode is
+            # selected with --release-path; otherwise the release is downloaded.
             if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
                 config_file="$1"
                 shift
             else
                 config_file=${DEFAULT_CONFIG_FILE}
             fi
+            ;;
+        --release-path)
+            if [[ -z "$2" || "$2" =~ ^-- ]]; then
+                echo "Error: --release-path requires a path argument"
+                usage
+            fi
+            release_path="$2"
+            shift 2
+            ;;
+        --set-version)
+            if [[ -z "$2" || "$2" =~ ^-- ]]; then
+                echo "Error: --set-version requires a version argument"
+                usage
+            fi
+            set_version="$2"
+            shift 2
             ;;
         --dist)
             if [[ -z "$2" || "$2" =~ ^-- ]]; then
@@ -430,8 +469,15 @@ else
     DEPLOYEX_MONITORED_APP_LOG_PATH=${monitored_app_log_path}
 fi
 
-if [ $dist_url != $DEFAULT_DIST_URL ]; then
-    base_release=${dist_url}
+if [[ -n $set_version ]]; then
+    version=$set_version
+fi
+
+if [ "$dist_url" != "$DEFAULT_DIST_URL" ]; then
+    # A custom --dist URL may embed a {version} placeholder for per-version paths
+    # (e.g. a GitHub releases base: .../releases/download/{version}). Without the
+    # placeholder the URL is used as-is, preserving the flat-bucket behaviour.
+    base_release=$(echo "$dist_url" | sed "s|{version}|${version}|g")
 else
     base_release=${dist_url}/${version}
 fi
@@ -467,12 +513,16 @@ elif [ $operation == uninstall ]; then
 
     echo "# Deployex uninstalled with success        #"
 elif [ $operation == hot-upgrade ]; then
-    # Version to download - need all parameters
-    if [[ -z $release_path ]]; then
-        echo "Error: Release_path cannot be empty"
-        usage
+    if [[ -n $release_path ]]; then
+        # Local-file mode: hot upgrade the provided tarball, no download.
+        hot_upgrade_deployex $release_path
+    else
+        # Download mode (default): fetch the release, then hot upgrade.
+        if [[ -z $version || -z $os_target || -z $otp_version ]]; then
+            echo "Error: Missing required parameters"; usage
+        fi
+        download_and_hot_upgrade_deployex $os_target $otp_version $base_release
     fi
-    hot_upgrade_deployex $release_path
 else
     usage
 fi
