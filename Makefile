@@ -15,7 +15,7 @@ BUCKET   ?= /tmp/deployex/bucket
 COOKIE   ?= cookie
 
 .DEFAULT_GOAL := help
-.PHONY: help preflight setup start stop test format-check credo check dev-app dev-app-clean
+.PHONY: help preflight setup start stop test format-check credo dialyzer check dev-app dev-app-clean
 
 preflight: ## Verify the local toolchain (.tool-versions) + tools for dev/test
 	@fail=0; \
@@ -63,7 +63,10 @@ format-check: ## Check formatting without writing changes
 credo: ## Run credo static analysis (strict)
 	mix credo --strict
 
-check: format-check credo test ## Run all pre-PR checks: format, credo, test
+dialyzer: ## Run dialyzer static type analysis
+	mix dialyzer
+
+check: format-check credo dialyzer test ## Run all pre-PR checks: format, credo, dialyzer, test
 
 dev-app: preflight ## Build + publish the sample app to the local bucket so DeployEx manages it
 	@test -d "$(APP_DIR)" || { \
