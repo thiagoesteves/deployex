@@ -38,8 +38,8 @@ For installation examples, see:
 account_name: "prod"                                     # Cloud/Environment Account name
 hostname: "deployex.myphoenixapp.com"                    # Deployex hostname
 port: 5001                                               # Deployex port
-scheme: "https"                                          # Public URL scheme, set behind a TLS-terminating proxy (optional)
-check_origin: false                                      # Endpoint origin check: false, or a list of allowed origins (optional)
+scheme: "https"                                          # Public URL scheme: https (port 443) or http (port 80) (optional)
+check_origin: ["//deployex.myphoenixapp.com"]           # Endpoint origin check: list of allowed origins, or false (optional)
 
 # Release Distribution
 release_adapter: "s3"                                    # Release adapter: s3, gcp-storage or local
@@ -263,28 +263,28 @@ applications:
 ## Running behind a TLS-terminating proxy
 
 DeployEx can run behind anything that terminates TLS and forwards plain HTTP to the box: an
-AWS ALB with ACM, a CDN edge, or nginx on the same host. The box itself then serves HTTP, and
-two optional endpoint keys make the dashboard behave as if it were served over HTTPS:
+AWS ALB with ACM, a CDN edge, or nginx on the same host. `port` is where DeployEx listens. Two
+optional endpoint keys describe the public address:
 
-- `scheme` — the public URL scheme, normally `"https"`. Generated URLs and origins use it (with
-  the standard port for the scheme, not the internal `port`), so links and redirects point at the
-  public HTTPS address rather than `http://host:5001`.
-- `check_origin` — the endpoint origin check for LiveView and websockets. Set `false` to disable it,
-  or give a list of allowed origins (for example `["//deployex.myphoenixapp.com"]`).
+- `scheme` sets the public URL scheme and port: `"https"` gives port 443 and `"http"` gives
+  port 80. Without it, a release keeps its built-in public URL, `https` on port 443.
+- `check_origin` sets the origin check for LiveView sockets. The default already works behind
+  a proxy, because it compares only the origin host with `hostname`. Give a list of allowed
+  origins when the dashboard is also reached by another host name. Each entry needs a host that
+  `URI.parse/1` can read, so write `"//host"` or `"https://host"`, not a bare `"host"`. Set
+  `false` only as a last resort, because it turns off the check.
 
-DeployEx also trusts the proxy's `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`
-headers, so `conn.scheme`, host, and port reflect the original public request. Make sure the proxy
-sets those headers.
+DeployEx loads both keys at boot and stops with an error if a value is not supported.
 
 ```yaml
 hostname: "deployex.myphoenixapp.com"
 port: 5001            # what DeployEx listens on behind the proxy
 scheme: "https"       # what the public request arrives as
-check_origin: ["//deployex.myphoenixapp.com"]
+check_origin: ["//deployex.myphoenixapp.com", "//deployex-alb.example.com"]
 ```
 
-Both keys are optional. Omit them (or leave `scheme` unset) to serve plain HTTP with the default
-origin check, which is the right setup when nothing terminates TLS in front of DeployEx.
+DeployEx does not trust `X-Forwarded-*` headers, so `conn.scheme`, host, and port show the
+request from the proxy.
 
 ## Runtime Configuration Upgrades
 
