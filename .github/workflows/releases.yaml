@@ -50,11 +50,16 @@ jobs:
           PREV=$(git tag --sort=version:refname | awk -v cur="$TAG" '$0==cur{print prev} {prev=$0}')
           if [ -n "$PREV" ]; then
             echo "Previous release: $PREV — building $PREV then $TAG so $PREV -> $TAG carries an appup"
+            # The setup step copies the per-OTP .tool-versions over the tracked root file,
+            # so restore it before each checkout or git aborts on the dirty tracked file
+            # (exactly on the OTP-bump releases this two-phase build exists for).
+            git checkout -- .tool-versions
             git checkout --quiet "$PREV"
             cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
             mix do deps.get + compile
             mix assets.deploy
             mix release
+            git checkout -- .tool-versions
             git checkout --quiet "$TAG"
             cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
             mix do deps.get + compile --force --warnings-as-errors
