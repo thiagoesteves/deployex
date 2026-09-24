@@ -302,11 +302,16 @@ defmodule Deployer.MonitorTest do
                  sname: sname,
                  language: "elixir",
                  ports: ports,
+                 env: ["RELEASE_COOKIE=app-cookie"],
                  timeout_app_ready: 10
                })
 
       assert_receive {:start_command, command}, 1_000
-      assert command =~ "RELEASE_COOKIE"
+
+      # The DeployEx cookie is a quoted default. The app's own env comes after it and wins.
+      {default_at, _} = :binary.match(command, "export RELEASE_COOKIE='cookie'\n")
+      {app_env_at, _} = :binary.match(command, "export RELEASE_COOKIE=app-cookie")
+      assert default_at < app_env_at
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
