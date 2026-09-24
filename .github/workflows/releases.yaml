@@ -23,6 +23,10 @@ jobs:
       ARTIFACT_NAME: deployex-ubuntu-24.04-otp-${{ matrix.otp }}.tar.gz
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Full history + tags so we can build the previous release and let
+          # Jellyfish generate the hot-upgrade appup into this release.
+          fetch-depth: 0
 
       - name: Install libcap-dev [recommended by erlexec]
         run: sudo apt-get install libcap-dev -y
@@ -36,17 +40,37 @@ jobs:
           version-file: .tool-versions
           version-type: strict
 
-      - name: Install Elixir dependencies
-        run: mix do deps.get + compile --warnings-as-errors
-
-      - name: Assets Deploy
-        run: mix assets.deploy
-
-      - name: Compile and Generate a Release
-        run: mix release
+      # Mirror hot_upgrade.yaml: build the previous release, then build this tag
+      # with --force in the same sequence, so Jellyfish sees the previous app
+      # versions in the release lib and emits the relup/appup into this release.
+      # First release (no previous tag) is a plain base build.
+      - name: Compile and generate the release (with hot-upgrade appup)
+        run: |
+          TAG="${{ github.ref_name }}"
+          PREV=$(git tag --sort=version:refname | awk -v cur="$TAG" '$0==cur{print prev} {prev=$0}')
+          if [ -n "$PREV" ]; then
+            echo "Previous release: $PREV — building $PREV then $TAG so $PREV -> $TAG carries an appup"
+            git checkout --quiet "$PREV"
+            cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
+            mix do deps.get + compile
+            mix assets.deploy
+            mix release
+            git checkout --quiet "$TAG"
+            cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
+            mix do deps.get + compile --force --warnings-as-errors
+            mix assets.deploy
+            mix release
+          else
+            echo "No previous tag; building $TAG as a base release (no appup)"
+            mix do deps.get + compile --warnings-as-errors
+            mix assets.deploy
+            mix release
+          fi
 
       - name: Rename Artifact
-        run: mv _build/prod/*.tar.gz ${{ env.ARTIFACT_NAME }}
+        # After the two-phase build _build/prod may also hold the previous
+        # tarball; take the most recently built one (this tag's release).
+        run: mv "$(ls -t _build/prod/deployex-*.tar.gz | head -1)" ${{ env.ARTIFACT_NAME }}
 
       - name: Calculate checksum
         run: sha256sum ${{ env.ARTIFACT_NAME }} > ${{ env.ARTIFACT_NAME }}.sha256
