@@ -44,7 +44,7 @@ write_files:
       secrets_adapter: "aws"
       secrets_path: "deployex-myappname-${account_name}-secrets"
       aws_region: "${aws_region}"
-      version: "${deployex_version}"
+      version: "__DEPLOYEX_VERSION__"
       otp_version: 28
       otp_tls_certificates: "/usr/local/share/ca-certificates"
       os_target: "ubuntu-24.04"
@@ -335,10 +335,16 @@ runcmd:
   - curl -o /etc/ssl/certs/rds-global.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
   # Install OTP certificates from AWS Secrets Manager
   - /home/root/install-otp-certificates.sh
-  # Download and install Deployex
-  - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
-  - chmod a+x /home/root/deployex.sh
-  - /home/root/deployex.sh --install /home/root/deployex.yaml
+  # Download and install Deployex. The pinned version lives only in the instance's
+  # deployex_version tag, read here through IMDS, so the version has one source of truth
+  # and a bump does not require re-rendering user_data.
+  - |
+    DX_TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+    DX_VERSION=$(curl -s -H "X-aws-ec2-metadata-token: $DX_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/deployex_version)
+    sed -i "s|__DEPLOYEX_VERSION__|$DX_VERSION|g" /home/root/deployex.yaml
+    wget https://github.com/thiagoesteves/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root
+    chmod a+x /home/root/deployex.sh
+    /home/root/deployex.sh --install /home/root/deployex.yaml
   # Install and configure CloudWatch agent
   - wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
   - dpkg -i -E ./amazon-cloudwatch-agent.deb
