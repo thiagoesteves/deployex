@@ -384,7 +384,7 @@ defmodule Foundation.Yaml do
       account_name: data["account_name"],
       hostname: data["hostname"],
       port: data["port"],
-      scheme: data["scheme"],
+      scheme: parse_scheme(data["scheme"]),
       check_origin: parse_check_origin(data["check_origin"]),
       release_adapter: release_adapter(data["release_adapter"]),
       release_bucket: data["release_bucket"],
@@ -410,11 +410,33 @@ defmodule Foundation.Yaml do
     }
   end
 
-  # Endpoint check_origin: pass through a boolean or a list of origins; a missing
-  # value stays nil so the config provider keeps Phoenix's default.
+  # A missing value stays nil so the config provider keeps the release config.
+  defp parse_scheme(nil), do: nil
+  defp parse_scheme(scheme) when scheme in ["http", "https"], do: scheme
+
+  defp parse_scheme(scheme),
+    do: raise("Scheme #{inspect(scheme)} not supported, expected http or https")
+
+  # Validated at load, because Phoenix only raises on the first socket handshake.
+  defp parse_check_origin(nil), do: nil
   defp parse_check_origin(value) when is_boolean(value), do: value
-  defp parse_check_origin(value) when is_list(value), do: value
-  defp parse_check_origin(_), do: nil
+
+  defp parse_check_origin([_ | _] = origins) do
+    Enum.each(origins, fn origin ->
+      unless is_binary(origin) and is_binary(URI.parse(origin).host) do
+        raise "check_origin #{inspect(origin)} not supported, expected an origin with a host, " <>
+                "e.g. \"//deployex.example.com\""
+      end
+    end)
+
+    origins
+  end
+
+  defp parse_check_origin(value),
+    do:
+      raise(
+        "check_origin #{inspect(value)} not supported, expected true, false or a list of origins"
+      )
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp

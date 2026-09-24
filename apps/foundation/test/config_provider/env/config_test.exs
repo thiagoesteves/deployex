@@ -18,6 +18,15 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_gcp_secrets_error "#{@file_paths}/deployex-gcp-secrets-error.yaml"
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
   @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
+  @yaml_endpoint_http "#{@file_paths}/deployex-endpoint-http.yaml"
+
+  # What config.exs + prod.exs give the provider in a release.
+  @release_config [
+    deployex_web: [
+      {DeployexWeb.Endpoint,
+       url: [host: "localhost", port: 443, scheme: "https"], http: [ip: {0, 0, 0, 0}]}
+    ]
+  ]
 
   @tag :capture_log
   test "init/1 with success" do
@@ -25,27 +34,47 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   end
 
   @tag :capture_log
-  test "applies endpoint scheme + check_origin from the yaml" do
+  test "scheme https sets the url scheme and port over the release config" do
     with_mocks([
       {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint end]}
     ]) do
-      config = Config.load([], [])
+      config = Config.load(@release_config, [])
       endpoint = config[:deployex_web][DeployexWeb.Endpoint]
-      assert endpoint[:url][:scheme] == "https"
-      assert endpoint[:url][:host] == "deployex.example.com"
+
+      assert Enum.sort(endpoint[:url]) == [
+               host: "deployex.example.com",
+               port: 443,
+               scheme: "https"
+             ]
+
+      assert endpoint[:http] == [ip: {0, 0, 0, 0}, port: 5001]
       assert endpoint[:check_origin] == false
     end
   end
 
   @tag :capture_log
-  test "omits check_origin and endpoint scheme when the yaml does not set them" do
+  test "scheme http sets the url scheme and port over the release config" do
+    with_mocks([
+      {System, [:passthrough],
+       [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint_http end]}
+    ]) do
+      config = Config.load(@release_config, [])
+      endpoint = config[:deployex_web][DeployexWeb.Endpoint]
+      assert Enum.sort(endpoint[:url]) == [host: "deployex.example.com", port: 80, scheme: "http"]
+      assert endpoint[:check_origin] == ["//deployex.example.com", "https://other.example.com"]
+    end
+  end
+
+  @tag :capture_log
+  test "keeps the release url scheme and port when the yaml does not set them" do
     with_mocks([
       {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
     ]) do
-      config = Config.load([], [])
+      config = Config.load(@release_config, [])
       endpoint = config[:deployex_web][DeployexWeb.Endpoint]
+      assert endpoint[:url][:scheme] == "https"
+      assert endpoint[:url][:port] == 443
       refute Keyword.has_key?(endpoint, :check_origin)
-      refute Keyword.has_key?(endpoint[:url], :scheme)
     end
   end
 

@@ -24,6 +24,11 @@ defmodule Foundation.YamlTest do
   @yaml_dns_cloudflare "#{@file_paths}/deployex-dns-cloudflare.yaml"
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
   @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
+  @yaml_endpoint_http "#{@file_paths}/deployex-endpoint-http.yaml"
+  @yaml_endpoint_scheme_error "#{@file_paths}/deployex-endpoint-scheme-error.yaml"
+  @yaml_endpoint_origin_host_error "#{@file_paths}/deployex-endpoint-origin-host-error.yaml"
+  @yaml_endpoint_origin_string_error "#{@file_paths}/deployex-endpoint-origin-string-error.yaml"
+  @yaml_endpoint_origin_empty_error "#{@file_paths}/deployex-endpoint-origin-empty-error.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
 
   describe "load/0" do
@@ -771,6 +776,54 @@ defmodule Foundation.YamlTest do
         {:ok, config} = Yaml.load()
         assert config.scheme == "https"
         assert config.check_origin == false
+      end
+    end
+
+    test "parses a check_origin list" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint_http end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.scheme == "http"
+        assert config.check_origin == ["//deployex.example.com", "https://other.example.com"]
+      end
+    end
+
+    test "rejects an unsupported scheme" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint_scheme_error end]}
+      ]) do
+        assert_raise RuntimeError, ~s(Scheme "htps" not supported, expected http or https), fn ->
+          Yaml.load()
+        end
+      end
+    end
+
+    test "rejects a check_origin entry without a parsable host" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_endpoint_origin_host_error end]}
+      ]) do
+        assert_raise RuntimeError, ~r/check_origin "deployex.example.com" not supported/, fn ->
+          Yaml.load()
+        end
+      end
+    end
+
+    test "rejects a quoted boolean and an empty list for check_origin" do
+      for {path, value} <- [
+            {@yaml_endpoint_origin_string_error, ~s("false")},
+            {@yaml_endpoint_origin_empty_error, "[]"}
+          ] do
+        with_mocks([
+          {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+        ]) do
+          assert_raise RuntimeError,
+                       "check_origin #{value} not supported, expected true, false or a list of origins",
+                       fn -> Yaml.load() end
+        end
       end
     end
 

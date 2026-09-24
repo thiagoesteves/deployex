@@ -54,13 +54,9 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        # Endpoint Config. url carries the PUBLIC host + scheme (no internal port,
-        # so origins/URLs use the standard port for the scheme, correct behind a
-        # TLS-terminating proxy). http keeps the port DeployEx listens on.
-        url = maybe_put([host: yaml_config.hostname], :scheme, yaml_config.scheme)
-
+        # Endpoint Config. url is the public address, http is the listen port.
         endpoint_opts =
-          [url: url, http: [port: yaml_config.port]]
+          [url: endpoint_url(yaml_config), http: [port: yaml_config.port]]
           |> maybe_put(:check_origin, yaml_config.check_origin)
 
         updated_config =
@@ -124,6 +120,16 @@ defmodule Foundation.ConfigProvider.Env.Config do
         config
     end
   end
+
+  # Phoenix does not derive the url port from the scheme, so set both. Without a
+  # scheme the release config (https on 443) stays.
+  defp endpoint_url(%Yaml{scheme: "https"} = yaml_config),
+    do: [host: yaml_config.hostname, scheme: "https", port: 443]
+
+  defp endpoint_url(%Yaml{scheme: "http"} = yaml_config),
+    do: [host: yaml_config.hostname, scheme: "http", port: 80]
+
+  defp endpoint_url(yaml_config), do: [host: yaml_config.hostname]
 
   # Adds key only when the value is not nil, so an absent yaml value keeps the
   # existing (Phoenix default) config instead of overriding it with nil.
