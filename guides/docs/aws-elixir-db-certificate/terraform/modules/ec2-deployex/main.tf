@@ -202,6 +202,12 @@ resource "aws_instance" "ec2_deployex_instance" {
   user_data                   = data.cloudinit_config.server_config.rendered
   user_data_replace_on_change = true
 
+  # DeployEx reads its own `deployex_version` tag to self-upgrade in place.
+  # Enable instance metadata tags so the host can read the tag through IMDS.
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+
   root_block_device {
     volume_type           = var.root_volume_type
     volume_size           = var.root_volume_size
@@ -209,8 +215,12 @@ resource "aws_instance" "ec2_deployex_instance" {
     encrypted             = true
   }
 
+  # `deployex_version` is a plain tag (NOT ignored below), so a version bump
+  # updates the tag in place and DeployEx self-upgrades. user_data stays ignored,
+  # so the bump does not replace the instance.
   tags = {
-    Name = "${var.environment}-${var.app_name}-ec2-deployex-instance"
+    Name             = "${var.environment}-${var.app_name}-ec2-deployex-instance"
+    deployex_version = var.deployex_version
   }
 
   lifecycle {

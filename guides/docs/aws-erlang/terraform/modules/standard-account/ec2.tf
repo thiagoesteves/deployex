@@ -121,12 +121,22 @@ resource "aws_instance" "ec2_myappname_instance" {
   iam_instance_profile        = aws_iam_instance_profile.myappname_node.name
   associate_public_ip_address = true
   user_data                   = data.cloudinit_config.server_config.rendered
-  user_data_replace_on_change = true
+
+  # DeployEx reads its own `deployex_version` tag to self-upgrade in place, so a
+  # version bump must update the tag only and must NOT replace the instance.
+  # Enable instance metadata tags so the host can read the tag through IMDS.
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
 
   tags = {
-    Name = "myappname-${var.account_name}-instance"
+    Name             = "myappname-${var.account_name}-instance"
+    deployex_version = var.deployex_version
   }
   lifecycle {
     create_before_destroy = true
+    # Ignore user_data so a version bump does not force a full instance
+    # replacement. First boot still installs the rendered pinned version.
+    ignore_changes = [user_data]
   }
 }
