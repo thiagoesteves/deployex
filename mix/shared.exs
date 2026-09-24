@@ -28,6 +28,9 @@ defmodule Mix.Shared do
         Deployer.Monitor.Service,
         Deployer.Fixture.Files,
         Deployer.HotUpgrade.TestCallback,
+        Deployer.SelfUpgrade.Executor.Shell,
+        Deployer.SelfUpgrade.Source.Aws.Imds,
+        Deployer.SelfUpgrade.Source.Gcp.Metadata,
         # DeployEx Web
         DeployexWeb.Application,
         DeployexWeb.Layouts,

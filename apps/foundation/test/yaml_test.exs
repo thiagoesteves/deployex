@@ -8,6 +8,7 @@ defmodule Foundation.YamlTest do
   alias Foundation.Yaml.Certificate
   alias Foundation.Yaml.Monitoring
   alias Foundation.Yaml.Ports
+  alias Foundation.Yaml.SelfUpgrade
 
   @file_paths "./test/support/files"
   @yaml_aws_default "#{@file_paths}/deployex-aws.yaml"
@@ -30,6 +31,7 @@ defmodule Foundation.YamlTest do
   @yaml_endpoint_origin_string_error "#{@file_paths}/deployex-endpoint-origin-string-error.yaml"
   @yaml_endpoint_origin_empty_error "#{@file_paths}/deployex-endpoint-origin-empty-error.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
+  @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -835,6 +837,44 @@ defmodule Foundation.YamlTest do
         {:ok, config} = Yaml.load()
         assert config.scheme == nil
         assert config.check_origin == nil
+      end
+    end
+  end
+
+  describe "self_upgrade parsing" do
+    test "parses a self_upgrade block into the SelfUpgrade struct" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_self_upgrade end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert %SelfUpgrade{} = config.self_upgrade
+        assert config.self_upgrade.enabled == true
+        assert config.self_upgrade.interval_ms == 30_000
+        assert config.self_upgrade.source == "aws"
+
+        assert config.self_upgrade.dist_base_url ==
+                 "https://github.com/curious-toast/deployex/releases/download"
+
+        assert config.self_upgrade.installer_script == "/home/root/deployex.sh"
+      end
+    end
+
+    test "applies defaults when the self_upgrade block is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert config.self_upgrade == %SelfUpgrade{
+                 enabled: false,
+                 interval_ms: 60_000,
+                 source: "local",
+                 dist_base_url: nil,
+                 installer_script: "/home/root/deployex.sh"
+               }
       end
     end
   end

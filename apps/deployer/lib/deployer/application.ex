@@ -19,7 +19,7 @@ defmodule Deployer.Application do
         {Finch, name: ExAws.Request.Finch},
         Deployer.Github.Release,
         Deployer.Github.Artifact
-      ] ++ application_servers() ++ gcp_app_credentials()
+      ] ++ application_servers() ++ self_upgrade_servers() ++ gcp_app_credentials()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -76,6 +76,18 @@ defmodule Deployer.Application do
     defp notify_startup, do: :ok
 
     defp notify_shutdown, do: :ok
+  end
+
+  # The self-upgrade worker is opt-in. It starts only when configured enabled,
+  # so default deployments are unaffected.
+  defp self_upgrade_servers do
+    config = Application.get_env(:deployer, Deployer.SelfUpgrade, [])
+
+    if config[:enabled] do
+      [{Deployer.SelfUpgrade.Worker, interval_ms: config[:interval_ms]}]
+    else
+      []
+    end
   end
 
   defp gcp_app_credentials do

@@ -1,0 +1,33 @@
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+secrets_adapter: "aws"
+secrets_path: "deployex-myapp-prod-secrets"
+aws_region: "sa-east-1"
+version: "0.4.0"
+otp_version: 26
+os_target: "ubuntu-20.04"
+metrics_retention_time_ms: 3600000
+logs_retention_time_ms: 3600000
+self_upgrade:
+  enabled: true
+  interval_ms: 30000
+  source: "aws"
+  dist_base_url: "https://github.com/curious-toast/deployex/releases/download"
+  installer_script: "/home/root/deployex.sh"
+applications:
+  - name: "myphoenixapp"
+    language: "elixir"
+    replicas: 3
+    deploy_rollback_timeout_ms: 600000
+    deploy_schedule_interval_ms: 5000
+    replica_ports:
+      - key: PORT
+        base: 4000
+    env:
+      - key: MYPHOENIXAPP_PHX_SERVER
+        value: true
+      - key: MYPHOENIXAPP_PHX_SERVER2
+        value: true

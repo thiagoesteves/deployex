@@ -127,6 +127,17 @@ config :deployer, Deployer.Status, adapter: Deployer.Status.Application
 
 config :deployer, Deployer.HotUpgrade, adapter: Deployer.HotUpgrade.Application
 
+# Self-upgrade of DeployEx itself, driven by a desired version published by IaC.
+# Disabled by default: enable it, and select a per-cloud source adapter, per deploy.
+config :deployer, Deployer.SelfUpgrade,
+  enabled: false,
+  interval_ms: 60_000,
+  dist_base_url: nil
+
+config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Source.Local
+
+config :deployer, Deployer.SelfUpgrade.Executor, adapter: Deployer.SelfUpgrade.Executor.Shell
+
 # Default GCP credentials are empty
 config :goth, file_credentials: nil
 
