@@ -1,8 +1,8 @@
 defmodule Deployer.SelfUpgrade.Executor.Shell do
   @moduledoc """
-  Executes a self-upgrade by shelling out to the deployex.sh installer.
+  Builds the self-upgrade command for the deployex.sh installer.
 
-  `hot_upgrade/1` runs `deployex.sh --hot-upgrade`, passing `--set-version` so the
+  `hot_upgrade_command/1` returns `deployex.sh --hot-upgrade` with `--set-version`, so the
   target version comes from the reconciler, not the on-disk config.
 
   On an instance provisioned before this feature the on-disk `deployex.sh` predates
@@ -17,12 +17,11 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
   require Logger
 
   @impl true
-  @spec hot_upgrade(String.t()) :: :ok | {:error, any()}
-  def hot_upgrade(version), do: run("--hot-upgrade", version)
-
-  defp run(op, version) do
+  @spec hot_upgrade_command(String.t()) ::
+          {:ok, Deployer.SelfUpgrade.Executor.Adapter.command()} | {:error, any()}
+  def hot_upgrade_command(version) do
     with :ok <- ensure_installer_supports_flags() do
-      do_run(op, version)
+      {:ok, command("--hot-upgrade", version)}
     end
   end
 
@@ -51,7 +50,7 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
     end
   end
 
-  defp do_run(op, version) do
+  defp command(op, version) do
     args = [op, config_file(), "--set-version", version] ++ dist_args()
 
     # The installer runs `deployex rpc` against the running node. That RPC needs
@@ -60,15 +59,7 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
     # default. Pass the live cookie so the ephemeral rpc node connects.
     env = [{"RELEASE_COOKIE", Node.get_cookie() |> to_string()}]
 
-    case System.cmd(script(), args, stderr_to_stdout: true, env: env) do
-      {out, 0} ->
-        Logger.info("Self-upgrade #{op} to #{version} ok: #{out}")
-        :ok
-
-      {out, code} ->
-        Logger.error("Self-upgrade #{op} to #{version} failed (#{code}): #{out}")
-        {:error, {:exit, code}}
-    end
+    {script(), args, [stderr_to_stdout: true, env: env]}
   end
 
   defp opts, do: Application.get_env(:deployer, Deployer.SelfUpgrade, [])

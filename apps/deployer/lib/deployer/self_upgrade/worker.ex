@@ -9,6 +9,10 @@ defmodule Deployer.SelfUpgrade.Worker do
   the suspend would time out, the process would be skipped, and a later purge could kill it
   mid-upgrade. A backstop timeout bounds a stuck attempt so the reconcile interval keeps
   running instead of wedging.
+
+  The Task calls `System.cmd/3` directly (an MFA, not a closure). A closure would belong to
+  this module's code, and the purge of that old code at the end of the relup kills every
+  process that still references it, the Task included.
   """
 
   use GenServer
@@ -37,7 +41,7 @@ defmodule Deployer.SelfUpgrade.Worker do
 
   @doc """
   Trigger a reconcile now. Returns immediately with the decision, never the upgrade result:
-  `:noop` (no drift or already-failed version), `:started` (an upgrade Task was spawned), or
+  `:noop` (no drift or already-failed version), `:started` (an upgrade was attempted), or
   `:in_progress` (an upgrade is already running). The upgrade runs asynchronously.
   """
   @spec reconcile(GenServer.server()) :: :noop | :started | :in_progress
@@ -133,10 +137,15 @@ defmodule Deployer.SelfUpgrade.Worker do
     emit(:started, %{version: version})
     Logger.info("Self-upgrade: starting hot upgrade to #{version}")
 
-    task = Task.Supervisor.async_nolink(@task_supervisor, fn -> Executor.hot_upgrade(version) end)
-    timeout_ref = Process.send_after(self(), :upgrade_timeout, state.upgrade_timeout_ms)
+    case Executor.hot_upgrade_command(version) do
+      {:ok, {cmd, args, opts}} ->
+        task = Task.Supervisor.async_nolink(@task_supervisor, System, :cmd, [cmd, args, opts])
+        timeout_ref = Process.send_after(self(), :upgrade_timeout, state.upgrade_timeout_ms)
+        {:started, %{state | task: task, timeout_ref: timeout_ref, upgrading: version}}
 
-    {:started, %{state | task: task, timeout_ref: timeout_ref, upgrading: version}}
+      {:error, reason} ->
+        {:started, finish({:error, reason}, %{state | upgrading: version})}
+    end
   end
 
   defp finish(result, state) do
@@ -145,19 +154,28 @@ defmodule Deployer.SelfUpgrade.Worker do
     state = %{state | task: nil, timeout_ref: nil, upgrading: nil}
 
     case result do
-      :ok ->
+      {out, 0} ->
+        Logger.info("Self-upgrade: hot upgrade to #{version} ok: #{out}")
         emit(:hot_ok, %{version: version})
         %{state | last_failed: nil}
 
+      {out, code} when is_integer(code) ->
+        finish_failed(version, {:exit, code}, out, state)
+
       {:error, reason} ->
-        emit(:hot_failed, %{version: version, reason: reason})
-
-        Logger.error(
-          "Self-upgrade: hot upgrade to #{version} failed: #{inspect(reason)}. Staying on current version."
-        )
-
-        %{state | last_failed: version}
+        finish_failed(version, reason, nil, state)
     end
+  end
+
+  defp finish_failed(version, reason, out, state) do
+    emit(:hot_failed, %{version: version, reason: reason})
+    output = if out, do: "\n#{out}", else: ""
+
+    Logger.error(
+      "Self-upgrade: hot upgrade to #{version} failed: #{inspect(reason)}. Staying on current version.#{output}"
+    )
+
+    %{state | last_failed: version}
   end
 
   defp cancel_timer(nil), do: :ok

@@ -6,10 +6,10 @@ defmodule Deployer.SelfUpgrade.ExecutorTest do
 
   setup :verify_on_exit!
 
-  test "hot_upgrade/1 delegates to the configured adapter" do
+  test "hot_upgrade_command/1 delegates to the configured adapter" do
     Deployer.SelfUpgrade.ExecutorMock
-    |> expect(:hot_upgrade, fn "1.2.3" -> :ok end)
+    |> expect(:hot_upgrade_command, fn "1.2.3" -> {:ok, {"deployex.sh", [], []}} end)
 
-    assert :ok = Executor.hot_upgrade("1.2.3")
+    assert {:ok, {"deployex.sh", [], []}} = Executor.hot_upgrade_command("1.2.3")
   end
 end
