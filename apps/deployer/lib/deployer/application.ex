@@ -84,7 +84,10 @@ defmodule Deployer.Application do
     config = Application.get_env(:deployer, Deployer.SelfUpgrade, [])
 
     if config[:enabled] do
-      [{Deployer.SelfUpgrade.Worker, interval_ms: config[:interval_ms]}]
+      [
+        {Task.Supervisor, name: Deployer.SelfUpgrade.TaskSupervisor},
+        {Deployer.SelfUpgrade.Worker, interval_ms: config[:interval_ms] || 60_000}
+      ]
     else
       []
     end
