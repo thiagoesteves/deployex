@@ -51,17 +51,15 @@ jobs:
           if [ -n "$PREV" ]; then
             echo "Previous release: $PREV — building $PREV then $TAG so $PREV -> $TAG carries an appup"
             # The setup step copies the per-OTP .tool-versions over the tracked root file,
-            # so restore it before each checkout or git aborts on the dirty tracked file
-            # (exactly on the OTP-bump releases this two-phase build exists for).
+            # so restore it or git aborts the checkout on the dirty tracked file. Do not copy
+            # it again after a checkout: $PREV may not have this OTP line's directory, and
+            # setup-beam has already installed the toolchain (mix does not read the file).
             git checkout -- .tool-versions
             git checkout --quiet "$PREV"
-            cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
             mix do deps.get + compile
             mix assets.deploy
             mix release
-            git checkout -- .tool-versions
             git checkout --quiet "$TAG"
-            cp devops/releases/otp-${{ matrix.otp }}/.tool-versions .
             mix do deps.get + compile --force --warnings-as-errors
             mix assets.deploy
             mix release
