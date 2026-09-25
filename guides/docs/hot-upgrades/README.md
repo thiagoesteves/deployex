@@ -425,7 +425,9 @@ A failed version is latched: the worker does not retry it until the running vers
 version from looping. After you fix the cause, retry the same version in one of two ways:
 
 - Restart DeployEx. The worker clears its state and reconciles again on the next tick.
-- Run the reconcile directly: `bin/deployex rpc "Deployer.SelfUpgrade.Worker.reconcile()"`.
+- Run a forced reconcile as the `deployex` user, with `RELEASE_COOKIE` set to the live cookie:
+  `RELEASE_COOKIE=<cookie> bin/deployex rpc "Deployer.SelfUpgrade.Worker.reconcile(force: true)"`. Without `force: true`
+  the call returns `:noop` for the latched version.
 
 ### Choosing the right release file
 

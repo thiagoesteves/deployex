@@ -16,7 +16,7 @@ defmodule Deployer.SelfUpgrade.WorkerTest do
 
   defp start(opts \\ [interval_ms: :never]) do
     start_supervised!({Task.Supervisor, name: Deployer.SelfUpgrade.TaskSupervisor})
-    start_supervised!({Worker, [name: nil] ++ opts})
+    start_supervised!({Worker, Keyword.put_new(opts, :name, nil)})
   end
 
   test "no drift is a no-op" do
@@ -92,6 +92,23 @@ defmodule Deployer.SelfUpgrade.WorkerTest do
     assert :started = Worker.reconcile(pid)
     assert_receive {:self_upgrade, :hot_failed, %{version: "99.0.0", reason: {:exit, 3}}}, 1_000
     assert :noop = Worker.reconcile(pid)
+  end
+
+  test "force: true retries a latched version" do
+    Phoenix.PubSub.subscribe(Deployer.PubSub, "self_upgrade")
+    # Registered under the default name, so the documented Worker.reconcile(force: true) works.
+    start(interval_ms: :never, name: Worker)
+    expect(Deployer.SelfUpgrade.SourceMock, :desired_version, 3, fn -> {:ok, "99.0.0"} end)
+
+    expect(Deployer.SelfUpgrade.ExecutorMock, :hot_upgrade_command, 2, fn "99.0.0" ->
+      sh("exit 3")
+    end)
+
+    assert :started = Worker.reconcile()
+    assert_receive {:self_upgrade, :hot_failed, %{version: "99.0.0"}}, 1_000
+    assert :noop = Worker.reconcile()
+    assert :started = Worker.reconcile(force: true)
+    assert_receive {:self_upgrade, :hot_failed, %{version: "99.0.0"}}, 1_000
   end
 
   test ":none source is a no-op" do

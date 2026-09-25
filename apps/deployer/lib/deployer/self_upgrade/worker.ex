@@ -43,9 +43,13 @@ defmodule Deployer.SelfUpgrade.Worker do
   Trigger a reconcile now. Returns immediately with the decision, never the upgrade result:
   `:noop` (no drift or already-failed version), `:started` (an upgrade was attempted), or
   `:in_progress` (an upgrade is already running). The upgrade runs asynchronously.
+
+  Pass `force: true` to retry a version that already failed.
   """
-  @spec reconcile(GenServer.server()) :: :noop | :started | :in_progress
-  def reconcile(server \\ __MODULE__), do: GenServer.call(server, :reconcile)
+  @spec reconcile(GenServer.server() | keyword(), keyword()) :: :noop | :started | :in_progress
+  def reconcile(server \\ __MODULE__, opts \\ [])
+  def reconcile(opts, []) when is_list(opts), do: reconcile(__MODULE__, opts)
+  def reconcile(server, opts), do: GenServer.call(server, {:reconcile, opts})
 
   @impl true
   def init(opts) do
@@ -58,7 +62,8 @@ defmodule Deployer.SelfUpgrade.Worker do
   end
 
   @impl true
-  def handle_call(:reconcile, _from, state) do
+  def handle_call({:reconcile, opts}, _from, state) do
+    state = if opts[:force], do: %{state | last_failed: nil}, else: state
     {result, state} = maybe_start_upgrade(state)
     {:reply, result, state}
   end
