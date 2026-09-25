@@ -54,16 +54,14 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
-        # Endpoint Config
+        # Endpoint Config. url is the public address, http is the listen port.
+        endpoint_opts =
+          [url: endpoint_url(yaml_config), http: [port: yaml_config.port]]
+          |> maybe_put(:check_origin, yaml_config.check_origin)
+
         updated_config =
           Config.Reader.merge(updated_config,
-            deployex_web: [
-              {DeployexWeb.Endpoint,
-               [
-                 url: [host: yaml_config.hostname],
-                 http: [port: yaml_config.port]
-               ]}
-            ]
+            deployex_web: [{DeployexWeb.Endpoint, endpoint_opts}]
           )
 
         # Telemetry Config
@@ -122,4 +120,19 @@ defmodule Foundation.ConfigProvider.Env.Config do
         config
     end
   end
+
+  # Phoenix does not derive the url port from the scheme, so set both. Without a
+  # scheme the release config (https on 443) stays.
+  defp endpoint_url(%Yaml{scheme: "https"} = yaml_config),
+    do: [host: yaml_config.hostname, scheme: "https", port: 443]
+
+  defp endpoint_url(%Yaml{scheme: "http"} = yaml_config),
+    do: [host: yaml_config.hostname, scheme: "http", port: 80]
+
+  defp endpoint_url(yaml_config), do: [host: yaml_config.hostname]
+
+  # Adds key only when the value is not nil, so an absent yaml value keeps the
+  # existing (Phoenix default) config instead of overriding it with nil.
+  defp maybe_put(opts, _key, nil), do: opts
+  defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 end

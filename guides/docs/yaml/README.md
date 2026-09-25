@@ -38,6 +38,8 @@ For installation examples, see:
 account_name: "prod"                                     # Cloud/Environment Account name
 hostname: "deployex.myphoenixapp.com"                    # Deployex hostname
 port: 5001                                               # Deployex port
+scheme: "https"                                          # Public URL scheme: https (port 443) or http (port 80) (optional)
+check_origin: ["//deployex.myphoenixapp.com"]           # Endpoint origin check: list of allowed origins, or false (optional)
 
 # Release Distribution
 release_adapter: "s3"                                    # Release adapter: s3, gcp-storage or local
@@ -257,6 +259,32 @@ applications:
       - key: AWS_REGION
         value: "sa-east-1"
 ```
+
+## Running behind a TLS-terminating proxy
+
+DeployEx can run behind anything that terminates TLS and forwards plain HTTP to the box: an
+AWS ALB with ACM, a CDN edge, or nginx on the same host. `port` is where DeployEx listens. Two
+optional endpoint keys describe the public address:
+
+- `scheme` sets the public URL scheme and port: `"https"` gives port 443 and `"http"` gives
+  port 80. Without it, a release keeps its built-in public URL, `https` on port 443.
+- `check_origin` sets the origin check for LiveView sockets. The default already works behind
+  a proxy, because it compares only the origin host with `hostname`. Give a list of allowed
+  origins when the dashboard is also reached by another host name. Each entry needs a host that
+  `URI.parse/1` can read, so write `"//host"` or `"https://host"`, not a bare `"host"`. Set
+  `false` only as a last resort, because it turns off the check.
+
+DeployEx loads both keys at boot and stops with an error if a value is not supported.
+
+```yaml
+hostname: "deployex.myphoenixapp.com"
+port: 5001            # what DeployEx listens on behind the proxy
+scheme: "https"       # what the public request arrives as
+check_origin: ["//deployex.myphoenixapp.com", "//deployex-alb.example.com"]
+```
+
+DeployEx does not trust `X-Forwarded-*` headers, so `conn.scheme`, host, and port show the
+request from the proxy.
 
 ## Runtime Configuration Upgrades
 

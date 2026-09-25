@@ -1,0 +1,12 @@
+account_name: "prod"
+hostname: "deployex.example.com"
+port: 5001
+release_adapter: "s3"
+release_bucket: "myapp-prod-distribution"
+secrets_adapter: "aws"
+secrets_path: "deployex-prod-secrets"
+aws_region: "us-east-2"
+version: "0.10.0"
+otp_version: 29
+os_target: "ubuntu-24.04"
+scheme: "htps"

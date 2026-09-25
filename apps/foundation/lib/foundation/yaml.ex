@@ -231,6 +231,8 @@ defmodule Foundation.Yaml do
   defstruct account_name: nil,
             hostname: nil,
             port: nil,
+            scheme: nil,
+            check_origin: nil,
             release_adapter: nil,
             release_bucket: nil,
             secrets_adapter: nil,
@@ -256,6 +258,8 @@ defmodule Foundation.Yaml do
           account_name: String.t() | nil,
           hostname: String.t() | nil,
           port: non_neg_integer() | nil,
+          scheme: String.t() | nil,
+          check_origin: boolean() | [String.t()] | nil,
           release_adapter: atom() | nil,
           release_bucket: String.t() | nil,
           secrets_adapter: atom() | nil,
@@ -380,6 +384,8 @@ defmodule Foundation.Yaml do
       account_name: data["account_name"],
       hostname: data["hostname"],
       port: data["port"],
+      scheme: parse_scheme(data["scheme"]),
+      check_origin: parse_check_origin(data["check_origin"]),
       release_adapter: release_adapter(data["release_adapter"]),
       release_bucket: data["release_bucket"],
       secrets_adapter: secrets_adapter(data["secrets_adapter"]),
@@ -403,6 +409,34 @@ defmodule Foundation.Yaml do
       config_checksum: checksum
     }
   end
+
+  # A missing value stays nil so the config provider keeps the release config.
+  defp parse_scheme(nil), do: nil
+  defp parse_scheme(scheme) when scheme in ["http", "https"], do: scheme
+
+  defp parse_scheme(scheme),
+    do: raise("Scheme #{inspect(scheme)} not supported, expected http or https")
+
+  # Validated at load, because Phoenix only raises on the first socket handshake.
+  defp parse_check_origin(nil), do: nil
+  defp parse_check_origin(value) when is_boolean(value), do: value
+
+  defp parse_check_origin([_ | _] = origins) do
+    Enum.each(origins, fn origin ->
+      unless is_binary(origin) and is_binary(URI.parse(origin).host) do
+        raise "check_origin #{inspect(origin)} not supported, expected an origin with a host, " <>
+                "e.g. \"//deployex.example.com\""
+      end
+    end)
+
+    origins
+  end
+
+  defp parse_check_origin(value),
+    do:
+      raise(
+        "check_origin #{inspect(value)} not supported, expected true, false or a list of origins"
+      )
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp
