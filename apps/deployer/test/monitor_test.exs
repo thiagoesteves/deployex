@@ -275,6 +275,50 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
+    test "Running application - elixir start command sets RELEASE_COOKIE",
+         %{elixir_name: name, elixir_sname: sname, ports: ports} do
+      test_event_ref = make_ref()
+      test_pid_process = self()
+      os_pid = 123_456
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0"}
+      end)
+
+      Host.CommanderMock
+      |> expect(:run_link, fn command, _options ->
+        send(test_pid_process, {:start_command, command})
+        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+        {:ok, test_pid_process, os_pid}
+      end)
+      |> expect(:run, fn _command, _options -> {:ok, test_pid_process} end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 env: ["RELEASE_COOKIE=app-cookie"],
+                 timeout_app_ready: 10
+               })
+
+      assert_receive {:start_command, command}, 1_000
+
+      # The DeployEx cookie is a quoted default. The app's own env comes after it and wins.
+      {default_at, _} = :binary.match(command, "export RELEASE_COOKIE='cookie'\n")
+      {app_env_at, _} = :binary.match(command, "export RELEASE_COOKIE=app-cookie")
+      assert default_at < app_env_at
+
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
     test "Running application - no pre_commands - gleam", %{
       gleam_sname: sname,
       gleam_name: name,
