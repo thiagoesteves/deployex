@@ -326,6 +326,7 @@ defmodule Deployer.Monitor.Application do
          command
        ) do
     path = Common.remove_deployex_from_path()
+    cookie = Common.cookie()
     app_env = build_export_command(env)
 
     ports_env =
@@ -333,9 +334,14 @@ defmodule Deployer.Monitor.Application do
       |> ports_to_env()
       |> build_export_command()
 
+    # Set the distribution cookie, as the erlang and gleam clauses do. Without it the app
+    # boots with its release default and DeployEx cannot connect over distribution when it
+    # runs with a non-default cookie. It goes before app_env, so a RELEASE_COOKIE in the
+    # app's env still wins.
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
+    export RELEASE_COOKIE=#{shell_quote(cookie)}
     #{app_env}
     #{ports_env}
     export PATH=#{path}
@@ -428,6 +434,9 @@ defmodule Deployer.Monitor.Application do
   end
 
   defp ports_to_env(ports), do: Enum.map(ports, fn port -> "#{port.key}=#{port.base}" end)
+
+  # Single-quote a value for sh, escaping any embedded single quote
+  defp shell_quote(value), do: "'" <> String.replace(to_string(value), "'", "'\\''") <> "'"
 
   defp build_export_command([]), do: ""
 
