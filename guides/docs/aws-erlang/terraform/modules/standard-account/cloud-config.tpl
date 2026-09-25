@@ -337,12 +337,20 @@ runcmd:
   - /home/root/install-otp-certificates.sh
   # Download and install Deployex. The pinned version lives only in the instance's
   # deployex_version tag, read here through IMDS, so the version has one source of truth
-  # and a bump does not require re-rendering user_data.
+  # and a bump does not require re-rendering user_data. The read is retried, and curl -f
+  # makes an HTTP error fail instead of returning the error page as the version. runcmd is
+  # one script, so exit 1 stops it here with the reason in cloud-init-output.log.
   - |
-    DX_TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
-    DX_VERSION=$(curl -s -H "X-aws-ec2-metadata-token: $DX_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/deployex_version)
+    for i in $(seq 1 30); do
+      DX_TOKEN=$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300") &&
+        DX_VERSION=$(curl -fsS -H "X-aws-ec2-metadata-token: $DX_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/deployex_version) &&
+        break
+      sleep 2
+    done
+    [ -n "$DX_VERSION" ] || { echo "deployex_version tag unavailable through IMDS, DeployEx not installed" >&2; exit 1; }
     sed -i "s|__DEPLOYEX_VERSION__|$DX_VERSION|g" /home/root/deployex.yaml
-    wget https://github.com/thiagoesteves/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root
+    wget https://github.com/thiagoesteves/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root ||
+      { echo "cannot download deployex.sh $DX_VERSION, DeployEx not installed" >&2; exit 1; }
     chmod a+x /home/root/deployex.sh
     /home/root/deployex.sh --install /home/root/deployex.yaml
   # Install and configure CloudWatch agent
