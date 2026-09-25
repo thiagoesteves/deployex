@@ -64,7 +64,12 @@ defmodule Deployer.SelfUpgrade.Executor.Shell do
 
   defp opts, do: Application.get_env(:deployer, Deployer.SelfUpgrade, [])
   defp script, do: opts()[:script] || "/home/root/deployex.sh"
-  defp config_file, do: opts()[:config_file] || "/home/root/deployex.yaml"
+
+  # The yaml DeployEx itself loaded. The systemd unit sets DEPLOYEX_CONFIG_YAML_PATH.
+  defp config_file do
+    yaml_path = System.get_env("DEPLOYEX_CONFIG_YAML_PATH")
+    opts()[:config_file] || yaml_path || "/home/root/deployex.yaml"
+  end
 
   defp dist_args, do: dist_args(opts()[:dist_base_url])
 
