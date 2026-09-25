@@ -224,20 +224,28 @@ download_and_verify_release() {
   local BASE_RELEASE=$3
   local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
   local CHECKSUM_FILE="checksum.txt"
+  local WORK_DIR
 
     echo "" >&2
-    cd /tmp
+    # A new directory per run. With fixed names in /tmp, root-owned files left by a root
+    # run (--install, --update) cannot be replaced by the deployex service user, and the
+    # stale release would be verified and used. 755 lets the DeployEx node read the
+    # release when root runs the hot upgrade.
+    WORK_DIR=$(mktemp -d /tmp/deployex-release.XXXXXX) || exit 1
+    # Callers run this in a subshell. Remove the directory if a step below fails, the
+    # caller cleans it up after a success.
+    trap "rm -rf '${WORK_DIR}'" EXIT
+    chmod 755 "${WORK_DIR}"
+    cd "${WORK_DIR}" || exit 1
     echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}" >&2
-    rm -f deployex-*.tar.gz
-    rm -f ${CHECKSUM_FILE}
     echo "#           Downloading files              #" >&2
     # Bound each download so a stalled host fails instead of hanging the caller.
     # Check both wgets: the previous single check only covered the second one.
-    if ! wget --timeout=30 --tries=3 ${BASE_RELEASE}/${CHECKSUM_FILE}; then
+    if ! wget --timeout=30 --tries=3 -O "${CHECKSUM_FILE}" ${BASE_RELEASE}/${CHECKSUM_FILE}; then
       echo "Error while trying to download checksum from: ${BASE_RELEASE}" >&2
       exit 1
     fi
-    if ! wget --timeout=30 --tries=3 ${BASE_RELEASE}/${FILENAME}; then
+    if ! wget --timeout=30 --tries=3 -O "${FILENAME}" ${BASE_RELEASE}/${FILENAME}; then
       echo "Error while trying to download release from: ${BASE_RELEASE}" >&2
       exit 1
     fi
@@ -262,17 +270,27 @@ download_and_verify_release() {
     fi
 
     echo "# Checksum verified successfully           #" >&2
-    echo "/tmp/${FILENAME}"
+    trap - EXIT
+    echo "${WORK_DIR}/${FILENAME}"
+}
+
+# Remove the release work directory when the script exits, on success or failure.
+# The path is expanded now, so the trap does not depend on a local variable.
+cleanup_release_dir() {
+  local RELEASE_PATH=$1
+  trap "rm -rf '$(dirname "${RELEASE_PATH}")'" EXIT
 }
 
 update_deployex() {
   local OS_TARGET=$1
   local OTP_VERSION=$2
   local BASE_RELEASE=$3
+  local RELEASE_PATH
 
     echo ""
     echo "#           Updating Deployex              #"
-    download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE" >/dev/null
+    RELEASE_PATH=$(download_and_verify_release "$OS_TARGET" "$OTP_VERSION" "$BASE_RELEASE") || exit 1
+    cleanup_release_dir "$RELEASE_PATH"
     echo "# Stop current service                     #"
     systemctl stop ${DEPLOYEX_SERVICE_NAME}
     echo "# Clean inet tls info                      #"
@@ -281,7 +299,7 @@ update_deployex() {
     rm -rf ${DEPLOYEX_OPT_DIR}
     mkdir ${DEPLOYEX_OPT_DIR}
     cd ${DEPLOYEX_OPT_DIR}
-    tar xf /tmp/deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz
+    tar xf "${RELEASE_PATH}"
     echo "# Set ownership of extracted files         #"
     chown -R deployex:deployex ${DEPLOYEX_OPT_DIR}
     echo "# Start systemd                            #"
@@ -328,12 +346,16 @@ download_and_hot_upgrade_deployex() {
     echo "Error: release download/verify failed, aborting hot upgrade" >&2
     exit 1
   fi
+  cleanup_release_dir "$RELEASE_PATH"
   # deployex_execute parses the TARGET version from the filename and expects
   # deployex-<version>.tar.gz. The downloaded asset is named
   # deployex-<os_target>-otp-<otp>.tar.gz, so copy it to the version-named form
   # first, otherwise the version check fails with :no_match_versions.
-  VERSIONED_PATH="/tmp/deployex-${version}.tar.gz"
-  cp "$RELEASE_PATH" "$VERSIONED_PATH"
+  VERSIONED_PATH="$(dirname "$RELEASE_PATH")/deployex-${version}.tar.gz"
+  if ! cp "$RELEASE_PATH" "$VERSIONED_PATH"; then
+    echo "Error: cannot stage ${VERSIONED_PATH}" >&2
+    exit 1
+  fi
   hot_upgrade_deployex "$VERSIONED_PATH"
 }
 
