@@ -421,6 +421,10 @@ passes, and cloud-init does not refresh it on a version bump. Refresh it once be
 `wget -O /home/root/deployex.sh <dist_base_url>/<version>/deployex.sh && chmod +x /home/root/deployex.sh`. If the script is
 outdated the worker reports it and does not attempt the upgrade, rather than latching a cryptic failure.
 
+On an existing stack, the first `terraform apply` after you update to these guide modules replaces the instance once. The modules
+now pass the cloud-init config as `user_data_base64` instead of `user_data`, and the config no longer holds the version, so the plan
+shows `user_data` going to `null` and a new `user_data_base64`. After that, a version bump changes only the tag.
+
 A failed version is latched: the worker does not retry it until the running version changes. This prevents a bad
 version from looping. After you fix the cause, retry the same version in one of two ways:
 
