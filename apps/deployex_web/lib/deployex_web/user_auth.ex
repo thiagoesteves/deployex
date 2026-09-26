@@ -37,6 +37,41 @@ defmodule DeployexWeb.UserAuth do
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
+  @doc """
+  Logs in a user authenticated through a 3rd-party OAuth provider.
+
+  Session-only: no user record is stored. The verified email is placed in the
+  session and recognized by `fetch_current_user/2` and `mount_current_user/2`.
+  Renews the session first to prevent fixation.
+  """
+  def log_in_oauth_user(conn, email) when is_binary(email) do
+    user_return_to = get_session(conn, :user_return_to)
+
+    conn
+    |> renew_session()
+    |> put_session(:oauth_email, email)
+    |> put_session(:live_socket_id, "users_sessions:oauth:#{Base.url_encode64(email)}")
+    |> redirect(to: user_return_to || signed_in_path(conn))
+  end
+
+  @doc """
+  Logs the user out.
+
+  Clears the whole session (removing both the password `user_token` and the
+  OAuth `oauth_email`), disconnects any live sockets, and drops the remember-me
+  cookie. Works for both password and OAuth logins.
+  """
+  def log_out_user(conn) do
+    if live_socket_id = get_session(conn, :live_socket_id) do
+      DeployexWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    end
+
+    conn
+    |> renew_session()
+    |> delete_resp_cookie(@remember_me_cookie)
+    |> redirect(to: ~p"/users/log_in")
+  end
+
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
     put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
   end
@@ -74,7 +109,14 @@ defmodule DeployexWeb.UserAuth do
   """
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Accounts.get_user_by_session_token(user_token)
+
+    user =
+      cond do
+        user_token -> Accounts.get_user_by_session_token(user_token)
+        email = get_session(conn, :oauth_email) -> %{email: email}
+        true -> nil
+      end
+
     assign(conn, :current_user, user)
   end
 
@@ -158,8 +200,10 @@ defmodule DeployexWeb.UserAuth do
 
   defp mount_current_user(socket, session) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
-      if user_token = session["user_token"] do
-        Accounts.get_user_by_session_token(user_token)
+      cond do
+        user_token = session["user_token"] -> Accounts.get_user_by_session_token(user_token)
+        email = session["oauth_email"] -> %{email: email}
+        true -> nil
       end
     end)
   end

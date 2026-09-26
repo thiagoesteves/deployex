@@ -54,6 +54,37 @@ defmodule Foundation.ConfigProvider.Secrets.EnvTest do
   end
 
   @tag :capture_log
+  test "secrets/3 fetches the optional OAuth client_secret when set" do
+    with_mock System, [:passthrough],
+      fetch_env!: fn
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" ->
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq"
+
+        "DEPLOYEX_ERLANG_COOKIE" ->
+          "cookie"
+
+        "DEPLOYEX_SECRET_KEY_BASE" ->
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+      end,
+      get_env: fn
+        "DEPLOYEX_OAUTH_CLIENT_SECRET" -> "gho_secret_abc"
+      end do
+      config =
+        Manager.load(
+          [
+            foundation: [
+              {Manager, adapter: Env, path: "any-env-path"},
+              {:env, "prod"}
+            ]
+          ],
+          []
+        )
+
+      assert config[:deployex_web][DeployexWeb.OAuth][:client_secret] == "gho_secret_abc"
+    end
+  end
+
+  @tag :capture_log
   test "secrets/3 with request error" do
     with_mock System, [:passthrough], fetch_env!: fn _secret -> raise "secret not defined" end do
       assert_raise RuntimeError, fn ->

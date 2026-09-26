@@ -4,6 +4,12 @@ defmodule DeployexWeb.UserSessionController do
   alias DeployexWeb.UserAuth
   alias Foundation.Accounts
 
+  def delete(conn, _params) do
+    conn
+    |> put_flash(:info, "Logged out successfully.")
+    |> UserAuth.log_out_user()
+  end
+
   def create(conn, %{"user" => user_params}) do
     %{"username" => username, "password" => password} = user_params
 

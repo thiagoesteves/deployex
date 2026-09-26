@@ -9,7 +9,8 @@ defmodule DeployexWeb.UserLoginLiveTest do
     test "renders log in page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log_in")
 
-      assert html =~ "Login to your account"
+      assert html =~ "DeployEx"
+      assert html =~ "Sign in to the management console"
     end
 
     @tag :capture_log
@@ -29,6 +30,15 @@ defmodule DeployexWeb.UserLoginLiveTest do
         |> follow_redirect(conn, ~p"/applications")
 
       assert {:ok, _conn} = result
+    end
+  end
+
+  describe "OAuth button" do
+    @tag :capture_log
+    test "is hidden when OAuth is not configured", %{conn: conn} do
+      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
+
+      refute html =~ "Sign in with GitHub"
     end
   end
 

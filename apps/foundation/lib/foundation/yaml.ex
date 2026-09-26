@@ -228,6 +228,24 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule Auth do
+    @moduledoc """
+    OAuth access configuration (Option A: gate access, no stored users).
+
+    The `client_secret` is not here. It is a secret, fetched through the secrets
+    provider. A missing `auth:` section leaves OAuth off.
+    """
+
+    defstruct [:provider, :client_id, :redirect_uri, allowlist: %{emails: [], domains: []}]
+
+    @type t :: %__MODULE__{
+            provider: module(),
+            client_id: String.t() | nil,
+            redirect_uri: String.t() | nil,
+            allowlist: %{emails: [String.t()], domains: [String.t()]}
+          }
+  end
+
   defstruct account_name: nil,
             hostname: nil,
             port: nil,
@@ -252,6 +270,7 @@ defmodule Foundation.Yaml do
             monitoring: [],
             applications: [],
             notifications: [],
+            auth: nil,
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -279,6 +298,7 @@ defmodule Foundation.Yaml do
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
           applications: [Foundation.Yaml.Application.t()] | [],
           notifications: [Foundation.Yaml.Notification.t()] | [],
+          auth: Foundation.Yaml.Auth.t() | nil,
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -406,6 +426,7 @@ defmodule Foundation.Yaml do
       monitoring: parse_monitoring_list(data["monitoring"], &parse_deployex_monitoring_type/1),
       applications: parse_applications(data["applications"]),
       notifications: parse_notifications(data["notifications"]),
+      auth: parse_auth(data["auth"]),
       config_checksum: checksum
     }
   end
@@ -437,6 +458,24 @@ defmodule Foundation.Yaml do
       raise(
         "check_origin #{inspect(value)} not supported, expected true, false or a list of origins"
       )
+
+  defp parse_auth(nil), do: nil
+
+  defp parse_auth(data) do
+    %Foundation.Yaml.Auth{
+      provider: parse_auth_provider(data["provider"]),
+      client_id: data["client_id"],
+      redirect_uri: data["redirect_uri"],
+      allowlist: %{
+        emails: data["allowed_emails"] || [],
+        domains: data["allowed_domains"] || []
+      }
+    }
+  end
+
+  defp parse_auth_provider(nil), do: DeployexWeb.OAuth.Provider.GitHub
+  defp parse_auth_provider("github"), do: DeployexWeb.OAuth.Provider.GitHub
+  defp parse_auth_provider(provider), do: raise("Auth provider #{provider} not supported")
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp

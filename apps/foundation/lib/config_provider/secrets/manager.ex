@@ -59,16 +59,31 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
         Node.set_cookie(node, erlang_cookie)
       end
 
-      Config.Reader.merge(
-        config,
-        foundation: [
-          {Foundation.Accounts, admin_hashed_password}
-        ],
-        deployex_web: [
-          {DeployexWeb.Endpoint, secret_key_base}
-        ]
-      )
+      config =
+        Config.Reader.merge(
+          config,
+          foundation: [
+            {Foundation.Accounts, admin_hashed_password}
+          ],
+          deployex_web: [
+            {DeployexWeb.Endpoint, secret_key_base}
+          ]
+        )
+
+      # OAuth client_secret is optional. Merge it only when present, so a
+      # deployment without OAuth keeps its config unchanged.
+      merge_oauth_client_secret(config, secrets["DEPLOYEX_OAUTH_CLIENT_SECRET"])
     end
+  end
+
+  defp merge_oauth_client_secret(config, nil), do: config
+
+  defp merge_oauth_client_secret(config, client_secret) do
+    Config.Reader.merge(config,
+      deployex_web: [
+        {DeployexWeb.OAuth, keyword(:client_secret, client_secret)}
+      ]
+    )
   end
 
   defp keyword(key_name, value) do

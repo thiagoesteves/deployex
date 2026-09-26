@@ -138,6 +138,9 @@ config :observer_web,
   data_retention_period: :timer.minutes(60),
   mode: :observer
 
+# OAuth (optional 3rd-party SSO) is backed by assent; provider config lives
+# under `config :deployex_web, DeployexWeb.OAuth` (see DeployexWeb.OAuth.Config).
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
