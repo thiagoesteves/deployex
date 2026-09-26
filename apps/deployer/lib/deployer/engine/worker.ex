@@ -35,7 +35,8 @@ defmodule Deployer.Engine.Worker do
           deployments: map(),
           deployment_to_terminate: map(),
           deploy_rollback_timeout_ms: non_neg_integer(),
-          deploy_schedule_interval_ms: non_neg_integer()
+          deploy_schedule_interval_ms: non_neg_integer(),
+          pending_pre_commands: map() | nil
         }
 
   defstruct replicas: 1,
@@ -49,7 +50,8 @@ defmodule Deployer.Engine.Worker do
             deployments: %{},
             deployment_to_terminate: nil,
             deploy_rollback_timeout_ms: 0,
-            deploy_schedule_interval_ms: 0
+            deploy_schedule_interval_ms: 0,
+            pending_pre_commands: nil
 
   @dialyzer {:nowarn_function, initialize_version: 1}
 
@@ -71,6 +73,9 @@ defmodule Deployer.Engine.Worker do
         } = state
       ) do
     Logger.info("Initializing Engine Server for #{name}")
+
+    # A restart after a relup gets the start argument the old code built, without this field
+    state = Map.put_new(state, :pending_pre_commands, nil)
 
     # Subscribe before reading, in this order. A change made in between then arrives as a
     # message instead of being lost in the gap. Reading here is also what makes a restarted
@@ -127,26 +132,70 @@ defmodule Deployer.Engine.Worker do
 
   @impl true
   def handle_info(:schedule, %__MODULE__{} = state) do
+    # A worker that a relup could not suspend kept a state without this field
+    state = Map.put_new(state, :pending_pre_commands, nil)
     schedule_new_deployment(state.deploy_schedule_interval_ms)
     current_deployment = state.deployments[state.current]
 
     new_state =
-      if current_deployment.state == :init do
-        state = initialize_version(state)
+      cond do
+        current_deployment.state == :init ->
+          state = initialize_version(state)
 
-        deployments =
-          Map.put(state.deployments, state.current, %{
-            state.deployments[state.current]
-            | state: :active
-          })
+          deployments =
+            Map.put(state.deployments, state.current, %{
+              state.deployments[state.current]
+              | state: :active
+            })
 
-        %{state | deployments: deployments}
-      else
-        check_deployment(state)
+          %{state | deployments: deployments}
+
+        # A hot upgrade is waiting for its pre_commands, the reply decides what happens next
+        state.pending_pre_commands != nil ->
+          state
+
+        true ->
+          check_deployment(state)
       end
 
     {:noreply, new_state}
   end
+
+  def handle_info(
+        {:pre_commands_result, ref, result},
+        %__MODULE__{pending_pre_commands: %{ref: ref} = pending} = state
+      ) do
+    {:noreply, pre_commands_outcome(state, pending, result)}
+  end
+
+  def handle_info(
+        {:pre_commands_timeout, id},
+        %__MODULE__{pending_pre_commands: %{id: id} = pending} = state
+      ) do
+    {:noreply, pre_commands_outcome(state, pending, :timeout)}
+  end
+
+  def handle_info(
+        {:pre_commands_retry, id},
+        %__MODULE__{pending_pre_commands: %{id: id} = pending} = state
+      ) do
+    {:noreply, retry_pre_commands(state, pending)}
+  end
+
+  def handle_info(
+        {:DOWN, ref, :process, _pid, reason},
+        %__MODULE__{pending_pre_commands: %{ref: ref} = pending} = state
+      ) do
+    {:noreply, pre_commands_outcome(state, pending, {:monitor_exit, reason})}
+  end
+
+  # A reply, a timeout or a retry for a request that is no longer pending
+  def handle_info({:pre_commands_result, _ref, _result}, state), do: {:noreply, state}
+  def handle_info({:pre_commands_timeout, _id}, state), do: {:noreply, state}
+  def handle_info({:pre_commands_retry, _id}, state), do: {:noreply, state}
+
+  # A monitor ref that code of the previous version set up and dropped during a relup
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, state), do: {:noreply, state}
 
   # Only a change on this node matters, the ghosted list is stored by the DeployEx instance
   # that owns the application
@@ -210,7 +259,7 @@ defmodule Deployer.Engine.Worker do
 
   @impl true
   def handle_cast(:restart_deployments, %__MODULE__{} = state) do
-    {:noreply, do_restart_deployments(state)}
+    {:noreply, state |> abandon_pending_pre_commands() |> do_restart_deployments()}
   end
 
   def handle_cast(
@@ -269,6 +318,12 @@ defmodule Deployer.Engine.Worker do
       ) do
     Logger.warning("Removing replicas for #{state.name}")
 
+    state =
+      case Map.get(state, :pending_pre_commands) do
+        %{instance: instance} when instance > new_replicas -> abandon_pending_pre_commands(state)
+        _pending -> state
+      end
+
     new_deployments =
       Enum.reduce(1..current_replicas, state.deployments, fn instance, deployments ->
         if instance <= new_replicas do
@@ -293,7 +348,12 @@ defmodule Deployer.Engine.Worker do
 
   def handle_cast({:updated_state_values, %{replica_ports: replica_ports}}, %__MODULE__{} = state) do
     Logger.warning("Updating replica ports for #{state.name}")
-    {:noreply, do_restart_deployments(%{state | replica_ports: replica_ports})}
+
+    {:noreply,
+     state
+     |> abandon_pending_pre_commands()
+     |> Map.put(:replica_ports, replica_ports)
+     |> do_restart_deployments()}
   end
 
   def handle_cast({:updated_state_values, values}, %__MODULE__{} = state) do
@@ -366,6 +426,11 @@ defmodule Deployer.Engine.Worker do
 
     {:noreply, state}
   end
+
+  # A state from a version without pending_pre_commands gets the field on a relup
+  @impl true
+  def code_change(_old_vsn, state, _extra),
+    do: {:ok, Map.put_new(state, :pending_pre_commands, nil)}
 
   ### ==========================================================================
   ### Public API
@@ -503,8 +568,7 @@ defmodule Deployer.Engine.Worker do
     current_sname = state.deployments[current].sname
     current_version = current_sname && Status.current_version(current_sname)
 
-    %{version: release_version, pre_commands: pre_commands} =
-      release = Release.get_current_version_map(name)
+    %{version: release_version} = release = Release.get_current_version_map(name)
 
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release_version))
 
@@ -526,23 +590,7 @@ defmodule Deployer.Engine.Worker do
           full_deployment(state, new_sname, release)
 
         {:ok, :hot_upgrade} ->
-          # To run the migrations for the hot upgrade deployment, deployex relies on the
-          # unpacked version in the new-folder
-          case Monitor.run_pre_commands(current_sname, pre_commands, :new) do
-            {:ok, _pre_commands} ->
-              hot_upgrade(state, new_sname, release)
-
-            # Nothing is installed yet, so the release is ghosted like any other hot
-            # upgrade that fails before install
-            {:error, _reason} ->
-              handle_hot_upgrade_result(
-                {:error, {:not_installed, :pre_commands}},
-                state,
-                current_sname,
-                new_sname,
-                release
-              )
-          end
+          request_hot_upgrade_pre_commands(state, current_sname, new_sname, release)
 
         {:error, _reason} ->
           state
@@ -566,6 +614,176 @@ defmodule Deployer.Engine.Worker do
       true ->
         state
     end
+  end
+
+  # The migrations run from the new version before install. The reply comes as a message, so a
+  # long migration does not block the worker
+  defp request_hot_upgrade_pre_commands(state, _sname, new_sname, %{pre_commands: []} = release),
+    do: hot_upgrade(state, new_sname, release)
+
+  defp request_hot_upgrade_pre_commands(state, sname, new_sname, release) do
+    pending = %{instance: state.current, sname: sname, new_sname: new_sname, release: release}
+
+    case Monitor.run_pre_commands(sname, release.pre_commands, :new) do
+      {:ok, ref} ->
+        # id stays for the whole request and keys its timers, ref changes on each retry. The
+        # timeout is the value at request time, a later config change applies to the next one
+        id = make_ref()
+        timeout = state.deploy_rollback_timeout_ms
+        timer_ref = Process.send_after(self(), {:pre_commands_timeout, id}, timeout)
+
+        pending =
+          Map.merge(pending, %{id: id, ref: ref, timer_ref: timer_ref, timeout: timeout})
+
+        %{state | pending_pre_commands: pending}
+
+      {:error, :not_running} ->
+        monitor_gone(state, pending)
+    end
+  end
+
+  # A busy monitor is asked again with the release already unpacked, within the same timeout
+  defp retry_pre_commands(state, pending) do
+    if state.deployments[state.current].sname == pending.sname do
+      case Monitor.run_pre_commands(pending.sname, pending.release.pre_commands, :new) do
+        {:ok, ref} ->
+          %{state | pending_pre_commands: %{pending | ref: ref, busy: false}}
+
+        {:error, :not_running} ->
+          state |> clear_pending_pre_commands(pending) |> monitor_gone(pending)
+      end
+    else
+      abandon_pending_pre_commands(state)
+    end
+  end
+
+  # A busy reply keeps the request, and the same request is sent again after a schedule tick
+  defp pre_commands_outcome(state, pending, {:error, :busy}) do
+    Logger.warning("The monitor for sname: #{pending.sname} is busy or restarting, asking again")
+
+    Process.demonitor(pending.ref, [:flush])
+
+    Process.send_after(
+      self(),
+      {:pre_commands_retry, pending.id},
+      state.deploy_schedule_interval_ms
+    )
+
+    %{state | pending_pre_commands: Map.put(pending, :busy, true)}
+  end
+
+  # An outcome counts only while its instance is still the one being upgraded. Otherwise it is
+  # dropped: a result means the command ended, and a timeout stops the command below
+  defp pre_commands_outcome(state, pending, outcome) do
+    if state.deployments[state.current].sname == pending.sname do
+      state
+      |> clear_pending_pre_commands(pending)
+      |> apply_pre_commands_outcome(pending, outcome)
+    else
+      Logger.warning(
+        "Dropping the pre-commands outcome for sname: #{pending.sname}, it is not current"
+      )
+
+      # A hung command would keep that monitor busy for every later request
+      if outcome == :timeout, do: Monitor.cancel_pre_commands(pending.sname, pending.ref)
+
+      Catalog.cleanup(pending.new_sname)
+      clear_pending_pre_commands(state, pending)
+    end
+  end
+
+  # The version map can move on during a long migration, the next check deploys the new one
+  defp apply_pre_commands_outcome(state, pending, {:ok, _pre_commands}) do
+    if Release.get_current_version_map(state.name).version == pending.release.version do
+      hot_upgrade(state, pending.new_sname, pending.release)
+    else
+      Logger.warning(
+        "The version changed while the pre-commands ran for sname: #{pending.sname}, " <>
+          "not installing #{pending.release.version}"
+      )
+
+      Catalog.cleanup(pending.new_sname)
+      state
+    end
+  end
+
+  # The monitor already logged which command failed
+  defp apply_pre_commands_outcome(state, pending, {:error, _reason}),
+    do: pre_commands_failed(state, pending)
+
+  # No pre_command ran while the monitor stayed busy, so the release is deployed fully, not ghosted
+  defp apply_pre_commands_outcome(state, %{busy: true} = pending, :timeout) do
+    Logger.error(
+      "The monitor for sname: #{pending.sname} stayed busy for #{pending.timeout} ms, " <>
+        "deploying fully"
+    )
+
+    full_deployment(state, pending.new_sname, pending.release)
+  end
+
+  defp apply_pre_commands_outcome(state, pending, :timeout) do
+    Logger.error(
+      "Pre-commands at sname: #{pending.sname} did not finish within " <>
+        "#{pending.timeout} ms, stopping them"
+    )
+
+    Monitor.cancel_pre_commands(pending.sname, pending.ref)
+    pre_commands_failed(state, pending)
+  end
+
+  # The monitor was gone before the request reached it
+  defp apply_pre_commands_outcome(state, pending, {:monitor_exit, :noproc}),
+    do: monitor_gone(state, pending)
+
+  defp apply_pre_commands_outcome(state, pending, {:monitor_exit, reason}) do
+    Logger.error(
+      "The monitor for sname: #{pending.sname} exited while running the pre-commands, " <>
+        "reason: #{inspect(reason)}"
+    )
+
+    pre_commands_failed(state, pending)
+  end
+
+  # The monitor is gone or restarting, so a full deployment brings up a new supervised instance.
+  # Both paths were unpacked, so the new sname is ready
+  defp monitor_gone(state, %{sname: sname, new_sname: new_sname, release: release}) do
+    Logger.warning("The monitor for sname: #{sname} is not running, deploying fully")
+    full_deployment(state, new_sname, release)
+  end
+
+  # A restart, or a replica change that removes the instance, ends the request without a ghost
+  defp abandon_pending_pre_commands(state) do
+    case Map.get(state, :pending_pre_commands) do
+      nil -> state
+      pending -> abandon_pending_pre_commands(state, pending)
+    end
+  end
+
+  defp abandon_pending_pre_commands(state, pending) do
+    Logger.warning("Dropping the pre-commands request for sname: #{pending.sname}")
+
+    Monitor.cancel_pre_commands(pending.sname, pending.ref)
+    Catalog.cleanup(pending.new_sname)
+    clear_pending_pre_commands(state, pending)
+  end
+
+  defp clear_pending_pre_commands(state, %{ref: ref, timer_ref: timer_ref}) do
+    Process.cancel_timer(timer_ref)
+    Process.demonitor(ref, [:flush])
+
+    %{state | pending_pre_commands: nil}
+  end
+
+  # Nothing is installed yet, so the release is ghosted like any other hot upgrade that fails
+  # before install
+  defp pre_commands_failed(state, %{sname: sname, new_sname: new_sname, release: release}) do
+    handle_hot_upgrade_result(
+      {:error, {:not_installed, :pre_commands}},
+      state,
+      sname,
+      new_sname,
+      release
+    )
   end
 
   defp set_timeout_to_rollback(%{deployments: deployments} = state, sname, ports) do

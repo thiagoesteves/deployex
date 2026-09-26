@@ -164,7 +164,7 @@ applications:
     replicas: 2                        # Number of replicas (default: 3)
     
     # Deployment Configuration (optional with defaults)
-    deploy_rollback_timeout_ms: 600000 # Max deployment time before rollback (default: 600000)
+    deploy_rollback_timeout_ms: 600000 # Max deployment time before rollback, and max hot upgrade pre-commands time (default: 600000)
     deploy_schedule_interval_ms: 5000  # Check for new deployments interval (default: 5000)
     
     # Port Configuration (optional)
@@ -305,7 +305,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 - `certificates` - Application certificate settings (acme, dns provider, importer)
 - `language` - Application language (Elixir, Erlang, Gleam)
 - `replicas` - Number of application instances
-- `deploy_rollback_timeout_ms` - Deployment rollback timeout
+- `deploy_rollback_timeout_ms` - Deployment rollback timeout, also the most a hot upgrade waits for its pre-commands
 - `deploy_schedule_interval_ms` - Deployment check interval
 - `replica_ports` - Port configuration for replicas
 - `env` - Environment variables
