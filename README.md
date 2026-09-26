@@ -199,7 +199,7 @@ For more information, please check [Hot-Upgrades](guides/docs/hot-upgrades/READM
 
 ### Pre-commands (Elixir only)
 
-Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
+Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command fails, the release is not installed: a hot upgrade ghosts the version at once, and a full deployment retries until `deploy_rollback_timeout_ms` and then ghosts it. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
 ### 🔐 Secrets Requirements
 

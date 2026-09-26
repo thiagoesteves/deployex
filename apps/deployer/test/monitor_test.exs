@@ -673,6 +673,60 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
+    test "A failing pre_command returns an error and keeps the application running", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_event_ref = make_ref()
+      test_pid_process = self()
+      os_pid = 123_456
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0"}
+      end)
+
+      Host.CommanderMock
+      |> expect(:run_link, fn _command, _options ->
+        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
+        {:ok, test_pid_process, os_pid}
+      end)
+      # the failing command and the kill -9 on stop, the second command never runs
+      |> expect(:run, 2, fn commands, _options ->
+        refute commands =~ "eval never_runs"
+
+        if commands =~ "eval failing_cmd",
+          do: {:error, [exit_status: 256]},
+          else: {:ok, test_pid_process}
+      end)
+      |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+      assert {:ok, monitor_pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 timeout_app_ready: 10
+               })
+
+      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+
+      assert %{status: :running} = MonitorApp.state(sname)
+
+      assert {:error, :pre_commands} =
+               MonitorApp.run_pre_commands(sname, ["eval failing_cmd", "eval never_runs"], :new)
+
+      # a crash here would take the running application down with the monitor
+      assert Process.alive?(monitor_pid)
+      assert %{status: :running} = MonitorApp.state(sname)
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
     test "Restart Application if EXIT message is received", %{
       elixir_name: name,
       elixir_sname: sname,

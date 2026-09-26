@@ -613,6 +613,71 @@ defmodule Deployer.EngineTest do
       assert log =~ "ghosting version #{to_version}"
       refute log =~ "running for full deployment"
     end
+
+    test "Failure on the hotupgrade pre-commands - do not upgrade, ghost the version" do
+      name = "myelixir"
+      language = "elixir"
+      from_version = "1.0.0"
+      to_version = "2.0.0"
+      ref = make_ref()
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> from_version end)
+      |> expect(:update, 1, fn _sname -> :ok end)
+      |> expect(:set_current_version_map, 1, fn _sname, _release, _attrs -> :ok end)
+      |> expect(:add_ghosted_version, 1, fn version_map ->
+        assert version_map.version == to_version
+
+        send(pid, {:handle_ref_event, ref})
+        {:ok, [version_map]}
+      end)
+
+      Deployer.MonitorMock
+      # only the initial deployment, the running instance keeps serving from_version
+      |> expect(:start_service, 1, fn _service -> {:ok, self()} end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+        {:error, :pre_commands}
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: to_version, hash: "local", pre_commands: ["eval Migrate.run"]}
+      end)
+      |> stub(:download_release, fn _app_name, ^to_version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn %Deployer.HotUpgrade.Check{} = check ->
+        {:ok, %{check | deploy: :hot_upgrade}}
+      end)
+      # the migration did not run, so the release must not be installed
+      |> expect(:execute, 0, fn _execute -> :ok end)
+
+      log =
+        capture_log(fn ->
+          with_mock System, [:passthrough],
+            cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+            assert {:ok, _pid} =
+                     Engine.Worker.start_link(%Engine.Worker{
+                       deploy_rollback_timeout_ms: 1_000,
+                       deploy_schedule_interval_ms: 100,
+                       name: name,
+                       language: language
+                     })
+
+            assert_receive {:handle_ref_event, ^ref}, 1_000
+
+            refute_receive {:handle_ref_event, ^ref}, 300
+          end
+        end)
+
+      assert log =~ "reason: :pre_commands"
+      assert log =~ "ghosting version #{to_version}"
+      refute log =~ "running for full deployment"
+    end
   end
 
   describe "Deployment Status" do

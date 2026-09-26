@@ -528,9 +528,21 @@ defmodule Deployer.Engine.Worker do
         {:ok, :hot_upgrade} ->
           # To run the migrations for the hot upgrade deployment, deployex relies on the
           # unpacked version in the new-folder
-          Monitor.run_pre_commands(current_sname, pre_commands, :new)
+          case Monitor.run_pre_commands(current_sname, pre_commands, :new) do
+            {:ok, _pre_commands} ->
+              hot_upgrade(state, new_sname, release)
 
-          hot_upgrade(state, new_sname, release)
+            # Nothing is installed yet, so the release is ghosted like any other hot
+            # upgrade that fails before install
+            {:error, _reason} ->
+              handle_hot_upgrade_result(
+                {:error, {:not_installed, :pre_commands}},
+                state,
+                current_sname,
+                new_sname,
+                release
+              )
+          end
 
         {:error, _reason} ->
           state

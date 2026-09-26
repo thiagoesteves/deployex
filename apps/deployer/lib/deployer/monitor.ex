@@ -84,7 +84,7 @@ defmodule Deployer.Monitor do
           pre_commands :: list(),
           app_bin_path :: Monitor.Adapter.bin_path()
         ) ::
-          {:ok, list()} | {:error, :rescued}
+          {:ok, list()} | {:error, :pre_commands | :rescued}
   def run_pre_commands(sname, pre_commands, app_bin_path),
     do: default().run_pre_commands(sname, pre_commands, app_bin_path)
 
