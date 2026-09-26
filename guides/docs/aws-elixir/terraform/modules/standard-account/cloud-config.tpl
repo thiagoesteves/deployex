@@ -44,7 +44,7 @@ write_files:
       secrets_adapter: "aws"
       secrets_path: "deployex-myappname-${account_name}-secrets"
       aws_region: "${aws_region}"
-      version: "${deployex_version}"
+      version: "__DEPLOYEX_VERSION__"
       otp_version: 28
       otp_tls_certificates: "/usr/local/share/ca-certificates"
       os_target: "ubuntu-24.04"
@@ -335,10 +335,24 @@ runcmd:
   - curl -o /etc/ssl/certs/rds-global.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
   # Install OTP certificates from AWS Secrets Manager
   - /home/root/install-otp-certificates.sh
-  # Download and install Deployex
-  - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
-  - chmod a+x /home/root/deployex.sh
-  - /home/root/deployex.sh --install /home/root/deployex.yaml
+  # Download and install Deployex. The pinned version lives only in the instance's
+  # deployex_version tag, read here through IMDS, so the version has one source of truth
+  # and a bump does not require re-rendering user_data. The read is retried, and curl -f
+  # makes an HTTP error fail instead of returning the error page as the version. runcmd is
+  # one script, so exit 1 stops it here with the reason in cloud-init-output.log.
+  - |
+    for i in $(seq 1 30); do
+      DX_TOKEN=$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300") &&
+        DX_VERSION=$(curl -fsS -H "X-aws-ec2-metadata-token: $DX_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/deployex_version) &&
+        break
+      sleep 2
+    done
+    [ -n "$DX_VERSION" ] || { echo "deployex_version tag unavailable through IMDS, DeployEx not installed" >&2; exit 1; }
+    sed -i "s|__DEPLOYEX_VERSION__|$DX_VERSION|g" /home/root/deployex.yaml
+    wget https://github.com/thiagoesteves/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root ||
+      { echo "cannot download deployex.sh $DX_VERSION, DeployEx not installed" >&2; exit 1; }
+    chmod a+x /home/root/deployex.sh
+    /home/root/deployex.sh --install /home/root/deployex.yaml
   # Install and configure CloudWatch agent
   - wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
   - dpkg -i -E ./amazon-cloudwatch-agent.deb

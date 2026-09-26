@@ -19,6 +19,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_notifications "#{@file_paths}/deployex-notifications.yaml"
   @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
   @yaml_endpoint_http "#{@file_paths}/deployex-endpoint-http.yaml"
+  @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
 
   # What config.exs + prod.exs give the provider in a release.
   @release_config [
@@ -824,6 +825,47 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]}
                 ]}
              ] = Config.load([], [])
+    end
+  end
+
+  describe "self_upgrade configuration" do
+    @tag :capture_log
+    test "load/3 sets Deployer.SelfUpgrade config when self_upgrade is enabled" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_self_upgrade end]}
+      ]) do
+        result = Config.load([], [])
+
+        deployer_config = Keyword.fetch!(result, :deployer)
+        self_upgrade_config = Keyword.fetch!(deployer_config, Deployer.SelfUpgrade)
+
+        assert self_upgrade_config[:enabled] == true
+        assert self_upgrade_config[:interval_ms] == 30_000
+
+        assert self_upgrade_config[:dist_base_url] ==
+                 "https://github.com/curious-toast/deployex/releases/download"
+
+        assert self_upgrade_config[:script] == "/home/root/deployex.sh"
+
+        self_upgrade_source_config = Keyword.fetch!(deployer_config, Deployer.SelfUpgrade.Source)
+        assert self_upgrade_source_config[:adapter] == Deployer.SelfUpgrade.Source.Aws
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 does not set Deployer.SelfUpgrade config when self_upgrade is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        result = Config.load([], [])
+
+        deployer_config = Keyword.fetch!(result, :deployer)
+
+        refute Keyword.has_key?(deployer_config, Deployer.SelfUpgrade)
+        refute Keyword.has_key?(deployer_config, Deployer.SelfUpgrade.Source)
+      end
     end
   end
 

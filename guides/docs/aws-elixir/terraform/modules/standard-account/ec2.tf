@@ -103,7 +103,6 @@ data "cloudinit_config" "server_config" {
       hostname = "${var.server_dns}"
       deployex_hostname = "${var.deployex_dns}"
       certbot_email = "${var.certbot_email}"
-      deployex_version = "${var.deployex_version}"
       log_group_name = aws_cloudwatch_log_group.ec2_instance_logs.name
       account_name = "${var.account_name}"
       aws_region = "${var.aws_region}"
@@ -120,11 +119,23 @@ resource "aws_instance" "ec2_myappname_instance" {
   subnet_id                   = aws_subnet.public_subnet.id
   iam_instance_profile        = aws_iam_instance_profile.myappname_node.name
   associate_public_ip_address = true
-  user_data                   = data.cloudinit_config.server_config.rendered
+  # cloudinit_config renders base64. As plain user_data the provider stores it decoded,
+  # so every plan would see a diff and replace the instance.
+  user_data_base64            = data.cloudinit_config.server_config.rendered
+  # A real config change (deployex.yaml, nginx) still replaces the instance so it takes
+  # effect. The version is NOT in user_data, so a version bump does not change it.
   user_data_replace_on_change = true
 
+  # The pinned version lives only in the `deployex_version` tag. First boot reads it through
+  # IMDS, and DeployEx self-upgrades in place from the same tag, so a version bump updates
+  # the tag alone and never replaces the instance. Enable instance metadata tags for IMDS.
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+
   tags = {
-    Name = "myappname-${var.account_name}-instance"
+    Name             = "myappname-${var.account_name}-instance"
+    deployex_version = var.deployex_version
   }
   lifecycle {
     create_before_destroy = true

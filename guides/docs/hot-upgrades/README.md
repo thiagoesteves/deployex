@@ -349,7 +349,7 @@ Then choose one of the following methods:
 
 Use the installer script with a local release file:
 ```bash
-./deployex.sh --hot-upgrade /tmp/deployex-0.9.1.tar.gz
+./deployex.sh --hot-upgrade --release-path /tmp/deployex-0.9.1.tar.gz
 
 # Executing hot upgrade via RPC            #
 # Release file: /tmp/hotupgrade/download/deployex-0.9.1.tar.gz
@@ -379,6 +379,59 @@ Use the DeployEx web interface to download a release from GitHub:
 4. Enter your GitHub personal access token and click **Download** (DeployEx automatically validates the release)
 5. Click **Apply**
 6. Monitor the progress modal until the hot-upgrade completes successfully
+
+### Method 4: Terraform (IaC) self-upgrade
+
+DeployEx can upgrade itself when Terraform publishes a new version. You bump one variable and apply. DeployEx does the rest.
+This method is opt-in and disabled by default.
+
+How it works:
+
+1. Terraform writes `deployex_version` to the instance. On AWS it is an instance tag. On GCP it is an instance metadata attribute.
+   A version bump updates the tag or attribute in place, so the instance is not replaced.
+2. A reconciler in DeployEx (`Deployer.SelfUpgrade.Worker`) reads that desired version on a schedule.
+3. When the desired version differs from the running version, DeployEx downloads the release and runs a hot upgrade of itself.
+
+Enable it in config:
+
+```elixir
+config :deployer, Deployer.SelfUpgrade,
+  enabled: true,
+  interval_ms: 60_000,
+  dist_base_url: nil
+
+# Select the source that matches the cloud:
+config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Source.Aws
+# or, on GCP:
+# config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Source.Gcp
+```
+
+The self-upgrade is hot-only: it tries a hot upgrade, and if the target is not hot-upgradeable, for example a new OTP line,
+DeployEx stays on the current version and reports the failure. You then upgrade with one of the manual methods above. A restart
+fallback would have to stop and re-lay-down `/opt/deployex`, which the unprivileged `deployex` service user cannot do safely, so it
+is deliberately not offered here.
+
+To roll out a new version: set `deployex_version` in Terraform, run `terraform apply`, then watch the DeployEx logs for the
+self-upgrade result. The AWS instance must enable metadata tags (`metadata_options { instance_metadata_tags = "enabled" }`), which
+the guide modules already set. The hot upgrade runs `deployex rpc` against the running node; DeployEx passes the live distribution
+cookie to that call automatically, so you do not need to set `RELEASE_COOKIE` for the worker.
+
+On an instance provisioned before this feature, the on-disk `/home/root/deployex.sh` predates the `--set-version` flag the worker
+passes, and cloud-init does not refresh it on a version bump. Refresh it once before enabling self-upgrade:
+`wget -O /home/root/deployex.sh <dist_base_url>/<version>/deployex.sh && chmod +x /home/root/deployex.sh`. If the script is
+outdated the worker reports it and does not attempt the upgrade, rather than latching a cryptic failure.
+
+On an existing stack, the first `terraform apply` after you update to these guide modules replaces the instance once. The modules
+now pass the cloud-init config as `user_data_base64` instead of `user_data`, and the config no longer holds the version, so the plan
+shows `user_data` going to `null` and a new `user_data_base64`. After that, a version bump changes only the tag.
+
+A failed version is latched: the worker does not retry it until the running version changes. This prevents a bad
+version from looping. After you fix the cause, retry the same version in one of two ways:
+
+- Restart DeployEx. The worker clears its state and reconciles again on the next tick.
+- Run a forced reconcile as the `deployex` user, with `RELEASE_COOKIE` set to the live cookie:
+  `RELEASE_COOKIE=<cookie> bin/deployex rpc "Deployer.SelfUpgrade.Worker.reconcile(force: true)"`. Without `force: true`
+  the call returns `:noop` for the latched version.
 
 ### Choosing the right release file
 

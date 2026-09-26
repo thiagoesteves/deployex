@@ -62,8 +62,12 @@ resource "google_compute_instance" "dev" {
   # Ensure firewall rule is provisioned before server, so SSH doesn't fail.
   depends_on = [ google_compute_firewall.firewall, google_compute_firewall.webserverrule ]
 
+  # `deployex_version` is a metadata attribute the host reads to self-upgrade in
+  # place. Metadata updates apply to the running VM, so a version bump does not
+  # recreate it. `user-data` only runs on first boot and stays as the initial install.
   metadata = {
-    user-data = "${data.cloudinit_config.server_config.rendered}"
+    user-data        = "${data.cloudinit_config.server_config.rendered}"
+    deployex_version = var.deployex_version
   }
 }
 

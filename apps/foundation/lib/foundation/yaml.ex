@@ -31,6 +31,10 @@ defmodule Foundation.Yaml do
   @default_certificate_acme_propagation_timeout_ms 120_000
   @default_certificate_acme_check_interval_ms 2_000
   @default_certificate_dns_ttl 1
+  @default_self_upgrade_enabled false
+  @default_self_upgrade_interval_ms 60_000
+  @default_self_upgrade_source "local"
+  @default_self_upgrade_installer_script "/home/root/deployex.sh"
 
   defmodule Monitoring do
     @moduledoc """
@@ -198,6 +202,26 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule SelfUpgrade do
+    @moduledoc """
+    Provides structure to define the SelfUpgrade feature
+    """
+
+    defstruct enabled: false,
+              interval_ms: 60_000,
+              source: "local",
+              dist_base_url: nil,
+              installer_script: "/home/root/deployex.sh"
+
+    @type t :: %__MODULE__{
+            enabled: boolean(),
+            interval_ms: non_neg_integer(),
+            source: String.t(),
+            dist_base_url: String.t() | nil,
+            installer_script: String.t()
+          }
+  end
+
   defmodule Application do
     @moduledoc """
     Provides structure to define Application feature
@@ -252,6 +276,7 @@ defmodule Foundation.Yaml do
             monitoring: [],
             applications: [],
             notifications: [],
+            self_upgrade: nil,
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -279,6 +304,7 @@ defmodule Foundation.Yaml do
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
           applications: [Foundation.Yaml.Application.t()] | [],
           notifications: [Foundation.Yaml.Notification.t()] | [],
+          self_upgrade: Foundation.Yaml.SelfUpgrade.t() | nil,
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -406,6 +432,7 @@ defmodule Foundation.Yaml do
       monitoring: parse_monitoring_list(data["monitoring"], &parse_deployex_monitoring_type/1),
       applications: parse_applications(data["applications"]),
       notifications: parse_notifications(data["notifications"]),
+      self_upgrade: parse_self_upgrade(data["self_upgrade"]),
       config_checksum: checksum
     }
   end
@@ -660,4 +687,16 @@ defmodule Foundation.Yaml do
 
   defp parse_notification_event(event) when event in @valid_notification_events, do: event
   defp parse_notification_event(event), do: raise("Unknown notification event: #{event}")
+
+  defp parse_self_upgrade(nil), do: %Foundation.Yaml.SelfUpgrade{}
+
+  defp parse_self_upgrade(data) do
+    %Foundation.Yaml.SelfUpgrade{
+      enabled: data["enabled"] || @default_self_upgrade_enabled,
+      interval_ms: data["interval_ms"] || @default_self_upgrade_interval_ms,
+      source: data["source"] || @default_self_upgrade_source,
+      dist_base_url: data["dist_base_url"],
+      installer_script: data["installer_script"] || @default_self_upgrade_installer_script
+    }
+  end
 end

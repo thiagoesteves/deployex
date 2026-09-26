@@ -54,6 +54,28 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
+        # Self-Upgrade Config
+        self_upgrade = yaml_config.self_upgrade
+
+        updated_config =
+          if self_upgrade.enabled do
+            Config.Reader.merge(updated_config,
+              deployer: [
+                {Deployer.SelfUpgrade,
+                 [
+                   enabled: true,
+                   interval_ms: self_upgrade.interval_ms,
+                   dist_base_url: self_upgrade.dist_base_url,
+                   script: self_upgrade.installer_script
+                 ]},
+                {Deployer.SelfUpgrade.Source,
+                 [adapter: self_upgrade_source_adapter(self_upgrade.source)]}
+              ]
+            )
+          else
+            updated_config
+          end
+
         # Endpoint Config. url is the public address, http is the listen port.
         endpoint_opts =
           [url: endpoint_url(yaml_config), http: [port: yaml_config.port]]
@@ -135,4 +157,10 @@ defmodule Foundation.ConfigProvider.Env.Config do
   # existing (Phoenix default) config instead of overriding it with nil.
   defp maybe_put(opts, _key, nil), do: opts
   defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
+
+  # NOTE: these are only used as config keys/values (atoms), never aliased or called
+  #       directly, to avoid a foundation -> deployer compile-time dependency.
+  defp self_upgrade_source_adapter("aws"), do: Deployer.SelfUpgrade.Source.Aws
+  defp self_upgrade_source_adapter("gcp"), do: Deployer.SelfUpgrade.Source.Gcp
+  defp self_upgrade_source_adapter(_source), do: Deployer.SelfUpgrade.Source.Local
 end
