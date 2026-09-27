@@ -17,7 +17,7 @@ logs_retention_time_ms: 3600000
 # through the secrets adapter as DEPLOYEX_OAUTH_CLIENT_SECRET.
 # auth:
 #   provider: "github"
-#   client_id: "Iv1.abc123"
+#   client_id: "Ov23liExample"
 #   redirect_uri: "https://deployex.example.com/auth/github/callback"
 #   allowed_emails:
 #     - "alice@example.com"

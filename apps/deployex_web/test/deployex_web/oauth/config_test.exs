@@ -1,5 +1,5 @@
 defmodule DeployexWeb.OAuth.ConfigTest do
-  # async: false — these tests mutate the shared application environment.
+  # async: false, the tests change the shared application environment
   use ExUnit.Case, async: false
 
   alias DeployexWeb.OAuth.Config
@@ -24,7 +24,7 @@ defmodule DeployexWeb.OAuth.ConfigTest do
   end
 
   test "configured? is true when a client_id is present" do
-    Application.put_env(:deployex_web, DeployexWeb.OAuth, client_id: "Iv1.abc123")
+    Application.put_env(:deployex_web, DeployexWeb.OAuth, client_id: "Ov23liExample")
     assert Config.configured?()
   end
 

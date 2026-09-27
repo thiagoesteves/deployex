@@ -170,6 +170,7 @@ DeployEx application typically requires a few environment variables to be define
 | **DEPLOYEX_SECRET_KEY_BASE**       | 42otsNl...Fpq3dIJ02              | aws, gcp or env secrets | secret key used for encryption                            |
 | **DEPLOYEX_ERLANG_COOKIE**         | cookie                           | aws, gcp or env secrets | erlang cookie                                             |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | 2b1...42ASi                      | aws, gcp or env secrets | Hashed admin password for authentication                  |
+| **DEPLOYEX_OAUTH_CLIENT_SECRET**   | 3f9c...a1b2                      | aws, gcp or env secrets | Optional, the GitHub OAuth App secret when `auth` is set  |
 | **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV      | Yaml configuration for Deployex and Monitored application |
 | **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV      | If using mTLS, the certificate PATH is needed             |
 
@@ -217,6 +218,7 @@ Within the secrets, the following key-value pairs are required:
 | **DEPLOYEX_SECRET_KEY_BASE** | 42otsNl...Fpq3dIJ02 | mix phx.gen.secret |
 | **DEPLOYEX_ERLANG_COOKIE** | my-cookie | erlang cookie |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
+| **DEPLOYEX_OAUTH_CLIENT_SECRET** | 3f9c...a1b2 | Optional, the GitHub OAuth App secret, needed only when the YAML has an `auth` section |
 
 ## 🏠 Local Development & Application Setup
 

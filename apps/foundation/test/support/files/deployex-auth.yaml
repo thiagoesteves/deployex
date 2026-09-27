@@ -11,7 +11,7 @@ otp_version: 26
 os_target: "ubuntu-20.04"
 auth:
   provider: "github"
-  client_id: "Iv1.abc123"
+  client_id: "Ov23liExample"
   redirect_uri: "https://deployex.example.com/auth/github/callback"
   allowed_emails:
     - "alice@example.com"

@@ -889,7 +889,7 @@ defmodule Foundation.YamlTest do
 
         assert %Yaml.Auth{} = config.auth
         assert config.auth.provider == DeployexWeb.OAuth.Provider.GitHub
-        assert config.auth.client_id == "Iv1.abc123"
+        assert config.auth.client_id == "Ov23liExample"
         assert config.auth.redirect_uri == "https://deployex.example.com/auth/github/callback"
 
         assert config.auth.allowlist == %{

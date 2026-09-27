@@ -7,8 +7,8 @@ defmodule DeployexWeb.OAuth.Config do
   fetched separately through the secrets provider.
 
   OAuth is considered configured only when a `client_id` is present, so the
-  provider button and routes stay off until it is set. Defaults are
-  fail-closed: no config means an empty (deny-all) allowlist.
+  provider button stays off until it is set. Defaults are fail-closed: no
+  config means an empty (deny-all) allowlist.
   """
 
   @default_provider DeployexWeb.OAuth.Provider.GitHub

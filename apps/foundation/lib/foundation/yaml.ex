@@ -254,7 +254,7 @@ defmodule Foundation.Yaml do
 
   defmodule Auth do
     @moduledoc """
-    OAuth access configuration (Option A: gate access, no stored users).
+    OAuth access configuration: it gates access, and no users are stored.
 
     The `client_secret` is not here. It is a secret, fetched through the secrets
     provider. A missing `auth:` section leaves OAuth off.

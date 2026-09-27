@@ -127,14 +127,15 @@ notifications:
 # ============================================================================
 # Optional single sign-on. When absent, only the built-in password login is
 # available. When present, the login page shows a provider button. Access is
-# deny-by-default: only allow-listed emails or domains may sign in. The
-# client_secret is a secret, so it is not set here; provide it through the
-# secrets adapter as DEPLOYEX_OAUTH_CLIENT_SECRET.
+# deny-by-default: only allow-listed emails or domains may sign in. The GitHub
+# account's primary email must be verified and allowed. The client_secret is a
+# secret, so it is not set here. Provide it through the secrets adapter as
+# DEPLOYEX_OAUTH_CLIENT_SECRET. The auth section is read when DeployEx starts.
 
 auth:
   provider: "github"                                     # Provider: github
-  client_id: "Iv1.abc123"                                # OAuth app client id
-  redirect_uri: "https://deployex.example.com/auth/github/callback"
+  client_id: "Ov23liExample"                             # GitHub OAuth App client id (not a GitHub App)
+  redirect_uri: "https://deployex.example.com/auth/github/callback" # Required, the OAuth App callback URL
   allowed_emails:                                        # Exact emails allowed to sign in
     - "alice@example.com"
   allowed_domains:                                       # Whole domains allowed to sign in
