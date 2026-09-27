@@ -3,8 +3,8 @@ defmodule DeployexWeb.OAuth.Provider.GitHub do
   GitHub provider backed by `assent`.
 
   Owns the OAuth flow: `authorize_url/0` and `callback/2`. With the
-  `user:email` scope, GitHub returns the verified primary email, so a present
-  email is verified by construction; the allowlist is the authoritative gate.
+  `user:email` scope, GitHub returns the primary email and whether it is
+  verified. The controller accepts only a verified email.
   """
 
   @behaviour DeployexWeb.OAuth.Provider
@@ -22,8 +22,8 @@ defmodule DeployexWeb.OAuth.Provider.GitHub do
     config = Keyword.put(assent_config(), :session_params, session_params)
 
     case AssentGitHub.callback(config, params) do
-      {:ok, %{user: %{"email" => email}}} when is_binary(email) ->
-        {:ok, %{email: email, verified?: true}}
+      {:ok, %{user: %{"email" => email} = user}} when is_binary(email) ->
+        {:ok, %{email: email, verified?: user["email_verified"] == true}}
 
       {:ok, _other} ->
         {:error, :no_email}
