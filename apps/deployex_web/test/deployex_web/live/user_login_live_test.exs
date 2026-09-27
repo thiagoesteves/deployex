@@ -13,6 +13,17 @@ defmodule DeployexWeb.UserLoginLiveTest do
       assert html =~ "Sign in to the management console"
     end
 
+    test "shows a flash message, such as a denied sign-in", %{conn: conn} do
+      {:ok, _lv, html} =
+        conn
+        |> init_test_session(%{
+          "phoenix_flash" => %{"error" => "Not authorized for this instance."}
+        })
+        |> live(~p"/users/log_in")
+
+      assert html =~ "Not authorized for this instance."
+    end
+
     @tag :capture_log
     test "names the credential fields so password managers stay on this form", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log_in")

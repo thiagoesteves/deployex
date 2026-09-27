@@ -63,6 +63,9 @@ defmodule DeployexWeb.UserLoginLive do
         </div>
       </div>
     </div>
+    <%!-- The login page has no app layout, so it renders the flash itself, after the popup so it
+          shows on top --%>
+    <Layouts.flash_group flash={@flash} />
     """
   end
 
