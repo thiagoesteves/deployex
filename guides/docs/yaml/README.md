@@ -131,6 +131,9 @@ notifications:
 # account's primary email must be verified and allowed. The client_secret is a
 # secret, so it is not set here. Provide it through the secrets adapter as
 # DEPLOYEX_OAUTH_CLIENT_SECRET. The auth section is read when DeployEx starts.
+# A domain entry trusts every GitHub account that has ever verified an address
+# at that domain, including people who have left. Prefer allowed_emails, and
+# remove the entry to end a person's access.
 
 auth:
   provider: "github"                                     # Provider: github

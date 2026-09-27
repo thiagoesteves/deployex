@@ -364,7 +364,7 @@ defmodule DeployexWeb.Components.NavMenu do
   end
 
   # Utility Functions
-  # The built-in password user has a username; an OAuth user is a plain map
+  # The built-in password user has a username. An OAuth user is a plain map
   # with an email. Show whichever identifies the logged-in user.
   defp display_name(%{username: username}) when is_binary(username), do: username
   defp display_name(%{email: email}) when is_binary(email), do: email

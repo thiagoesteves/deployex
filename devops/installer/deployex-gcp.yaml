@@ -14,7 +14,9 @@ metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
 # Optional single sign-on. Uncomment to enable. Access is deny-by-default: only
 # allow-listed emails or domains may sign in. Provide the secret separately
-# through the secrets adapter as DEPLOYEX_OAUTH_CLIENT_SECRET.
+# through the secrets adapter as DEPLOYEX_OAUTH_CLIENT_SECRET. A domain entry
+# trusts every GitHub account that ever verified an address at that domain, so
+# prefer allowed_emails.
 # auth:
 #   provider: "github"
 #   client_id: "Ov23liExample"
