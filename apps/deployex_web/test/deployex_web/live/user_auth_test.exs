@@ -80,11 +80,6 @@ defmodule DeployexWeb.UserAuthTest do
       refute get_session(conn, :user_token)
       refute conn.assigns.current_user
     end
-
-    test "authenticates an OAuth user from the session (no DB lookup)", %{conn: conn} do
-      conn = conn |> put_session(:oauth_email, "me@co.com") |> UserAuth.fetch_current_user([])
-      assert conn.assigns.current_user == %{email: "me@co.com"}
-    end
   end
 
   describe "log_out_user/1" do

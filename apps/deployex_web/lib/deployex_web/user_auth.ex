@@ -5,6 +5,7 @@ defmodule DeployexWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
+  alias DeployexWeb.OAuth.{Allowlist, Config}
   alias Foundation.Accounts
 
   # Make the remember me cookie valid for 60 days.
@@ -40,9 +41,9 @@ defmodule DeployexWeb.UserAuth do
   @doc """
   Logs in a user authenticated through a 3rd-party OAuth provider.
 
-  Session-only: no user record is stored. The verified email is placed in the
-  session and recognized by `fetch_current_user/2` and `mount_current_user/2`.
-  Renews the session first to prevent fixation.
+  Session-only: no user record is stored. The verified email and the login time
+  are placed in the session, and `fetch_current_user/2` and `mount_current_user/2`
+  check them again on each request. Renews the session first to prevent fixation.
   """
   def log_in_oauth_user(conn, email) when is_binary(email) do
     user_return_to = get_session(conn, :user_return_to)
@@ -50,6 +51,7 @@ defmodule DeployexWeb.UserAuth do
     conn
     |> renew_session()
     |> put_session(:oauth_email, email)
+    |> put_session(:oauth_logged_in_at, System.os_time(:second))
     |> put_session(:live_socket_id, "users_sessions:oauth:#{Base.url_encode64(email)}")
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
@@ -112,13 +114,29 @@ defmodule DeployexWeb.UserAuth do
 
     user =
       cond do
-        user_token -> Accounts.get_user_by_session_token(user_token)
-        email = get_session(conn, :oauth_email) -> %{email: email}
-        true -> nil
+        user_token ->
+          Accounts.get_user_by_session_token(user_token)
+
+        email = get_session(conn, :oauth_email) ->
+          oauth_user(email, get_session(conn, :oauth_logged_in_at))
+
+        true ->
+          nil
       end
 
     assign(conn, :current_user, user)
   end
+
+  # An OAuth session has no server-side record, so check it on each request: OAuth is still
+  # configured, the email is still allowed, and the login is not older than a password session
+  defp oauth_user(email, logged_in_at) when is_binary(email) and is_integer(logged_in_at) do
+    if Config.configured?() and Allowlist.check(email, Config.allowlist()) == :ok and
+         System.os_time(:second) - logged_in_at < @max_age do
+      %{email: email}
+    end
+  end
+
+  defp oauth_user(_email, _logged_in_at), do: nil
 
   defp ensure_user_token(conn) do
     case get_session(conn, :user_token) do
@@ -202,7 +220,7 @@ defmodule DeployexWeb.UserAuth do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
       cond do
         user_token = session["user_token"] -> Accounts.get_user_by_session_token(user_token)
-        email = session["oauth_email"] -> %{email: email}
+        email = session["oauth_email"] -> oauth_user(email, session["oauth_logged_in_at"])
         true -> nil
       end
     end)
