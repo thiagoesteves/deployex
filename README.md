@@ -146,6 +146,8 @@ Expected JSON format for `current.json`:
 }
 ```
 
+Each pre-command of an Elixir app runs in a shell as `bin/<monitored_app> <pre-command>`. Quote an expression that has parentheses or spaces, for example `"eval 'MyApp.Release.migrate(:all)'"`.
+
 Once the file is captured, the deployment will start if no app is running or if the current app is running with a version that differs from the `current.json` file.
 
 #### Release package
