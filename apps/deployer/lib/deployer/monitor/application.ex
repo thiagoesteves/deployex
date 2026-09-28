@@ -561,10 +561,18 @@ defmodule Deployer.Monitor.Application do
 
   defp build_export_command([]), do: ""
 
+  # Quote each value, so spaces and shell characters reach the monitored app as written
   defp build_export_command(env_list) do
     Enum.reduce(env_list, "export ", fn env, acc ->
-      acc <> "#{env} "
+      acc <> "#{quote_env_value(env)} "
     end)
+  end
+
+  defp quote_env_value(env) do
+    case String.split(env, "=", parts: 2) do
+      [key, value] -> "#{key}=#{shell_quote(value)}"
+      [key] -> key
+    end
   end
 
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
