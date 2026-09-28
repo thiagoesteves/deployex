@@ -138,6 +138,9 @@ defmodule Deployer.Monitor.Application do
       os_pid: nil
     }
 
+    # The worker learns the run started, so a timeout can tell it from a request never taken
+    send(from, {:pre_commands_started, ref})
+
     {:noreply, run_next_pre_command(state, run)}
   end
 
@@ -594,14 +597,14 @@ defmodule Deployer.Monitor.Application do
     |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
   end
 
-  # A hot upgrade needs the app up, so an app that went down, or a restart waiting on the run,
-  # makes the worker ask again later
+  # A hot upgrade needs the app up. When it went down, or a restart waits on the run, the reply
+  # says the pre_commands ran, so the worker waits for the app without running them again
   defp run_next_pre_command(state, %{remaining: []} = run) do
     app_down? = state.current_pid == nil or state.status != :running
 
     result =
       if run[:restart] || run[:run_service] || app_down?,
-        do: {:error, :busy},
+        do: {:error, :app_down},
         else: {:ok, run.pre_commands}
 
     send(run.from, {:pre_commands_result, run.ref, result})

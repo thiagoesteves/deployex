@@ -168,6 +168,26 @@ defmodule Deployer.Engine.Worker do
     {:noreply, pre_commands_outcome(state, pending, result)}
   end
 
+  # The monitor took the request, so a timeout from now on means the pre_commands ran too long.
+  # The timer starts again here, so time spent on busy replies does not shorten the run
+  def handle_info(
+        {:pre_commands_started, ref},
+        %__MODULE__{pending_pre_commands: %{ref: ref, id: id} = pending} = state
+      ) do
+    Process.cancel_timer(pending.timer_ref)
+
+    receive do
+      {:pre_commands_timeout, ^id} -> :ok
+    after
+      0 -> :ok
+    end
+
+    timer_ref = Process.send_after(self(), {:pre_commands_timeout, id}, pending.timeout)
+    pending = Map.merge(pending, %{started: true, timer_ref: timer_ref})
+
+    {:noreply, %{state | pending_pre_commands: pending}}
+  end
+
   def handle_info(
         {:pre_commands_timeout, id},
         %__MODULE__{pending_pre_commands: %{id: id} = pending} = state
@@ -190,6 +210,7 @@ defmodule Deployer.Engine.Worker do
   end
 
   # A reply, a timeout or a retry for a request that is no longer pending
+  def handle_info({:pre_commands_started, _ref}, state), do: {:noreply, state}
   def handle_info({:pre_commands_result, _ref, _result}, state), do: {:noreply, state}
   def handle_info({:pre_commands_timeout, _id}, state), do: {:noreply, state}
   def handle_info({:pre_commands_retry, _id}, state), do: {:noreply, state}
@@ -269,6 +290,9 @@ defmodule Deployer.Engine.Worker do
       when new_replicas > current_replicas do
     Logger.warning("Adding new replicas for #{state.name}")
 
+    # The new replica becomes current, so a pending request ends here like on a restart
+    state = abandon_pending_pre_commands(state)
+
     # Check the available port between the old set and the new set.
     all_ports =
       Enum.with_index(0..new_replicas, fn _instance, index ->
@@ -337,12 +361,19 @@ defmodule Deployer.Engine.Worker do
         end
       end)
 
+    # A request that stays keeps its instance current, so its outcome still counts
+    current =
+      case Map.get(state, :pending_pre_commands) do
+        %{instance: instance} -> instance
+        nil -> 1
+      end
+
     {:noreply,
      %{
        state
        | deployments: new_deployments,
          replicas: new_replicas,
-         current: 1
+         current: current
      }}
   end
 
@@ -384,8 +415,14 @@ defmodule Deployer.Engine.Worker do
         # from the UI reach here too, and this is the event that says so
         notify_application_ready(sname)
 
+        # An app that comes back while its hot upgrade waits for it keeps the instance current,
+        # so the upgrade goes on there
         new_instance =
-          if state.current == state.replicas, do: 1, else: state.current + 1
+          cond do
+            match?(%{sname: ^sname}, Map.get(state, :pending_pre_commands)) -> state.current
+            state.current == state.replicas -> 1
+            true -> state.current + 1
+          end
 
         available_ports =
           if deployment_to_terminate do
@@ -642,12 +679,15 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
-  # A busy monitor is asked again with the release already unpacked, within the same timeout
+  # A busy monitor is asked again with the release already unpacked, within the same timeout.
+  # Pre_commands that already ran are not sent again, the empty list only waits for the app
   defp retry_pre_commands(state, pending) do
     if state.deployments[state.current].sname == pending.sname do
-      case Monitor.run_pre_commands(pending.sname, pending.release.pre_commands, :new) do
+      pre_commands = if pending[:ran], do: [], else: pending.release.pre_commands
+
+      case Monitor.run_pre_commands(pending.sname, pre_commands, :new) do
         {:ok, ref} ->
-          %{state | pending_pre_commands: %{pending | ref: ref, busy: false}}
+          %{state | pending_pre_commands: Map.merge(pending, %{ref: ref, started: false})}
 
         {:error, :not_running} ->
           state |> clear_pending_pre_commands(pending) |> monitor_gone(pending)
@@ -660,16 +700,16 @@ defmodule Deployer.Engine.Worker do
   # A busy reply keeps the request, and the same request is sent again after a schedule tick
   defp pre_commands_outcome(state, pending, {:error, :busy}) do
     Logger.warning("The monitor for sname: #{pending.sname} is busy or restarting, asking again")
+    schedule_pre_commands_retry(state, pending)
+  end
 
-    Process.demonitor(pending.ref, [:flush])
-
-    Process.send_after(
-      self(),
-      {:pre_commands_retry, pending.id},
-      state.deploy_schedule_interval_ms
+  # The pre_commands ran, then the app went down or restarts. The retry waits for the app
+  defp pre_commands_outcome(state, pending, {:error, :app_down}) do
+    Logger.warning(
+      "The pre-commands at sname: #{pending.sname} ran, waiting for the app to run again"
     )
 
-    %{state | pending_pre_commands: Map.put(pending, :busy, true)}
+    schedule_pre_commands_retry(state, Map.put(pending, :ran, true))
   end
 
   # An outcome counts only while its instance is still the one being upgraded. Otherwise it is
@@ -692,6 +732,18 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
+  defp schedule_pre_commands_retry(state, pending) do
+    Process.demonitor(pending.ref, [:flush])
+
+    Process.send_after(
+      self(),
+      {:pre_commands_retry, pending.id},
+      state.deploy_schedule_interval_ms
+    )
+
+    %{state | pending_pre_commands: pending}
+  end
+
   # The version map can move on during a long migration, the next check deploys the new one
   defp apply_pre_commands_outcome(state, pending, {:ok, _pre_commands}) do
     if Release.get_current_version_map(state.name).version == pending.release.version do
@@ -711,17 +763,18 @@ defmodule Deployer.Engine.Worker do
   defp apply_pre_commands_outcome(state, pending, {:error, _reason}),
     do: pre_commands_failed(state, pending)
 
-  # No pre_command ran while the monitor stayed busy, so the release is deployed fully, not ghosted
-  defp apply_pre_commands_outcome(state, %{busy: true} = pending, :timeout) do
+  # The pre_commands ran but the app did not run again in time, so the release is deployed fully
+  defp apply_pre_commands_outcome(state, %{ran: true} = pending, :timeout) do
     Logger.error(
-      "The monitor for sname: #{pending.sname} stayed busy for #{pending.timeout} ms, " <>
-        "deploying fully"
+      "The app at sname: #{pending.sname} did not run again within #{pending.timeout} ms " <>
+        "after its pre-commands, deploying fully"
     )
 
+    Monitor.cancel_pre_commands(pending.sname, pending.ref)
     full_deployment(state, pending.new_sname, pending.release)
   end
 
-  defp apply_pre_commands_outcome(state, pending, :timeout) do
+  defp apply_pre_commands_outcome(state, %{started: true} = pending, :timeout) do
     Logger.error(
       "Pre-commands at sname: #{pending.sname} did not finish within " <>
         "#{pending.timeout} ms, stopping them"
@@ -731,7 +784,20 @@ defmodule Deployer.Engine.Worker do
     pre_commands_failed(state, pending)
   end
 
-  # The monitor was gone before the request reached it
+  # The monitor never started the run, so no pre_command ran and the release is deployed fully.
+  # The cancel stops a request that the monitor takes later
+  defp apply_pre_commands_outcome(state, pending, :timeout) do
+    Logger.error(
+      "The monitor for sname: #{pending.sname} did not start the pre-commands within " <>
+        "#{pending.timeout} ms, deploying fully"
+    )
+
+    Monitor.cancel_pre_commands(pending.sname, pending.ref)
+    full_deployment(state, pending.new_sname, pending.release)
+  end
+
+  # The monitor was gone before the request reached it, or it exited during the run. Neither says
+  # the release is bad, so it is deployed fully
   defp apply_pre_commands_outcome(state, pending, {:monitor_exit, :noproc}),
     do: monitor_gone(state, pending)
 
@@ -741,7 +807,7 @@ defmodule Deployer.Engine.Worker do
         "reason: #{inspect(reason)}"
     )
 
-    pre_commands_failed(state, pending)
+    monitor_gone(state, pending)
   end
 
   # The monitor is gone or restarting, so a full deployment brings up a new supervised instance.
@@ -751,7 +817,8 @@ defmodule Deployer.Engine.Worker do
     full_deployment(state, new_sname, release)
   end
 
-  # A restart, or a replica change that removes the instance, ends the request without a ghost
+  # A restart, an added replica, or a replica change that removes the instance, ends the request
+  # without a ghost
   defp abandon_pending_pre_commands(state) do
     case Map.get(state, :pending_pre_commands) do
       nil -> state

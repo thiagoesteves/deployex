@@ -635,6 +635,8 @@ defmodule Deployer.MonitorTest do
       assert {:ok, ref} =
                MonitorApp.run_pre_commands(context.elixir_sname, ["eval one", "eval two"], :new)
 
+      # the worker learns the run started before the result
+      assert_receive {:pre_commands_started, ^ref}, 1_000
       assert_receive {:pre_commands_result, ^ref, {:ok, ["eval one", "eval two"]}}, 1_000
 
       # its own process group, so a stop also ends the BEAM that `bin/app eval` starts
@@ -807,8 +809,8 @@ defmodule Deployer.MonitorTest do
       # the command ends, then the restart runs
       send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
 
-      # the app is restarting, so the worker is told to ask again instead of to upgrade
-      assert_receive {:pre_commands_result, ^ref, {:error, :busy}}, 1_000
+      # the pre_commands ran and the app is restarting, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
       assert_receive {:stopped, ^test_pid}, 1_000
       assert %{force_restart_count: 1, pre_commands_run: nil} = :sys.get_state(monitor)
 
@@ -816,7 +818,7 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
-    test "An application that exits during a run gets a busy reply, not a result", context do
+    test "An application that exits during a run gets an app_down reply, not a result", context do
       monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
 
       assert {:ok, ref} = MonitorApp.run_pre_commands(context.elixir_sname, ["eval slow"], :new)
@@ -826,9 +828,10 @@ defmodule Deployer.MonitorTest do
       send(monitor, {:EXIT, app_pid, {:exit_status, 256}})
       send(monitor, {:DOWN, run.os_pid, :process, run.exec_pid, :normal})
 
-      assert_receive {:pre_commands_result, ^ref, {:error, :busy}}, 1_000
+      # the pre_commands ran, so the reply is not busy, which would make the worker run them again
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
 
-      # a request while the application is down is busy as well
+      # a request while the application is down ran nothing, so it is busy
       assert {:ok, ref2} = MonitorApp.run_pre_commands(context.elixir_sname, ["eval x"], :new)
       assert_receive {:pre_commands_result, ^ref2, {:error, :busy}}, 1_000
 
@@ -878,8 +881,8 @@ defmodule Deployer.MonitorTest do
 
       send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
 
-      # the app is restarting, so the worker is told to ask again instead of to upgrade
-      assert_receive {:pre_commands_result, ^ref, {:error, :busy}}, 1_000
+      # the pre_commands ran and the app is restarting, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
       assert_receive :started_again, 1_000
 
       assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
@@ -905,8 +908,8 @@ defmodule Deployer.MonitorTest do
       send(monitor, {:EXIT, test_pid, :crashed})
       send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
 
-      # the app is restarting, so the worker is told to ask again instead of to upgrade
-      assert_receive {:pre_commands_result, ^ref, {:error, :busy}}, 1_000
+      # the pre_commands ran and the app is down, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
       refute_receive {:stopped, nil}, 200
       assert %{force_restart_count: 0, pre_commands_run: nil} = :sys.get_state(monitor)
       assert Process.alive?(monitor)
