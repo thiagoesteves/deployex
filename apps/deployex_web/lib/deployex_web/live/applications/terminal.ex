@@ -171,6 +171,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         ""
       end
 
+    cookie = Common.shell_quote(cookie)
+
     if File.exists?(bin_path) do
       commands =
         cond do

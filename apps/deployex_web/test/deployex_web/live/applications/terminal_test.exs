@@ -32,7 +32,10 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
+    |> expect(:run, fn command, _options ->
+      send(test_pid_process, {:terminal_command, command})
+      {:ok, test_pid_process, os_pid}
+    end)
     |> expect(:stop, fn ^os_pid ->
       Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
       :ok
@@ -44,6 +47,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert index_live |> element("#app-terminal-#{name}") |> render_click() =~
              "Bin: /tmp/opt/#{name}"
+
+    assert_receive {:terminal_command, command}, 1_000
+    assert command =~ "export RELEASE_COOKIE='cookie'\n"
 
     FixtureTerminal.terminate_all()
 
@@ -71,7 +77,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> stub(:history_version_list, fn _name, _options -> [] end)
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options ->
+    |> expect(:run, fn command, _options ->
+      send(test_pid_process, {:terminal_command, command})
       {:ok, test_pid_process, os_pid}
     end)
     |> expect(:stop, fn ^os_pid ->
@@ -85,6 +92,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
              "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+
+    assert_receive {:terminal_command, command}, 1_000
+    assert command =~ "export RELEASE_COOKIE='cookie'\n"
 
     FixtureTerminal.terminate_all()
 
@@ -114,7 +124,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options ->
+    |> expect(:run, fn command, _options ->
+      send(test_pid_process, {:terminal_command, command})
       {:ok, test_pid_process, os_pid}
     end)
     |> expect(:stop, fn ^os_pid ->
@@ -128,6 +139,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
              "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/erlang-shipment"
+
+    assert_receive {:terminal_command, command}, 1_000
+    assert command =~ "-setcookie 'cookie'"
 
     FixtureTerminal.terminate_all()
 
@@ -157,7 +171,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
     |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options ->
+    |> expect(:run, fn command, _options ->
+      send(test_pid_process, {:terminal_command, command})
       {:ok, test_pid_process, os_pid}
     end)
     |> expect(:stop, fn ^os_pid ->
@@ -171,6 +186,9 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
              "Bin: /tmp/var/lib/deployex/service/#{name}/#{sname}/current/bin/#{name}"
+
+    assert_receive {:terminal_command, command}, 1_000
+    assert command =~ "export RELEASE_COOKIE='cookie'\n"
 
     FixtureTerminal.terminate_all()
 

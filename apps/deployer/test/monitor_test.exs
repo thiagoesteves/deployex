@@ -320,7 +320,8 @@ defmodule Deployer.MonitorTest do
 
     for language <- ["elixir", "erlang", "gleam"] do
       @tag :capture_log
-      test "Running application - #{language} start command passes env values as is", context do
+      test "Running application - #{language} start command quotes env values and the cookie",
+           context do
         language = unquote(language)
         name = context[:"#{language}_name"]
         sname = context[:"#{language}_sname"]
@@ -368,6 +369,10 @@ defmodule Deployer.MonitorTest do
           ])
 
         assert output == "a b|p$ss;(x)|it's|k=v"
+
+        if language == "gleam",
+          do: assert(command =~ "-setcookie 'cookie'"),
+          else: assert(command =~ "export RELEASE_COOKIE='cookie'\n")
 
         assert :ok = MonitorApp.stop_service(name, sname)
       end
