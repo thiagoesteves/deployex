@@ -901,6 +901,32 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
+    test "A restart does not count the stopped application as a crash", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> exit_pre_command(:normal) end)
+      %{current_pid: app_pid} = :sys.get_state(monitor)
+
+      Host.CommanderMock
+      |> stub(:run_link, fn _command, _options ->
+        send(test_pid, :started_again)
+        {:ok, test_pid, 654_321}
+      end)
+
+      assert :ok = MonitorApp.restart(context.elixir_sname)
+
+      # the application that the restart stopped reports its exit
+      send(monitor, {:EXIT, app_pid, {:exit_status, 143}})
+
+      # one start from the restart, and no second one from a crash backoff
+      assert_receive :started_again, 2_000
+      refute_receive :started_again, 2_500
+
+      assert %{crash_restart_count: 0, force_restart_count: 1} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
     test "A crash restart during a run waits until the run ends", context do
       test_pid = self()
       monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
@@ -1164,7 +1190,9 @@ defmodule Deployer.MonitorTest do
         send(test_pid_process, {:handle_ref_event, test_event_ref})
         {:ok, test_pid_process, os_pid}
       end)
-      |> expect(:run, 4, fn commands, _options ->
+      # the two pre_commands and the restart's cleanup. The stop right after the restart finds
+      # the application already stopped, so it runs no second cleanup
+      |> expect(:run, 3, fn commands, _options ->
         assert commands =~ "eval command1" or commands =~ "eval command2" or commands =~ "kill -9"
         {:ok, test_pid_process}
       end)

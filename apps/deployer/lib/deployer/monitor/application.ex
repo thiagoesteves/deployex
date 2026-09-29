@@ -688,10 +688,12 @@ defmodule Deployer.Monitor.Application do
     # Trigger restart with backoff time of 1 second
     trigger_run_service(state.sname, 1_000)
 
-    # The app is down until run_service starts it again
+    # The app is down until run_service starts it again. Without a current pid, its exit is not
+    # taken for a crash, which would start it a second time
     update_non_blocking_state(%{
       state
-      | force_restart_count: force_restart_count,
+      | current_pid: nil,
+        force_restart_count: force_restart_count,
         status: :starting
     })
   end
