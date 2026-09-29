@@ -207,13 +207,33 @@ defmodule Deployer.HotUpgrade.Application do
     else
       {:error, reason} = error ->
         report_failure(data, error)
-        {:error, {:not_installed, reason}}
+        {:error, not_installed(reason)}
     end
   end
 
+  # A node that is down, stopping or not answering says nothing about the new release, so it
+  # is reported apart from a release that failed, which the engine worker ghosts. A call that ran
+  # and raised, {:badrpc, {:EXIT, _}}, still counts as a failed release
+  defp not_installed(reason) do
+    if unreachable?(reason), do: {:unreachable, reason}, else: {:not_installed, reason}
+  end
+
+  defp unreachable?(:not_connecting), do: true
+  # A node that stops during a release_handler call answers with the exit of that call
+  defp unreachable?({:badrpc, {:EXIT, {reason, {:gen_server, :call, _}}}}), do: stopping?(reason)
+  defp unreachable?({:badrpc, reason}), do: reason in [:nodedown, :timeout]
+  defp unreachable?({:stash_failed, reason}), do: unreachable?(reason)
+  defp unreachable?({:config_provider_failed, _module, reason}), do: unreachable?(reason)
+  defp unreachable?(_reason), do: false
+
+  defp stopping?(reason) when reason in [:noproc, :shutdown, :killed, :normal], do: true
+  defp stopping?({:shutdown, _}), do: true
+  defp stopping?(_reason), do: false
+
   # Everything here only writes files and builds the relup, the running node is never
   # touched. Failing at any of these steps leaves it running exactly the code it had, which
-  # is what the caller is told through {:error, {:not_installed, reason}}
+  # is what the caller is told through {:error, {:not_installed, reason}}, or through
+  # {:error, {:unreachable, reason}} when the node is down or does not answer
   defp prepare_release(%Execute{sname: sname} = data) do
     with :ok <- notify_progress(sname, "Unpacking release"),
          :ok <- unpack_release(data),
@@ -440,17 +460,29 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @spec make_relup(Execute.t()) :: :ok | {:error, any()}
-  def make_relup(%Execute{
-        node: node,
-        name: name,
-        language: language,
-        current_path: current_path,
-        new_path: new_path,
-        from_version: from_version,
-        to_version: to_version
-      }) do
-    root = root_dir(node)
+  def make_relup(%Execute{node: node} = data) do
+    case root_dir(node) do
+      root when is_list(root) ->
+        make_relup(data, root)
 
+      error ->
+        Logger.error("Could not read the root dir of node: #{node}, reason: #{inspect(error)}")
+        {:error, error}
+    end
+  end
+
+  defp make_relup(
+         %Execute{
+           node: node,
+           name: name,
+           language: language,
+           current_path: current_path,
+           new_path: new_path,
+           from_version: from_version,
+           to_version: to_version
+         },
+         root
+       ) do
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file = "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
 
@@ -509,6 +541,10 @@ defmodule Deployer.HotUpgrade.Application do
 
         {:error, :make_relup}
 
+      {:badrpc, _} = reason ->
+        Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
+        {:error, reason}
+
       reason ->
         Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
         {:error, :make_relup}
@@ -524,6 +560,10 @@ defmodule Deployer.HotUpgrade.Application do
       {:error, reason} = result ->
         Logger.error("release_handler:check_install_release failed, reason: #{inspect(reason)}")
         result
+
+      reason ->
+        Logger.error("release_handler:check_install_release failed, reason: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -543,6 +583,10 @@ defmodule Deployer.HotUpgrade.Application do
       {:error, reason} = result ->
         Logger.error("release_handler:install_release failed, reason: #{inspect(reason)}")
         result
+
+      reason ->
+        Logger.error("release_handler:install_release failed, reason: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -641,11 +685,18 @@ defmodule Deployer.HotUpgrade.Application do
     :ok
   end
 
+  # A node that cannot be reached reports no releases, so a caller that reports a failure is
+  # not taken down by it
   @spec which_releases(node()) :: list()
   def which_releases(node) do
-    releases = Rpc.call(node, :release_handler, :which_releases, [], @rpc_timeout)
+    case Rpc.call(node, :release_handler, :which_releases, [], @rpc_timeout) do
+      releases when is_list(releases) ->
+        Enum.map(releases, fn {_name, version, _modules, status} -> {status, version} end)
 
-    releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
+      error ->
+        Logger.error("Could not read the releases of node: #{node}, reason: #{inspect(error)}")
+        []
+    end
   end
 
   @doc """

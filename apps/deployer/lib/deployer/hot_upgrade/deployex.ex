@@ -134,7 +134,8 @@ defmodule Deployer.HotUpgrade.Deployex do
   # Nothing here restarts DeployEx, it carries on serving either way, but which code it is
   # serving depends on how far the upgrade got. Before install_release nothing was touched
   # and the unpacked release is removed, so the previous version is still the one running
-  defp log_failure({:error, {:not_installed, reason}}, current_version, to_version) do
+  defp log_failure({:error, {kind, reason}}, current_version, to_version)
+       when kind in [:not_installed, :unreachable] do
     Logger.error(
       "Hot upgrade in #{@deployex_name} failed, #{current_version} -> #{to_version}, " <>
         "reason: #{inspect(reason)}. Nothing was installed, #{@deployex_name} is still " <>

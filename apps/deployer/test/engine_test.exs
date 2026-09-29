@@ -618,6 +618,60 @@ defmodule Deployer.EngineTest do
       refute log =~ "running for full deployment"
     end
 
+    test "A hot upgrade whose node cannot be reached deploys fully, no ghost" do
+      pid = self()
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> stub(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
+      |> expect(:add_ghosted_version, 0, fn version_map -> {:ok, [version_map]} end)
+
+      Deployer.MonitorMock
+      # the start-up deployment, then the full deployment of the release
+      |> expect(:start_service, 2, fn service ->
+        send(pid, {:started, service.sname})
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: "2.0.0", hash: "local", pre_commands: []}
+      end)
+      |> stub(:download_release, fn _app_name, _version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn check -> {:ok, %{check | deploy: :hot_upgrade}} end)
+      # a monitored app that is down, for example in a crash loop, cannot be connected to
+      |> expect(:execute, 1, fn _execute -> {:error, {:unreachable, :not_connecting}} end)
+
+      log =
+        capture_log(fn ->
+          with_mock System, [:passthrough],
+            cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+            assert {:ok, _pid} =
+                     Engine.Worker.start_link(%Engine.Worker{
+                       deploy_rollback_timeout_ms: 60_000,
+                       deploy_schedule_interval_ms: 50,
+                       name: "myelixir",
+                       language: "elixir"
+                     })
+
+            assert_receive {:started, sname}, 1_000
+            Engine.notify_application_running(sname)
+
+            assert_receive {:started, new_sname}, 2_000
+            assert new_sname != sname
+          end
+        end)
+
+      assert log =~ "Hot Upgrade failed, running for full deployment"
+      refute log =~ "ghosting version"
+    end
+
     for {mode, log_line} <- [
           failed: "Hot upgrade failed before the release was installed",
           no_reply: "did not finish within 1000 ms, stopping them"
