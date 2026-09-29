@@ -623,53 +623,398 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
-    test "Running pre_commands while application is running - elixir", %{
-      elixir_name: name,
-      elixir_sname: sname,
-      ports: ports
-    } do
-      test_event_ref = make_ref()
-      test_pid_process = self()
-      os_pid = 123_456
-      pre_commands = ["eval running_cmd1", "eval running_cmd1"]
-      FixtureFiles.create_bin_files(sname)
+    test "Pre-commands run one after the other and the result arrives as a message", context do
+      test_pid = self()
 
-      Deployer.StatusMock
-      |> stub(:current_version_map, fn ^sname ->
-        %Catalog.Version{version: "1.0.0"}
+      monitor =
+        start_running_monitor(context, fn command ->
+          send(test_pid, {:ran, command})
+          exit_pre_command(:normal)
+        end)
+
+      assert {:ok, ref} =
+               MonitorApp.start_pre_commands(context.elixir_sname, ["eval one", "eval two"], :new)
+
+      # the worker learns the run started before the result
+      assert_receive {:pre_commands_started, ^ref}, 1_000
+      assert_receive {:pre_commands_result, ^ref, {:ok, ["eval one", "eval two"]}}, 1_000
+
+      # its own process group, so a stop also ends the BEAM that `bin/app eval` starts
+      assert_received {:pre_command_options, options}
+      assert {:group, 0} in options and :kill_group in options
+
+      assert_received {:ran, first}
+      assert_received {:ran, second}
+      assert first =~ "eval one" and second =~ "eval two"
+
+      assert %{pre_commands_run: nil} = :sys.get_state(monitor)
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A failing pre_command returns an error and keeps the application running", context do
+      test_pid = self()
+
+      monitor =
+        start_running_monitor(context, fn command ->
+          send(test_pid, {:ran, command})
+          exit_pre_command({:exit_status, 256})
+        end)
+
+      %{current_pid: app_pid} = :sys.get_state(monitor)
+
+      log =
+        capture_log(fn ->
+          assert {:ok, ref} =
+                   MonitorApp.start_pre_commands(
+                     context.elixir_sname,
+                     ["eval failing_cmd", "eval never_runs"],
+                     :new
+                   )
+
+          assert_receive {:pre_commands_result, ^ref, {:error, :pre_commands}}, 1_000
+          send(self(), {:result_ref, ref})
+        end)
+
+      assert log =~ "Error running pre-command: eval failing_cmd"
+      assert_received {:result_ref, ref}
+      assert_received {:ran, _failing}
+      refute_received {:ran, _never_runs}
+
+      # a crash here would take the running application down with the monitor
+      refute_received {:DOWN, ^ref, :process, _pid, _reason}
+      assert %{current_pid: ^app_pid, pre_commands_run: nil} = :sys.get_state(monitor)
+      assert %{status: :running} = MonitorApp.state(context.elixir_sname)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A pre-command that cannot start returns an error", context do
+      start_running_monitor(context, fn _command -> {:error, :enoent} end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval x"], :new)
+      assert_receive {:pre_commands_result, ^ref, {:error, :pre_commands}}, 1_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "The monitor answers while a pre-command runs, and a second request is busy", context do
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+
+      assert %{pre_commands_run: %{ref: ^ref}} = :sys.get_state(monitor, 100)
+      assert %{status: :pre_commands} = MonitorApp.state(context.elixir_sname)
+
+      assert {:ok, ref2} =
+               MonitorApp.start_pre_commands(context.elixir_sname, ["eval other"], :new)
+
+      assert_receive {:pre_commands_result, ^ref2, {:error, :busy}}, 1_000
+      refute_received {:pre_commands_result, ^ref, _result}
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "Cancel stops the running pre-command and sends no result", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      Host.CommanderMock
+      |> stub(:stop, fn pid ->
+        send(test_pid, {:stopped, pid})
+        :ok
       end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+      %{pre_commands_run: %{os_pid: os_pid}} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.cancel_pre_commands(context.elixir_sname, ref)
+
+      assert_receive {:stopped, ^os_pid}, 1_000
+      assert %{pre_commands_run: nil} = :sys.get_state(monitor)
+      refute_received {:pre_commands_result, ^ref, _result}
+
+      # a cancel for a request that is gone changes nothing
+      assert :ok = MonitorApp.cancel_pre_commands(context.elixir_sname, make_ref())
+      assert %{pre_commands_run: nil} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "Stopping the monitor stops a running pre-command", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      Host.CommanderMock
+      |> stub(:stop, fn pid ->
+        send(test_pid, {:stopped, pid})
+        :ok
+      end)
+
+      assert {:ok, _ref} =
+               MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+
+      %{pre_commands_run: %{os_pid: os_pid}} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+      assert_receive {:stopped, ^os_pid}, 1_000
+    end
+
+    @tag :capture_log
+    test "A run is stopped when the process that asked for it exits", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      Host.CommanderMock
+      |> stub(:stop, fn pid ->
+        send(test_pid, {:stopped, pid})
+        :ok
+      end)
+
+      requester =
+        spawn(fn ->
+          {:ok, _ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+          send(test_pid, :requested)
+          receive do: (:exit -> :ok)
+        end)
+
+      assert_receive :requested, 1_000
+      %{pre_commands_run: %{os_pid: os_pid}} = :sys.get_state(monitor)
+
+      send(requester, :exit)
+
+      assert_receive {:stopped, ^os_pid}, 1_000
+      assert %{pre_commands_run: nil} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A restart asked for during a run waits until the run ends", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      Host.CommanderMock
+      |> stub(:stop, fn pid ->
+        send(test_pid, {:stopped, pid})
+        :ok
+      end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+      %{pre_commands_run: %{os_pid: os_pid, exec_pid: exec_pid}} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.restart(context.elixir_sname)
+      refute_receive {:stopped, _app_pid}, 100
+
+      # the command ends, then the restart runs
+      send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
+
+      # the pre_commands ran and the app is restarting, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
+      assert_receive {:stopped, ^test_pid}, 1_000
+      assert %{force_restart_count: 1, pre_commands_run: nil} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "An application that exits during a run gets an app_down reply, not a result", context do
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+      %{current_pid: app_pid, pre_commands_run: run} = :sys.get_state(monitor)
+
+      # the app crashes, then the command ends before the crash restart runs
+      send(monitor, {:EXIT, app_pid, {:exit_status, 256}})
+      send(monitor, {:DOWN, run.os_pid, :process, run.exec_pid, :normal})
+
+      # the pre_commands ran, so the reply is not busy, which would make the worker run them again
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
+
+      # a request while the application is down ran nothing, so it is busy
+      assert {:ok, ref2} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval x"], :new)
+      assert_receive {:pre_commands_result, ^ref2, {:error, :busy}}, 1_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A request while a restart is starting the application is busy", context do
+      start_running_monitor(context, fn _command -> exit_pre_command(:normal) end)
+
+      assert :ok = MonitorApp.restart(context.elixir_sname)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval x"], :new)
+      assert_receive {:pre_commands_result, ^ref, {:error, :busy}}, 500
+
+      # before the restart starts the application again
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A call from a worker of the previous version still runs its pre_commands", context do
+      monitor = start_running_monitor(context, fn _command -> exit_pre_command(:normal) end)
+
+      # the old worker installs after this reply, so the migration has to run first. It calls the
+      # public function, which runs the newest code
+      assert {:ok, ["eval x"]} =
+               MonitorApp.run_pre_commands(context.elixir_sname, ["eval x"], :new)
+
+      assert Process.alive?(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A failing call from a worker of the previous version stops the monitor", context do
+      test_pid = self()
+
+      monitor =
+        start_running_monitor(context, fn _command -> exit_pre_command({:exit_status, 256}) end)
+
+      # the old call runs its commands with :sync, here the migration fails. The supervisor then
+      # starts the monitor again, and it starts the application again
+      Host.CommanderMock
+      |> stub(:run, fn command, _options ->
+        if command =~ "eval failing", do: {:error, [exit_status: 256]}, else: {:ok, test_pid}
+      end)
+      |> stub(:run_link, fn _command, _options ->
+        send(test_pid, :started_again)
+        {:ok, test_pid, 654_321}
+      end)
+
+      mref = Process.monitor(monitor)
+
+      # the old worker installs whatever the reply says, so only a stop keeps the release out,
+      # as the MatchError did before
+      assert {:error, :pre_commands} =
+               MonitorApp.run_pre_commands(context.elixir_sname, ["eval failing"], :new)
+
+      assert_receive {:DOWN, ^mref, :process, ^monitor, :pre_commands_failed}, 1_000
+      assert_receive :started_again, 2_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A restart does not count the stopped application as a crash", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> exit_pre_command(:normal) end)
+      %{current_pid: app_pid} = :sys.get_state(monitor)
+
+      Host.CommanderMock
+      |> stub(:run_link, fn _command, _options ->
+        send(test_pid, :started_again)
+        {:ok, test_pid, 654_321}
+      end)
+
+      assert :ok = MonitorApp.restart(context.elixir_sname)
+
+      # the application that the restart stopped reports its exit
+      send(monitor, {:EXIT, app_pid, {:exit_status, 143}})
+
+      # one start from the restart, and no second one from a crash backoff
+      assert_receive :started_again, 2_000
+      refute_receive :started_again, 2_500
+
+      assert %{crash_restart_count: 0, force_restart_count: 1} = :sys.get_state(monitor)
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A crash restart during a run waits until the run ends", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
 
       Host.CommanderMock
       |> expect(:run_link, fn _command, _options ->
-        # Wait a timer greater than timeout_app_ready to guarantee app is in the
-        # running state
-        Process.send_after(test_pid_process, {:handle_ref_event, test_event_ref}, 100)
-        {:ok, test_pid_process, os_pid}
+        send(test_pid, :started_again)
+        {:ok, test_pid, 654_321}
       end)
-      |> expect(:run, 3, fn commands, _options ->
-        assert commands =~ "eval running_cmd1" or commands =~ "eval running_cmd2" or
-                 commands =~ "kill -9"
 
-        {:ok, test_pid_process}
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+      %{pre_commands_run: %{os_pid: os_pid, exec_pid: exec_pid}} = :sys.get_state(monitor)
+
+      send(monitor, {:run_service, context.elixir_sname})
+      refute_receive :started_again, 200
+
+      send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
+
+      # the pre_commands ran and the app is restarting, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
+      assert_receive :started_again, 1_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A deferred restart is skipped when the application is already down", context do
+      test_pid = self()
+      monitor = start_running_monitor(context, fn _command -> running_pre_command() end)
+
+      Host.CommanderMock
+      |> stub(:stop, fn pid ->
+        send(test_pid, {:stopped, pid})
+        :ok
       end)
-      |> stub(:stop, fn ^test_pid_process -> :ok end)
 
-      assert {:ok, _pid} =
-               MonitorApp.start_service(%Service{
-                 name: name,
-                 sname: sname,
-                 language: "elixir",
-                 ports: ports,
-                 timeout_app_ready: 10
-               })
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval slow"], :new)
+      %{pre_commands_run: %{os_pid: os_pid, exec_pid: exec_pid}} = :sys.get_state(monitor)
 
-      assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
+      assert :ok = MonitorApp.restart(context.elixir_sname)
 
-      assert %{status: :running} = MonitorApp.state(sname)
+      # the application exits before the run ends
+      send(monitor, {:EXIT, test_pid, :crashed})
+      send(monitor, {:DOWN, os_pid, :process, exec_pid, :normal})
 
-      {:ok, _pre_commands} = MonitorApp.run_pre_commands(sname, pre_commands, :new)
+      # the pre_commands ran and the app is down, so the worker waits instead of upgrading
+      assert_receive {:pre_commands_result, ^ref, {:error, :app_down}}, 1_000
+      refute_receive {:stopped, nil}, 200
+      assert %{force_restart_count: 0, pre_commands_run: nil} = :sys.get_state(monitor)
+      assert Process.alive?(monitor)
 
-      assert :ok = MonitorApp.stop_service(name, sname)
+      # before the crash backoff starts the application again
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A monitor state without the run field from an older version accepts a request",
+         context do
+      test_pid = self()
+
+      monitor =
+        start_running_monitor(context, fn command ->
+          send(test_pid, {:ran, command})
+          exit_pre_command(:normal)
+        end)
+
+      # a relup that could not suspend the monitor leaves its old state in place
+      :sys.replace_state(monitor, &Map.delete(&1, :pre_commands_run))
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval one"], :new)
+      assert_receive {:pre_commands_result, ^ref, {:ok, ["eval one"]}}, 1_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    test "A pre_command request for a monitor that is not running returns an error" do
+      sname = "myelixir-notrunning"
+      _atom = String.to_atom(sname)
+
+      assert {:error, :not_running} =
+               MonitorApp.start_pre_commands(sname, ["eval Migrate.run"], :new)
+    end
+
+    test "code_change adds the pre-commands run field to a state from an older version" do
+      old_state = Map.delete(%Deployer.Monitor{sname: "myelixir-abc"}, :pre_commands_run)
+
+      assert {:ok, %Deployer.Monitor{sname: "myelixir-abc", pre_commands_run: nil}} =
+               MonitorApp.code_change("0.10.0", old_state, [])
     end
 
     @tag :capture_log
@@ -845,7 +1190,9 @@ defmodule Deployer.MonitorTest do
         send(test_pid_process, {:handle_ref_event, test_event_ref})
         {:ok, test_pid_process, os_pid}
       end)
-      |> expect(:run, 4, fn commands, _options ->
+      # the two pre_commands and the restart's cleanup. The stop right after the restart finds
+      # the application already stopped, so it runs no second cleanup
+      |> expect(:run, 3, fn commands, _options ->
         assert commands =~ "eval command1" or commands =~ "eval command2" or commands =~ "kill -9"
         {:ok, test_pid_process}
       end)
@@ -925,6 +1272,8 @@ defmodule Deployer.MonitorTest do
     |> expect(:state, fn _sname -> {:ok, %{}} end)
     |> expect(:restart, fn _sname -> :ok end)
     |> expect(:run_pre_commands, fn _sname, cmds, _new_or_current -> {:ok, cmds} end)
+    |> expect(:start_pre_commands, fn _sname, _cmds, _new_or_current -> {:ok, make_ref()} end)
+    |> expect(:cancel_pre_commands, fn _sname, _ref -> :ok end)
 
     assert {:ok, _pid} =
              Deployer.Monitor.start_service(%Service{
@@ -937,7 +1286,10 @@ defmodule Deployer.MonitorTest do
     assert :ok = Deployer.Monitor.stop_service(name, sname)
     assert {:ok, %{}} = Deployer.Monitor.state(sname)
     assert :ok = Deployer.Monitor.restart(sname)
-    assert {:ok, []} = Deployer.Monitor.run_pre_commands(sname, [], :new)
+    assert {:ok, ["eval x"]} = Deployer.Monitor.run_pre_commands(sname, ["eval x"], :new)
+    assert {:ok, ref} = Deployer.Monitor.start_pre_commands(sname, [], :new)
+    assert is_reference(ref)
+    assert :ok = Deployer.Monitor.cancel_pre_commands(sname, ref)
   end
 
   @tag :capture_log
@@ -1010,5 +1362,56 @@ defmodule Deployer.MonitorTest do
       start_child: fn _module, _spec -> {:ok, self()} end do
       assert :ok == Deployer.Monitor.init_all_monitor_supervisors()
     end
+  end
+
+  # Starts a monitor with a running application. `pre_command` answers each pre-command the
+  # monitor starts, and runs in the monitor process, as erlexec does
+  defp start_running_monitor(%{elixir_name: name, elixir_sname: sname, ports: ports}, pre_command) do
+    test_pid = self()
+    ref = make_ref()
+    FixtureFiles.create_bin_files(sname)
+
+    Deployer.StatusMock
+    |> stub(:current_version_map, fn ^sname -> %Catalog.Version{version: "1.0.0"} end)
+
+    Host.CommanderMock
+    |> expect(:run_link, fn _command, _options ->
+      Process.send_after(test_pid, {:handle_ref_event, ref}, 100)
+      {:ok, test_pid, 123_456}
+    end)
+    |> stub(:run, fn command, options ->
+      if :monitor in options do
+        send(test_pid, {:pre_command_options, options})
+        pre_command.(command)
+      else
+        {:ok, test_pid}
+      end
+    end)
+    |> stub(:stop, fn _pid -> :ok end)
+
+    assert {:ok, monitor} =
+             MonitorApp.start_service(%Service{
+               name: name,
+               sname: sname,
+               language: "elixir",
+               ports: ports,
+               timeout_app_ready: 10
+             })
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+    monitor
+  end
+
+  # erlexec reports the end of a monitored command with a DOWN message keyed by the OS pid
+  defp exit_pre_command(reason) do
+    {exec_pid, os_pid} = {spawn(fn -> :ok end), System.unique_integer([:positive])}
+    send(self(), {:DOWN, os_pid, :process, exec_pid, reason})
+    {:ok, exec_pid, os_pid}
+  end
+
+  # Linked to the monitor that starts it, so it ends with the monitor
+  defp running_pre_command do
+    exec_pid = spawn_link(fn -> Process.sleep(:infinity) end)
+    {:ok, exec_pid, System.unique_integer([:positive])}
   end
 end
