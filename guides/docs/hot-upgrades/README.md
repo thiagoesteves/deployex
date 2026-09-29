@@ -487,7 +487,8 @@ Two things about the rollout are worth knowing before you rely on it.
 **Migrations run before the upgrade, from the new version.**
 The pre-commands declared in `current.json` are executed against the release that was just unpacked, before any code is installed, which is what lets a schema change and the code that needs it ship together without downtime.
 The consequence is the ordinary one for online migrations: while they run, the code serving traffic is still the old version, so the migration has to be one the old code survives.
-If a pre-command fails, or does not finish within `deploy_rollback_timeout_ms` (DeployEx then stops it), the release is not installed on that instance: the version is ghosted and the instance keeps running the version it has.
+If a pre-command fails, or does not finish within `deploy_rollback_timeout_ms` of the moment the pre-commands start (DeployEx then stops it), the release is not installed on that instance: the version is ghosted and the instance keeps running the version it has.
+If the pre-commands cannot start within that time, the application does not run again after them, or its monitor exits, nothing says the release is bad, so DeployEx deploys it fully instead. A full deployment runs the pre-commands, which may already have run, so they have to be safe to run twice.
 Replicas that were upgraded before it stay on the new version.
 A migration that can run longer than that needs a larger `deploy_rollback_timeout_ms`.
 
