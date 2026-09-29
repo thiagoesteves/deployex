@@ -278,7 +278,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> expect(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> expect(:download_version_map, 2, fn _app_name ->
@@ -342,7 +342,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> expect(:download_release, 1, fn _app_name, "1.0.0", _download_path ->
@@ -422,7 +422,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> expect(:stop_service, 1, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         reply_pre_commands({:ok, ["eval Migrate.run"]})
       end)
 
@@ -505,7 +505,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         reply_pre_commands({:ok, ["eval Migrate.run"]})
       end)
 
@@ -652,7 +652,7 @@ defmodule Deployer.EngineTest do
         end)
         # only the empty start-up placeholder is terminated, never the running instance
         |> expect(:stop_service, 1, fn _name, nil -> :ok end)
-        |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+        |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
           pre_commands_reply(@mode)
         end)
         # only a timeout stops the command, the other outcomes have already ended it
@@ -717,7 +717,7 @@ defmodule Deployer.EngineTest do
       Deployer.MonitorMock
       |> expect(:start_service, 1, fn _service -> {:ok, self()} end)
       # a migration that has not finished yet, the reply never comes in this test
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         send(pid, :pre_commands_requested)
         {:ok, make_ref()}
       end)
@@ -775,7 +775,7 @@ defmodule Deployer.EngineTest do
       end)
       # only the empty start-up placeholder is terminated, never the running instance
       |> expect(:stop_service, 1, fn _name, nil -> :ok end)
-      |> expect(:run_pre_commands, 2, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 2, fn _sname, ["eval Migrate.run"], :new ->
         called = Process.get(:requests, 0)
         Process.put(:requests, called + 1)
 
@@ -838,7 +838,7 @@ defmodule Deployer.EngineTest do
           {:ok, self()}
         end)
         |> stub(:stop_service, fn _name, _sname -> :ok end)
-        |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+        |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
           first_pre_commands_reply(@gone)
         end)
 
@@ -891,7 +891,7 @@ defmodule Deployer.EngineTest do
           {:ok, self()}
         end)
         |> stub(:stop_service, fn _name, _sname -> :ok end)
-        |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+        |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
           ref = make_ref()
           send(pid, {:requested, ref})
           {:ok, ref}
@@ -977,7 +977,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> stub(:run_pre_commands, fn sname, pre_commands, :new ->
+      |> stub(:start_pre_commands, fn sname, pre_commands, :new ->
         send(pid, {:requested, sname, pre_commands})
         ref = make_ref()
         send(self(), {:pre_commands_started, ref})
@@ -1064,7 +1064,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn sname, ["eval Migrate.run"], :new ->
         ref = make_ref()
         send(self(), {:pre_commands_started, ref})
         send(pid, {:run_ref, sname, ref})
@@ -1137,7 +1137,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         send(pid, :requested)
         {:ok, make_ref()}
       end)
@@ -1207,7 +1207,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         send(pid, :requested)
         {:ok, make_ref()}
       end)
@@ -1274,7 +1274,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> stub(:run_pre_commands, fn _sname, ["eval Migrate.run"], :new ->
+      |> stub(:start_pre_commands, fn _sname, ["eval Migrate.run"], :new ->
         send(pid, :requested)
         reply_pre_commands({:error, :busy})
       end)
@@ -1335,7 +1335,7 @@ defmodule Deployer.EngineTest do
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
       # the cast stays in the monitor's mailbox: no started message and no result
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         {:ok, make_ref()}
       end)
       |> expect(:cancel_pre_commands, 1, fn _sname, _ref -> :ok end)
@@ -1393,7 +1393,7 @@ defmodule Deployer.EngineTest do
       end)
       |> expect(:stop_service, 1, fn _name, nil -> :ok end)
       # busy for most of the 600 ms timeout, then a run that takes 400 ms
-      |> stub(:run_pre_commands, fn _sname, ["eval Migrate.run"], :new ->
+      |> stub(:start_pre_commands, fn _sname, ["eval Migrate.run"], :new ->
         first = Process.get(:first_request) || System.monotonic_time(:millisecond)
         Process.put(:first_request, first)
 
@@ -1465,7 +1465,7 @@ defmodule Deployer.EngineTest do
       end)
       |> expect(:stop_service, 1, fn _name, nil -> :ok end)
       # the list runs once, the retry only waits for the app with an empty list
-      |> expect(:run_pre_commands, 2, fn
+      |> expect(:start_pre_commands, 2, fn
         _sname, ["eval Migrate.run"], :new -> reply_pre_commands({:error, :app_down})
         _sname, [], :new -> reply_pre_commands({:ok, []})
       end)
@@ -1519,10 +1519,10 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         reply_pre_commands({:error, :app_down})
       end)
-      |> stub(:run_pre_commands, fn _sname, [], :new -> reply_pre_commands({:error, :busy}) end)
+      |> stub(:start_pre_commands, fn _sname, [], :new -> reply_pre_commands({:error, :busy}) end)
       |> expect(:cancel_pre_commands, 1, fn _sname, _ref -> :ok end)
 
       Deployer.ReleaseMock
@@ -1576,7 +1576,7 @@ defmodule Deployer.EngineTest do
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
       # the operator publishes 3.0.0 while the 2.0.0 migration runs
-      |> expect(:run_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
         Process.put(:moved_on, true)
         reply_pre_commands({:ok, ["eval Migrate.run"]})
       end)
@@ -1799,7 +1799,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> expect(:stop_service, 2, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -1890,7 +1890,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> expect(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -1972,7 +1972,7 @@ defmodule Deployer.EngineTest do
       |> expect(:start_service, 1, fn _service ->
         {:ok, self()}
       end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2078,7 +2078,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2168,7 +2168,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name -> automatic_version_map end)
@@ -2310,7 +2310,7 @@ defmodule Deployer.EngineTest do
       Deployer.MonitorMock
       |> expect(:start_service, 1, fn %{sname: ^sname} -> {:error, {:already_started, self()}} end)
       # no pre_commands, so the monitor is not asked to run any
-      |> expect(:run_pre_commands, 0, fn _sname, _release, :new -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, :new -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2606,7 +2606,7 @@ defmodule Deployer.EngineTest do
         send(pid, {:handle_ref_event, ref})
         :ok
       end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2740,7 +2740,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> expect(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2815,7 +2815,7 @@ defmodule Deployer.EngineTest do
         send(pid, {:handle_ref_event, ref})
         :ok
       end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -2897,7 +2897,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -3071,7 +3071,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -3202,7 +3202,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -3334,7 +3334,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -3447,7 +3447,7 @@ defmodule Deployer.EngineTest do
         {:ok, self()}
       end)
       |> stub(:stop_service, fn _name, _sname -> :ok end)
-      |> expect(:run_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
+      |> expect(:start_pre_commands, 0, fn _sname, _release, _type -> {:ok, make_ref()} end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->

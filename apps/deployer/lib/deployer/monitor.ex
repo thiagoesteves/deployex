@@ -78,12 +78,9 @@ defmodule Deployer.Monitor do
   def state(sname), do: default().state(sname)
 
   @doc """
-  Ask the monitor to run the pre_commands for a hot upgrade. `ref` monitors the monitor process
-  and belongs to the caller, which demonitors it after the result. The caller gets
-  `{:pre_commands_started, ref}` when the run starts, then
-  `{:pre_commands_result, ref, {:ok, cmds} | {:error, :pre_commands | :busy | :app_down}}`, or a
-  `:DOWN` for `ref` if the monitor exits. `:busy` means nothing ran, `:app_down` means the
-  pre_commands ran and the app is not running.
+  Run the pre_commands for a hot upgrade and wait for the result, as the previous DeployEx version
+  did. Only an engine worker of that version calls it, during a DeployEx hot upgrade. It installs
+  whatever the reply says, so a failure stops the app's monitor and the monitored app.
   """
   @impl true
   @spec run_pre_commands(
@@ -91,9 +88,27 @@ defmodule Deployer.Monitor do
           pre_commands :: list(),
           app_bin_path :: Monitor.Adapter.bin_path()
         ) ::
-          {:ok, reference()} | {:error, :not_running}
+          {:ok, list()} | {:error, :pre_commands | :rescued}
   def run_pre_commands(sname, pre_commands, app_bin_path),
     do: default().run_pre_commands(sname, pre_commands, app_bin_path)
+
+  @doc """
+  Ask the monitor to run the pre_commands for a hot upgrade. `ref` monitors the monitor process
+  and belongs to the caller, which demonitors it after the result. The caller gets
+  `{:pre_commands_started, ref}` when the run starts, then
+  `{:pre_commands_result, ref, {:ok, cmds} | {:error, :pre_commands | :busy | :app_down}}`, or a
+  `:DOWN` for `ref` if the monitor exits. `:busy` means nothing ran, `:app_down` means the
+  pre_commands ran and the monitored app is not running.
+  """
+  @impl true
+  @spec start_pre_commands(
+          sname :: String.t(),
+          pre_commands :: list(),
+          app_bin_path :: Monitor.Adapter.bin_path()
+        ) ::
+          {:ok, reference()} | {:error, :not_running}
+  def start_pre_commands(sname, pre_commands, app_bin_path),
+    do: default().start_pre_commands(sname, pre_commands, app_bin_path)
 
   @doc """
   Stop the pre_commands run that `ref` asked for. No result is sent for it.

@@ -83,16 +83,14 @@ defmodule Deployer.Monitor.Application do
     {:reply, {:error, :application_is_not_running}, state}
   end
 
-  # A worker of the previous version, during a relup, still calls and installs after the reply,
-  # so the commands run here the old blocking way, and a failure replies instead of crashing
+  # A worker of the previous version, during a relup, still calls and installs whatever the reply
+  # says. The commands run here the old blocking way, and a failure stops the monitor and its app,
+  # as the old MatchError did, so that hot upgrade fails instead of installing
   def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
-    reply =
-      case execute_pre_commands(state, pre_commands, app_bin_service) do
-        :ok -> {:ok, pre_commands}
-        {:error, _reason} = error -> error
-      end
-
-    {:reply, reply, state}
+    case execute_pre_commands(state, pre_commands, app_bin_service) do
+      :ok -> {:reply, {:ok, pre_commands}, state}
+      {:error, _reason} = error -> {:stop, :pre_commands_failed, error, state}
+    end
   end
 
   # A restart waits for a running pre-commands run, as it did behind the old blocking call, so
@@ -109,7 +107,7 @@ defmodule Deployer.Monitor.Application do
   # A hot upgrade needs a running app, so the worker asks again while it is down or starting
   @impl true
   def handle_cast(
-        {:run_pre_commands, _pre_commands, _app_bin_service, from, ref},
+        {:start_pre_commands, _pre_commands, _app_bin_service, from, ref},
         %Monitor{} = state
       )
       when state.current_pid == nil or state.status != :running do
@@ -119,7 +117,7 @@ defmodule Deployer.Monitor.Application do
 
   # The is_map_key check covers a state that a relup could not update
   def handle_cast(
-        {:run_pre_commands, pre_commands, app_bin_service, from, ref},
+        {:start_pre_commands, pre_commands, app_bin_service, from, ref},
         %Monitor{} = state
       )
       when not is_map_key(state, :pre_commands_run) or state.pre_commands_run == nil do
@@ -144,7 +142,7 @@ defmodule Deployer.Monitor.Application do
     {:noreply, run_next_pre_command(state, run)}
   end
 
-  def handle_cast({:run_pre_commands, _pre_commands, _app_bin_service, from, ref}, state) do
+  def handle_cast({:start_pre_commands, _pre_commands, _app_bin_service, from, ref}, state) do
     send(from, {:pre_commands_result, ref, {:error, :busy}})
     {:noreply, state}
   end
@@ -316,8 +314,16 @@ defmodule Deployer.Monitor.Application do
       %Monitor{}
   end
 
+  # The blocking call of the previous version, kept for its engine worker during a relup
   @impl true
   def run_pre_commands(sname, pre_commands, app_bin_service) do
+    sname
+    |> String.to_existing_atom()
+    |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_service})
+  end
+
+  @impl true
+  def start_pre_commands(sname, pre_commands, app_bin_service) do
     case sname |> String.to_existing_atom() |> Process.whereis() do
       nil ->
         {:error, :not_running}
@@ -325,7 +331,7 @@ defmodule Deployer.Monitor.Application do
       pid ->
         # The monitor ref doubles as the request ref, so an exit mid-run reaches the caller
         ref = Process.monitor(pid)
-        GenServer.cast(pid, {:run_pre_commands, pre_commands, app_bin_service, self(), ref})
+        GenServer.cast(pid, {:start_pre_commands, pre_commands, app_bin_service, self(), ref})
         {:ok, ref}
     end
   end

@@ -661,7 +661,7 @@ defmodule Deployer.Engine.Worker do
   defp request_hot_upgrade_pre_commands(state, sname, new_sname, release) do
     pending = %{instance: state.current, sname: sname, new_sname: new_sname, release: release}
 
-    case Monitor.run_pre_commands(sname, release.pre_commands, :new) do
+    case Monitor.start_pre_commands(sname, release.pre_commands, :new) do
       {:ok, ref} ->
         # id stays for the whole request and keys its timers, ref changes on each retry. The
         # timeout is the value at request time, a later config change applies to the next one
@@ -685,7 +685,7 @@ defmodule Deployer.Engine.Worker do
     if state.deployments[state.current].sname == pending.sname do
       pre_commands = if pending[:ran], do: [], else: pending.release.pre_commands
 
-      case Monitor.run_pre_commands(pending.sname, pre_commands, :new) do
+      case Monitor.start_pre_commands(pending.sname, pre_commands, :new) do
         {:ok, ref} ->
           %{state | pending_pre_commands: Map.merge(pending, %{ref: ref, started: false})}
 
