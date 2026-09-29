@@ -462,7 +462,7 @@ defmodule Deployer.Monitor.Application do
     """
     unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
-    export RELEASE_COOKIE=#{shell_quote(cookie)}
+    export RELEASE_COOKIE=#{Common.shell_quote(cookie)}
     #{app_env}
     #{ports_env}
     export PATH=#{path}
@@ -500,7 +500,7 @@ defmodule Deployer.Monitor.Application do
     export PATH=#{path}
     export RELX_REPLACE_OS_VARS=true
     export RELEASE_NODE=#{sname}
-    export RELEASE_COOKIE=#{cookie}
+    export RELEASE_COOKIE=#{Common.shell_quote(cookie)}
     export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
     #{executable_path} foreground
     """
@@ -542,7 +542,7 @@ defmodule Deployer.Monitor.Application do
       -noshell \
       #{ssl_options} \
       -sname #{sname} \
-      -setcookie #{cookie}
+      -setcookie #{Common.shell_quote(cookie)}
     """
   end
 
@@ -556,15 +556,20 @@ defmodule Deployer.Monitor.Application do
 
   defp ports_to_env(ports), do: Enum.map(ports, fn port -> "#{port.key}=#{port.base}" end)
 
-  # Single-quote a value for sh, escaping any embedded single quote
-  defp shell_quote(value), do: "'" <> String.replace(to_string(value), "'", "'\\''") <> "'"
-
   defp build_export_command([]), do: ""
 
+  # Quote each value, so spaces and shell characters reach the monitored app as written
   defp build_export_command(env_list) do
     Enum.reduce(env_list, "export ", fn env, acc ->
-      acc <> "#{env} "
+      acc <> "#{quote_env_value(env)} "
     end)
+  end
+
+  defp quote_env_value(env) do
+    case String.split(env, "=", parts: 2) do
+      [key, value] -> "#{key}=#{Common.shell_quote(value)}"
+      [key] -> key
+    end
   end
 
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok

@@ -91,6 +91,19 @@ defmodule Foundation.Common do
   end
 
   @doc """
+  Single-quote a value for sh, escaping any embedded single quote
+
+  ## Examples
+
+    iex> alias Foundation.Common
+    ...> assert Common.shell_quote("a b") == "'a b'"
+    ...> assert Common.shell_quote("it's") == "'it'\\\\''s'"
+    ...> assert Common.shell_quote(:cookie) == "'cookie'"
+  """
+  @spec shell_quote(value :: String.Chars.t()) :: String.t()
+  def shell_quote(value), do: "'" <> String.replace(to_string(value), "'", "'\\''") <> "'"
+
+  @doc """
   Return the PATH without deployex bin/erts
 
   ## Examples

@@ -310,12 +310,72 @@ defmodule Deployer.MonitorTest do
 
       # The DeployEx cookie is a quoted default. The app's own env comes after it and wins.
       {default_at, _} = :binary.match(command, "export RELEASE_COOKIE='cookie'\n")
-      {app_env_at, _} = :binary.match(command, "export RELEASE_COOKIE=app-cookie")
+      {app_env_at, _} = :binary.match(command, "export RELEASE_COOKIE='app-cookie'")
       assert default_at < app_env_at
 
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    for language <- ["elixir", "erlang", "gleam"] do
+      @tag :capture_log
+      test "Running application - #{language} start command quotes env values and the cookie",
+           context do
+        language = unquote(language)
+        name = context[:"#{language}_name"]
+        sname = context[:"#{language}_sname"]
+        test_pid_process = self()
+        FixtureFiles.create_bin_files(language, sname)
+
+        Deployer.StatusMock
+        |> stub(:current_version_map, fn ^sname ->
+          %Catalog.Version{version: "1.0.0", sname: sname, name: name}
+        end)
+
+        Host.CommanderMock
+        |> expect(:run_link, fn command, _options ->
+          send(test_pid_process, {:start_command, command})
+          {:ok, test_pid_process, 123_456}
+        end)
+        |> stub(:run, fn _command, _options -> {:ok, test_pid_process} end)
+        |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+        assert {:ok, _pid} =
+                 MonitorApp.start_service(%Service{
+                   name: name,
+                   sname: sname,
+                   language: language,
+                   ports: context.ports,
+                   env: [
+                     "TEST_SPACES=a b",
+                     "TEST_SHELL=p$ss;(x)",
+                     "TEST_QUOTE=it's",
+                     "TEST_EQUALS=k=v"
+                   ],
+                   timeout_app_ready: 10
+                 })
+
+        assert_receive {:start_command, command}, 1_000
+
+        # Run the generated export line in a real shell and read the values back
+        [export_line] = command |> String.split("\n") |> Enum.filter(&(&1 =~ "TEST_SPACES"))
+
+        {output, 0} =
+          System.cmd("sh", [
+            "-c",
+            export_line <>
+              ~s(; printf '%s|%s|%s|%s' "$TEST_SPACES" "$TEST_SHELL" "$TEST_QUOTE" "$TEST_EQUALS")
+          ])
+
+        assert output == "a b|p$ss;(x)|it's|k=v"
+
+        if language == "gleam",
+          do: assert(command =~ "-setcookie 'cookie'"),
+          else: assert(command =~ "export RELEASE_COOKIE='cookie'\n")
+
+        assert :ok = MonitorApp.stop_service(name, sname)
+      end
     end
 
     @tag :capture_log

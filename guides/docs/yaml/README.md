@@ -172,7 +172,8 @@ applications:
       - key: PORT
         base: 4000                     # First replica: 4000, second: 4001, etc.
     
-    # Environment Variables (optional)
+    # Environment Variables (optional). Each value reaches the monitored app as written,
+    # spaces and shell characters included, with no shell expansion.
     env:
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
