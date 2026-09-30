@@ -463,7 +463,7 @@ defmodule Deployer.HotUpgrade.Application do
   def make_relup(%Execute{node: node} = data) do
     case root_dir(node) do
       root when is_list(root) ->
-        make_relup(data, root)
+        do_make_relup(data, root)
 
       error ->
         Logger.error("Could not read the root dir of node: #{node}, reason: #{inspect(error)}")
@@ -471,7 +471,7 @@ defmodule Deployer.HotUpgrade.Application do
     end
   end
 
-  defp make_relup(
+  defp do_make_relup(
          %Execute{
            node: node,
            name: name,
