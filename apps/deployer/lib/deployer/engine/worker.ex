@@ -140,11 +140,13 @@ defmodule Deployer.Engine.Worker do
     new_state =
       cond do
         current_deployment.state == :init ->
+          # initialize_version can move current to the next instance
+          instance = state.current
           state = initialize_version(state)
 
           deployments =
-            Map.put(state.deployments, state.current, %{
-              state.deployments[state.current]
+            Map.put(state.deployments, instance, %{
+              state.deployments[instance]
               | state: :active
             })
 
@@ -570,15 +572,23 @@ defmodule Deployer.Engine.Worker do
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
-      start_monitor_service!(%Monitor.Service{
-        name: name,
-        sname: sname,
-        language: language,
-        ports: ports,
-        env: env
-      })
+      started =
+        start_monitor_service!(%Monitor.Service{
+          name: name,
+          sname: sname,
+          language: language,
+          ports: ports,
+          env: env
+        })
 
-      set_timeout_to_rollback(state, sname, ports)
+      # A monitor that already runs the app does not report it running again, so a rollback
+      # window would never close and would stop the app when it expires
+      if started == :already_started and app_running?(sname) do
+        Logger.info(" # Application sname: #{sname} is already running")
+        %{state | current: if(current == state.replicas, do: 1, else: current + 1)}
+      else
+        set_timeout_to_rollback(state, sname, ports)
+      end
     else
       state
     end
@@ -590,11 +600,18 @@ defmodule Deployer.Engine.Worker do
   defp start_monitor_service!(%Monitor.Service{} = service) do
     case Monitor.start_service(service) do
       {:ok, _pid} ->
-        :ok
+        :started
 
       {:error, {:already_started, _pid}} ->
         Logger.warning("Monitor for sname: #{service.sname} is already running")
-        :ok
+        :already_started
+    end
+  end
+
+  defp app_running?(sname) do
+    case Monitor.state(sname) do
+      %Monitor{current_pid: pid, status: :running} when is_pid(pid) -> true
+      _state -> false
     end
   end
 
