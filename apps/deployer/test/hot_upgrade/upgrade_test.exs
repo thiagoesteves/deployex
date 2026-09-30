@@ -493,6 +493,18 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     assert [permanent: ~c"0.2.0", old: ~c"0.1.0"] = UpgradeApp.which_releases(node)
   end
 
+  test "which_releases/1 returns no releases and logs when the node cannot be reached", %{
+    node: node
+  } do
+    Foundation.RpcMock
+    |> expect(:call, fn ^node, :release_handler, :which_releases, [], @expected_timeout ->
+      {:badrpc, :nodedown}
+    end)
+
+    assert capture_log(fn -> assert [] = UpgradeApp.which_releases(node) end) =~
+             "Could not read the releases of node: #{node}, reason: {:badrpc, :nodedown}"
+  end
+
   @tag :capture_log
   test "make_relup/1 Elixir success", %{
     node: node,
@@ -524,6 +536,33 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                from_version: from_version,
                to_version: to_version
              })
+  end
+
+  @tag :capture_log
+  test "make_relup/1 reports a node that cannot be reached", %{
+    node: node,
+    app_name: app_name,
+    current_path: current_path,
+    new_path: new_path,
+    from_version: from_version,
+    to_version: to_version
+  } do
+    Foundation.RpcMock
+    |> expect(:call, fn ^node, :code, :root_dir, [], @expected_timeout -> {:badrpc, :nodedown} end)
+    |> expect(:call, 0, fn ^node, :systools, :make_relup, _params, @expected_timeout -> :ok end)
+
+    assert capture_log(fn ->
+             assert {:error, {:badrpc, :nodedown}} =
+                      UpgradeApp.make_relup(%Execute{
+                        node: node,
+                        name: app_name,
+                        language: "elixir",
+                        current_path: current_path,
+                        new_path: new_path,
+                        from_version: from_version,
+                        to_version: to_version
+                      })
+           end) =~ "Could not read the root dir of node: #{node}, reason: {:badrpc, :nodedown}"
   end
 
   @tag :capture_log
@@ -793,6 +832,32 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                node: node,
                to_version: to_version
              })
+  end
+
+  @tag :capture_log
+  for {name, function} <- [
+        check_install_release: :check_install_release,
+        install_release: :install_release
+      ] do
+    @function function
+    test "#{name}/1 returns the RPC failure of a node that cannot be reached", %{
+      node: node,
+      to_version: to_version
+    } do
+      function = @function
+
+      Foundation.RpcMock
+      |> expect(:call, fn ^node, :release_handler, ^function, _params, @expected_timeout ->
+        {:badrpc, :nodedown}
+      end)
+
+      assert capture_log(fn ->
+               assert {:error, {:badrpc, :nodedown}} =
+                        apply(UpgradeApp, @function, [
+                          %Execute{node: node, to_version: to_version}
+                        ])
+             end) =~ "release_handler:#{function} failed, reason: {:badrpc, :nodedown}"
+    end
   end
 
   @tag :capture_log
@@ -1300,6 +1365,118 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
                  from_version: from_version,
                  to_version: to_version
                })
+    end
+  end
+
+  @tag :capture_log
+  for {step, unreachable} <- [connect: :not_connecting, unpack: {:badrpc, :nodedown}] do
+    @step step
+    @unreachable unreachable
+    test "execute/5 reports a node that cannot be reached at #{step} as unreachable, not as not installed",
+         %{
+           node: node,
+           sname: sname,
+           app_name: app_name,
+           current_path: current_path,
+           new_path: new_path,
+           from_version: from_version,
+           to_version: to_version
+         } do
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+          {:badrpc, :nodedown}
+
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          {:badrpc, :nodedown}
+      end)
+
+      server = Process.whereis(UpgradeApp)
+
+      with_mock Node, [:passthrough], connect: fn ^node -> @step != :connect end do
+        # A monitored app that is down says nothing about the new release, so the caller
+        # deploys it fully instead of ghosting it
+        assert capture_log(fn ->
+                 assert {:error, {:unreachable, @unreachable}} =
+                          UpgradeApp.execute(%Execute{
+                            node: node,
+                            sname: sname,
+                            name: app_name,
+                            language: "elixir",
+                            current_path: current_path,
+                            new_path: new_path,
+                            from_version: from_version,
+                            to_version: to_version
+                          })
+               end) =~ "Could not read the releases of node"
+      end
+
+      assert Process.whereis(UpgradeApp) == server
+    end
+  end
+
+  for step <- [:make_relup, :config_provider, :stash, :stopping, :raised] do
+    @step step
+    @tag :capture_log
+    test "execute/5 classifies an RPC failure at #{step}", %{
+      node: node,
+      sname: sname,
+      app_name: app_name,
+      current_path: current_path,
+      new_path: new_path,
+      from_version: from_version,
+      to_version: to_version
+    } do
+      step = @step
+      releases_path = "#{current_path}/releases/#{to_version}"
+      File.mkdir_p!(releases_path)
+      File.cp!("./test/support/files/sys.config", "#{releases_path}/sys.config")
+      write_relup!("#{releases_path}/relup")
+
+      # every step answers until the node goes down at the one under test. :raised is a call
+      # that ran and raised, which is a failed release, not a node that is gone
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+          unpack_reply(step, to_version)
+
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          []
+
+        ^node, :code, :root_dir, [], @expected_timeout ->
+          ~c"/tmp/deployex/varlib/service/#{app_name}/1/current"
+
+        ^node, :systools, :make_relup, _params, @expected_timeout ->
+          make_relup_reply(step)
+
+        ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+          {:ok, :any, :any}
+
+        ^node, _module, :load, [config, _arg], @expected_timeout ->
+          load_reply(step, config)
+
+        ^node, :persistent_term, :put, _params, @expected_timeout ->
+          stash_reply(step)
+
+        ^node, :persistent_term, :erase, _params, @expected_timeout ->
+          true
+      end)
+
+      result =
+        with_mock Node, [:passthrough], connect: fn ^node -> true end do
+          UpgradeApp.execute(%Execute{
+            node: node,
+            sname: sname,
+            name: app_name,
+            language: "elixir",
+            current_path: current_path,
+            new_path: new_path,
+            from_version: from_version,
+            to_version: to_version
+          })
+        end
+
+      assert_classified(step, result)
     end
   end
 
@@ -2006,6 +2183,23 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
 
     @tag :capture_log
+    test "does not raise when the node cannot be reached", %{node: node} do
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          {:badrpc, :nodedown}
+
+        ^node, :release_handler, :set_removed, _args, @expected_timeout ->
+          flunk("the node cannot be reached, there is nothing to unregister")
+      end)
+
+      # report_failure/2 calls this before it reports the failure, so a raise here took the
+      # hot upgrade server down instead of reporting
+      assert :ok =
+               UpgradeApp.remove_unpacked_release(%Execute{node: node, to_version: "0.2.0"})
+    end
+
+    @tag :capture_log
     test "reports a removal failure without raising", %{node: node} do
       Foundation.RpcMock
       |> stub(:call, fn
@@ -2025,6 +2219,46 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
              end) =~ "Error while removing the unpacked release"
     end
   end
+
+  # Per-step RPC replies for the "classifies an RPC failure" tests. They live in functions, so
+  # the step is not a compile-time constant inside each generated test
+  defp unpack_reply(:raised, _to_version), do: {:badrpc, {:EXIT, :boom}}
+
+  # what a node that runs init:stop answers to a release_handler call still in progress
+  defp unpack_reply(:stopping, _to_version),
+    do:
+      {:badrpc,
+       {:EXIT, {:shutdown, {:gen_server, :call, [:release_handler, :unpack_release, :infinity]}}}}
+
+  defp unpack_reply(_step, to_version), do: {:ok, to_version}
+
+  defp make_relup_reply(:make_relup), do: {:badrpc, :nodedown}
+  defp make_relup_reply(_step), do: {:ok, :relup, :systools_relup, []}
+
+  defp load_reply(:config_provider, _config), do: {:badrpc, :nodedown}
+  defp load_reply(_step, config), do: config
+
+  defp stash_reply(:stash), do: {:badrpc, :nodedown}
+  defp stash_reply(_step), do: :ok
+
+  defp assert_classified(:make_relup, result),
+    do: assert({:error, {:unreachable, {:badrpc, :nodedown}}} = result)
+
+  defp assert_classified(:config_provider, result),
+    do:
+      assert(
+        {:error, {:unreachable, {:config_provider_failed, _mod, {:badrpc, :nodedown}}}} = result
+      )
+
+  defp assert_classified(:stash, result),
+    do: assert({:error, {:unreachable, {:stash_failed, {:badrpc, :nodedown}}}} = result)
+
+  defp assert_classified(:stopping, result),
+    do: assert({:error, {:unreachable, {:badrpc, {:EXIT, {:shutdown, _call}}}}} = result)
+
+  # a call that ran and raised is a failed release, not a node that is gone
+  defp assert_classified(:raised, result),
+    do: assert({:error, {:not_installed, {:badrpc, {:EXIT, :boom}}}} = result)
 
   defp remove_release_warning do
     """
