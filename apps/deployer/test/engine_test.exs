@@ -22,6 +22,10 @@ defmodule Deployer.EngineTest do
 
     stub(Deployer.StatusMock, :ghosted_version_list, fn _name -> [] end)
 
+    # A worker reads the monitor state of each installed sname on start up. No monitor runs
+    # unless a test says so
+    stub(Deployer.MonitorMock, :state, fn _sname -> %Deployer.Monitor{} end)
+
     FixtureCatalog.cleanup()
   end
 
@@ -356,6 +360,114 @@ defmodule Deployer.EngineTest do
         assert %Engine.Deployment{sname: ^sname_2, state: :active, timer_ref: nil} =
                  deployments[2]
       end
+    end
+
+    @tag :capture_log
+    test "A restart keeps the ports a running app holds out of the next full deployment" do
+      name = "myelixir"
+      test_pid = self()
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+
+      # The first full deployment moved instance 1 to the spare set, base + replicas
+      running_ports = [%{key: "PORT", base: 4001}]
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: "1.0.0"}]
+      end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> stub(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn
+        %{sname: ^sname} ->
+          {:error, {:already_started, self()}}
+
+        %{sname: new_sname, ports: ports} ->
+          send(test_pid, {:full_deployment, new_sname, ports})
+          {:ok, self()}
+      end)
+      |> stub(:state, fn
+        ^sname ->
+          %Deployer.Monitor{
+            sname: sname,
+            current_pid: self(),
+            status: :running,
+            ports: running_ports
+          }
+
+        _sname ->
+          %Deployer.Monitor{}
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0,
+          do: %{version: "2.0.0", hash: "local", pre_commands: []},
+          else: %{version: "1.0.0", hash: "local", pre_commands: []}
+      end)
+      |> stub(:download_release, fn _app_name, _version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> stub(:check, fn check -> {:ok, %{check | deploy: :full_deployment}} end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   replica_ports: [%{key: "PORT", base: 4000}],
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        assert_receive {:full_deployment, _new_sname, [%{key: "PORT", base: 4000}]}, 1_000
+      end
+    end
+
+    test "A restart gives the other instances and the spare set only the ports nobody holds" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: "1.0.0"}]
+      end)
+
+      Deployer.MonitorMock
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, ports: [%{key: "PORT", base: 4001}]}
+      end)
+
+      assert {:ok, worker_pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 replicas: 2,
+                 replica_ports: [%{key: "PORT", base: 4000}],
+                 deploy_rollback_timeout_ms: 60_000,
+                 # no scheduled check lands during the test
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir"
+               })
+
+      assert %{deployments: deployments, available_ports: [%{key: "PORT", base: 4002}]} =
+               :sys.get_state(worker_pid)
+
+      assert %Engine.Deployment{sname: ^sname, ports: [%{key: "PORT", base: 4001}]} =
+               deployments[1]
+
+      assert %Engine.Deployment{sname: nil, ports: [%{key: "PORT", base: 4000}]} = deployments[2]
     end
 
     @tag :capture_log

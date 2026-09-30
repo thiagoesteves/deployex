@@ -112,21 +112,14 @@ defmodule Deployer.Engine.Worker do
 
     snames = check_installled_apps.(Status.list_installed_apps(name))
 
-    deployments =
-      1..replicas
-      |> Enum.with_index(fn instance, index ->
-        {instance, build_ports_by_index(replica_ports, index), Enum.at(snames, index)}
-      end)
-      |> Enum.reduce(%{}, fn {instance, ports, sname}, acc ->
-        Map.put(acc, instance, %Engine.Deployment{sname: sname, ports: ports})
-      end)
+    {deployments, available_ports} = build_deployments(replica_ports, replicas, snames)
 
     {:ok,
      %{
        state
        | deployments: deployments,
          ghosted_version_list: ghosted_version_list,
-         available_ports: build_ports_by_index(replica_ports, replicas)
+         available_ports: available_ports
      }}
   end
 
@@ -542,6 +535,45 @@ defmodule Deployer.Engine.Worker do
   defp build_ports_by_index(replica_ports, index) do
     Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
   end
+
+  # A monitor that outlived an engine worker restart keeps the ports it runs the app on, which
+  # full deployments rotate. The other instances and the spare set take the sets nobody holds
+  defp build_deployments(replica_ports, replicas, snames) do
+    held_ports = Enum.map(snames, &monitor_ports/1)
+    held = held_ports |> Enum.reject(&is_nil/1) |> MapSet.new(&sort_ports/1)
+
+    free_ports =
+      0..replicas
+      |> Enum.map(&build_ports_by_index(replica_ports, &1))
+      |> Enum.reject(&MapSet.member?(held, sort_ports(&1)))
+
+    {deployments, free_ports} =
+      Enum.reduce(1..replicas, {%{}, free_ports}, fn instance, {deployments, free_ports} ->
+        {ports, free_ports} =
+          case Enum.at(held_ports, instance - 1) do
+            nil -> take_ports(free_ports)
+            ports -> {ports, free_ports}
+          end
+
+        deployment = %Engine.Deployment{sname: Enum.at(snames, instance - 1), ports: ports}
+        {Map.put(deployments, instance, deployment), free_ports}
+      end)
+
+    {available_ports, _free_ports} = take_ports(free_ports)
+    {deployments, available_ports}
+  end
+
+  defp monitor_ports(sname) do
+    case Monitor.state(sname) do
+      %Monitor{sname: ^sname, ports: ports} -> ports
+      _state -> nil
+    end
+  end
+
+  defp take_ports([ports | rest]), do: {ports, rest}
+  defp take_ports([]), do: {[], []}
+
+  defp sort_ports(ports), do: Enum.sort_by(ports, & &1.key)
 
   defp do_restart_deployments(
          %__MODULE__{deployments: deployments, replica_ports: replica_ports, replicas: replicas} =
