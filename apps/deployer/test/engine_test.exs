@@ -143,6 +143,107 @@ defmodule Deployer.EngineTest do
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
+
+    @tag :capture_log
+    test "Initialization keeps the app when a rolled back version tops the history" do
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn _name ->
+        [%Catalog.Version{version: "2.0.0", name: name}]
+      end)
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> expect(:current_version, 2, fn _sname -> "1.0.0" end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [
+          %Catalog.Version{version: "2.0.0", sname: "myelixir-rolledback"},
+          %Catalog.Version{version: "1.0.0", sname: sname}
+        ]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} ->
+        send(pid, {:handle_ref_event, ref})
+        {:ok, self()}
+      end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
+
+      assert File.exists?(Catalog.bin_path(sname, :current))
+    end
+
+    @tag :capture_log
+    test "Initialization keeps the app that runs a version ghosted on another replica" do
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      upgraded_sname = Catalog.create_sname("myelixir")
+      other_sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(upgraded_sname)
+      FixtureFiles.create_bin_files(other_sname)
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn _name ->
+        [%Catalog.Version{version: "2.0.0", name: name}]
+      end)
+      |> expect(:list_installed_apps, fn _name -> [upgraded_sname, other_sname] end)
+      |> stub(:current_version, fn
+        ^upgraded_sname -> "2.0.0"
+        _sname -> "1.0.0"
+      end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [
+          %Catalog.Version{version: "2.0.0", sname: upgraded_sname},
+          %Catalog.Version{version: "1.0.0", sname: other_sname}
+        ]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^upgraded_sname} ->
+        send(pid, {:handle_ref_event, ref})
+        {:ok, self()}
+      end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
+
+      refute File.exists?(Catalog.bin_path(other_sname, :current))
+    end
   end
 
   describe "Engine worker restart resilience" do
