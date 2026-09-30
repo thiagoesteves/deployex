@@ -22,6 +22,10 @@ defmodule Deployer.EngineTest do
 
     stub(Deployer.StatusMock, :ghosted_version_list, fn _name -> [] end)
 
+    # A worker reads the monitor state of each installed sname on start up. No monitor runs
+    # unless a test says so
+    stub(Deployer.MonitorMock, :state, fn _sname -> %Deployer.Monitor{} end)
+
     FixtureCatalog.cleanup()
   end
 
@@ -172,6 +176,9 @@ defmodule Deployer.EngineTest do
         send(pid, {:handle_ref_event, ref})
         {:error, {:already_started, self()}}
       end)
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, current_pid: self(), status: :running}
+      end)
 
       Deployer.ReleaseMock
       |> stub(:download_version_map, fn _app_name ->
@@ -235,6 +242,275 @@ defmodule Deployer.EngineTest do
 
         assert Process.alive?(worker_pid)
         assert state.current == 1
+      end
+    end
+
+    @tag :capture_log
+    test "A restart does not stop an app its monitor already runs after the rollback timeout" do
+      name = "myelixir"
+      test_pid = self()
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+      |> stub(:add_ghosted_version, fn version_map ->
+        send(test_pid, {:ghosted, version_map})
+        {:ok, [version_map]}
+      end)
+      |> stub(:current_version_map, fn _sname ->
+        %{version: version, hash: "local", pre_commands: []}
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} -> {:error, {:already_started, self()}} end)
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, current_pid: self(), status: :running}
+      end)
+      |> stub(:stop_service, fn _name, sname ->
+        send(test_pid, {:stopped, sname})
+        :ok
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version, hash: "local", pre_commands: []}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 100,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        # Several rollback timeouts pass, the monitor never reports the app running again
+        refute_receive {:stopped, _sname}, 500
+        refute_received {:ghosted, _version_map}
+
+        assert Process.alive?(worker_pid)
+
+        assert %{current: 1, deployments: %{1 => deployment}} = :sys.get_state(worker_pid)
+        assert %Engine.Deployment{sname: ^sname, state: :active, timer_ref: nil} = deployment
+      end
+    end
+
+    @tag :capture_log
+    test "A restart with every replica already running initializes each one without a window" do
+      name = "myelixir"
+      test_pid = self()
+      sname_1 = Catalog.create_sname(name)
+      sname_2 = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname_1)
+      FixtureFiles.create_bin_files(sname_2)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname_1, sname_2] end)
+      |> stub(:current_version, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn %{sname: sname} ->
+        send(test_pid, {:start_service, sname})
+        {:error, {:already_started, self()}}
+      end)
+      |> stub(:state, fn sname ->
+        %Deployer.Monitor{sname: sname, current_pid: self(), status: :running}
+      end)
+      |> expect(:stop_service, 0, fn _name, _sname -> :ok end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version, hash: "local", pre_commands: []}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   replicas: 2,
+                   deploy_rollback_timeout_ms: 100,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        assert_receive {:start_service, ^sname_1}, 1_000
+        assert_receive {:start_service, ^sname_2}, 1_000
+
+        # Past the rollback timeout of both instances
+        Process.sleep(300)
+
+        assert %{current: 1, deployments: deployments} = :sys.get_state(worker_pid)
+
+        assert %Engine.Deployment{sname: ^sname_1, state: :active, timer_ref: nil} =
+                 deployments[1]
+
+        assert %Engine.Deployment{sname: ^sname_2, state: :active, timer_ref: nil} =
+                 deployments[2]
+      end
+    end
+
+    @tag :capture_log
+    test "A restart keeps the ports a running app holds out of the next full deployment" do
+      name = "myelixir"
+      test_pid = self()
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+
+      # The first full deployment moved instance 1 to the spare set, base + replicas
+      running_ports = [%{key: "PORT", base: 4001}]
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: "1.0.0"}]
+      end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> stub(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn
+        %{sname: ^sname} ->
+          {:error, {:already_started, self()}}
+
+        %{sname: new_sname, ports: ports} ->
+          send(test_pid, {:full_deployment, new_sname, ports})
+          {:ok, self()}
+      end)
+      |> stub(:state, fn
+        ^sname ->
+          %Deployer.Monitor{
+            sname: sname,
+            current_pid: self(),
+            status: :running,
+            ports: running_ports
+          }
+
+        _sname ->
+          %Deployer.Monitor{}
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        called = Process.get("download_version_map", 0)
+        Process.put("download_version_map", called + 1)
+
+        if called > 0,
+          do: %{version: "2.0.0", hash: "local", pre_commands: []},
+          else: %{version: "1.0.0", hash: "local", pre_commands: []}
+      end)
+      |> stub(:download_release, fn _app_name, _version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> stub(:check, fn check -> {:ok, %{check | deploy: :full_deployment}} end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   replica_ports: [%{key: "PORT", base: 4000}],
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        assert_receive {:full_deployment, _new_sname, [%{key: "PORT", base: 4000}]}, 1_000
+      end
+    end
+
+    test "A restart gives the other instances and the spare set only the ports nobody holds" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: "1.0.0"}]
+      end)
+
+      Deployer.MonitorMock
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, ports: [%{key: "PORT", base: 4001}]}
+      end)
+
+      assert {:ok, worker_pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 replicas: 2,
+                 replica_ports: [%{key: "PORT", base: 4000}],
+                 deploy_rollback_timeout_ms: 60_000,
+                 # no scheduled check lands during the test
+                 deploy_schedule_interval_ms: 60_000,
+                 name: name,
+                 language: "elixir"
+               })
+
+      assert %{deployments: deployments, available_ports: [%{key: "PORT", base: 4002}]} =
+               :sys.get_state(worker_pid)
+
+      assert %Engine.Deployment{sname: ^sname, ports: [%{key: "PORT", base: 4001}]} =
+               deployments[1]
+
+      assert %Engine.Deployment{sname: nil, ports: [%{key: "PORT", base: 4000}]} = deployments[2]
+    end
+
+    @tag :capture_log
+    test "A restart while the monitor still starts the app keeps the rollback window" do
+      name = "myelixir"
+      sname = Catalog.create_sname(name)
+      FixtureFiles.create_bin_files(sname)
+      version = "1.2.3"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [sname] end)
+      |> stub(:current_version, fn _sname -> version end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [%Catalog.Version{version: version}]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^sname} -> {:error, {:already_started, self()}} end)
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, current_pid: self(), status: :starting}
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: version, hash: "local", pre_commands: []}
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        Process.sleep(200)
+
+        # The monitor reports the app running once it starts, which closes the window
+        assert %{deployments: %{1 => deployment}} = :sys.get_state(worker_pid)
+        assert %Engine.Deployment{state: :active, deploying?: true} = deployment
+        assert is_reference(deployment.timer_ref)
       end
     end
   end
@@ -2330,9 +2606,9 @@ defmodule Deployer.EngineTest do
 
     @tag :capture_log
     test "a hot upgrade does not close a window the start up left open" do
-      # Monitors live in a separate supervision tree, so an engine worker restart arms the
-      # rollback window for an application whose monitor is already running and will not
-      # report it running again. The hot upgrade that follows must not take that window
+      # Monitors live in a separate supervision tree, so an engine worker restart while the
+      # monitor still starts the application arms the rollback window. The hot upgrade that
+      # follows must not take that window
       name = "myelixir"
       sname = Catalog.create_sname(name)
       FixtureFiles.create_bin_files(sname)
@@ -2363,6 +2639,9 @@ defmodule Deployer.EngineTest do
 
       Deployer.MonitorMock
       |> expect(:start_service, 1, fn %{sname: ^sname} -> {:error, {:already_started, self()}} end)
+      |> stub(:state, fn ^sname ->
+        %Deployer.Monitor{sname: sname, current_pid: self(), status: :starting}
+      end)
       # no pre_commands, so the monitor is not asked to run any
       |> expect(:start_pre_commands, 0, fn _sname, _release, :new -> {:ok, make_ref()} end)
 

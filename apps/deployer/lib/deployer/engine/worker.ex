@@ -112,21 +112,14 @@ defmodule Deployer.Engine.Worker do
 
     snames = check_installled_apps.(Status.list_installed_apps(name))
 
-    deployments =
-      1..replicas
-      |> Enum.with_index(fn instance, index ->
-        {instance, build_ports_by_index(replica_ports, index), Enum.at(snames, index)}
-      end)
-      |> Enum.reduce(%{}, fn {instance, ports, sname}, acc ->
-        Map.put(acc, instance, %Engine.Deployment{sname: sname, ports: ports})
-      end)
+    {deployments, available_ports} = build_deployments(replica_ports, replicas, snames)
 
     {:ok,
      %{
        state
        | deployments: deployments,
          ghosted_version_list: ghosted_version_list,
-         available_ports: build_ports_by_index(replica_ports, replicas)
+         available_ports: available_ports
      }}
   end
 
@@ -140,11 +133,13 @@ defmodule Deployer.Engine.Worker do
     new_state =
       cond do
         current_deployment.state == :init ->
+          # initialize_version can move current to the next instance
+          instance = state.current
           state = initialize_version(state)
 
           deployments =
-            Map.put(state.deployments, state.current, %{
-              state.deployments[state.current]
+            Map.put(state.deployments, instance, %{
+              state.deployments[instance]
               | state: :active
             })
 
@@ -541,6 +536,45 @@ defmodule Deployer.Engine.Worker do
     Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
   end
 
+  # A monitor that outlived an engine worker restart keeps the ports it runs the app on, which
+  # full deployments rotate. The other instances and the spare set take the sets nobody holds
+  defp build_deployments(replica_ports, replicas, snames) do
+    held_ports = Enum.map(snames, &monitor_ports/1)
+    held = held_ports |> Enum.reject(&is_nil/1) |> MapSet.new(&sort_ports/1)
+
+    free_ports =
+      0..replicas
+      |> Enum.map(&build_ports_by_index(replica_ports, &1))
+      |> Enum.reject(&MapSet.member?(held, sort_ports(&1)))
+
+    {deployments, free_ports} =
+      Enum.reduce(1..replicas, {%{}, free_ports}, fn instance, {deployments, free_ports} ->
+        {ports, free_ports} =
+          case Enum.at(held_ports, instance - 1) do
+            nil -> take_ports(free_ports)
+            ports -> {ports, free_ports}
+          end
+
+        deployment = %Engine.Deployment{sname: Enum.at(snames, instance - 1), ports: ports}
+        {Map.put(deployments, instance, deployment), free_ports}
+      end)
+
+    {available_ports, _free_ports} = take_ports(free_ports)
+    {deployments, available_ports}
+  end
+
+  defp monitor_ports(sname) do
+    case Monitor.state(sname) do
+      %Monitor{sname: ^sname, ports: ports} -> ports
+      _state -> nil
+    end
+  end
+
+  defp take_ports([ports | rest]), do: {ports, rest}
+  defp take_ports([]), do: {[], []}
+
+  defp sort_ports(ports), do: Enum.sort_by(ports, & &1.key)
+
   defp do_restart_deployments(
          %__MODULE__{deployments: deployments, replica_ports: replica_ports, replicas: replicas} =
            state
@@ -570,15 +604,23 @@ defmodule Deployer.Engine.Worker do
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
-      start_monitor_service!(%Monitor.Service{
-        name: name,
-        sname: sname,
-        language: language,
-        ports: ports,
-        env: env
-      })
+      started =
+        start_monitor_service!(%Monitor.Service{
+          name: name,
+          sname: sname,
+          language: language,
+          ports: ports,
+          env: env
+        })
 
-      set_timeout_to_rollback(state, sname, ports)
+      # A monitor that already runs the app does not report it running again, so a rollback
+      # window would never close and would stop the app when it expires
+      if started == :already_started and app_running?(sname) do
+        Logger.info(" # Application sname: #{sname} is already running")
+        %{state | current: if(current == state.replicas, do: 1, else: current + 1)}
+      else
+        set_timeout_to_rollback(state, sname, ports)
+      end
     else
       state
     end
@@ -590,11 +632,18 @@ defmodule Deployer.Engine.Worker do
   defp start_monitor_service!(%Monitor.Service{} = service) do
     case Monitor.start_service(service) do
       {:ok, _pid} ->
-        :ok
+        :started
 
       {:error, {:already_started, _pid}} ->
         Logger.warning("Monitor for sname: #{service.sname} is already running")
-        :ok
+        :already_started
+    end
+  end
+
+  defp app_running?(sname) do
+    case Monitor.state(sname) do
+      %Monitor{current_pid: pid, status: :running} when is_pid(pid) -> true
+      _state -> false
     end
   end
 
