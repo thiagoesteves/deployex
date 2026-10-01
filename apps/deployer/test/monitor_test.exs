@@ -378,6 +378,60 @@ defmodule Deployer.MonitorTest do
       end
     end
 
+    for language <- ["elixir", "erlang", "gleam"] do
+      @tag :capture_log
+      test "Running application - #{language} start command unsets DeployEx's variables",
+           context do
+        language = unquote(language)
+        name = context[:"#{language}_name"]
+        sname = context[:"#{language}_sname"]
+        test_pid_process = self()
+        FixtureFiles.create_bin_files(language, sname)
+
+        Deployer.StatusMock
+        |> stub(:current_version_map, fn ^sname ->
+          %Catalog.Version{version: "1.0.0", sname: sname, name: name}
+        end)
+
+        Host.CommanderMock
+        |> expect(:run_link, fn command, _options ->
+          send(test_pid_process, {:start_command, command})
+          {:ok, test_pid_process, 123_456}
+        end)
+        |> stub(:run, fn _command, _options -> {:ok, test_pid_process} end)
+        |> stub(:stop, fn ^test_pid_process -> :ok end)
+
+        assert {:ok, _pid} =
+                 MonitorApp.start_service(%Service{
+                   name: name,
+                   sname: sname,
+                   language: language,
+                   ports: context.ports,
+                   timeout_app_ready: 10
+                 })
+
+        assert_receive {:start_command, command}, 1_000
+
+        # Run the generated unset lines in a shell that has DeployEx's variables
+        unset_lines = command |> String.split("\n") |> Enum.filter(&(&1 =~ ~r/^unset /))
+
+        {output, 0} =
+          System.cmd(
+            "sh",
+            ["-c", Enum.join(unset_lines ++ ["env | grep -E '^(DEPLOYEX_|KEEP_ME=)'"], "\n")],
+            env: [
+              {"DEPLOYEX_SECRET_KEY_BASE", "secret"},
+              {"DEPLOYEX_CONFIG_YAML_PATH", "/etc/deployex.yaml"},
+              {"KEEP_ME", "1"}
+            ]
+          )
+
+        assert output == "KEEP_ME=1\n"
+
+        assert :ok = MonitorApp.stop_service(name, sname)
+      end
+    end
+
     @tag :capture_log
     test "Running application - no pre_commands - gleam", %{
       gleam_sname: sname,
