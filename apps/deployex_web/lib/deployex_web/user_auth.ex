@@ -5,6 +5,7 @@ defmodule DeployexWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
+  alias DeployexWeb.OAuth.{Allowlist, Config}
   alias Foundation.Accounts
 
   # Make the remember me cookie valid for 60 days.
@@ -35,6 +36,42 @@ defmodule DeployexWeb.UserAuth do
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
     |> redirect(to: user_return_to || signed_in_path(conn))
+  end
+
+  @doc """
+  Logs in a user authenticated through a 3rd-party OAuth provider.
+
+  Session-only: no user record is stored. The verified email and the login time
+  are placed in the session, and `fetch_current_user/2` and `mount_current_user/2`
+  check them again on each request. Renews the session first to prevent fixation.
+  """
+  def log_in_oauth_user(conn, email) when is_binary(email) do
+    user_return_to = get_session(conn, :user_return_to)
+
+    conn
+    |> renew_session()
+    |> put_session(:oauth_email, email)
+    |> put_session(:oauth_logged_in_at, System.os_time(:second))
+    |> put_session(:live_socket_id, "users_sessions:oauth:#{Base.url_encode64(email)}")
+    |> redirect(to: user_return_to || signed_in_path(conn))
+  end
+
+  @doc """
+  Logs the user out.
+
+  Clears the whole session (removing both the password `user_token` and the
+  OAuth `oauth_email`), disconnects any live sockets, and drops the remember-me
+  cookie. Works for both password and OAuth logins.
+  """
+  def log_out_user(conn) do
+    if live_socket_id = get_session(conn, :live_socket_id) do
+      DeployexWeb.Endpoint.broadcast(live_socket_id, "disconnect", %{})
+    end
+
+    conn
+    |> renew_session()
+    |> delete_resp_cookie(@remember_me_cookie)
+    |> redirect(to: ~p"/users/log_in")
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
@@ -74,9 +111,32 @@ defmodule DeployexWeb.UserAuth do
   """
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Accounts.get_user_by_session_token(user_token)
+
+    user =
+      cond do
+        user_token ->
+          Accounts.get_user_by_session_token(user_token)
+
+        email = get_session(conn, :oauth_email) ->
+          oauth_user(email, get_session(conn, :oauth_logged_in_at))
+
+        true ->
+          nil
+      end
+
     assign(conn, :current_user, user)
   end
+
+  # An OAuth session has no server-side record, so check it on each request: OAuth is still
+  # configured, the email is still allowed, and the login is not older than a password session
+  defp oauth_user(email, logged_in_at) when is_binary(email) and is_integer(logged_in_at) do
+    if Config.configured?() and Allowlist.check(email, Config.allowlist()) == :ok and
+         System.os_time(:second) - logged_in_at < @max_age do
+      %{email: email}
+    end
+  end
+
+  defp oauth_user(_email, _logged_in_at), do: nil
 
   defp ensure_user_token(conn) do
     case get_session(conn, :user_token) do
@@ -158,8 +218,10 @@ defmodule DeployexWeb.UserAuth do
 
   defp mount_current_user(socket, session) do
     Phoenix.Component.assign_new(socket, :current_user, fn ->
-      if user_token = session["user_token"] do
-        Accounts.get_user_by_session_token(user_token)
+      cond do
+        user_token = session["user_token"] -> Accounts.get_user_by_session_token(user_token)
+        email = session["oauth_email"] -> oauth_user(email, session["oauth_logged_in_at"])
+        true -> nil
       end
     end)
   end

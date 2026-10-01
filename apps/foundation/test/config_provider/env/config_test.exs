@@ -20,6 +20,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
   @yaml_endpoint_http "#{@file_paths}/deployex-endpoint-http.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
+  @yaml_auth "#{@file_paths}/deployex-auth.yaml"
 
   # What config.exs + prod.exs give the provider in a release.
   @release_config [
@@ -865,6 +866,36 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
 
         refute Keyword.has_key?(deployer_config, Deployer.SelfUpgrade)
         refute Keyword.has_key?(deployer_config, Deployer.SelfUpgrade.Source)
+      end
+    end
+  end
+
+  describe "auth configuration" do
+    @tag :capture_log
+    test "load/3 sets the DeployexWeb.OAuth config from the auth section" do
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth end]}
+      ]) do
+        oauth = Config.load([], [])[:deployex_web][DeployexWeb.OAuth]
+
+        assert oauth[:provider] == DeployexWeb.OAuth.Provider.GitHub
+        assert oauth[:client_id] == "Ov23liExample"
+        assert oauth[:redirect_uri] == "https://deployex.example.com/auth/github/callback"
+
+        assert oauth[:allowlist] == %{
+                 emails: ["alice@example.com", "bob@example.com"],
+                 domains: ["example.com"]
+               }
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 does not set the DeployexWeb.OAuth config when auth is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        refute Keyword.has_key?(Config.load([], [])[:deployex_web], DeployexWeb.OAuth)
       end
     end
   end

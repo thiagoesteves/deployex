@@ -82,6 +82,21 @@ defmodule DeployexWeb.UserAuthTest do
     end
   end
 
+  describe "log_out_user/1" do
+    test "clears an OAuth session and redirects to login", %{conn: conn} do
+      conn = conn |> put_session(:oauth_email, "me@co.com") |> UserAuth.log_out_user()
+      refute get_session(conn, :oauth_email)
+      assert redirected_to(conn) == ~p"/users/log_in"
+    end
+
+    test "clears a password session and redirects to login", %{conn: conn, user: user} do
+      token = Accounts.generate_user_session_token(user)
+      conn = conn |> put_session(:user_token, token) |> UserAuth.log_out_user()
+      refute get_session(conn, :user_token)
+      assert redirected_to(conn) == ~p"/users/log_in"
+    end
+  end
+
   describe "on_mount: mount_current_user" do
     test "assigns current_user based on a valid user_token", %{conn: conn, user: user} do
       user_token = Accounts.generate_user_session_token(user)
