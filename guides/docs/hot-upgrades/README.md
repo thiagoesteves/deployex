@@ -68,10 +68,11 @@ You do not need to write any of these files by hand, but knowing what they are i
 3. `release_handler:check_install_release/1` evaluates the plan without applying it.
 4. `release_handler:install_release/2` rebuilds the application environments and then runs the plan. From this point the node is running the new code.
 5. `release_handler:make_permanent/1` makes the new version the one the node boots into next time.
-6. DeployEx removes the release directories, `.rel` files and libraries of older versions, and keeps the newest `releases_retention` releases (default 2, at least the current and previous ones). Without this, every hot upgrade adds a release and its changed libraries to disk.
 
 Everything up to step 4 only writes files and computes, so a failure there leaves the node running exactly the code it had.
 That distinction is what the failure messages report, and what decides whether DeployEx has anything to recover from.
+
+After step 5, for a monitored app, DeployEx removes the release directories, `.rel` files and libraries of older versions from the app's release directory, and keeps the newest `releases_retention` releases (default 2, at least the current and previous ones). DeployEx does not prune its own releases.
 
 **What happens to your processes**
 
