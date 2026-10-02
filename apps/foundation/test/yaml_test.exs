@@ -267,6 +267,15 @@ defmodule Foundation.YamlTest do
     end
   end
 
+  # Copy a fixture to a temp file and append an extra top-level line, for a key the fixtures
+  # do not set.
+  defp write_temp_yaml(source, extra_line) do
+    path = Path.join(System.tmp_dir!(), "deployex-#{System.unique_integer([:positive])}.yaml")
+    File.cp!(source, path)
+    File.write!(path, "\n#{extra_line}\n", [:append])
+    path
+  end
+
   describe "load/0 with no application defined" do
     test "successfully loads with no app configured" do
       with_mocks([
@@ -903,14 +912,5 @@ defmodule Foundation.YamlTest do
                }
       end
     end
-  end
-
-  # Copy a fixture to a temp file and append an extra top-level line, for a key the fixtures
-  # do not set.
-  defp write_temp_yaml(source, extra_line) do
-    path = Path.join(System.tmp_dir!(), "deployex-#{System.unique_integer([:positive])}.yaml")
-    File.cp!(source, path)
-    File.write!(path, "\n#{extra_line}\n", [:append])
-    path
   end
 end
