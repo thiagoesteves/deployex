@@ -2487,5 +2487,28 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       assert File.dir?("#{current_path}/releases/0.2.0")
       refute File.dir?("#{current_path}/releases/0.0.9")
     end
+
+    @tag :capture_log
+    test "releases_retention set to nil falls back to two", %{
+      app_name: app_name,
+      current_path: current_path
+    } do
+      on_exit(fn -> Application.delete_env(:foundation, :releases_retention) end)
+      Application.put_env(:foundation, :releases_retention, nil)
+
+      seed_release_layout!(current_path, app_name)
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0"
+               })
+
+      assert File.dir?("#{current_path}/releases/0.1.0")
+      assert File.dir?("#{current_path}/releases/0.2.0")
+      refute File.dir?("#{current_path}/releases/0.0.9")
+    end
   end
 end

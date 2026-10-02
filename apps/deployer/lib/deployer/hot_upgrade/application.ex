@@ -742,7 +742,8 @@ defmodule Deployer.HotUpgrade.Application do
   # the next newest release directories by mtime are added up to that count.
   @spec versions_to_keep(String.t(), any(), any()) :: MapSet.t()
   defp versions_to_keep(current_path, from_version, to_version) do
-    retention = max(Application.get_env(:foundation, :releases_retention, 2), 2)
+    # A key set to nil would sort above any number in max/2
+    retention = max(Application.get_env(:foundation, :releases_retention) || 2, 2)
     base = [to_string(from_version), to_string(to_version)]
 
     extra =
