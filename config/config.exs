@@ -37,6 +37,7 @@ config :foundation,
   notifications: [],
   healthcheck_logging: false,
   logs_retention_time_ms: :timer.hours(1),
+  releases_retention: 2,
   config_checksum: nil
 
 # NOTE: The default username/pass is admin/deployex and in order to generate

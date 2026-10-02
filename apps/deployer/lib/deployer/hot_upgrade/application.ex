@@ -701,23 +701,14 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @doc """
-  Remove the release and library directories left by earlier hot upgrades.
+  Remove the release directories, `.rel` files and libraries of versions outside the newest
+  `releases_retention` releases (never fewer than the current and previous ones).
 
-  Each hot upgrade unpacks `releases/<vsn>/` and one `lib/<app>-<vsn>/` per changed
-  application into `current/` and never removes the earlier ones, so disk grows one release
-  and its libraries per upgrade. The `releases_retention` config sets how many releases to
-  keep (default 2, floored at 2). The current and previous versions are always kept, the
-  furthest back OTP runs old code or a downgrade relup rolls back to, and any higher retention
-  keeps the next newest releases by mtime.
-
-  Files are removed directly, not through `release_handler:remove_release/1`: an Elixir
-  release ships no `RELEASES` file, so that call treats every library as unused and empties
-  `lib/` (`remove_unpacked_release/1` avoids it for the same reason).
-
-  The self-upgrade path makes the release permanent asynchronously (see `permfy/1`), so it is
-  not permanent yet here. DeployEx does not prune its own versions.
+  Files are removed directly: `release_handler:remove_release/1` empties `lib/` for an Elixir
+  release, see `remove_unpacked_release/1`.
   """
   @spec prune_old_releases(Execute.t()) :: :ok
+  # A DeployEx self-upgrade is not permanent yet on this path
   def prune_old_releases(%Execute{make_permanent_async: true}), do: :ok
 
   def prune_old_releases(%Execute{
@@ -742,8 +733,12 @@ defmodule Deployer.HotUpgrade.Application do
   # the next newest release directories by mtime are added up to that count.
   @spec versions_to_keep(String.t(), any(), any()) :: MapSet.t()
   defp versions_to_keep(current_path, from_version, to_version) do
-    # A key set to nil would sort above any number in max/2
-    retention = max(Application.get_env(:foundation, :releases_retention) || 2, 2)
+    retention =
+      case Application.get_env(:foundation, :releases_retention) do
+        value when is_integer(value) -> max(value, 2)
+        _ -> 2
+      end
+
     base = [to_string(from_version), to_string(to_version)]
 
     extra =

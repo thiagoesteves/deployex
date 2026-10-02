@@ -11,7 +11,6 @@ defmodule Foundation.Yaml do
 
   @default_metrics_retention_time_ms :timer.hours(1)
   @default_logs_retention_time_ms :timer.hours(1)
-  # Keep the current and previous release, the floor a downgrade relup needs
   @default_releases_retention 2
   @min_releases_retention 2
   @default_replicas 3
@@ -519,7 +518,7 @@ defmodule Foundation.Yaml do
   defp parse_enable_restart(nil), do: @default_monitoring_enable_restart
   defp parse_enable_restart(enable_restart), do: enable_restart
 
-  # Clamp to the floor, a hot upgrade needs the current and previous release on disk
+  # The floor keeps the current and previous release, which a hot upgrade needs on disk
   defp parse_releases_retention(nil), do: @default_releases_retention
 
   defp parse_releases_retention(value) when is_integer(value),
