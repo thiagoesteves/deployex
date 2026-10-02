@@ -50,6 +50,8 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert_receive {:terminal_command, command}, 1_000
     assert command =~ "export RELEASE_COOKIE='cookie'\n"
+    # DeployEx's own release reads its DEPLOYEX_* variables
+    assert env_after_unset(command) =~ "DEPLOYEX_SECRET_KEY_BASE=secret\n"
 
     FixtureTerminal.terminate_all()
 
@@ -95,6 +97,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert_receive {:terminal_command, command}, 1_000
     assert command =~ "export RELEASE_COOKIE='cookie'\n"
+    assert env_after_unset(command) == "KEEP_ME=1\n"
 
     FixtureTerminal.terminate_all()
 
@@ -142,6 +145,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert_receive {:terminal_command, command}, 1_000
     assert command =~ "-setcookie 'cookie'"
+    assert env_after_unset(command) == "KEEP_ME=1\n"
 
     FixtureTerminal.terminate_all()
 
@@ -189,6 +193,7 @@ defmodule DeployexWeb.Applications.TerminalTest do
 
     assert_receive {:terminal_command, command}, 1_000
     assert command =~ "export RELEASE_COOKIE='cookie'\n"
+    assert env_after_unset(command) == "KEEP_ME=1\n"
 
     FixtureTerminal.terminate_all()
 
@@ -380,5 +385,23 @@ defmodule DeployexWeb.Applications.TerminalTest do
       assert index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click() =~
                "Bin: Cookie not set"
     end
+  end
+
+  # Run the generated unset lines in a shell that has DeployEx's variables
+  defp env_after_unset(command) do
+    unset_lines = command |> String.split("\n") |> Enum.filter(&(&1 =~ ~r/^unset /))
+
+    {output, 0} =
+      System.cmd(
+        "sh",
+        ["-c", Enum.join(unset_lines ++ ["env | grep -E '^(DEPLOYEX_|KEEP_ME=)'"], "\n")],
+        env: [
+          {"DEPLOYEX_SECRET_KEY_BASE", "secret"},
+          {"DEPLOYEX_CONFIG_YAML_PATH", "/etc/deployex.yaml"},
+          {"KEEP_ME", "1"}
+        ]
+      )
+
+    output
   end
 end

@@ -437,6 +437,7 @@ defmodule Deployer.Monitor.Application do
 
   # NOTE: Some commands need to run prior starting the application
   #       - Unset env vars from the deployex release to not mix with the monitored app release
+  #       - Unset DeployEx's own DEPLOYEX_* variables, which hold its secrets with the env adapter
   #       - Export RELEASE_NODE with sname
   #       - Export listening port that needs to be one per app
   defp run_app_bin(state, executable_path, command)
@@ -460,7 +461,7 @@ defmodule Deployer.Monitor.Application do
     # runs with a non-default cookie. It goes before app_env, so a RELEASE_COOKIE in the
     # app's env still wins.
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     export RELEASE_COOKIE=#{Common.shell_quote(cookie)}
     #{app_env}
@@ -493,7 +494,7 @@ defmodule Deployer.Monitor.Application do
       end
 
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
     #{ports_env}
@@ -529,7 +530,7 @@ defmodule Deployer.Monitor.Application do
       end
 
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
     #{ports_env}
