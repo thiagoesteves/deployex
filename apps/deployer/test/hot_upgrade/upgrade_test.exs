@@ -2333,6 +2333,68 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
   describe "prune_old_releases/1" do
     @tag :capture_log
+    test "execute/5 prunes older releases once the release is permanent", %{
+      node: node,
+      sname: sname,
+      app_name: app_name,
+      current_path: current_path,
+      new_path: new_path
+    } do
+      seed_release_layout!(current_path, app_name)
+      File.cp!("./test/support/files/sys.config", "#{current_path}/releases/0.2.0/sys.config")
+      write_relup!("#{current_path}/releases/0.2.0/relup")
+
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :unpack_release, _params, @expected_timeout ->
+          {:ok, "0.2.0"}
+
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          []
+
+        ^node, :code, :root_dir, [], @expected_timeout ->
+          to_charlist(current_path)
+
+        ^node, :systools, :make_relup, _params, @expected_timeout ->
+          {:ok, :relup, :systools_relup, []}
+
+        ^node, :release_handler, :check_install_release, _params, @expected_timeout ->
+          {:ok, :any, :any}
+
+        ^node, _module, :load, [cfg, _arg], @expected_timeout ->
+          cfg
+
+        ^node, :persistent_term, :put, _params, @expected_timeout ->
+          :ok
+
+        ^node, :release_handler, :install_release, _params, @expected_timeout ->
+          {:ok, :any, :any}
+
+        ^node, :release_handler, :make_permanent, _params, @expected_timeout ->
+          :ok
+      end)
+
+      with_mock Node, [:passthrough], connect: fn ^node -> true end do
+        assert :ok =
+                 UpgradeApp.execute(%Execute{
+                   node: node,
+                   sname: sname,
+                   name: app_name,
+                   language: "elixir",
+                   current_path: current_path,
+                   new_path: new_path,
+                   from_version: "0.1.0",
+                   to_version: "0.2.0"
+                 })
+      end
+
+      assert File.dir?("#{current_path}/releases/0.1.0")
+      assert File.dir?("#{current_path}/releases/0.2.0")
+      refute File.dir?("#{current_path}/releases/0.0.9")
+      refute File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+    end
+
+    @tag :capture_log
     test "keeps the current and previous versions and removes everything older", %{
       app_name: app_name,
       current_path: current_path

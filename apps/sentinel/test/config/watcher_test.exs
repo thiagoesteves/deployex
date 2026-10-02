@@ -2104,4 +2104,51 @@ defmodule Sentinel.Config.WatcherTest do
     assert {:error, :no_pending_changes} == Watcher.get_pending_changes()
     assert {:error, :no_pending_changes} == Watcher.apply_changes()
   end
+
+  describe "releases_retention" do
+    @tag :capture_log
+    test "detects a releases_retention change and applies it to the foundation env" do
+      test_pid = self()
+      ref = make_ref()
+      on_exit(fn -> Application.put_env(:foundation, :releases_retention, 2) end)
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> @default_upgradable end,
+           from_yaml: fn _config ->
+             Map.merge(@default_upgradable, %{
+               config_checksum: "new_checksum",
+               releases_retention: 3
+             })
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn
+             %Yaml{config_checksum: "current_checksum"} ->
+               send(test_pid, {:handle_ref_event, ref})
+               {:ok, %Yaml{}}
+
+             _config ->
+               {:error, :unchanged}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        node = Node.self()
+
+        {:ok, pid} = Watcher.start_link(name: :test_releases_retention, check_interval_ms: 10)
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        assert_receive {:watcher_config_new, ^node,
+                        %Changes{summary: %{releases_retention: %{old: nil, new: 3}}}},
+                       1_000
+
+        assert :ok = Watcher.apply_changes(pid)
+        assert Application.get_env(:foundation, :releases_retention) == 3
+      end
+    end
+  end
 end
