@@ -806,8 +806,7 @@ defmodule Deployer.HotUpgrade.Application do
         path = "#{lib_dir}/#{entry}"
 
         if File.dir?(path) and not MapSet.member?(keep_libs, entry) do
-          File.rm_rf(path)
-          Logger.info("Pruned unused library directory: #{path}")
+          path |> File.rm_rf() |> log_removal("unused library directory", path)
         end
       end)
     end
@@ -825,12 +824,10 @@ defmodule Deployer.HotUpgrade.Application do
 
         cond do
           File.dir?(path) and not MapSet.member?(keep_versions, entry) ->
-            File.rm_rf(path)
-            Logger.info("Pruned old release directory: #{path}")
+            path |> File.rm_rf() |> log_removal("old release directory", path)
 
           stale_rel_file?(entry, name, keep_versions) ->
-            File.rm(path)
-            Logger.info("Pruned old release file: #{path}")
+            path |> File.rm() |> log_removal("old release file", path)
 
           true ->
             :ok
@@ -840,6 +837,13 @@ defmodule Deployer.HotUpgrade.Application do
 
     :ok
   end
+
+  # File.rm_rf/1 returns {:ok, removed}, File.rm/1 returns :ok
+  defp log_removal({:ok, _removed}, what, path), do: log_removal(:ok, what, path)
+  defp log_removal(:ok, what, path), do: Logger.info("Pruned #{what}: #{path}")
+
+  defp log_removal(error, what, path),
+    do: Logger.warning("Could not prune #{what}: #{path}, reason: #{inspect(error)}")
 
   # True for a <name>-<vsn>.rel whose version is not kept. Other files (RELEASES,
   # start_erl.data) never match and are left alone.
