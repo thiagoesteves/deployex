@@ -6,9 +6,12 @@ defmodule Deployer.Engine.Deployment do
   `deploying?` says the worker put a version into service and is waiting for the
   application to report it running, which is what completes a deployment. It is set
   together with the rollback timer and cleared by the report that closes it.
+
+  `:stopped` marks an instance that a DeployEx restart in a rollback window kept on an older
+  version without starting it.
   """
   @type t :: %__MODULE__{
-          state: :init | :active,
+          state: :init | :active | :stopped,
           timer_ref: reference() | nil,
           sname: String.t() | nil,
           ports: list(),

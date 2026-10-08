@@ -90,42 +90,72 @@ defmodule Deployer.Engine.Worker do
 
     check_installled_apps = fn
       [] ->
-        []
+        {[], nil, []}
 
       installed_snames ->
         # A rolled back full deployment stays at the top of the history with its sname removed,
         # while the previous version keeps running
+        ghosted_versions = Enum.map(ghosted_version_list, & &1.version)
+        history = Status.history_version_list(name, [])
+
         current_version =
-          name
-          |> Status.history_version_list([])
+          history
           |> Enum.find(&(&1.sname in installed_snames))
           |> case do
             %Catalog.Version{version: version} -> version
             _ -> nil
           end
 
-        # NOTE: Check all installed versions that are using the current version
-        #       and cleanup the snames that are not in the current version
-        Enum.reduce(installed_snames, [], fn sname, acc ->
-          with true <- current_version == Status.current_version(sname),
-               bin_path when bin_path != nil <- Catalog.bin_path(sname, :current) do
-            acc ++ [sname]
-          else
-            _ ->
-              Catalog.cleanup(sname)
-              acc
-          end
-        end)
+        # Split the installed snames by the current version
+        {snames, other_snames} =
+          Enum.split_with(installed_snames, fn sname ->
+            with true <- current_version == Status.current_version(sname),
+                 bin_path when bin_path != nil <- Catalog.bin_path(sname, :current) do
+              true
+            else
+              _ -> false
+            end
+          end)
+
+        newest = List.first(history)
+        fallback = window_fallback(newest, snames, other_snames, history, ghosted_versions)
+
+        if fallback do
+          Logger.info(" # Keeping previous node: #{fallback} until the rollback window closes")
+
+          previous =
+            history
+            |> Enum.map(& &1.sname)
+            |> Enum.uniq()
+            |> Enum.filter(&(&1 in other_snames and &1 != fallback))
+
+          {kept, extra} = Enum.split(previous ++ List.delete(snames, newest.sname), replicas - 1)
+          Enum.each((other_snames -- [fallback | previous]) ++ extra, &Catalog.cleanup/1)
+
+          # In rollout order: an older version, then empty, then already upgraded
+          {pending, upgraded} = Enum.split_with(kept, &(&1 in previous))
+          empty = List.duplicate(nil, replicas - 1 - length(kept))
+
+          # A monitor that outlived an engine worker restart still runs its sname
+          stopped = Enum.reject(pending, &monitor_ports/1)
+
+          {[newest.sname | pending ++ empty ++ upgraded], fallback, stopped}
+        else
+          Enum.each(other_snames, &Catalog.cleanup/1)
+          {snames, nil, []}
+        end
     end
 
-    snames = check_installled_apps.(Status.list_installed_apps(name))
+    {snames, fallback, stopped} = check_installled_apps.(Status.list_installed_apps(name))
 
-    {deployments, available_ports} = build_deployments(replica_ports, replicas, snames)
+    {deployments, deployment_to_terminate, available_ports} =
+      build_deployments(replica_ports, replicas, snames, fallback, stopped)
 
     {:ok,
      %{
        state
        | deployments: deployments,
+         deployment_to_terminate: deployment_to_terminate,
          ghosted_version_list: ghosted_version_list,
          available_ports: available_ports
      }}
@@ -266,13 +296,14 @@ defmodule Deployer.Engine.Worker do
         deployments =
           Map.put(deployments, state.current, deployment_to_terminate || %Engine.Deployment{})
 
-        %{
+        # Instances that a restart in a window kept stopped serve again now
+        start_stopped_instances(%{
           state
           | deployments: deployments,
             deployment_to_terminate: nil,
             ghosted_version_list: new_list,
             available_ports: ports
-        }
+        })
       else
         # Ignore because the expiration is not for the current deployment
         state
@@ -396,7 +427,7 @@ defmodule Deployer.Engine.Worker do
 
   def handle_cast(
         {:application_running, sname},
-        %__MODULE__{deployment_to_terminate: deployment_to_terminate} = state
+        %__MODULE__{} = state
       ) do
     current_deployment = state.deployments[state.current]
 
@@ -427,15 +458,7 @@ defmodule Deployer.Engine.Worker do
             true -> state.current + 1
           end
 
-        available_ports =
-          if deployment_to_terminate do
-            Logger.info(" # Terminating previous node: #{deployment_to_terminate.sname}")
-            Monitor.stop_service(state.name, deployment_to_terminate.sname)
-            Catalog.cleanup(deployment_to_terminate.sname)
-            deployment_to_terminate.ports
-          else
-            state.available_ports
-          end
+        state = terminate_previous_deployment(state)
 
         Logger.info(" # Moving to the next instance: #{new_instance}")
 
@@ -449,13 +472,7 @@ defmodule Deployer.Engine.Worker do
               deploying?: false
           })
 
-        %{
-          state
-          | current: new_instance,
-            deployments: deployments,
-            deployment_to_terminate: nil,
-            available_ports: available_ports
-        }
+        %{state | current: new_instance, deployments: deployments}
       else
         Logger.warning(
           "Received sname: #{sname} that doesn't match the expected one: #{state.current} sname: #{current_deployment.sname}"
@@ -544,11 +561,28 @@ defmodule Deployer.Engine.Worker do
     Enum.map(replica_ports, fn port -> %{port | base: port.base + index} end)
   end
 
+  # The newest history entry is a full deployment that is installed and not ghosted, so a restart
+  # may have cut its rollback window short. The newest sname of another version stays to return to
+  defp window_fallback(
+         %Catalog.Version{deployment: :full_deployment, sname: sname, version: version},
+         snames,
+         other_snames,
+         history,
+         ghosted_versions
+       ) do
+    if sname in snames and version not in ghosted_versions do
+      history |> Enum.map(& &1.sname) |> Enum.find(&(&1 in other_snames))
+    end
+  end
+
+  defp window_fallback(_newest, _snames, _other_snames, _history, _ghosted_versions), do: nil
+
   # A monitor that outlived an engine worker restart keeps the ports it runs the app on, which
   # full deployments rotate. The other instances and the spare set take the sets nobody holds
-  defp build_deployments(replica_ports, replicas, snames) do
+  defp build_deployments(replica_ports, replicas, snames, fallback, stopped) do
     held_ports = Enum.map(snames, &monitor_ports/1)
-    held = held_ports |> Enum.reject(&is_nil/1) |> MapSet.new(&sort_ports/1)
+    fallback_ports = monitor_ports(fallback)
+    held = [fallback_ports | held_ports] |> Enum.reject(&is_nil/1) |> MapSet.new(&sort_ports/1)
 
     free_ports =
       0..replicas
@@ -563,13 +597,46 @@ defmodule Deployer.Engine.Worker do
             ports -> {ports, free_ports}
           end
 
-        deployment = %Engine.Deployment{sname: Enum.at(snames, instance - 1), ports: ports}
+        sname = Enum.at(snames, instance - 1)
+
+        deployment = %Engine.Deployment{
+          sname: sname,
+          ports: ports,
+          state: deployment_state(sname, instance, fallback, stopped)
+        }
+
         {Map.put(deployments, instance, deployment), free_ports}
       end)
 
+    # The fallback takes the spare set, as the previous deployment holds a set during a window
+    {deployment_to_terminate, free_ports} =
+      case {fallback, fallback_ports} do
+        {nil, _ports} ->
+          {nil, free_ports}
+
+        {sname, nil} ->
+          {ports, free_ports} = take_ports(free_ports)
+          {%Engine.Deployment{sname: sname, ports: ports, state: :active}, free_ports}
+
+        {sname, ports} ->
+          {%Engine.Deployment{sname: sname, ports: ports, state: :active}, free_ports}
+      end
+
     {available_ports, _free_ports} = take_ports(free_ports)
-    {deployments, available_ports}
+    {deployments, deployment_to_terminate, available_ports}
   end
+
+  # With a fallback, the other instances are past their start up, as in an uninterrupted window.
+  # Those on an older version with no monitor stay stopped, so no report moves the rollout on
+  defp deployment_state(sname, instance, fallback, stopped) do
+    cond do
+      sname in stopped -> :stopped
+      fallback && instance > 1 -> :active
+      true -> :init
+    end
+  end
+
+  defp monitor_ports(nil), do: nil
 
   defp monitor_ports(sname) do
     case Monitor.state(sname) do
@@ -612,6 +679,12 @@ defmodule Deployer.Engine.Worker do
     current_version = Status.current_version(sname)
 
     if sname != nil and current_version != nil do
+      # The previous version serves while the window that a restart interrupted runs again, and
+      # so do the instances already on the new version. Stopped ones on an older version wait
+      previous = state.deployment_to_terminate
+
+      if previous, do: start_window_deployments(state, previous)
+
       started =
         start_monitor_service!(%Monitor.Service{
           name: name,
@@ -625,6 +698,7 @@ defmodule Deployer.Engine.Worker do
       # window would never close and would stop the app when it expires
       if started == :already_started and app_running?(sname) do
         Logger.info(" # Application sname: #{sname} is already running")
+        state = terminate_previous_deployment(state)
         %{state | current: if(current == state.replicas, do: 1, else: current + 1)}
       else
         set_timeout_to_rollback(state, sname, ports)
@@ -660,6 +734,50 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
+  defp start_window_deployments(%{current: current} = state, previous) do
+    upgraded =
+      for {instance, %{state: :active, sname: sname} = deployment} <- state.deployments,
+          instance != current and sname != nil,
+          do: deployment
+
+    Enum.each([previous | upgraded], &start_deployment(state, &1))
+  end
+
+  defp start_stopped_instances(%{deployments: deployments} = state) do
+    deployments =
+      Map.new(deployments, fn
+        {instance, %Engine.Deployment{state: :stopped} = deployment} ->
+          start_deployment(state, deployment)
+          {instance, %{deployment | state: :active}}
+
+        instance_deployment ->
+          instance_deployment
+      end)
+
+    %{state | deployments: deployments}
+  end
+
+  defp start_deployment(state, %Engine.Deployment{sname: sname, ports: ports}) do
+    start_monitor_service!(%Monitor.Service{
+      name: state.name,
+      sname: sname,
+      language: state.language,
+      ports: ports,
+      env: state.env
+    })
+  end
+
+  # The new version runs, so the window is over and the deployment kept to return to stops
+  defp terminate_previous_deployment(%{deployment_to_terminate: nil} = state), do: state
+
+  defp terminate_previous_deployment(%{deployment_to_terminate: previous} = state) do
+    Logger.info(" # Terminating previous node: #{previous.sname}")
+    if previous.state != :stopped, do: Monitor.stop_service(state.name, previous.sname)
+    Catalog.cleanup(previous.sname)
+
+    %{state | deployment_to_terminate: nil, available_ports: previous.ports}
+  end
+
   # credo:disable-for-lines:1
   defp check_deployment(
          %{current: current, ghosted_version_list: ghosted_version_list, name: name} = state
@@ -670,6 +788,7 @@ defmodule Deployer.Engine.Worker do
     %{version: release_version} = release = Release.get_current_version_map(name)
 
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release_version))
+    stopped? = state.deployments[current].state == :stopped
 
     deploy_application = fn ->
       new_sname = new_sname(name)
@@ -686,6 +805,10 @@ defmodule Deployer.Engine.Worker do
 
       case Release.download_and_unpack(release_info) do
         {:ok, :full_deployment} ->
+          full_deployment(state, new_sname, release)
+
+        # A sname that a restart kept stopped has no node to upgrade
+        {:ok, :hot_upgrade} when stopped? ->
           full_deployment(state, new_sname, release)
 
         {:ok, :hot_upgrade} ->
@@ -709,6 +832,10 @@ defmodule Deployer.Engine.Worker do
         )
 
         deploy_application.()
+
+      # Up to date, a sname that a restart kept stopped starts as at start up
+      stopped? ->
+        put_in(state.deployments[current].state, :init)
 
       true ->
         state
@@ -948,12 +1075,14 @@ defmodule Deployer.Engine.Worker do
         []
       )
 
+    # The version put into service runs, even over a sname that a restart kept stopped
     deployments =
       Map.put(deployments, state.current, %{
         current_deployment
         | timer_ref: timer_ref,
           sname: sname,
           ports: ports,
+          state: :active,
           deploying?: true
       })
 
