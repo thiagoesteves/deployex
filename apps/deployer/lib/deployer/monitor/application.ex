@@ -256,7 +256,8 @@ defmodule Deployer.Monitor.Application do
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
-    # Crashes since the application was last seen running, it drives the backoff only
+    # Crashes since the application was last seen running. The backoff and the engine worker's
+    # crash-loop check for a hot upgrade read it
     consecutive_crash_count = state.consecutive_crash_count + 1
 
     Foundation.Notifications.notify("crash_restart", %{
