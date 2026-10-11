@@ -15,10 +15,17 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   alias Host.Terminal
 
   @terminal_timeout :timer.minutes(15)
+  @terminal_cols 100
+  @terminal_rows 24
 
   @impl true
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(terminal_cols: @terminal_cols)
+      |> assign(terminal_rows: @terminal_rows)
+
     ~H"""
     <div>
       <.header>
@@ -31,6 +38,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         phx-target={@myself}
         phx-hook="Terminal"
         id={"iex-#{@id}"}
+        data-cols={@terminal_cols}
+        data-rows={@terminal_rows}
       >
         <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>
@@ -216,7 +225,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             """
         end
 
-      options = [:stdin, :stdout, :pty, :pty_echo]
+      # Set the PTY size explicitly, erlexec leaves it undefined without winsz
+      options = [:stdin, :stdout, :pty, :pty_echo, {:winsz, {@terminal_rows, @terminal_cols}}]
 
       {:ok, _pid} =
         Terminal.new(%Terminal{
