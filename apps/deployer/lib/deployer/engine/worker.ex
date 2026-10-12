@@ -640,10 +640,15 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
+  # A hot upgrade's pre-commands show :pre_commands while the app runs. Start up ones have no pid
   defp app_running?(sname) do
     case Monitor.state(sname) do
-      %Monitor{current_pid: pid, status: :running} when is_pid(pid) -> true
-      _state -> false
+      %Monitor{current_pid: pid, status: status}
+      when is_pid(pid) and status in [:running, :pre_commands] ->
+        true
+
+      _state ->
+        false
     end
   end
 
