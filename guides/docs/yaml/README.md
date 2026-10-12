@@ -68,6 +68,7 @@ monitored_app_log_path: "/var/log/monitored-apps"        # Monitored apps log pa
 # Data Retention (optional with defaults)
 metrics_retention_time_ms: 3600000                       # Metrics retention: 1 hour (default: 3600000)
 logs_retention_time_ms: 3600000                          # Logs retention: 1 hour (default: 3600000)
+releases_retention: 2                                    # Releases kept per app after a hot upgrade (default: 2, minimum: 2)
 
 # ============================================================================
 # EXTERNAL NOTIFICATIONS (optional)
@@ -298,6 +299,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 #### DeployEx Level (Runtime Upgradable)
 - `logs_retention_time_ms` - Log data retention period
 - `metrics_retention_time_ms` - Metrics data retention period
+- `releases_retention` - Releases kept per app after a hot upgrade (minimum 2)
 - `monitoring` - DeployEx monitoring settings (host memory, atom, process, port thresholds)
 - `notifications` - External notification channels (workers are stopped and restarted on apply)
 

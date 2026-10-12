@@ -72,6 +72,10 @@ You do not need to write any of these files by hand, but knowing what they are i
 Everything up to step 4 only writes files and computes, so a failure there leaves the node running exactly the code it had.
 That distinction is what the failure messages report, and what decides whether DeployEx has anything to recover from.
 
+After step 5, for a monitored app, DeployEx removes the release directories, `.rel` files and libraries of older versions from the app's release directory, and keeps the newest `releases_retention` releases that the app has installed (default 2, at least the current and previous ones).
+It also unregisters the removed versions from `release_handler`.
+DeployEx does not prune its own releases.
+
 **What happens to your processes**
 
 For each changed module the plan loads the new code, and for a stateful process it suspends the process, calls `code_change/3`, then resumes it.
@@ -491,6 +495,8 @@ If a pre-command fails, or does not finish within `deploy_rollback_timeout_ms` o
 If the pre-commands cannot start within that time, the application does not run again after them, or its monitor exits, nothing says the release is bad, so DeployEx deploys it fully instead. A full deployment runs the pre-commands, which may already have run, so they have to be safe to run twice.
 Replicas that were upgraded before it stay on the new version.
 A migration that can run longer than that needs a larger `deploy_rollback_timeout_ms`.
+A monitored application that has crashed twice in a row since it last ran does not wait for `deploy_rollback_timeout_ms`.
+DeployEx deploys the release fully at once.
 
 **Replicas are upgraded one at a time.**
 Each deployment cycle upgrades a single instance and then moves to the next, so a release is rolled across the replicas rather than applied to all of them at once.
