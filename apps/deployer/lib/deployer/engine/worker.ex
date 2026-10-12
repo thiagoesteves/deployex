@@ -90,14 +90,12 @@ defmodule Deployer.Engine.Worker do
         []
 
       installed_snames ->
-        # A rolled back full deployment stays at the top of the history, ghosted and with its
-        # sname removed, while the previous version keeps running
-        ghosted_versions = Enum.map(ghosted_version_list, & &1.version)
-
+        # A rolled back full deployment stays at the top of the history with its sname removed,
+        # while the previous version keeps running
         current_version =
           name
           |> Status.history_version_list([])
-          |> Enum.find(&(&1.sname in installed_snames or &1.version not in ghosted_versions))
+          |> Enum.find(&(&1.sname in installed_snames))
           |> case do
             %Catalog.Version{version: version} -> version
             _ -> nil
