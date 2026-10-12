@@ -286,6 +286,50 @@ defmodule DeployexWeb.Applications.TerminalTest do
   end
 
   @tag :capture_log
+  test "Terminal PTY size matches the xterm size", %{conn: conn} do
+    ref = make_ref()
+    test_pid_process = self()
+    os_pid = 123_456
+    name = "myelixir"
+    name_id = Helper.normalize_id(name)
+    %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
+
+    Deployer.StatusMock
+    |> expect(:monitoring, fn ->
+      {:ok,
+       [
+         FixtureStatus.config_by_app(%{}, name) |> FixtureStatus.deployex(),
+         FixtureStatus.application(%{sname: sname, name: name})
+       ]}
+    end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
+
+    Host.CommanderMock
+    |> expect(:run, fn _command, options ->
+      send(test_pid_process, {:terminal_options, options})
+      {:ok, test_pid_process, os_pid}
+    end)
+    |> expect(:stop, fn ^os_pid ->
+      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+      :ok
+    end)
+
+    FixtureFiles.create_bin_files(sname)
+    {:ok, index_live, _html} = live(conn, ~p"/applications")
+
+    index_live |> element("#app-terminal-#{name_id}-#{suffix}") |> render_click()
+
+    assert has_element?(index_live, ~s(#iex-#{sname}[data-cols="100"][data-rows="24"]))
+    assert_receive {:terminal_options, options}, 1_000
+    assert {:winsz, {24, 100}} in options
+
+    FixtureTerminal.terminate_all()
+
+    assert_receive {:handle_ref_event, ^ref}, 1_000
+  end
+
+  @tag :capture_log
   test "Try to execute without binary file", %{conn: conn} do
     name = "myelixir"
     name_id = Helper.normalize_id(name)
