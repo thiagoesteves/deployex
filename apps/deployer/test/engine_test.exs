@@ -259,7 +259,7 @@ defmodule Deployer.EngineTest do
         |> expect(:list_installed_apps, fn _name -> [sname] end)
         |> stub(:current_version, fn _sname -> version end)
         |> expect(:history_version_list, fn _name, _options ->
-          [%Catalog.Version{version: version}]
+          [%Catalog.Version{version: version, sname: sname}]
         end)
         |> stub(:add_ghosted_version, fn version_map ->
           send(test_pid, {:ghosted, version_map})
@@ -322,7 +322,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname_1, sname_2] end)
       |> stub(:current_version, fn _sname -> version end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version}]
+        [%Catalog.Version{version: version, sname: sname_1}]
       end)
 
       Deployer.MonitorMock
@@ -381,7 +381,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> stub(:current_version, fn _sname -> "1.0.0" end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: "1.0.0"}]
+        [%Catalog.Version{version: "1.0.0", sname: sname}]
       end)
       |> stub(:update, fn _sname -> :ok end)
       |> stub(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
@@ -447,7 +447,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> stub(:current_version, fn _sname -> "1.0.0" end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: "1.0.0"}]
+        [%Catalog.Version{version: "1.0.0", sname: sname}]
       end)
 
       Deployer.MonitorMock
@@ -488,7 +488,7 @@ defmodule Deployer.EngineTest do
         |> expect(:list_installed_apps, fn _name -> [sname] end)
         |> stub(:current_version, fn _sname -> version end)
         |> expect(:history_version_list, fn _name, _options ->
-          [%Catalog.Version{version: version}]
+          [%Catalog.Version{version: version, sname: sname}]
         end)
 
         Deployer.MonitorMock
