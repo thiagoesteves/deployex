@@ -118,7 +118,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> expect(:current_version, 2, fn _sname -> version end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version}]
+        [%Catalog.Version{version: version, sname: sname}]
       end)
 
       Deployer.MonitorMock
@@ -143,6 +143,110 @@ defmodule Deployer.EngineTest do
         assert_receive {:handle_ref_event, ^ref}, 1_000
       end
     end
+
+    # An operator can remove the ghost from the dashboard before the version deploys again
+    for {label, ghosted} <- [{"ghosted", ["2.0.0"]}, {"no longer ghosted", []}] do
+      @tag :capture_log
+      test "Initialization keeps the app when a rolled back version tops the history - #{label}" do
+        name = "myelixir"
+        language = "elixir"
+
+        ref = make_ref()
+        pid = self()
+        sname = Catalog.create_sname("myelixir")
+        FixtureFiles.create_bin_files(sname)
+
+        Deployer.StatusMock
+        |> expect(:ghosted_version_list, fn _name ->
+          Enum.map(unquote(ghosted), &%Catalog.Version{version: &1, name: name})
+        end)
+        |> expect(:list_installed_apps, fn _name -> [sname] end)
+        |> expect(:current_version, 2, fn _sname -> "1.0.0" end)
+        |> expect(:history_version_list, fn _name, _options ->
+          [
+            %Catalog.Version{version: "2.0.0", sname: "myelixir-rolledback"},
+            %Catalog.Version{version: "1.0.0", sname: sname}
+          ]
+        end)
+
+        Deployer.MonitorMock
+        |> expect(:start_service, 1, fn %{sname: ^sname} ->
+          send(pid, {:handle_ref_event, ref})
+          {:ok, self()}
+        end)
+
+        Deployer.ReleaseMock
+        |> expect(:download_version_map, 0, fn _app_name -> nil end)
+
+        with_mock System, [:passthrough],
+          cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+          assert {:ok, _pid} =
+                   Engine.Worker.start_link(%Engine.Worker{
+                     deploy_rollback_timeout_ms: 1_000,
+                     deploy_schedule_interval_ms: 100,
+                     name: name,
+                     language: language
+                   })
+
+          assert_receive {:handle_ref_event, ^ref}, 1_000
+        end
+
+        assert File.exists?(Catalog.bin_path(sname, :current))
+      end
+    end
+
+    @tag :capture_log
+    test "Initialization keeps the app that runs a version ghosted on another replica" do
+      name = "myelixir"
+      language = "elixir"
+
+      ref = make_ref()
+      pid = self()
+      upgraded_sname = Catalog.create_sname("myelixir")
+      other_sname = Catalog.create_sname("myelixir")
+      FixtureFiles.create_bin_files(upgraded_sname)
+      FixtureFiles.create_bin_files(other_sname)
+
+      Deployer.StatusMock
+      |> expect(:ghosted_version_list, fn _name ->
+        [%Catalog.Version{version: "2.0.0", name: name}]
+      end)
+      |> expect(:list_installed_apps, fn _name -> [upgraded_sname, other_sname] end)
+      |> stub(:current_version, fn
+        ^upgraded_sname -> "2.0.0"
+        _sname -> "1.0.0"
+      end)
+      |> expect(:history_version_list, fn _name, _options ->
+        [
+          %Catalog.Version{version: "2.0.0", sname: upgraded_sname},
+          %Catalog.Version{version: "1.0.0", sname: other_sname}
+        ]
+      end)
+
+      Deployer.MonitorMock
+      |> expect(:start_service, 1, fn %{sname: ^upgraded_sname} ->
+        send(pid, {:handle_ref_event, ref})
+        {:ok, self()}
+      end)
+
+      Deployer.ReleaseMock
+      |> expect(:download_version_map, 0, fn _app_name -> nil end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 100,
+                   name: name,
+                   language: language
+                 })
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+      end
+
+      refute File.exists?(Catalog.bin_path(other_sname, :current))
+    end
   end
 
   describe "Engine worker restart resilience" do
@@ -164,7 +268,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> stub(:current_version, fn _sname -> version end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version}]
+        [%Catalog.Version{version: version, sname: sname}]
       end)
 
       Deployer.MonitorMock
@@ -215,7 +319,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> stub(:current_version, fn _sname -> version end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version}]
+        [%Catalog.Version{version: version, sname: sname}]
       end)
 
       with_mock System, [:passthrough],
@@ -2463,7 +2567,7 @@ defmodule Deployer.EngineTest do
       Deployer.StatusMock
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: from_version}]
+        [%Catalog.Version{version: from_version, sname: sname}]
       end)
       |> stub(:current_version, fn _sname ->
         # 0 -> initialize_version, 1 -> check_deployment, 2 -> hot upgrade,
@@ -2830,7 +2934,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> stub(:current_version, fn _sname -> version_to_ghost end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version_to_ghost}]
+        [%Catalog.Version{version: version_to_ghost, sname: sname}]
       end)
       |> expect(:current_version_map, 1, fn _sname ->
         %{version: version_to_ghost, hash: "local", pre_commands: []}
@@ -3159,7 +3263,7 @@ defmodule Deployer.EngineTest do
       |> expect(:list_installed_apps, fn _name -> [sname] end)
       |> expect(:current_version, 2, fn _sname -> version end)
       |> expect(:history_version_list, fn _name, _options ->
-        [%Catalog.Version{version: version}]
+        [%Catalog.Version{version: version, sname: sname}]
       end)
 
       Deployer.MonitorMock
