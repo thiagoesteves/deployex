@@ -50,10 +50,13 @@ const hooks = {
         // From: https://stackoverflow.com/questions/2903991/how-to-detect-ctrlv-ctrlc-using-javascript
         // Ctrl+V or Cmd+V pressed?
         if ((event.ctrlKey || event.metaKey) && event.keyCode == 86) {
-          navigator.clipboard.readText()
-            .then(text => {
-              this.pushEventTo(this.el, "key", { key: text });
-            })
+          // xterm calls this handler for keyup too, so paste only once, on keydown
+          if (event.type === "keydown") {
+            navigator.clipboard.readText()
+              .then(text => {
+                this.pushEventTo(this.el, "key", { key: text });
+              })
+          }
           return false;
         }
         return true;

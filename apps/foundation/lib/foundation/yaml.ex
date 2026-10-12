@@ -11,6 +11,8 @@ defmodule Foundation.Yaml do
 
   @default_metrics_retention_time_ms :timer.hours(1)
   @default_logs_retention_time_ms :timer.hours(1)
+  @default_releases_retention 2
+  @min_releases_retention 2
   @default_replicas 3
   @default_language "elixir"
   @default_deploy_rollback_timeout_ms :timer.minutes(10)
@@ -273,6 +275,7 @@ defmodule Foundation.Yaml do
             var_path: nil,
             metrics_retention_time_ms: nil,
             logs_retention_time_ms: nil,
+            releases_retention: nil,
             monitoring: [],
             applications: [],
             notifications: [],
@@ -301,6 +304,7 @@ defmodule Foundation.Yaml do
           monitored_app_log_path: String.t() | nil,
           metrics_retention_time_ms: non_neg_integer() | nil,
           logs_retention_time_ms: non_neg_integer() | nil,
+          releases_retention: non_neg_integer() | nil,
           monitoring: [{atom(), Foundation.Yaml.Monitoring.t()}] | [],
           applications: [Foundation.Yaml.Application.t()] | [],
           notifications: [Foundation.Yaml.Notification.t()] | [],
@@ -429,6 +433,7 @@ defmodule Foundation.Yaml do
       metrics_retention_time_ms:
         data["metrics_retention_time_ms"] || @default_metrics_retention_time_ms,
       logs_retention_time_ms: data["logs_retention_time_ms"] || @default_logs_retention_time_ms,
+      releases_retention: parse_releases_retention(data["releases_retention"]),
       monitoring: parse_monitoring_list(data["monitoring"], &parse_deployex_monitoring_type/1),
       applications: parse_applications(data["applications"]),
       notifications: parse_notifications(data["notifications"]),
@@ -512,6 +517,14 @@ defmodule Foundation.Yaml do
   # NOTE: enable_restart is a boolean, || would promote an explicit false to the default
   defp parse_enable_restart(nil), do: @default_monitoring_enable_restart
   defp parse_enable_restart(enable_restart), do: enable_restart
+
+  # The floor keeps the current and previous release, which a hot upgrade needs on disk
+  defp parse_releases_retention(nil), do: @default_releases_retention
+
+  defp parse_releases_retention(value) when is_integer(value),
+    do: max(value, @min_releases_retention)
+
+  defp parse_releases_retention(_value), do: @default_releases_retention
 
   defp parse_applications(nil), do: []
 

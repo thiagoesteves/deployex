@@ -55,6 +55,9 @@ defmodule Deployer.Engine.Worker do
 
   @dialyzer {:nowarn_function, initialize_version: 1}
 
+  # Crashes in a row, with no run in between, after which a hot upgrade stops waiting for the app
+  @crash_loop_count 2
+
   ### ==========================================================================
   ### Callback functions
   ### ==========================================================================
@@ -90,8 +93,13 @@ defmodule Deployer.Engine.Worker do
         []
 
       installed_snames ->
+        # A rolled back full deployment stays at the top of the history with its sname removed,
+        # while the previous version keeps running
         current_version =
-          case Enum.at(Status.history_version_list(name, []), 0) do
+          name
+          |> Status.history_version_list([])
+          |> Enum.find(&(&1.sname in installed_snames))
+          |> case do
             %Catalog.Version{version: version} -> version
             _ -> nil
           end
@@ -751,10 +759,18 @@ defmodule Deployer.Engine.Worker do
     end
   end
 
-  # A busy reply keeps the request, and the same request is sent again after a schedule tick
+  # A busy reply keeps the request, and the same request is sent again after a schedule tick.
+  # An app that keeps crashing would hold the fix back until the timeout, so it ends the wait
   defp pre_commands_outcome(state, pending, {:error, :busy}) do
-    Logger.warning("The monitor for sname: #{pending.sname} is busy or restarting, asking again")
-    schedule_pre_commands_retry(state, pending)
+    if crash_looping?(pending.sname) do
+      pre_commands_outcome(state, pending, :crash_loop)
+    else
+      Logger.warning(
+        "The monitor for sname: #{pending.sname} is busy or restarting, asking again"
+      )
+
+      schedule_pre_commands_retry(state, pending)
+    end
   end
 
   # The pre_commands ran, then the app went down or restarts. The retry waits for the app
@@ -838,6 +854,12 @@ defmodule Deployer.Engine.Worker do
     pre_commands_failed(state, pending)
   end
 
+  # The monitor did not take the request, so nothing needs a cancel
+  defp apply_pre_commands_outcome(state, pending, :crash_loop) do
+    Logger.error("The app at sname: #{pending.sname} keeps crashing, deploying fully")
+    full_deployment(state, pending.new_sname, pending.release)
+  end
+
   # The monitor never started the run, so no pre_command ran and the release is deployed fully.
   # The cancel stops a request that the monitor takes later
   defp apply_pre_commands_outcome(state, pending, :timeout) do
@@ -869,6 +891,14 @@ defmodule Deployer.Engine.Worker do
   defp monitor_gone(state, %{sname: sname, new_sname: new_sname, release: release}) do
     Logger.warning("The monitor for sname: #{sname} is not running, deploying fully")
     full_deployment(state, new_sname, release)
+  end
+
+  # The monitor mirrors its state in ETS, so the read does not wait on the monitor
+  defp crash_looping?(sname) do
+    %Monitor{current_pid: pid, status: status, consecutive_crash_count: count} =
+      Monitor.state(sname)
+
+    (pid == nil or status != :running) and count >= @crash_loop_count
   end
 
   # A restart, an added replica, or a replica change that removes the instance, ends the request
