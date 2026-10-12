@@ -495,6 +495,8 @@ If a pre-command fails, or does not finish within `deploy_rollback_timeout_ms` o
 If the pre-commands cannot start within that time, the application does not run again after them, or its monitor exits, nothing says the release is bad, so DeployEx deploys it fully instead. A full deployment runs the pre-commands, which may already have run, so they have to be safe to run twice.
 Replicas that were upgraded before it stay on the new version.
 A migration that can run longer than that needs a larger `deploy_rollback_timeout_ms`.
+A monitored application that has crashed twice in a row since it last ran does not wait for `deploy_rollback_timeout_ms`.
+DeployEx deploys the release fully at once.
 
 **Replicas are upgraded one at a time.**
 Each deployment cycle upgrades a single instance and then moves to the next, so a release is rolled across the replicas rather than applied to all of them at once.

@@ -15,10 +15,17 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
   alias Host.Terminal
 
   @terminal_timeout :timer.minutes(15)
+  @terminal_cols 100
+  @terminal_rows 24
 
   @impl true
   @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(terminal_cols: @terminal_cols)
+      |> assign(terminal_rows: @terminal_rows)
+
     ~H"""
     <div>
       <.header>
@@ -31,6 +38,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         phx-target={@myself}
         phx-hook="Terminal"
         id={"iex-#{@id}"}
+        data-cols={@terminal_cols}
+        data-rows={@terminal_rows}
       >
         <div class="xtermjs_container" phx-update="ignore" id={"xtermjs-container-#{@id}"}></div>
       </div>
@@ -178,7 +187,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         cond do
           app_lang == "gleam" and sname != "deployex" ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             erl -remsh #{sname}@#{hostname} -setcookie #{cookie} #{ssl_options}
@@ -186,7 +195,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
           app_lang == "erlang" and sname != "deployex" ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELX_REPLACE_OS_VARS=true
@@ -207,7 +216,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
           true ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELEASE_NODE=#{sname}
@@ -216,7 +225,8 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
             """
         end
 
-      options = [:stdin, :stdout, :pty, :pty_echo]
+      # Set the PTY size explicitly, erlexec leaves it undefined without winsz
+      options = [:stdin, :stdout, :pty, :pty_echo, {:winsz, {@terminal_rows, @terminal_cols}}]
 
       {:ok, _pid} =
         Terminal.new(%Terminal{
