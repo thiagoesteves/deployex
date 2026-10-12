@@ -16,7 +16,7 @@ defmodule Deployer.Monitor do
           ports: list(),
           env: list(),
           language: String.t() | nil,
-          status: :idle | :running | :starting,
+          status: :idle | :running | :starting | :pre_commands,
           crash_restart_count: integer(),
           consecutive_crash_count: integer(),
           force_restart_count: integer(),
