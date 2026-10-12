@@ -187,7 +187,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
         cond do
           app_lang == "gleam" and sname != "deployex" ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             erl -remsh #{sname}@#{hostname} -setcookie #{cookie} #{ssl_options}
@@ -195,7 +195,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
           app_lang == "erlang" and sname != "deployex" ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELX_REPLACE_OS_VARS=true
@@ -216,7 +216,7 @@ defmodule DeployexWeb.ApplicationsLive.Terminal do
 
           true ->
             """
-            unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+            unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
             unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
             export PATH=#{path}
             export RELEASE_NODE=#{sname}
