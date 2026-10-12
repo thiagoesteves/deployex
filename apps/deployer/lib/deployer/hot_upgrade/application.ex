@@ -702,7 +702,8 @@ defmodule Deployer.HotUpgrade.Application do
 
   @doc """
   Remove the release directories, `.rel` files and libraries of versions outside the newest
-  `releases_retention` releases (never fewer than the current and previous ones).
+  `releases_retention` releases (never fewer than the current and previous ones), and
+  unregister those versions from `release_handler`.
 
   Files are removed directly: `release_handler:remove_release/1` empties `lib/` for an Elixir
   release, see `remove_unpacked_release/1`.
@@ -712,27 +713,44 @@ defmodule Deployer.HotUpgrade.Application do
   def prune_old_releases(%Execute{make_permanent_async: true}), do: :ok
 
   def prune_old_releases(%Execute{
+        node: node,
         name: name,
         current_path: current_path,
         from_version: from_version,
         to_version: to_version
       }) do
-    keep_versions = versions_to_keep(current_path, from_version, to_version)
+    case which_releases(node) do
+      [] ->
+        Logger.warning("Skipping the release prune, the releases of node: #{node} are unknown")
 
-    case kept_libs(current_path, name, keep_versions) do
-      {:ok, keep_libs} -> prune_lib_dirs(current_path, keep_libs)
-      :error -> :ok
+      releases ->
+        registered = MapSet.new(releases, fn {_status, version} -> to_string(version) end)
+
+        installed =
+          for {status, vsn} <- releases,
+              status != :unpacked,
+              into: MapSet.new(),
+              do: to_string(vsn)
+
+        keep_versions = versions_to_keep(current_path, installed, from_version, to_version)
+
+        case kept_libs(current_path, name, keep_versions) do
+          {:ok, keep_libs} -> prune_lib_dirs(current_path, keep_libs)
+          :error -> :ok
+        end
+
+        prune_release_dirs(current_path, name, keep_versions)
+        unregister_releases(node, registered, keep_versions)
     end
-
-    prune_release_dirs(current_path, name, keep_versions)
 
     :ok
   end
 
   # The current and previous versions are always kept. If releases_retention asks for more,
-  # the next newest release directories by mtime are added up to that count.
-  @spec versions_to_keep(String.t(), any(), any()) :: MapSet.t()
-  defp versions_to_keep(current_path, from_version, to_version) do
+  # the newest other release directories by mtime are added up to that count. Only versions
+  # the node has installed count: a failed upgrade leaves a directory, and can leave a .rel.
+  @spec versions_to_keep(String.t(), MapSet.t(), any(), any()) :: MapSet.t()
+  defp versions_to_keep(current_path, installed, from_version, to_version) do
     retention =
       case Application.get_env(:foundation, :releases_retention) do
         value when is_integer(value) -> max(value, 2)
@@ -744,7 +762,7 @@ defmodule Deployer.HotUpgrade.Application do
     extra =
       "#{current_path}/releases"
       |> release_version_dirs()
-      |> Enum.reject(&(&1.version in base))
+      |> Enum.filter(&(&1.version in installed and &1.version not in base))
       |> Enum.sort_by(& &1.mtime, :desc)
       |> Enum.take(retention - length(base))
       |> Enum.map(& &1.version)
@@ -836,6 +854,24 @@ defmodule Deployer.HotUpgrade.Application do
     end
 
     :ok
+  end
+
+  # RELEASES then lists only the kept versions. set_removed/1 rewrites RELEASES and deletes no files
+  @spec unregister_releases(node(), MapSet.t(), MapSet.t()) :: :ok
+  defp unregister_releases(node, registered, keep_versions) do
+    registered
+    |> Enum.reject(&MapSet.member?(keep_versions, &1))
+    |> Enum.each(fn version ->
+      case Rpc.call(node, :release_handler, :set_removed, [to_charlist(version)], @rpc_timeout) do
+        :ok ->
+          Logger.info("Unregistered old release: #{version}")
+
+        reason ->
+          Logger.warning(
+            "Could not unregister old release: #{version}, reason: #{inspect(reason)}"
+          )
+      end
+    end)
   end
 
   # File.rm_rf/1 returns {:ok, removed}, File.rm/1 returns :ok

@@ -2270,6 +2270,21 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     """
   end
 
+  # The node registers these versions, and reports each set_removed/1 call to the test
+  defp stub_registered_releases(node, versions) do
+    test_pid = self()
+
+    Foundation.RpcMock
+    |> stub(:call, fn
+      ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        Enum.map(versions, &{~c"testapp", to_charlist(&1), [], :old})
+
+      ^node, :release_handler, :set_removed, [version], @expected_timeout ->
+        send(test_pid, {:set_removed, to_string(version)})
+        :ok
+    end)
+  end
+
   # Seed one release directory with a controlled mtime, its .rel, and its library dirs.
   defp seed_version!(current_path, name, version, mtime_posix, libs) do
     File.mkdir_p!("#{current_path}/releases/#{version}")
@@ -2350,7 +2365,14 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
           {:ok, "0.2.0"}
 
         ^node, :release_handler, :which_releases, [], @expected_timeout ->
-          []
+          [
+            {~c"testapp", ~c"0.2.0", [], :permanent},
+            {~c"testapp", ~c"0.1.0", [], :old},
+            {~c"testapp", ~c"0.0.9", [], :old}
+          ]
+
+        ^node, :release_handler, :set_removed, [~c"0.0.9"], @expected_timeout ->
+          :ok
 
         ^node, :code, :root_dir, [], @expected_timeout ->
           to_charlist(current_path)
@@ -2412,7 +2434,15 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
           {:ok, "0.2.0"}
 
         ^node, :release_handler, :which_releases, [], @expected_timeout ->
-          []
+          # what a prune would see, so one that ran before make_permanent would remove 0.0.9
+          [
+            {~c"testapp", ~c"0.2.0", [], :current},
+            {~c"testapp", ~c"0.1.0", [], :permanent},
+            {~c"testapp", ~c"0.0.9", [], :old}
+          ]
+
+        ^node, :release_handler, :set_removed, _args, @expected_timeout ->
+          :ok
 
         ^node, :code, :root_dir, [], @expected_timeout ->
           to_charlist(current_path)
@@ -2455,10 +2485,12 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
     end
 
     test "logs a warning, not a prune, when an entry cannot be removed", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.9", "0.1.0", "0.2.0"])
 
       # A read-only releases/ refuses to unlink its entries, lib/ stays writable
       releases_dir = "#{current_path}/releases"
@@ -2469,6 +2501,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
         capture_log(fn ->
           assert :ok =
                    UpgradeApp.prune_old_releases(%Execute{
+                     node: node,
                      name: app_name,
                      current_path: current_path,
                      from_version: "0.1.0",
@@ -2489,13 +2522,16 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
     @tag :capture_log
     test "keeps the current and previous versions and removes everything older", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.9", "0.1.0", "0.2.0"])
 
       assert :ok =
                UpgradeApp.prune_old_releases(%Execute{
+                 node: node,
                  name: app_name,
                  current_path: current_path,
                  from_version: "0.1.0",
@@ -2526,16 +2562,19 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
     @tag :capture_log
     test "leaves libraries alone when a kept .rel cannot be read, still prunes release dirs", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.9", "0.1.0", "0.2.0"])
       File.rm!("#{current_path}/releases/#{app_name}-0.2.0.rel")
 
       log =
         capture_log(fn ->
           assert :ok =
                    UpgradeApp.prune_old_releases(%Execute{
+                     node: node,
                      name: app_name,
                      current_path: current_path,
                      from_version: "0.1.0",
@@ -2575,6 +2614,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
     @tag :capture_log
     test "releases_retention keeps more than two, the newest by mtime", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
@@ -2582,6 +2622,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       Application.put_env(:foundation, :releases_retention, 3)
 
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.7", "0.0.8", "0.0.9", "0.1.0", "0.2.0"])
       # 0.0.9 (from the base layout) is the newest of the older versions
       File.touch!("#{current_path}/releases/0.0.9", 3000)
 
@@ -2597,6 +2638,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
       assert :ok =
                UpgradeApp.prune_old_releases(%Execute{
+                 node: node,
                  name: app_name,
                  current_path: current_path,
                  from_version: "0.1.0",
@@ -2621,6 +2663,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
     @tag :capture_log
     test "releases_retention below the floor is clamped to two", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
@@ -2628,9 +2671,11 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       Application.put_env(:foundation, :releases_retention, 1)
 
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.9", "0.1.0", "0.2.0"])
 
       assert :ok =
                UpgradeApp.prune_old_releases(%Execute{
+                 node: node,
                  name: app_name,
                  current_path: current_path,
                  from_version: "0.1.0",
@@ -2645,6 +2690,7 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
 
     @tag :capture_log
     test "releases_retention set to nil falls back to two", %{
+      node: node,
       app_name: app_name,
       current_path: current_path
     } do
@@ -2652,9 +2698,11 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       Application.put_env(:foundation, :releases_retention, nil)
 
       seed_release_layout!(current_path, app_name)
+      stub_registered_releases(node, ["0.0.9", "0.1.0", "0.2.0"])
 
       assert :ok =
                UpgradeApp.prune_old_releases(%Execute{
+                 node: node,
                  name: app_name,
                  current_path: current_path,
                  from_version: "0.1.0",
@@ -2664,6 +2712,136 @@ defmodule Deployer.HotUpgrade.ApplicationTest do
       assert File.dir?("#{current_path}/releases/0.1.0")
       assert File.dir?("#{current_path}/releases/0.2.0")
       refute File.dir?("#{current_path}/releases/0.0.9")
+    end
+
+    @tag :capture_log
+    test "releases_retention gives the extra slots only to versions the node installed", %{
+      node: node,
+      app_name: app_name,
+      current_path: current_path
+    } do
+      on_exit(fn -> Application.delete_env(:foundation, :releases_retention) end)
+      Application.put_env(:foundation, :releases_retention, 3)
+      test_pid = self()
+
+      # 0.0.9 failed after unpack, its .rel stays and the node still lists it as unpacked
+      seed_release_layout!(current_path, app_name)
+      File.touch!("#{current_path}/releases/0.0.9", 3000)
+
+      seed_version!(current_path, app_name, "0.0.8", 2000, [
+        {app_name, "0.0.8"},
+        {"dep8", "0.1.0"}
+      ])
+
+      # 0.0.10 failed in pre_commands, only its directory exists
+      File.mkdir_p!("#{current_path}/releases/0.0.10")
+      File.touch!("#{current_path}/releases/0.0.10", 4000)
+
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          [
+            {~c"testapp", ~c"0.2.0", [], :permanent},
+            {~c"testapp", ~c"0.1.0", [], :old},
+            {~c"testapp", ~c"0.0.9", [], :unpacked},
+            {~c"testapp", ~c"0.0.8", [], :old}
+          ]
+
+        ^node, :release_handler, :set_removed, [version], @expected_timeout ->
+          send(test_pid, {:set_removed, to_string(version)})
+          :ok
+      end)
+
+      assert :ok =
+               UpgradeApp.prune_old_releases(%Execute{
+                 node: node,
+                 name: app_name,
+                 current_path: current_path,
+                 from_version: "0.1.0",
+                 to_version: "0.2.0"
+               })
+
+      assert File.dir?("#{current_path}/releases/0.0.8")
+      assert File.dir?("#{current_path}/lib/dep8-0.1.0")
+      refute File.dir?("#{current_path}/releases/0.0.10")
+      refute File.dir?("#{current_path}/releases/0.0.9")
+      refute File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
+
+      assert_received {:set_removed, "0.0.9"}
+      refute_received {:set_removed, _version}
+    end
+
+    test "unregisters the versions it prunes and keeps going when one fails", %{
+      node: node,
+      app_name: app_name,
+      current_path: current_path
+    } do
+      test_pid = self()
+      seed_release_layout!(current_path, app_name)
+
+      Foundation.RpcMock
+      |> stub(:call, fn
+        ^node, :release_handler, :which_releases, [], @expected_timeout ->
+          # 0.0.5 lost its files to a prune that did not unregister it
+          for version <- ["0.0.5", "0.0.9", "0.1.0", "0.2.0"],
+              do: {~c"testapp", to_charlist(version), [], :old}
+
+        ^node, :release_handler, :set_removed, [~c"0.0.5"], @expected_timeout ->
+          send(test_pid, {:set_removed, "0.0.5"})
+          {:error, :boom}
+
+        ^node, :release_handler, :set_removed, [version], @expected_timeout ->
+          send(test_pid, {:set_removed, to_string(version)})
+          :ok
+      end)
+
+      log =
+        capture_log(fn ->
+          assert :ok =
+                   UpgradeApp.prune_old_releases(%Execute{
+                     node: node,
+                     name: app_name,
+                     current_path: current_path,
+                     from_version: "0.1.0",
+                     to_version: "0.2.0"
+                   })
+        end)
+
+      assert_received {:set_removed, "0.0.9"}
+      assert_received {:set_removed, "0.0.5"}
+      refute_received {:set_removed, _version}
+
+      assert log =~ "Unregistered old release: 0.0.9"
+      assert log =~ "Could not unregister old release: 0.0.5, reason: {:error, :boom}"
+    end
+
+    test "skips the prune when the node's releases are unknown", %{
+      node: node,
+      app_name: app_name,
+      current_path: current_path
+    } do
+      seed_release_layout!(current_path, app_name)
+
+      Foundation.RpcMock
+      |> stub(:call, fn ^node, :release_handler, :which_releases, [], @expected_timeout ->
+        {:badrpc, :nodedown}
+      end)
+
+      log =
+        capture_log(fn ->
+          assert :ok =
+                   UpgradeApp.prune_old_releases(%Execute{
+                     node: node,
+                     name: app_name,
+                     current_path: current_path,
+                     from_version: "0.1.0",
+                     to_version: "0.2.0"
+                   })
+        end)
+
+      assert log =~ "Skipping the release prune, the releases of node: #{node} are unknown"
+      assert File.dir?("#{current_path}/releases/0.0.9")
+      assert File.dir?("#{current_path}/lib/#{app_name}-0.0.9")
     end
   end
 end
