@@ -39,6 +39,7 @@ defmodule Sentinel.Config.Changes do
   @type summary :: %{
           optional(:logs_retention_time_ms) => numeric_change(),
           optional(:metrics_retention_time_ms) => numeric_change(),
+          optional(:releases_retention) => numeric_change(),
           optional(:monitoring) => list_change(),
           optional(:notifications) => list_change(),
           optional(:applications) => %{

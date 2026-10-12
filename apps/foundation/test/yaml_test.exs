@@ -55,6 +55,31 @@ defmodule Foundation.YamlTest do
         assert config.os_target == "ubuntu-20.04"
         assert config.metrics_retention_time_ms == 3_600_000
         assert config.logs_retention_time_ms == 3_600_000
+        assert config.releases_retention == 2
+      end
+    end
+
+    test "reads an explicit releases_retention" do
+      path = write_temp_yaml(@yaml_aws_optional, "releases_retention: 5")
+      on_exit(fn -> File.rm(path) end)
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.releases_retention == 5
+      end
+    end
+
+    test "clamps releases_retention below the floor to two" do
+      path = write_temp_yaml(@yaml_aws_optional, "releases_retention: 1")
+      on_exit(fn -> File.rm(path) end)
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.releases_retention == 2
       end
     end
 
@@ -242,6 +267,15 @@ defmodule Foundation.YamlTest do
     end
   end
 
+  # Copy a fixture to a temp file and append an extra top-level line, for a key the fixtures
+  # do not set.
+  defp write_temp_yaml(source, extra_line) do
+    path = Path.join(System.tmp_dir!(), "deployex-#{System.unique_integer([:positive])}.yaml")
+    File.cp!(source, path)
+    File.write!(path, "\n#{extra_line}\n", [:append])
+    path
+  end
+
   describe "load/0 with no application defined" do
     test "successfully loads with no app configured" do
       with_mocks([
@@ -264,6 +298,7 @@ defmodule Foundation.YamlTest do
         assert config.os_target == "ubuntu-20.04"
         assert config.metrics_retention_time_ms == 3_600_000
         assert config.logs_retention_time_ms == 3_600_000
+        assert config.releases_retention == 2
 
         assert config.applications == [
                  %Foundation.Yaml.Application{

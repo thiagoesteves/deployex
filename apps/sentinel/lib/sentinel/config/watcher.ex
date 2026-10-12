@@ -282,6 +282,7 @@ defmodule Sentinel.Config.Watcher do
     %{}
     |> add_number_changes(:logs_retention_time_ms, old, new, :immediate)
     |> add_number_changes(:metrics_retention_time_ms, old, new, :immediate)
+    |> add_number_changes(:releases_retention, old, new, :immediate)
     |> add_monitoring_changes(old, new, :immediate)
     |> add_notification_changes(old, new, :immediate)
     |> add_application_changes(old, new)
@@ -551,6 +552,11 @@ defmodule Sentinel.Config.Watcher do
 
         :logs_retention_time_ms ->
           Sentinel.Logs.update_data_retention_period(change.new)
+          :ok
+
+        # The new value is written to :foundation app env by build_config_updates/1, and
+        # prune_old_releases/1 reads it on the next hot upgrade, so there is nothing to do here
+        :releases_retention ->
           :ok
       end
     end)
