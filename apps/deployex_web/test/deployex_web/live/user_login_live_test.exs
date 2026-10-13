@@ -45,11 +45,50 @@ defmodule DeployexWeb.UserLoginLiveTest do
   end
 
   describe "OAuth button" do
+    setup do
+      original = Application.get_env(:deployex_web, DeployexWeb.OAuth)
+
+      on_exit(fn ->
+        if original do
+          Application.put_env(:deployex_web, DeployexWeb.OAuth, original)
+        else
+          Application.delete_env(:deployex_web, DeployexWeb.OAuth)
+        end
+      end)
+
+      :ok
+    end
+
     @tag :capture_log
     test "is hidden when OAuth is not configured", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/log_in")
 
       refute html =~ "Sign in with GitHub"
+    end
+
+    @tag :capture_log
+    test "is hidden when the client_secret is missing", %{conn: conn} do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        client_id: "Ov23liExample",
+        redirect_uri: "http://localhost:5001/auth/github/callback"
+      )
+
+      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
+
+      refute html =~ "Sign in with GitHub"
+    end
+
+    @tag :capture_log
+    test "is shown when OAuth is configured", %{conn: conn} do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        client_id: "Ov23liExample",
+        client_secret: "secret",
+        redirect_uri: "http://localhost:5001/auth/github/callback"
+      )
+
+      {:ok, _lv, html} = live(conn, ~p"/users/log_in")
+
+      assert html =~ "Sign in with GitHub"
     end
   end
 

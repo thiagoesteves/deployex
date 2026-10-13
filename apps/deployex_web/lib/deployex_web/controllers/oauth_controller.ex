@@ -14,6 +14,8 @@ defmodule DeployexWeb.OAuthController do
   alias DeployexWeb.OAuth.{Allowlist, Config}
   alias DeployexWeb.UserAuth
 
+  plug :require_configured
+
   def request(conn, _params) do
     case Config.provider_module().authorize_url() do
       {:ok, %{url: url, session_params: session_params}} ->
@@ -42,6 +44,17 @@ defmodule DeployexWeb.OAuthController do
         conn
         |> put_flash(:error, "Not authorized for this instance.")
         |> redirect(to: ~p"/users/log_in")
+    end
+  end
+
+  defp require_configured(conn, _opts) do
+    if Config.configured?() do
+      conn
+    else
+      conn
+      |> put_flash(:error, "Single sign-on is not configured.")
+      |> redirect(to: ~p"/users/log_in")
+      |> halt()
     end
   end
 

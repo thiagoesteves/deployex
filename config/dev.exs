@@ -196,15 +196,17 @@ config :deployer, Deployer.Release,
 #   export GITHUB_CLIENT_SECRET=...    # from your GitHub OAuth app
 #   export OAUTH_ALLOWED_EMAILS=you@example.com   # comma-separated
 # GitHub OAuth app callback URL: http://localhost:5001/auth/github/callback
-config :deployex_web, DeployexWeb.OAuth,
-  client_id: System.get_env("GITHUB_CLIENT_ID"),
-  client_secret: System.get_env("GITHUB_CLIENT_SECRET"),
-  redirect_uri: "http://localhost:5001/auth/github/callback",
-  allowlist: %{
-    emails:
-      "OAUTH_ALLOWED_EMAILS"
-      |> System.get_env("")
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.trim/1),
-    domains: []
-  }
+if System.get_env("GITHUB_CLIENT_ID") do
+  config :deployex_web, DeployexWeb.OAuth,
+    client_id: System.get_env("GITHUB_CLIENT_ID"),
+    client_secret: System.get_env("GITHUB_CLIENT_SECRET"),
+    redirect_uri: "http://localhost:5001/auth/github/callback",
+    allowlist: %{
+      emails:
+        "OAUTH_ALLOWED_EMAILS"
+        |> System.get_env("")
+        |> String.split(",", trim: true)
+        |> Enum.map(&String.trim/1),
+      domains: []
+    }
+end

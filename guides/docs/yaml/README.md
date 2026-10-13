@@ -127,7 +127,9 @@ notifications:
 # AUTHENTICATION (optional)
 # ============================================================================
 # Optional single sign-on. When absent, only the built-in password login is
-# available. When present, the login page shows a provider button. Access is
+# available. When client_id, redirect_uri and DEPLOYEX_OAUTH_CLIENT_SECRET are
+# all set, the login page shows a provider button. With only some of them set,
+# DeployEx logs a warning at startup and keeps the button off. Access is
 # deny-by-default: only allow-listed emails or domains may sign in. The GitHub
 # account's primary email must be verified and allowed. The client_secret is a
 # secret, so it is not set here. Provide it through the secrets adapter as

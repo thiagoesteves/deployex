@@ -141,4 +141,41 @@ defmodule DeployexWeb.OAuthControllerTest do
 
     assert log =~ "OAuth sign-in denied: :no_sign_in_in_progress"
   end
+
+  describe "routes" do
+    test "start a sign-in when OAuth is configured" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        provider: ProviderMock,
+        client_id: "Ov23liExample",
+        client_secret: "secret",
+        redirect_uri: "http://localhost:5001/auth/github/callback"
+      )
+
+      expect(ProviderMock, :authorize_url, fn ->
+        {:ok,
+         %{url: "https://github.com/login/oauth/authorize?x=1", session_params: %{state: "s"}}}
+      end)
+
+      conn = get(build_conn(), ~p"/auth/github")
+
+      assert redirected_to(conn) == "https://github.com/login/oauth/authorize?x=1"
+    end
+
+    test "do not start a sign-in when the OAuth config is incomplete" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        provider: ProviderMock,
+        client_id: "Ov23liExample",
+        redirect_uri: "http://localhost:5001/auth/github/callback"
+      )
+
+      for path <- [~p"/auth/github", ~p"/auth/github/callback?code=abc"] do
+        conn = get(build_conn(), path)
+
+        assert redirected_to(conn) == ~p"/users/log_in"
+
+        assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+                 "Single sign-on is not configured."
+      end
+    end
+  end
 end

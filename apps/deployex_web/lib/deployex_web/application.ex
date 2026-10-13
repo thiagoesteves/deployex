@@ -5,11 +5,15 @@ defmodule DeployexWeb.Application do
 
   require Logger
 
+  alias DeployexWeb.OAuth.Config
+
   ### ==========================================================================
   ### Callback Functions
   ### ==========================================================================
   @impl true
   def start(_type, _args) do
+    Config.warn_if_incomplete()
+
     children = [
       DeployexWeb.Cache,
       DeployexWeb.Telemetry,
