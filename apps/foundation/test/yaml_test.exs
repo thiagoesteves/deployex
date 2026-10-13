@@ -33,6 +33,8 @@ defmodule Foundation.YamlTest do
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
   @yaml_auth "#{@file_paths}/deployex-auth.yaml"
+  @yaml_auth_provider_case "#{@file_paths}/deployex-auth-provider-case.yaml"
+  @yaml_auth_emails_error "#{@file_paths}/deployex-auth-emails-error.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -931,6 +933,27 @@ defmodule Foundation.YamlTest do
                  emails: ["alice@example.com", "bob@example.com"],
                  domains: ["example.com"]
                }
+      end
+    end
+
+    test "accepts the provider name in any case" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth_provider_case end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.auth.provider == DeployexWeb.OAuth.Provider.GitHub
+      end
+    end
+
+    test "rejects an allowlist that is not a list" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth_emails_error end]}
+      ]) do
+        assert_raise RuntimeError,
+                     ~s(auth allowed_emails "alice@example.com" not supported, expected a list of strings),
+                     fn -> Yaml.load() end
       end
     end
 

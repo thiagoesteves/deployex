@@ -499,15 +499,28 @@ defmodule Foundation.Yaml do
       client_id: data["client_id"],
       redirect_uri: data["redirect_uri"],
       allowlist: %{
-        emails: data["allowed_emails"] || [],
-        domains: data["allowed_domains"] || []
+        emails: parse_auth_list("allowed_emails", data["allowed_emails"]),
+        domains: parse_auth_list("allowed_domains", data["allowed_domains"])
       }
     }
   end
 
   defp parse_auth_provider(nil), do: DeployexWeb.OAuth.Provider.GitHub
-  defp parse_auth_provider("github"), do: DeployexWeb.OAuth.Provider.GitHub
-  defp parse_auth_provider(provider), do: raise("Auth provider #{provider} not supported")
+
+  defp parse_auth_provider(provider) do
+    if provider |> to_string() |> String.downcase() == "github",
+      do: DeployexWeb.OAuth.Provider.GitHub,
+      else: raise("Auth provider #{provider} not supported")
+  end
+
+  # Validated at load, because a wrong type only fails at the first sign-in
+  defp parse_auth_list(_key, nil), do: []
+
+  defp parse_auth_list(key, value) do
+    if is_list(value) and Enum.all?(value, &is_binary/1),
+      do: value,
+      else: raise("auth #{key} #{inspect(value)} not supported, expected a list of strings")
+  end
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp
