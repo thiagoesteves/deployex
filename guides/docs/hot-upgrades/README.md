@@ -72,6 +72,10 @@ You do not need to write any of these files by hand, but knowing what they are i
 Everything up to step 4 only writes files and computes, so a failure there leaves the node running exactly the code it had.
 That distinction is what the failure messages report, and what decides whether DeployEx has anything to recover from.
 
+After step 5, for a monitored app, DeployEx removes the release directories, `.rel` files and libraries of older versions from the app's release directory, and keeps the newest `releases_retention` releases that the app has installed (default 2, at least the current and previous ones).
+It also unregisters the removed versions from `release_handler`.
+DeployEx does not prune its own releases.
+
 **What happens to your processes**
 
 For each changed module the plan loads the new code, and for a stateful process it suspends the process, calls `code_change/3`, then resumes it.
@@ -487,6 +491,12 @@ Two things about the rollout are worth knowing before you rely on it.
 **Migrations run before the upgrade, from the new version.**
 The pre-commands declared in `current.json` are executed against the release that was just unpacked, before any code is installed, which is what lets a schema change and the code that needs it ship together without downtime.
 The consequence is the ordinary one for online migrations: while they run, the code serving traffic is still the old version, so the migration has to be one the old code survives.
+If a pre-command fails, or does not finish within `deploy_rollback_timeout_ms` of the moment the pre-commands start (DeployEx then stops it), the release is not installed on that instance: the version is ghosted and the instance keeps running the version it has.
+If the pre-commands cannot start within that time, the application does not run again after them, or its monitor exits, nothing says the release is bad, so DeployEx deploys it fully instead. A full deployment runs the pre-commands, which may already have run, so they have to be safe to run twice.
+Replicas that were upgraded before it stay on the new version.
+A migration that can run longer than that needs a larger `deploy_rollback_timeout_ms`.
+A monitored application that has crashed twice in a row since it last ran does not wait for `deploy_rollback_timeout_ms`.
+DeployEx deploys the release fully at once.
 
 **Replicas are upgraded one at a time.**
 Each deployment cycle upgrades a single instance and then moves to the next, so a release is rolled across the replicas rather than applied to all of them at once.
@@ -507,6 +517,9 @@ reason: :make_relup. myphoenixapp is still running 1.0.0, ghosting version 1.1.0
 
 A ghosted version is skipped by every following deployment, so the same broken release is not attempted again.
 Publish a new version once the cause is fixed, the application is not stuck waiting for it.
+
+If the node could not be reached, was stopping, or did not answer in time, nothing says the release is bad, so DeployEx deploys it fully instead of ghosting it.
+A monitored application in a crash loop then still gets the release that fixes it.
 
 The application card on the Applications page shows the last ghosted version, and `View all` opens the full list.
 From there a single version or all of them can be removed, which makes the engine offer them again on its next check.

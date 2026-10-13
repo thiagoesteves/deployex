@@ -15,5 +15,9 @@ defmodule Deployer.Monitor.Adapter do
   @callback subscribe_new_deploy() :: :ok
   @callback list() :: list()
   @callback list(Keyword.t()) :: list()
-  @callback run_pre_commands(String.t(), list(), bin_path()) :: {:ok, list()} | {:error, :rescued}
+  @callback run_pre_commands(String.t(), list(), bin_path()) ::
+              {:ok, list()} | {:error, :pre_commands | :rescued}
+  @callback start_pre_commands(String.t(), list(), bin_path()) ::
+              {:ok, reference()} | {:error, :not_running}
+  @callback cancel_pre_commands(String.t(), reference()) :: :ok
 end

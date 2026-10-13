@@ -79,41 +79,93 @@ defmodule Deployer.Monitor.Application do
     {:reply, :ok, state}
   end
 
-  # This command is available during the hot upgrade. If it fails, the process will
-  # restart and attempt a full deployment.
-  def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
-    :ok = execute_pre_commands(state, pre_commands, app_bin_service)
-
-    {:reply, {:ok, pre_commands}, state}
-  end
-
   def handle_call(:restart, _from, state) when is_nil(state.current_pid) do
     {:reply, {:error, :application_is_not_running}, state}
   end
 
-  def handle_call(:restart, _from, state) do
-    Logger.warning("Restart requested for sname: #{state.sname}")
-
-    Foundation.Notifications.notify("deployment_shutdown", %{
-      node: node(),
-      sname: "#{state.sname}"
-    })
-
-    # Stop current application
-    Commander.stop(state.current_pid)
-
-    cleanup_beam_process(state.sname)
-
-    # Update the number of force restarts
-    force_restart_count = state.force_restart_count + 1
-
-    # Trigger restart with backoff time of 1 second
-    trigger_run_service(state.sname, 1_000)
-
-    {:reply, :ok, update_non_blocking_state(%{state | force_restart_count: force_restart_count})}
+  # A worker of the previous version, during a relup, still calls and installs whatever the reply
+  # says. The commands run here the old blocking way, and a failure stops the monitor and its app,
+  # as the old MatchError did, so that hot upgrade fails instead of installing
+  def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
+    case execute_pre_commands(state, pre_commands, app_bin_service) do
+      :ok -> {:reply, {:ok, pre_commands}, state}
+      {:error, _reason} = error -> {:stop, :pre_commands_failed, error, state}
+    end
   end
 
+  # A restart waits for a running pre-commands run, as it did behind the old blocking call, so
+  # the current version's pre_commands never run next to the new version's
+  def handle_call(:restart, _from, %Monitor{pre_commands_run: %{} = run} = state) do
+    Logger.warning("Restart requested for sname: #{state.sname}, after the running pre-commands")
+
+    {:reply, :ok, %{state | pre_commands_run: Map.put(run, :restart, true)}}
+  end
+
+  def handle_call(:restart, _from, state), do: {:reply, :ok, do_restart(state)}
+
+  # Hot upgrade pre_commands run as erlexec processes that report their exit with a DOWN message.
+  # A hot upgrade needs a running app, so the worker asks again while it is down or starting
   @impl true
+  def handle_cast(
+        {:start_pre_commands, _pre_commands, _app_bin_service, from, ref},
+        %Monitor{} = state
+      )
+      when state.current_pid == nil or state.status != :running do
+    send(from, {:pre_commands_result, ref, {:error, :busy}})
+    {:noreply, state}
+  end
+
+  # The is_map_key check covers a state that a relup could not update
+  def handle_cast(
+        {:start_pre_commands, pre_commands, app_bin_service, from, ref},
+        %Monitor{} = state
+      )
+      when not is_map_key(state, :pre_commands_run) or state.pre_commands_run == nil do
+    Logger.info(" # Migration executable: #{Catalog.bin_path(state.sname, app_bin_service)}")
+
+    run = %{
+      from: from,
+      # A run nobody waits for is stopped, so it cannot hold the monitor busy
+      from_ref: Process.monitor(from),
+      ref: ref,
+      pre_commands: pre_commands,
+      remaining: pre_commands,
+      bin_service: app_bin_service,
+      command: nil,
+      exec_pid: nil,
+      os_pid: nil
+    }
+
+    # The worker learns the run started, so a timeout can tell it from a request never taken
+    send(from, {:pre_commands_started, ref})
+
+    {:noreply, run_next_pre_command(state, run)}
+  end
+
+  def handle_cast({:start_pre_commands, _pre_commands, _app_bin_service, from, ref}, state) do
+    send(from, {:pre_commands_result, ref, {:error, :busy}})
+    {:noreply, state}
+  end
+
+  def handle_cast(
+        {:cancel_pre_commands, ref},
+        %Monitor{pre_commands_run: %{ref: ref} = run} = state
+      ) do
+    Logger.warning("Stopping pre-command: #{run.command} for sname: #{state.sname}")
+    Commander.stop(run.os_pid)
+
+    {:noreply, end_pre_commands_run(state, run)}
+  end
+
+  def handle_cast({:cancel_pre_commands, _ref}, state), do: {:noreply, state}
+
+  @impl true
+  # A crash restart waits for a running pre-commands run too, see the restart clause
+  def handle_info({:run_service, sname}, %Monitor{pre_commands_run: %{} = run} = state)
+      when sname == state.sname do
+    {:noreply, %{state | pre_commands_run: Map.put(run, :run_service, true)}}
+  end
+
   def handle_info({:run_service, sname}, %Monitor{} = state)
       when sname == state.sname do
     version_map = Status.current_version_map(state.sname)
@@ -150,6 +202,42 @@ defmodule Deployer.Monitor.Application do
     {:noreply, state}
   end
 
+  def handle_info(
+        {:DOWN, os_pid, :process, _pid, :normal},
+        %Monitor{pre_commands_run: %{os_pid: os_pid} = run} = state
+      ) do
+    {:noreply, run_next_pre_command(state, run)}
+  end
+
+  def handle_info(
+        {:DOWN, os_pid, :process, _pid, reason},
+        %Monitor{pre_commands_run: %{os_pid: os_pid} = run} = state
+      ) do
+    Logger.error(
+      "Error running pre-command: #{run.command} for sname: #{state.sname} reason: #{inspect(reason)}"
+    )
+
+    send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
+
+    {:noreply, end_pre_commands_run(state, run)}
+  end
+
+  def handle_info(
+        {:DOWN, from_ref, :process, _pid, _reason},
+        %Monitor{pre_commands_run: %{from_ref: from_ref} = run} = state
+      ) do
+    Logger.warning(
+      "Stopping pre-command: #{run.command} for sname: #{state.sname}, nobody waits for it"
+    )
+
+    Commander.stop(run.os_pid)
+
+    {:noreply, end_pre_commands_run(state, run)}
+  end
+
+  # A pre-command that was cancelled, or another erlexec process that ended
+  def handle_info({:DOWN, _os_pid, :process, _pid, _reason}, state), do: {:noreply, state}
+
   def handle_info({:EXIT, _pid, :normal}, state) do
     # Ignore any erl_exec application that terminates normally, as this
     # occurs because the process is trapping all exits, including those
@@ -168,7 +256,8 @@ defmodule Deployer.Monitor.Application do
     # Update the number of crash restarts
     crash_restart_count = state.crash_restart_count + 1
 
-    # Crashes since the application was last seen running, it drives the backoff only
+    # Crashes since the application was last seen running. The backoff and the engine worker's
+    # crash-loop check for a hot upgrade read it
     consecutive_crash_count = state.consecutive_crash_count + 1
 
     Foundation.Notifications.notify("crash_restart", %{
@@ -200,6 +289,17 @@ defmodule Deployer.Monitor.Application do
     {:noreply, state}
   end
 
+  # erlexec does not stop a command it only monitors when its owner exits
+  @impl true
+  def terminate(_reason, %Monitor{pre_commands_run: %{os_pid: os_pid}}) when is_integer(os_pid),
+    do: Commander.stop(os_pid)
+
+  def terminate(_reason, _state), do: :ok
+
+  # A state from a version without pre_commands_run gets the field on a relup
+  @impl true
+  def code_change(_old_vsn, state, _extra), do: {:ok, Map.put_new(state, :pre_commands_run, nil)}
+
   ### ==========================================================================
   ### Public functions
   ### ==========================================================================
@@ -215,11 +315,33 @@ defmodule Deployer.Monitor.Application do
       %Monitor{}
   end
 
+  # The blocking call of the previous version, kept for its engine worker during a relup
   @impl true
   def run_pre_commands(sname, pre_commands, app_bin_service) do
     sname
     |> String.to_existing_atom()
     |> Common.call_gen_server({:run_pre_commands, pre_commands, app_bin_service})
+  end
+
+  @impl true
+  def start_pre_commands(sname, pre_commands, app_bin_service) do
+    case sname |> String.to_existing_atom() |> Process.whereis() do
+      nil ->
+        {:error, :not_running}
+
+      pid ->
+        # The monitor ref doubles as the request ref, so an exit mid-run reaches the caller
+        ref = Process.monitor(pid)
+        GenServer.cast(pid, {:start_pre_commands, pre_commands, app_bin_service, self(), ref})
+        {:ok, ref}
+    end
+  end
+
+  @impl true
+  def cancel_pre_commands(sname, ref) do
+    sname
+    |> String.to_existing_atom()
+    |> GenServer.cast({:cancel_pre_commands, ref})
   end
 
   @impl true
@@ -316,6 +438,7 @@ defmodule Deployer.Monitor.Application do
 
   # NOTE: Some commands need to run prior starting the application
   #       - Unset env vars from the deployex release to not mix with the monitored app release
+  #       - Unset DeployEx's own DEPLOYEX_* variables, which hold its secrets with the env adapter
   #       - Export RELEASE_NODE with sname
   #       - Export listening port that needs to be one per app
   defp run_app_bin(state, executable_path, command)
@@ -339,9 +462,9 @@ defmodule Deployer.Monitor.Application do
     # runs with a non-default cookie. It goes before app_env, so a RELEASE_COOKIE in the
     # app's env still wins.
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
-    export RELEASE_COOKIE=#{shell_quote(cookie)}
+    export RELEASE_COOKIE=#{Common.shell_quote(cookie)}
     #{app_env}
     #{ports_env}
     export PATH=#{path}
@@ -372,14 +495,14 @@ defmodule Deployer.Monitor.Application do
       end
 
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
     #{ports_env}
     export PATH=#{path}
     export RELX_REPLACE_OS_VARS=true
     export RELEASE_NODE=#{sname}
-    export RELEASE_COOKIE=#{cookie}
+    export RELEASE_COOKIE=#{Common.shell_quote(cookie)}
     export RELEASE_SSL_OPTIONS=\"#{ssl_options}\"
     #{executable_path} foreground
     """
@@ -408,7 +531,7 @@ defmodule Deployer.Monitor.Application do
       end
 
     """
-    unset $(env | grep '^RELEASE_' | awk -F'=' '{print $1}')
+    unset $(env | grep -E '^(RELEASE|DEPLOYEX)_' | awk -F'=' '{print $1}')
     unset BINDIR ELIXIR_ERL_OPTIONS ROOTDIR
     #{app_env}
     #{ports_env}
@@ -421,7 +544,7 @@ defmodule Deployer.Monitor.Application do
       -noshell \
       #{ssl_options} \
       -sname #{sname} \
-      -setcookie #{cookie}
+      -setcookie #{Common.shell_quote(cookie)}
     """
   end
 
@@ -435,15 +558,20 @@ defmodule Deployer.Monitor.Application do
 
   defp ports_to_env(ports), do: Enum.map(ports, fn port -> "#{port.key}=#{port.base}" end)
 
-  # Single-quote a value for sh, escaping any embedded single quote
-  defp shell_quote(value), do: "'" <> String.replace(to_string(value), "'", "'\\''") <> "'"
-
   defp build_export_command([]), do: ""
 
+  # Quote each value, so spaces and shell characters reach the monitored app as written
   defp build_export_command(env_list) do
     Enum.reduce(env_list, "export ", fn env, acc ->
-      acc <> "#{env} "
+      acc <> "#{quote_env_value(env)} "
     end)
+  end
+
+  defp quote_env_value(env) do
+    case String.split(env, "=", parts: 2) do
+      [key, value] -> "#{key}=#{Common.shell_quote(value)}"
+      [key] -> key
+    end
   end
 
   defp execute_pre_commands(_state, pre_commands, _bin_service) when pre_commands == [], do: :ok
@@ -480,6 +608,101 @@ defmodule Deployer.Monitor.Application do
       end
     end)
     |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
+  end
+
+  # A hot upgrade needs the app up. When it went down, or a restart waits on the run, the reply
+  # says the pre_commands ran, so the worker waits for the app without running them again
+  defp run_next_pre_command(state, %{remaining: []} = run) do
+    app_down? = state.current_pid == nil or state.status != :running
+
+    result =
+      if run[:restart] || run[:run_service] || app_down?,
+        do: {:error, :app_down},
+        else: {:ok, run.pre_commands}
+
+    send(run.from, {:pre_commands_result, run.ref, result})
+
+    end_pre_commands_run(state, run)
+  end
+
+  defp run_next_pre_command(%Monitor{sname: sname} = state, %{remaining: [command | rest]} = run) do
+    Logger.info(" # Executing: #{command}")
+
+    state
+    |> run_app_bin(Catalog.bin_path(sname, run.bin_service), command)
+    |> Commander.run([
+      :monitor,
+      # Its own process group, so a stop also ends the BEAM that `bin/app eval` starts
+      {:group, 0},
+      :kill_group,
+      {:stdout, Catalog.stdout_path(sname) |> to_charlist, [:append, {:mode, 0o600}]},
+      {:stderr, Catalog.stderr_path(sname) |> to_charlist, [:append, {:mode, 0o600}]}
+    ])
+    |> case do
+      {:ok, exec_pid, os_pid} ->
+        run = %{run | remaining: rest, command: command, exec_pid: exec_pid, os_pid: os_pid}
+        state = Map.put(state, :pre_commands_run, run)
+
+        # The dashboard shows the migration, the application itself keeps its status
+        update_non_blocking_state(%{state | status: :pre_commands})
+        state
+
+      {:error, reason} ->
+        Logger.error(
+          "Error running pre-command: #{command} for sname: #{sname} reason: #{inspect(reason)}"
+        )
+
+        send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
+        end_pre_commands_run(state, run)
+    end
+  end
+
+  defp end_pre_commands_run(state, %{from_ref: from_ref} = run) do
+    Process.demonitor(from_ref, [:flush])
+    state = update_non_blocking_state(Map.put(state, :pre_commands_run, nil))
+
+    # do_restart schedules run_service itself. A restart for an application that is already
+    # down is dropped, its crash restart has its own run_service
+    cond do
+      run[:restart] && state.current_pid != nil ->
+        do_restart(state)
+
+      run[:run_service] ->
+        trigger_run_service(state.sname)
+        state
+
+      true ->
+        state
+    end
+  end
+
+  defp do_restart(state) do
+    Logger.warning("Restart requested for sname: #{state.sname}")
+
+    Foundation.Notifications.notify("deployment_shutdown", %{
+      node: node(),
+      sname: "#{state.sname}"
+    })
+
+    # Stop current application
+    Commander.stop(state.current_pid)
+
+    cleanup_beam_process(state.sname)
+
+    # Update the number of force restarts
+    force_restart_count = state.force_restart_count + 1
+
+    # Trigger restart with backoff time of 1 second
+    trigger_run_service(state.sname, 1_000)
+
+    # The app is down until run_service starts it again. Without a current pid, its exit is not
+    # taken for a crash, which would start it a second time
+    update_non_blocking_state(%{
+      state
+      | current_pid: nil,
+        force_restart_count: force_restart_count,
+        status: :starting
+    })
   end
 
   defp cleanup_beam_process(sname) do

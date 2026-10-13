@@ -13,9 +13,16 @@ APP_DIR  ?= ../myphoenixapp
 APP_NAME ?= myphoenixapp
 BUCKET   ?= /tmp/deployex/bucket
 COOKIE   ?= cookie
+# JSON list for the published version map, e.g. make dev-app PRE_COMMANDS='["eval 1"]'
+PRE_COMMANDS ?= []
+export PRE_COMMANDS
+
+# TLS distribution, as in section 9 of guides/docs/local-elixir/README.md
+TLS_CONF := /tmp/inet_tls.conf
+TLS_OPTIONS := -proto_dist inet_tls -ssl_dist_optfile $(TLS_CONF)
 
 .DEFAULT_GOAL := help
-.PHONY: help preflight setup start stop test format-check credo dialyzer check dev-app dev-app-clean
+.PHONY: help preflight setup start stop test format-check credo dialyzer check dev-app dev-app-clean dev-tls
 
 preflight: ## Verify the local toolchain (.tool-versions) + tools for dev/test
 	@fail=0; \
@@ -48,8 +55,8 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-start: ## Run DeployEx locally with OTP distribution (interactive)
-	iex --sname deployex --cookie $(COOKIE) -S mix phx.server
+start: ## Run DeployEx locally with OTP distribution (interactive), with TLS when make dev-tls ran
+	$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") iex --sname deployex --cookie $(COOKIE) -S mix phx.server
 
 stop: ## Stop a locally running DeployEx node (best effort)
 	-@pkill -f "sname deployex .*-S mix phx.server" && echo "stopped" || echo "not running"
@@ -69,6 +76,8 @@ dialyzer: ## Run dialyzer static type analysis
 check: format-check credo dialyzer test ## Run all pre-PR checks: format, credo, dialyzer, test
 
 dev-app: preflight ## Build + publish the sample app to the local bucket so DeployEx manages it
+	@printf '%s' "$$PRE_COMMANDS" | jq -e 'type == "array"' >/dev/null 2>&1 || \
+		{ echo "PRE_COMMANDS must be a JSON list, e.g. PRE_COMMANDS='[\"eval 1\"]'"; exit 1; }
 	@test -d "$(APP_DIR)" || { \
 		echo "APP_DIR '$(APP_DIR)' not found. Clone the sample app or pass APP_DIR=/path/to/app."; \
 		echo "  git clone https://github.com/thiagoesteves/myphoenixapp $(APP_DIR)"; \
@@ -78,9 +87,21 @@ dev-app: preflight ## Build + publish the sample app to the local bucket so Depl
 	@TARBALL=$$(ls -t "$(APP_DIR)"/_build/prod/$(APP_NAME)-*.tar.gz | head -1); \
 	VERSION=$$(basename "$$TARBALL" | sed -E 's/^$(APP_NAME)-(.*)\.tar\.gz$$/\1/'); \
 	cp "$$TARBALL" "$(BUCKET)/dist/$(APP_NAME)/"; \
-	echo "{\"version\":\"$$VERSION\",\"pre_commands\":[],\"hash\":\"local\"}" \
-		| jq > "$(BUCKET)/versions/$(APP_NAME)/local/current.json"; \
+	jq -n --arg version "$$VERSION" --argjson pre_commands "$$PRE_COMMANDS" \
+		'{version: $$version, pre_commands: $$pre_commands, hash: "local"}' \
+		> "$(BUCKET)/versions/$(APP_NAME)/local/current.json"; \
 	echo "Published $(APP_NAME) $$VERSION to $(BUCKET). DeployEx picks it up on its next tick."
 
 dev-app-clean: ## Remove the local bucket
 	rm -rf "$(BUCKET)"
+
+dev-tls: ## Create TLS distribution certificates and /tmp/inet_tls.conf for make start and the sample app
+	@if [ -f /tmp/ca.crt ] && [ -f /tmp/deployex.crt ] && [ -f /tmp/deployex.key ]; then \
+		echo "Certificates already in /tmp"; \
+	else \
+		mkdir -p _build/dev-tls && cd _build/dev-tls && \
+		elixir ../../devops/scripts/certificates/otp-28/tls-distribution-certs && \
+		cp ca.crt deployex.crt deployex.key /tmp/; \
+	fi
+	@DEPLOYEX_OTP_TLS_CERT_PATH=/tmp sh -c "$$(sed -n '/^test -f \/tmp\/inet_tls.conf/,/^)$$/p' rel/env.sh.eex)"
+	@test -f $(TLS_CONF) && echo "TLS distribution ready: $(TLS_CONF). make start now uses it."

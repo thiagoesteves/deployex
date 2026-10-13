@@ -10,6 +10,7 @@ version: "0.10.0"
 otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
 os_target: "ubuntu-24.04"
+releases_retention: 2
 metrics_retention_time_ms: 3600000
 logs_retention_time_ms: 3600000
 # Optional single sign-on. Uncomment to enable. Access is deny-by-default: only

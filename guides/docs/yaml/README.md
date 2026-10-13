@@ -68,6 +68,7 @@ monitored_app_log_path: "/var/log/monitored-apps"        # Monitored apps log pa
 # Data Retention (optional with defaults)
 metrics_retention_time_ms: 3600000                       # Metrics retention: 1 hour (default: 3600000)
 logs_retention_time_ms: 3600000                          # Logs retention: 1 hour (default: 3600000)
+releases_retention: 2                                    # Releases kept per app after a hot upgrade (default: 2, minimum: 2)
 
 # ============================================================================
 # EXTERNAL NOTIFICATIONS (optional)
@@ -186,7 +187,7 @@ applications:
     replicas: 2                        # Number of replicas (default: 3)
     
     # Deployment Configuration (optional with defaults)
-    deploy_rollback_timeout_ms: 600000 # Max deployment time before rollback (default: 600000)
+    deploy_rollback_timeout_ms: 600000 # Max deployment time before rollback, and max time for hot upgrade pre-commands to start and to run (default: 600000)
     deploy_schedule_interval_ms: 5000  # Check for new deployments interval (default: 5000)
     
     # Port Configuration (optional)
@@ -194,7 +195,8 @@ applications:
       - key: PORT
         base: 4000                     # First replica: 4000, second: 4001, etc.
     
-    # Environment Variables (optional)
+    # Environment Variables (optional). Each value reaches the monitored app as written,
+    # spaces and shell characters included, with no shell expansion.
     env:
       - key: MYPHOENIXAPP_PHX_HOST
         value: "myphoenixapp.com"
@@ -319,6 +321,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 #### DeployEx Level (Runtime Upgradable)
 - `logs_retention_time_ms` - Log data retention period
 - `metrics_retention_time_ms` - Metrics data retention period
+- `releases_retention` - Releases kept per app after a hot upgrade (minimum 2)
 - `monitoring` - DeployEx monitoring settings (host memory, atom, process, port thresholds)
 - `notifications` - External notification channels (workers are stopped and restarted on apply)
 
@@ -327,7 +330,7 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 - `certificates` - Application certificate settings (acme, dns provider, importer)
 - `language` - Application language (Elixir, Erlang, Gleam)
 - `replicas` - Number of application instances
-- `deploy_rollback_timeout_ms` - Deployment rollback timeout
+- `deploy_rollback_timeout_ms` - Deployment rollback timeout. A hot upgrade also gives its pre-commands this long to start, and this long to run once they start
 - `deploy_schedule_interval_ms` - Deployment check interval
 - `replica_ports` - Port configuration for replicas
 - `env` - Environment variables

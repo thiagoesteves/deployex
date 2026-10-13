@@ -88,7 +88,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 ### Running the application
 
 > [!TIP]
-> Common dev tasks are wrapped in a `Makefile` — run `make help` to list them (`make start`, `make test`, and `make dev-app` to build and publish a local sample app for monitoring/log testing).
+> Common dev tasks are wrapped in a `Makefile`. Run `make help` to list them (`make start`, `make test`, `make dev-tls` for TLS distribution, and `make dev-app` to build and publish a local sample app for monitoring/log testing).
 
 You can kickstart the setup with the following commands, the default number of replicas is 3:
 
@@ -146,6 +146,8 @@ Expected JSON format for `current.json`:
 }
 ```
 
+Each pre-command of an Elixir app runs in a shell as `bin/<monitored_app> <pre-command>`. Quote an expression that has parentheses or spaces, for example `"eval 'MyApp.Release.migrate(:all)'"`.
+
 Once the file is captured, the deployment will start if no app is running or if the current app is running with a version that differs from the `current.json` file.
 
 #### Release package
@@ -200,7 +202,7 @@ For more information, please check [Hot-Upgrades](guides/docs/hot-upgrades/READM
 
 ### Pre-commands (Elixir only)
 
-Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
+Your application will likely require database commands, such as migrations. DeployEx handles these through pre-commands specified in `current.json` under the `pre_commands` field. These commands will be executed in the order they are listed, before the application starts. If a pre-command fails, the release is not installed on that instance: a hot upgrade ghosts the version at once, and a full deployment retries until `deploy_rollback_timeout_ms` and then ghosts it. A hot upgrade gives its pre-commands up to `deploy_rollback_timeout_ms` from the moment they start. If they run longer, DeployEx stops them and ghosts the version. If they cannot start, or the application does not run again after them, DeployEx deploys the version fully instead, which runs the pre-commands, even if they already ran. If a pre-command is needed and does not require changes to the application itself, using pre-commands in conjunction with hotupgrade is ideal to avoid unnecessary downtime.
 
 ### 🔐 Secrets Requirements
 

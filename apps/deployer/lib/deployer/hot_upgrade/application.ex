@@ -207,13 +207,33 @@ defmodule Deployer.HotUpgrade.Application do
     else
       {:error, reason} = error ->
         report_failure(data, error)
-        {:error, {:not_installed, reason}}
+        {:error, not_installed(reason)}
     end
   end
 
+  # A node that is down, stopping or not answering says nothing about the new release, so it
+  # is reported apart from a release that failed, which the engine worker ghosts. A call that ran
+  # and raised, {:badrpc, {:EXIT, _}}, still counts as a failed release
+  defp not_installed(reason) do
+    if unreachable?(reason), do: {:unreachable, reason}, else: {:not_installed, reason}
+  end
+
+  defp unreachable?(:not_connecting), do: true
+  # A node that stops during a release_handler call answers with the exit of that call
+  defp unreachable?({:badrpc, {:EXIT, {reason, {:gen_server, :call, _}}}}), do: stopping?(reason)
+  defp unreachable?({:badrpc, reason}), do: reason in [:nodedown, :timeout]
+  defp unreachable?({:stash_failed, reason}), do: unreachable?(reason)
+  defp unreachable?({:config_provider_failed, _module, reason}), do: unreachable?(reason)
+  defp unreachable?(_reason), do: false
+
+  defp stopping?(reason) when reason in [:noproc, :shutdown, :killed, :normal], do: true
+  defp stopping?({:shutdown, _}), do: true
+  defp stopping?(_reason), do: false
+
   # Everything here only writes files and builds the relup, the running node is never
   # touched. Failing at any of these steps leaves it running exactly the code it had, which
-  # is what the caller is told through {:error, {:not_installed, reason}}
+  # is what the caller is told through {:error, {:not_installed, reason}}, or through
+  # {:error, {:unreachable, reason}} when the node is down or does not answer
   defp prepare_release(%Execute{sname: sname} = data) do
     with :ok <- notify_progress(sname, "Unpacking release"),
          :ok <- unpack_release(data),
@@ -235,6 +255,7 @@ defmodule Deployer.HotUpgrade.Application do
          :ok <- install_release(data),
          :ok <- notify_make_permanent(data.make_permanent_async, data.sname, data.to_version),
          :ok <- permfy(data),
+         :ok <- prune_old_releases(data),
          :ok <- notify_complete_ok(data.make_permanent_async, data) do
       Logger.info(
         "Release upgrade executed with success at node: #{node} from: #{from_version} to: #{to_version}"
@@ -440,17 +461,29 @@ defmodule Deployer.HotUpgrade.Application do
   end
 
   @spec make_relup(Execute.t()) :: :ok | {:error, any()}
-  def make_relup(%Execute{
-        node: node,
-        name: name,
-        language: language,
-        current_path: current_path,
-        new_path: new_path,
-        from_version: from_version,
-        to_version: to_version
-      }) do
-    root = root_dir(node)
+  def make_relup(%Execute{node: node} = data) do
+    case root_dir(node) do
+      root when is_list(root) ->
+        do_make_relup(data, root)
 
+      error ->
+        Logger.error("Could not read the root dir of node: #{node}, reason: #{inspect(error)}")
+        {:error, error}
+    end
+  end
+
+  defp do_make_relup(
+         %Execute{
+           node: node,
+           name: name,
+           language: language,
+           current_path: current_path,
+           new_path: new_path,
+           from_version: from_version,
+           to_version: to_version
+         },
+         root
+       ) do
     cp_appup_priv_to_ebin = fn ->
       priv_app_up_file = "#{new_path}/lib/#{name}-#{to_version}/priv/appup/#{name}.appup"
 
@@ -509,6 +542,10 @@ defmodule Deployer.HotUpgrade.Application do
 
         {:error, :make_relup}
 
+      {:badrpc, _} = reason ->
+        Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
+        {:error, reason}
+
       reason ->
         Logger.error("systools:make_relup failed, reason: #{inspect(reason)}")
         {:error, :make_relup}
@@ -524,6 +561,10 @@ defmodule Deployer.HotUpgrade.Application do
       {:error, reason} = result ->
         Logger.error("release_handler:check_install_release failed, reason: #{inspect(reason)}")
         result
+
+      reason ->
+        Logger.error("release_handler:check_install_release failed, reason: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -543,6 +584,10 @@ defmodule Deployer.HotUpgrade.Application do
       {:error, reason} = result ->
         Logger.error("release_handler:install_release failed, reason: #{inspect(reason)}")
         result
+
+      reason ->
+        Logger.error("release_handler:install_release failed, reason: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -641,11 +686,209 @@ defmodule Deployer.HotUpgrade.Application do
     :ok
   end
 
+  # A node that cannot be reached reports no releases, so a caller that reports a failure is
+  # not taken down by it
   @spec which_releases(node()) :: list()
   def which_releases(node) do
-    releases = Rpc.call(node, :release_handler, :which_releases, [], @rpc_timeout)
+    case Rpc.call(node, :release_handler, :which_releases, [], @rpc_timeout) do
+      releases when is_list(releases) ->
+        Enum.map(releases, fn {_name, version, _modules, status} -> {status, version} end)
 
-    releases |> Enum.map(fn {_name, version, _modules, status} -> {status, version} end)
+      error ->
+        Logger.error("Could not read the releases of node: #{node}, reason: #{inspect(error)}")
+        []
+    end
+  end
+
+  @doc """
+  Remove the release directories, `.rel` files and libraries of versions outside the newest
+  `releases_retention` releases (never fewer than the current and previous ones), and
+  unregister those versions from `release_handler`.
+
+  Files are removed directly: `release_handler:remove_release/1` empties `lib/` for an Elixir
+  release, see `remove_unpacked_release/1`.
+  """
+  @spec prune_old_releases(Execute.t()) :: :ok
+  # A DeployEx self-upgrade is not permanent yet on this path
+  def prune_old_releases(%Execute{make_permanent_async: true}), do: :ok
+
+  def prune_old_releases(%Execute{
+        node: node,
+        name: name,
+        current_path: current_path,
+        from_version: from_version,
+        to_version: to_version
+      }) do
+    case which_releases(node) do
+      [] ->
+        Logger.warning("Skipping the release prune, the releases of node: #{node} are unknown")
+
+      releases ->
+        registered = MapSet.new(releases, fn {_status, version} -> to_string(version) end)
+
+        installed =
+          for {status, vsn} <- releases,
+              status != :unpacked,
+              into: MapSet.new(),
+              do: to_string(vsn)
+
+        keep_versions = versions_to_keep(current_path, installed, from_version, to_version)
+
+        case kept_libs(current_path, name, keep_versions) do
+          {:ok, keep_libs} -> prune_lib_dirs(current_path, keep_libs)
+          :error -> :ok
+        end
+
+        prune_release_dirs(current_path, name, keep_versions)
+        unregister_releases(node, registered, keep_versions)
+    end
+
+    :ok
+  end
+
+  # The current and previous versions are always kept. If releases_retention asks for more,
+  # the newest other release directories by mtime are added up to that count. Only versions
+  # the node has installed count: a failed upgrade leaves a directory, and can leave a .rel.
+  @spec versions_to_keep(String.t(), MapSet.t(), any(), any()) :: MapSet.t()
+  defp versions_to_keep(current_path, installed, from_version, to_version) do
+    retention =
+      case Application.get_env(:foundation, :releases_retention) do
+        value when is_integer(value) -> max(value, 2)
+        _ -> 2
+      end
+
+    base = [to_string(from_version), to_string(to_version)]
+
+    extra =
+      "#{current_path}/releases"
+      |> release_version_dirs()
+      |> Enum.filter(&(&1.version in installed and &1.version not in base))
+      |> Enum.sort_by(& &1.mtime, :desc)
+      |> Enum.take(retention - length(base))
+      |> Enum.map(& &1.version)
+
+    MapSet.new(base ++ extra)
+  end
+
+  @spec release_version_dirs(String.t()) :: [%{version: String.t(), mtime: integer()}]
+  defp release_version_dirs(releases_dir) do
+    case File.ls(releases_dir) do
+      {:ok, entries} ->
+        entries
+        |> Enum.map(&{&1, "#{releases_dir}/#{&1}"})
+        |> Enum.filter(fn {_entry, path} -> File.dir?(path) end)
+        |> Enum.map(fn {entry, path} -> %{version: entry, mtime: mtime(path)} end)
+
+      _ ->
+        []
+    end
+  end
+
+  @spec mtime(String.t()) :: integer()
+  defp mtime(path) do
+    case File.stat(path, time: :posix) do
+      {:ok, %File.Stat{mtime: mtime}} -> mtime
+      _ -> 0
+    end
+  end
+
+  # The "<app>-<vsn>" library directories the kept releases still use, read from each kept
+  # release's .rel. :error if any .rel is unreadable, so the caller leaves lib/ alone rather
+  # than delete on an incomplete set.
+  @spec kept_libs(String.t(), String.t(), MapSet.t()) :: {:ok, MapSet.t()} | :error
+  defp kept_libs(current_path, name, keep_versions) do
+    Enum.reduce_while(keep_versions, {:ok, MapSet.new()}, fn version, {:ok, acc} ->
+      rel_file = "#{current_path}/releases/#{name}-#{version}.rel"
+
+      case :file.consult(rel_file) do
+        {:ok, [{:release, _name_vsn, _erts, apps}]} ->
+          libs = Enum.map(apps, fn app -> "#{elem(app, 0)}-#{elem(app, 1)}" end)
+          {:cont, {:ok, MapSet.union(acc, MapSet.new(libs))}}
+
+        reason ->
+          Logger.warning(
+            "Skipping library prune, cannot read #{rel_file}, reason: #{inspect(reason)}"
+          )
+
+          {:halt, :error}
+      end
+    end)
+  end
+
+  @spec prune_lib_dirs(String.t(), MapSet.t()) :: :ok
+  defp prune_lib_dirs(current_path, keep_libs) do
+    lib_dir = "#{current_path}/lib"
+
+    with {:ok, entries} <- File.ls(lib_dir) do
+      Enum.each(entries, fn entry ->
+        path = "#{lib_dir}/#{entry}"
+
+        if File.dir?(path) and not MapSet.member?(keep_libs, entry) do
+          path |> File.rm_rf() |> log_removal("unused library directory", path)
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  @spec prune_release_dirs(String.t(), String.t(), MapSet.t()) :: :ok
+  defp prune_release_dirs(current_path, name, keep_versions) do
+    releases_dir = "#{current_path}/releases"
+
+    with {:ok, entries} <- File.ls(releases_dir) do
+      Enum.each(entries, fn entry ->
+        path = "#{releases_dir}/#{entry}"
+
+        cond do
+          File.dir?(path) and not MapSet.member?(keep_versions, entry) ->
+            path |> File.rm_rf() |> log_removal("old release directory", path)
+
+          stale_rel_file?(entry, name, keep_versions) ->
+            path |> File.rm() |> log_removal("old release file", path)
+
+          true ->
+            :ok
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  # RELEASES then lists only the kept versions. set_removed/1 rewrites RELEASES and deletes no files
+  @spec unregister_releases(node(), MapSet.t(), MapSet.t()) :: :ok
+  defp unregister_releases(node, registered, keep_versions) do
+    registered
+    |> Enum.reject(&MapSet.member?(keep_versions, &1))
+    |> Enum.each(fn version ->
+      case Rpc.call(node, :release_handler, :set_removed, [to_charlist(version)], @rpc_timeout) do
+        :ok ->
+          Logger.info("Unregistered old release: #{version}")
+
+        reason ->
+          Logger.warning(
+            "Could not unregister old release: #{version}, reason: #{inspect(reason)}"
+          )
+      end
+    end)
+  end
+
+  # File.rm_rf/1 returns {:ok, removed}, File.rm/1 returns :ok
+  defp log_removal({:ok, _removed}, what, path), do: log_removal(:ok, what, path)
+  defp log_removal(:ok, what, path), do: Logger.info("Pruned #{what}: #{path}")
+
+  defp log_removal(error, what, path),
+    do: Logger.warning("Could not prune #{what}: #{path}, reason: #{inspect(error)}")
+
+  # True for a <name>-<vsn>.rel whose version is not kept. Other files (RELEASES,
+  # start_erl.data) never match and are left alone.
+  @spec stale_rel_file?(String.t(), String.t(), MapSet.t()) :: boolean()
+  defp stale_rel_file?(entry, name, keep_versions) do
+    case Regex.run(~r/^#{Regex.escape(name)}-(.+)\.rel$/, entry) do
+      [_, version] -> not MapSet.member?(keep_versions, version)
+      _ -> false
+    end
   end
 
   @doc """
