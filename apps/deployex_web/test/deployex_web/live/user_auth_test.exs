@@ -83,17 +83,38 @@ defmodule DeployexWeb.UserAuthTest do
   end
 
   describe "log_out_user/1" do
-    test "clears an OAuth session and redirects to login", %{conn: conn} do
-      conn = conn |> put_session(:oauth_email, "me@co.com") |> UserAuth.log_out_user()
-      refute get_session(conn, :oauth_email)
+    test "deletes an OAuth session token and redirects to login", %{conn: conn} do
+      token = Accounts.generate_user_session_token(%{username: "me@co.com"})
+      conn = conn |> put_session(:oauth_token, token) |> UserAuth.log_out_user()
+      refute get_session(conn, :oauth_token)
+      refute Accounts.get_user_by_session_token(token)
       assert redirected_to(conn) == ~p"/users/log_in"
     end
 
-    test "clears a password session and redirects to login", %{conn: conn, user: user} do
+    test "deletes a password session token and redirects to login", %{conn: conn, user: user} do
       token = Accounts.generate_user_session_token(user)
       conn = conn |> put_session(:user_token, token) |> UserAuth.log_out_user()
       refute get_session(conn, :user_token)
+      refute Accounts.get_user_by_session_token(token)
       assert redirected_to(conn) == ~p"/users/log_in"
+    end
+
+    test "a remember-me cookie copied before logout no longer logs in", %{conn: conn, user: user} do
+      logged_in_conn =
+        conn |> fetch_cookies() |> UserAuth.log_in_user(user, %{"remember_me" => "true"})
+
+      %{value: signed_token} = logged_in_conn.resp_cookies[@remember_me_cookie]
+
+      conn
+      |> put_session(:user_token, get_session(logged_in_conn, :user_token))
+      |> UserAuth.log_out_user()
+
+      conn =
+        conn
+        |> put_req_cookie(@remember_me_cookie, signed_token)
+        |> UserAuth.fetch_current_user([])
+
+      refute conn.assigns.current_user
     end
   end
 

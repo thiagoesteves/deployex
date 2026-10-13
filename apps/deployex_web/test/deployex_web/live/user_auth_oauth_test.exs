@@ -3,9 +3,13 @@ defmodule DeployexWeb.UserAuthOAuthTest do
   use DeployexWeb.ConnCase, async: false
 
   alias DeployexWeb.UserAuth
+  alias Foundation.Accounts
+  alias Foundation.Accounts.UserToken
+  alias Foundation.Catalog
   alias Phoenix.LiveView
 
   @sixty_days 60 * 60 * 24 * 60
+  @remember_me_cookie "_deployex_web_user_remember_me"
 
   setup %{conn: conn} do
     original = Application.get_env(:deployex_web, DeployexWeb.OAuth)
@@ -31,14 +35,15 @@ defmodule DeployexWeb.UserAuthOAuthTest do
   defp put_oauth_config(allowlist) do
     Application.put_env(:deployex_web, DeployexWeb.OAuth,
       client_id: "Ov23liExample",
+      client_secret: "secret",
+      redirect_uri: "http://localhost:5001/auth/github/callback",
       allowlist: allowlist
     )
   end
 
-  defp oauth_session(conn, logged_in_at \\ System.os_time(:second)) do
-    conn
-    |> put_session(:oauth_email, "me@co.com")
-    |> put_session(:oauth_logged_in_at, logged_in_at)
+  defp oauth_session(conn) do
+    token = Accounts.generate_user_session_token(%{username: "me@co.com"})
+    put_session(conn, :oauth_token, token)
   end
 
   defp mount_user(conn) do
@@ -53,19 +58,29 @@ defmodule DeployexWeb.UserAuthOAuthTest do
     socket.assigns.current_user
   end
 
-  test "log_in_oauth_user stores the email and the login time", %{conn: conn} do
+  test "log_in_oauth_user stores a session token for the email", %{conn: conn} do
     conn = UserAuth.log_in_oauth_user(conn, "me@co.com")
 
-    assert get_session(conn, :oauth_email) == "me@co.com"
-    assert is_integer(get_session(conn, :oauth_logged_in_at))
+    assert token = get_session(conn, :oauth_token)
+    assert %{username: "me@co.com"} = Accounts.get_user_by_session_token(token)
+    assert get_session(conn, :live_socket_id) == "users_sessions:#{Base.url_encode64(token)}"
     assert redirected_to(conn) == ~p"/applications"
   end
 
-  test "an allowed OAuth session authenticates", %{conn: conn} do
-    conn = conn |> oauth_session() |> UserAuth.fetch_current_user([])
-    assert conn.assigns.current_user == %{email: "me@co.com"}
+  test "log_in_oauth_user drops a remember-me cookie from a password login", %{conn: conn} do
+    conn =
+      conn
+      |> put_req_cookie(@remember_me_cookie, "stale")
+      |> UserAuth.log_in_oauth_user("me@co.com")
 
-    assert mount_user(oauth_session(conn)) == %{email: "me@co.com"}
+    assert %{max_age: 0} = conn.resp_cookies[@remember_me_cookie]
+  end
+
+  test "an allowed OAuth session authenticates", %{conn: conn} do
+    conn = oauth_session(conn)
+
+    assert UserAuth.fetch_current_user(conn, []).assigns.current_user == %{email: "me@co.com"}
+    assert mount_user(conn) == %{email: "me@co.com"}
   end
 
   test "an email removed from the allowlist loses access", %{conn: conn} do
@@ -84,16 +99,37 @@ defmodule DeployexWeb.UserAuthOAuthTest do
     refute mount_user(conn)
   end
 
-  test "an OAuth login older than a password session expires", %{conn: conn} do
-    conn = oauth_session(conn, System.os_time(:second) - @sixty_days)
+  test "an OAuth session older than a password session expires", %{conn: conn} do
+    token = :crypto.strong_rand_bytes(32)
+
+    :ok =
+      Catalog.add_user_session_token(%UserToken{
+        token: token,
+        context: "session",
+        username: "me@co.com",
+        inserted_at: DateTime.add(DateTime.utc_now(), -@sixty_days, :second)
+      })
+
+    conn = put_session(conn, :oauth_token, token)
 
     refute UserAuth.fetch_current_user(conn, []).assigns.current_user
     refute mount_user(conn)
   end
 
-  test "an OAuth session without a login time is not accepted", %{conn: conn} do
-    conn = put_session(conn, :oauth_email, "me@co.com")
+  test "an OAuth session with an unknown token is not accepted", %{conn: conn} do
+    conn = put_session(conn, :oauth_token, "unknown")
 
     refute UserAuth.fetch_current_user(conn, []).assigns.current_user
+    refute mount_user(conn)
+  end
+
+  test "a session copied before logout no longer authenticates", %{conn: conn} do
+    copied = conn |> UserAuth.log_in_oauth_user("me@co.com") |> get_session()
+
+    conn |> init_test_session(copied) |> UserAuth.log_out_user()
+    conn = init_test_session(conn, copied)
+
+    refute UserAuth.fetch_current_user(conn, []).assigns.current_user
+    refute mount_user(conn)
   end
 end

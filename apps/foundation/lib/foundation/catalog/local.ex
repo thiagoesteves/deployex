@@ -59,6 +59,12 @@ defmodule Foundation.Catalog.Local do
     {:reply, :ok, state}
   end
 
+  def handle_call({:delete_token, token}, _from, state) do
+    :ets.delete(@token_table, token)
+
+    {:reply, :ok, state}
+  end
+
   @impl true
   def add_user_session_token(user_token) do
     Common.call_gen_server(__MODULE__, {:add_token, user_token})
@@ -70,6 +76,11 @@ defmodule Foundation.Catalog.Local do
       [{_, value}] -> value
       _ -> nil
     end
+  end
+
+  @impl true
+  def delete_user_session_token(token) do
+    Common.call_gen_server(__MODULE__, {:delete_token, token})
   end
 
   ### ==========================================================================

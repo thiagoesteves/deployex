@@ -4,8 +4,8 @@ defmodule DeployexWeb.OAuthController do
 
   The provider seam owns the flow, so this controller is lib-agnostic: the
   request builds the authorize URL and stores the CSRF `session_params`. The
-  callback exchanges the code for a verified, allow-listed email and
-  establishes a session-only login. No user is stored.
+  callback exchanges the code for a verified, allow-listed email and logs it
+  in with a session token. No user is stored.
   """
   use DeployexWeb, :controller
 

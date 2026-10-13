@@ -56,6 +56,13 @@ defmodule Foundation.Accounts do
     end
   end
 
+  @doc """
+  Deletes the signed token, so the session that holds it is no longer valid.
+  """
+  def delete_user_session_token(token) do
+    Catalog.delete_user_session_token(token)
+  end
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================

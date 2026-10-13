@@ -84,6 +84,13 @@ defmodule Foundation.CatalogTest do
     assert user_session == Catalog.get_user_session_token_by_token(user_session.token)
   end
 
+  test "delete_user_session_token/1" do
+    user_session = %UserToken{token: "987654321"}
+    assert :ok = Catalog.add_user_session_token(user_session)
+    assert :ok = Catalog.delete_user_session_token(user_session.token)
+    refute Catalog.get_user_session_token_by_token(user_session.token)
+  end
+
   test "config/1", %{name: name} do
     assert %Catalog.Config{mode: :automatic, manual_version: nil} = Catalog.config(name)
   end

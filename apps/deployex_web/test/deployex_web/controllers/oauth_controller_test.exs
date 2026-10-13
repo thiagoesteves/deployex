@@ -64,7 +64,8 @@ defmodule DeployexWeb.OAuthControllerTest do
       callback_conn()
       |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
 
-    assert get_session(conn, :oauth_email) == "me@co.com"
+    assert token = get_session(conn, :oauth_token)
+    assert %{username: "me@co.com"} = Foundation.Accounts.get_user_by_session_token(token)
     assert redirected_to(conn) == "/applications"
   end
 
@@ -81,7 +82,7 @@ defmodule DeployexWeb.OAuthControllerTest do
           callback_conn()
           |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
 
-        assert get_session(conn, :oauth_email) == nil
+        assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
       end)
 
@@ -98,7 +99,7 @@ defmodule DeployexWeb.OAuthControllerTest do
           callback_conn()
           |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
 
-        assert get_session(conn, :oauth_email) == nil
+        assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
       end)
 
@@ -118,7 +119,7 @@ defmodule DeployexWeb.OAuthControllerTest do
           callback_conn()
           |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
 
-        assert get_session(conn, :oauth_email) == nil
+        assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
       end)
 
@@ -134,7 +135,7 @@ defmodule DeployexWeb.OAuthControllerTest do
           base_conn()
           |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
 
-        assert get_session(conn, :oauth_email) == nil
+        assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
       end)
 
