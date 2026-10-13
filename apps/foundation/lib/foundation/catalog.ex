@@ -333,6 +333,13 @@ defmodule Foundation.Catalog do
   def get_user_session_token_by_token(token), do: default().get_user_session_token_by_token(token)
 
   @doc """
+  Delete a user session token, so the session that holds it is no longer valid
+  """
+  @impl true
+  @spec delete_user_session_token(String.t()) :: :ok
+  def delete_user_session_token(token), do: default().delete_user_session_token(token)
+
+  @doc """
   Retrieve the current deployex dynamic configuration
   """
   @impl true

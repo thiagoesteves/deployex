@@ -30,6 +30,7 @@ defmodule DeployexWeb.Layouts do
 
   attr :ui_settings, :map, required: true
   attr :current_path, :string, default: "/"
+  attr :current_user, :map, default: nil
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -76,6 +77,7 @@ defmodule DeployexWeb.Layouts do
         module={DeployexWeb.Components.NavMenu}
         ui_settings={@ui_settings}
         current_path={Map.get(assigns, :current_path, "/")}
+        current_user={Map.get(assigns, :current_user)}
         id="navbar"
       />
     </div>

@@ -254,6 +254,24 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule Auth do
+    @moduledoc """
+    OAuth access configuration: it gates access, and no users are stored.
+
+    The `client_secret` is not here. It is a secret, fetched through the secrets
+    provider. A missing `auth:` section leaves OAuth off.
+    """
+
+    defstruct [:provider, :client_id, :redirect_uri, allowlist: %{emails: [], domains: []}]
+
+    @type t :: %__MODULE__{
+            provider: module(),
+            client_id: String.t() | nil,
+            redirect_uri: String.t() | nil,
+            allowlist: %{emails: [String.t()], domains: [String.t()]}
+          }
+  end
+
   defstruct account_name: nil,
             hostname: nil,
             port: nil,
@@ -280,6 +298,7 @@ defmodule Foundation.Yaml do
             applications: [],
             notifications: [],
             self_upgrade: nil,
+            auth: nil,
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -309,6 +328,7 @@ defmodule Foundation.Yaml do
           applications: [Foundation.Yaml.Application.t()] | [],
           notifications: [Foundation.Yaml.Notification.t()] | [],
           self_upgrade: Foundation.Yaml.SelfUpgrade.t() | nil,
+          auth: Foundation.Yaml.Auth.t() | nil,
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -438,6 +458,7 @@ defmodule Foundation.Yaml do
       applications: parse_applications(data["applications"]),
       notifications: parse_notifications(data["notifications"]),
       self_upgrade: parse_self_upgrade(data["self_upgrade"]),
+      auth: parse_auth(data["auth"]),
       config_checksum: checksum
     }
   end
@@ -469,6 +490,37 @@ defmodule Foundation.Yaml do
       raise(
         "check_origin #{inspect(value)} not supported, expected true, false or a list of origins"
       )
+
+  defp parse_auth(nil), do: nil
+
+  defp parse_auth(data) do
+    %Foundation.Yaml.Auth{
+      provider: parse_auth_provider(data["provider"]),
+      client_id: data["client_id"],
+      redirect_uri: data["redirect_uri"],
+      allowlist: %{
+        emails: parse_auth_list("allowed_emails", data["allowed_emails"]),
+        domains: parse_auth_list("allowed_domains", data["allowed_domains"])
+      }
+    }
+  end
+
+  defp parse_auth_provider(nil), do: DeployexWeb.OAuth.Provider.GitHub
+
+  defp parse_auth_provider(provider) do
+    if provider |> to_string() |> String.downcase() == "github",
+      do: DeployexWeb.OAuth.Provider.GitHub,
+      else: raise("Auth provider #{provider} not supported")
+  end
+
+  # Validated at load, because a wrong type only fails at the first sign-in
+  defp parse_auth_list(_key, nil), do: []
+
+  defp parse_auth_list(key, value) do
+    if is_list(value) and Enum.all?(value, &is_binary/1),
+      do: value,
+      else: raise("auth #{key} #{inspect(value)} not supported, expected a list of strings")
+  end
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp

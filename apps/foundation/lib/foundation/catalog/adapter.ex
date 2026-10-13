@@ -30,6 +30,7 @@ defmodule Foundation.Catalog.Adapter do
   @callback clear_ghosted_versions(String.t()) :: {:ok, list()}
   @callback add_user_session_token(Accounts.UserToken.t()) :: :ok
   @callback get_user_session_token_by_token(String.t()) :: Accounts.UserToken.t() | nil
+  @callback delete_user_session_token(String.t()) :: :ok
   @callback config(String.t()) :: Catalog.Config.t()
   @callback config_update(String.t(), Catalog.Config.t()) :: {:ok, Catalog.Config.t()}
   @callback certificate(String.t()) :: Catalog.Certificate.t()

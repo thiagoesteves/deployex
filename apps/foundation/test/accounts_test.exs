@@ -27,4 +27,11 @@ defmodule Foundation.AccountsTest do
   test "get_user_by_session_token/1 error" do
     refute Accounts.get_user_by_session_token("token")
   end
+
+  test "delete_user_session_token/1" do
+    token = Accounts.generate_user_session_token(%{username: "admin"})
+
+    assert :ok = Accounts.delete_user_session_token(token)
+    refute Accounts.get_user_by_session_token(token)
+  end
 end

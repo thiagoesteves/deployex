@@ -107,6 +107,61 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
   end
 
   @tag :capture_log
+  test "load/2 merges the OAuth client_secret when present" do
+    SecretsMock
+    |> stub(:secrets, fn _config, _path, _options ->
+      %{
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+        "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+        "DEPLOYEX_SECRET_KEY_BASE" =>
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM",
+        "DEPLOYEX_OAUTH_CLIENT_SECRET" => "gho_secret_abc"
+      }
+    end)
+
+    config =
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: SecretsMock, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+
+    assert config[:deployex_web][DeployexWeb.OAuth][:client_secret] == "gho_secret_abc"
+  end
+
+  @tag :capture_log
+  test "load/2 omits the OAuth key when the client_secret is absent" do
+    SecretsMock
+    |> stub(:secrets, fn _config, _path, _options ->
+      %{
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+        "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+        "DEPLOYEX_SECRET_KEY_BASE" =>
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+      }
+    end)
+
+    config =
+      Manager.load(
+        [
+          foundation: [
+            {Manager, adapter: SecretsMock, path: "any-env-path"},
+            {:env, "prod"}
+          ]
+        ],
+        []
+      )
+
+    assert config[:deployex_web][DeployexWeb.OAuth] == nil
+  end
+
+  @tag :capture_log
   test "load/2 with local config" do
     assert [
              {:foundation,

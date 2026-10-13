@@ -32,6 +32,9 @@ defmodule Foundation.YamlTest do
   @yaml_endpoint_origin_empty_error "#{@file_paths}/deployex-endpoint-origin-empty-error.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
+  @yaml_auth "#{@file_paths}/deployex-auth.yaml"
+  @yaml_auth_provider_case "#{@file_paths}/deployex-auth-provider-case.yaml"
+  @yaml_auth_emails_error "#{@file_paths}/deployex-auth-emails-error.yaml"
 
   describe "load/0" do
     test "successfully loads and parses YAML configuration" do
@@ -910,6 +913,57 @@ defmodule Foundation.YamlTest do
                  dist_base_url: nil,
                  installer_script: "/home/root/deployex.sh"
                }
+      end
+    end
+  end
+
+  describe "auth" do
+    test "parses the auth section" do
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert %Yaml.Auth{} = config.auth
+        assert config.auth.provider == DeployexWeb.OAuth.Provider.GitHub
+        assert config.auth.client_id == "Ov23liExample"
+        assert config.auth.redirect_uri == "https://deployex.example.com/auth/github/callback"
+
+        assert config.auth.allowlist == %{
+                 emails: ["alice@example.com", "bob@example.com"],
+                 domains: ["example.com"]
+               }
+      end
+    end
+
+    test "accepts the provider name in any case" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth_provider_case end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.auth.provider == DeployexWeb.OAuth.Provider.GitHub
+      end
+    end
+
+    test "rejects an allowlist that is not a list" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_auth_emails_error end]}
+      ]) do
+        assert_raise RuntimeError,
+                     ~s(auth allowed_emails "alice@example.com" not supported, expected a list of strings),
+                     fn -> Yaml.load() end
+      end
+    end
+
+    test "defaults auth to nil when the section is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.auth == nil
       end
     end
   end
