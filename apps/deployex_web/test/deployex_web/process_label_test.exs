@@ -32,6 +32,18 @@ defmodule DeployexWeb.ProcessLabelTest do
       assert label_of(self()) == {:live_view, DeployexWeb.ApplicationsLive, "admin"}
     end
 
+    test "labels a connected LiveView with the email of an OAuth user" do
+      socket = %Phoenix.LiveView.Socket{
+        transport_pid: self(),
+        view: DeployexWeb.ApplicationsLive,
+        assigns: %{current_user: %{email: "me@co.com"}}
+      }
+
+      assert {:cont, ^socket} = ProcessLabel.on_mount(:default, %{}, %{}, socket)
+
+      assert label_of(self()) == {:live_view, DeployexWeb.ApplicationsLive, "me@co.com"}
+    end
+
     test "omits the user when nobody is signed in" do
       socket = %Phoenix.LiveView.Socket{
         transport_pid: self(),

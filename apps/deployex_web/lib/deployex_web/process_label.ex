@@ -19,8 +19,9 @@ defmodule DeployexWeb.ProcessLabel do
   """
 
   @doc """
-  Labels the LiveView process as `{:live_view, view, username}`, or `{:live_view, view}` when
-  there is no signed-in user (the login page).
+  Labels the LiveView process as `{:live_view, view, user}`, where `user` is the username, or the
+  email of an OAuth user. The label is `{:live_view, view}` when there is no signed-in user (the
+  login page).
 
   Labels are arbitrary terms rather than unique names, so no uniqueness or collision handling is
   needed - two browser tabs on the same page legitimately carry the same label.
@@ -38,6 +39,9 @@ defmodule DeployexWeb.ProcessLabel do
 
   defp label(%{view: view, assigns: %{current_user: %{username: username}}}),
     do: {:live_view, view, username}
+
+  defp label(%{view: view, assigns: %{current_user: %{email: email}}}),
+    do: {:live_view, view, email}
 
   defp label(%{view: view}), do: {:live_view, view}
 end
