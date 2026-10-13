@@ -48,12 +48,12 @@ defmodule DeployexWeb.Router do
     post "/users/log_in", UserSessionController, :create
   end
 
-  ## OAuth (3rd-party SSO) routes, accessible while logged out.
+  ## OAuth (3rd-party SSO) routes, accessible while logged out. GitHub is the only provider.
   scope "/auth", DeployexWeb do
     pipe_through :browser
 
-    get "/:provider", OAuthController, :request
-    get "/:provider/callback", OAuthController, :callback
+    get "/github", OAuthController, :request
+    get "/github/callback", OAuthController, :callback
   end
 
   ## Log out, available to authenticated users.

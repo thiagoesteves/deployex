@@ -47,7 +47,7 @@ defmodule DeployexWeb.OAuthControllerTest do
       {:ok, %{url: "https://github.com/login/oauth/authorize?x=1", session_params: %{state: "s"}}}
     end)
 
-    conn = base_conn() |> DeployexWeb.OAuthController.request(%{"provider" => "github"})
+    conn = base_conn() |> DeployexWeb.OAuthController.request(%{})
 
     assert redirected_to(conn) == "https://github.com/login/oauth/authorize?x=1"
     assert get_session(conn, :oauth_session_params) == %{state: "s"}
@@ -62,7 +62,7 @@ defmodule DeployexWeb.OAuthControllerTest do
 
     conn =
       callback_conn()
-      |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
+      |> DeployexWeb.OAuthController.callback(%{"code" => "abc"})
 
     assert token = get_session(conn, :oauth_token)
     assert %{username: "me@co.com"} = Foundation.Accounts.get_user_by_session_token(token)
@@ -80,7 +80,7 @@ defmodule DeployexWeb.OAuthControllerTest do
       capture_log(fn ->
         conn =
           callback_conn()
-          |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
+          |> DeployexWeb.OAuthController.callback(%{"code" => "abc"})
 
         assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
@@ -97,7 +97,7 @@ defmodule DeployexWeb.OAuthControllerTest do
       capture_log(fn ->
         conn =
           callback_conn()
-          |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
+          |> DeployexWeb.OAuthController.callback(%{"code" => "abc"})
 
         assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
@@ -117,7 +117,7 @@ defmodule DeployexWeb.OAuthControllerTest do
       capture_log(fn ->
         conn =
           callback_conn()
-          |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
+          |> DeployexWeb.OAuthController.callback(%{"code" => "abc"})
 
         assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
@@ -133,7 +133,7 @@ defmodule DeployexWeb.OAuthControllerTest do
       capture_log(fn ->
         conn =
           base_conn()
-          |> DeployexWeb.OAuthController.callback(%{"provider" => "github", "code" => "abc"})
+          |> DeployexWeb.OAuthController.callback(%{"code" => "abc"})
 
         assert get_session(conn, :oauth_token) == nil
         assert redirected_to(conn) == "/users/log_in"
@@ -159,6 +159,19 @@ defmodule DeployexWeb.OAuthControllerTest do
       conn = get(build_conn(), ~p"/auth/github")
 
       assert redirected_to(conn) == "https://github.com/login/oauth/authorize?x=1"
+    end
+
+    test "do not exist for another provider" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        provider: ProviderMock,
+        client_id: "Ov23liExample",
+        client_secret: "secret",
+        redirect_uri: "http://localhost:5001/auth/github/callback"
+      )
+
+      for path <- ["/auth/google", "/auth/google/callback?code=abc"] do
+        assert get(build_conn(), path).status == 404
+      end
     end
 
     test "do not start a sign-in when the OAuth config is incomplete" do

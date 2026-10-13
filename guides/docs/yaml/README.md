@@ -141,7 +141,7 @@ notifications:
 auth:
   provider: "github"                                     # Provider: github
   client_id: "Ov23liExample"                             # GitHub OAuth App client id (not a GitHub App)
-  redirect_uri: "https://deployex.example.com/auth/github/callback" # Required, the OAuth App callback URL
+  redirect_uri: "https://deployex.example.com/auth/github/callback" # Required, the OAuth App callback, path /auth/github/callback
   allowed_emails:                                        # Exact emails allowed to sign in
     - "alice@example.com"
   allowed_domains:                                       # Whole domains allowed to sign in
