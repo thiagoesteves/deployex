@@ -387,9 +387,9 @@ defmodule Deployer.Engine.Worker do
         if instance <= new_replicas do
           deployments
         else
-          %{sname: sname} = deployments[instance]
+          %{sname: sname} = deployment = deployments[instance]
           Logger.info(" # Terminating node: #{sname}")
-          Monitor.stop_service(state.name, sname)
+          if deployment.state != :stopped, do: Monitor.stop_service(state.name, sname)
           Catalog.cleanup(sname)
           Map.delete(deployments, instance)
         end
@@ -789,6 +789,7 @@ defmodule Deployer.Engine.Worker do
 
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release_version))
     stopped? = state.deployments[current].state == :stopped
+    waiting = Enum.find(1..state.replicas, &(state.deployments[&1].state == :stopped))
 
     deploy_application = fn ->
       new_sname = new_sname(name)
@@ -836,6 +837,12 @@ defmodule Deployer.Engine.Worker do
       # Up to date, a sname that a restart kept stopped starts as at start up
       stopped? ->
         put_in(state.deployments[current].state, :init)
+
+      # A replica change can move the rollout off a sname that a restart kept stopped. An armed
+      # rollback timer means a running report is still due, even after a hot upgrade
+      waiting != nil and is_nil(state.deployments[current].timer_ref) ->
+        Logger.info(" # Moving to the stopped instance: #{waiting}")
+        %{state | current: waiting}
 
       true ->
         state

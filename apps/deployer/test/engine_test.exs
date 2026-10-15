@@ -1235,6 +1235,187 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    # The download fails until the returned function lets it through
+    defp blocked_download do
+      table = :ets.new(:download, [:public])
+
+      stub(Deployer.ReleaseMock, :download_release, fn _name, _version, _path ->
+        if :ets.member(table, :open), do: :ok, else: {:error, :test}
+      end)
+
+      fn -> :ets.insert(table, {:open}) end
+    end
+
+    # The rollout waits on the stopped sname of instance 2, as its download fails
+    defp start_rollout_on_stopped_replica(replicas) do
+      name = "myelixir"
+      test_pid = self()
+      {other_sname, previous_sname, new_sname, removed} = setup_open_window_two_replicas(name)
+      old_snames = [other_sname, previous_sname | removed]
+
+      Deployer.StatusMock
+      |> stub(:current_version, fn sname ->
+        if sname in old_snames, do: "1.0.0", else: "2.0.0"
+      end)
+
+      stub_full_deployments()
+      open_download = blocked_download()
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn %{sname: sname} ->
+        send(test_pid, {:started, sname})
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, sname ->
+        send(test_pid, {:stopped, sname})
+        :ok
+      end)
+
+      assert {:ok, worker_pid} =
+               Engine.Worker.start_link(%Engine.Worker{
+                 replicas: replicas,
+                 deploy_rollback_timeout_ms: 60_000,
+                 deploy_schedule_interval_ms: 50,
+                 name: name,
+                 language: "elixir"
+               })
+
+      assert_receive {:started, ^new_sname}, 1_000
+      Engine.notify_application_running(new_sname)
+      assert_receive {:stopped, ^previous_sname}, 1_000
+
+      assert %{current: 2, deployments: %{2 => %{sname: ^other_sname, state: :stopped}}} =
+               :sys.get_state(worker_pid)
+
+      %{
+        worker_pid: worker_pid,
+        open_download: open_download,
+        other_sname: other_sname,
+        previous_sname: previous_sname,
+        removed: removed
+      }
+    end
+
+    @tag :capture_log
+    test "With three replicas, removing one mid-rollout goes back to the stopped replica" do
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        %{worker_pid: worker_pid, other_sname: other_sname, removed: [_leftover, oldest_sname]} =
+          rollout = start_rollout_on_stopped_replica(3)
+
+        # The change sets current to 1, which is up to date
+        Engine.Worker.updated_state_values("myelixir", %{replicas: 2})
+        :sys.get_state(worker_pid)
+        rollout.open_download.()
+
+        upgrade_sname = receive_started([rollout.previous_sname])
+        refute upgrade_sname == other_sname
+
+        assert %{current: 2, deployment_to_terminate: %{sname: ^other_sname, state: :stopped}} =
+                 :sys.get_state(worker_pid)
+
+        # The removed instance was stopped, so it has no monitor to stop
+        refute_received {:stopped, ^oldest_sname}
+      end
+    end
+
+    @tag :capture_log
+    test "With two replicas, adding one mid-rollout goes back to the stopped replica" do
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        %{worker_pid: worker_pid, other_sname: other_sname} =
+          rollout = start_rollout_on_stopped_replica(2)
+
+        # The change sets current to the new instance, then the rollout wraps to 1
+        Engine.Worker.updated_state_values("myelixir", %{replicas: 3})
+        assert %{current: 3} = :sys.get_state(worker_pid)
+        rollout.open_download.()
+
+        added_sname = receive_started([rollout.previous_sname])
+        Engine.notify_application_running(added_sname)
+
+        upgrade_sname = receive_started([])
+        refute upgrade_sname == other_sname
+
+        assert %{current: 2, deployment_to_terminate: %{sname: ^other_sname, state: :stopped}} =
+                 :sys.get_state(worker_pid)
+      end
+    end
+
+    @tag :capture_log
+    test "With two replicas, a hot upgrade in the window keeps the rollout on its instance" do
+      name = "myelixir"
+      test_pid = self()
+      {other_sname, previous_sname, new_sname, removed} = setup_open_window_two_replicas(name)
+      old_snames = [other_sname, previous_sname | removed]
+      versions = :ets.new(:versions, [:public])
+      :ets.insert(versions, {new_sname, "2.0.0"})
+      set_version = switchable_version_map("2.0.0")
+      stub_full_deployments()
+
+      Deployer.StatusMock
+      |> stub(:current_version, fn sname ->
+        case :ets.lookup(versions, sname) do
+          [{_sname, version}] -> version
+          [] -> if sname in old_snames, do: "1.0.0", else: "2.0.1"
+        end
+      end)
+      |> stub(:set_current_version_map, fn sname, release, _attrs ->
+        :ets.insert(versions, {sname, release.version})
+        :ok
+      end)
+      |> stub(:current_version_map, fn sname ->
+        %{version: Deployer.Status.current_version(sname), hash: "local", pre_commands: []}
+      end)
+      |> stub(:add_ghosted_version, fn version_map ->
+        send(test_pid, {:ghosted, version_map.version})
+        {:ok, [version_map]}
+      end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:check, fn check ->
+        deploy = if check.sname == new_sname, do: :hot_upgrade, else: :full_deployment
+        {:ok, %{check | deploy: deploy}}
+      end)
+      |> stub(:execute, fn _execute ->
+        # The download and the relup take longer than one schedule tick
+        Process.sleep(200)
+        :ok
+      end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn %{sname: sname} ->
+        send(test_pid, {:started, sname})
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, sname ->
+        send(test_pid, {:stopped, sname})
+        :ok
+      end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, _worker_pid} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   replicas: 2,
+                   deploy_rollback_timeout_ms: 1_000,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        assert_receive {:started, ^new_sname}, 1_000
+
+        # The pipeline publishes 2.0.1, a hot upgrade of 2.0.0, while the window is open
+        set_version.("2.0.1")
+
+        upgrade_sname = receive_started([previous_sname])
+        Engine.notify_application_running(upgrade_sname)
+
+        refute_receive {:ghosted, _version}, 1_500
+      end
+    end
+
     @tag :capture_log
     test "After an engine worker restart, a running replica on the previous version is active" do
       name = "myelixir"
