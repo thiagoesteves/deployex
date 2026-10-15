@@ -302,9 +302,10 @@ defmodule Deployer.Engine.Worker do
         Enum.shuffle(build_ports_by_index(state.replica_ports, index))
       end)
 
+    # The previous version of an open window still runs on its ports
     used_ports =
       Enum.map(state.deployments, fn {_instance, %Engine.Deployment{ports: ports}} -> ports end) ++
-        [state.available_ports]
+        [state.available_ports | previous_ports(state)]
 
     available_ports =
       MapSet.difference(
@@ -330,12 +331,16 @@ defmodule Deployer.Engine.Worker do
         end
       )
 
+    # An open window stays current, so its report and its timeout still count. The rollout
+    # reaches the new instances after it
+    current = if window_open?(state), do: state.current, else: next_instance
+
     {:noreply,
      %{
        state
        | deployments: new_deployments,
          replicas: new_replicas,
-         current: next_instance
+         current: current
      }}
   end
 
@@ -351,6 +356,8 @@ defmodule Deployer.Engine.Worker do
         _pending -> state
       end
 
+    state = if state.current > new_replicas, do: close_removed_window(state), else: state
+
     new_deployments =
       Enum.reduce(1..current_replicas, state.deployments, fn instance, deployments ->
         if instance <= new_replicas do
@@ -364,12 +371,9 @@ defmodule Deployer.Engine.Worker do
         end
       end)
 
-    # A request that stays keeps its instance current, so its outcome still counts
-    current =
-      case Map.get(state, :pending_pre_commands) do
-        %{instance: instance} -> instance
-        nil -> 1
-      end
+    # An instance that stays keeps the rollout, with its window or pending request, on it.
+    # The instances before it are done, so a removed one hands the rollout back to 1
+    current = if state.current <= new_replicas, do: state.current, else: 1
 
     {:noreply,
      %{
@@ -587,12 +591,12 @@ defmodule Deployer.Engine.Worker do
          %__MODULE__{deployments: deployments, replica_ports: replica_ports, replicas: replicas} =
            state
        ) do
+    # The previous version of an open window runs too, it goes with the others
+    Enum.each(previous_snames(state), &terminate_node(state, &1))
+
     new_deployments =
       Enum.reduce(deployments, %{}, fn {instance, %Engine.Deployment{sname: sname}}, acc ->
-        Logger.info(" # Terminating node: #{sname}")
-        Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: sname})
-        Monitor.stop_service(state.name, sname)
-        Catalog.cleanup(sname)
+        terminate_node(state, sname)
 
         ports = build_ports_by_index(replica_ports, instance - 1)
         Map.put(acc, instance, %Engine.Deployment{ports: ports})
@@ -604,6 +608,43 @@ defmodule Deployer.Engine.Worker do
         available_ports: build_ports_by_index(replica_ports, replicas),
         deployment_to_terminate: nil
     }
+  end
+
+  defp terminate_node(state, sname) do
+    Logger.info(" # Terminating node: #{sname}")
+    Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: sname})
+    Monitor.stop_service(state.name, sname)
+    Catalog.cleanup(sname)
+  end
+
+  # A full deployment keeps the previous version running until the new one reports running
+  defp previous_snames(%{deployment_to_terminate: %Engine.Deployment{sname: sname}})
+       when sname != nil,
+       do: [sname]
+
+  defp previous_snames(_state), do: []
+
+  defp previous_ports(%{deployment_to_terminate: %Engine.Deployment{ports: ports}}), do: [ports]
+  defp previous_ports(_state), do: []
+
+  # A deployment waits for its running report while the rollback timer is armed
+  defp window_open?(state), do: state.deployments[state.current].timer_ref != nil
+
+  # The instance of an open window is removed, so the window ends. Its previous version stops
+  # with it and the ports it held become the spare set
+  defp close_removed_window(%{deployment_to_terminate: nil} = state), do: state
+
+  defp close_removed_window(%{deployment_to_terminate: deployment_to_terminate} = state) do
+    current_deployment = state.deployments[state.current]
+    if current_deployment.timer_ref, do: Process.cancel_timer(current_deployment.timer_ref)
+
+    Enum.each(previous_snames(state), fn sname ->
+      Logger.info(" # Terminating previous node: #{sname}")
+      Monitor.stop_service(state.name, sname)
+      Catalog.cleanup(sname)
+    end)
+
+    %{state | deployment_to_terminate: nil, available_ports: deployment_to_terminate.ports}
   end
 
   defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do

@@ -3950,10 +3950,10 @@ defmodule Deployer.EngineTest do
                  Engine.notify_application_running(sname)
 
                  Engine.Worker.updated_state_values(name, %{replicas: 2})
-                 # Check the State is fully restarted and ready to deploy again
+                 # Instance 2 stays, so the rollout goes on there
                  assert %Deployer.Engine.Worker{
                           replicas: 2,
-                          current: 1,
+                          current: 2,
                           deployments: %{
                             1 => %Deployer.Engine.Deployment{
                               ports: [%{base: 6003, key: "PORT"}],
@@ -4094,6 +4094,184 @@ defmodule Deployer.EngineTest do
                         } = :sys.get_state(module_name)
                end
              end) =~ "Updating replica ports for myelixir"
+    end
+  end
+
+  describe "Config changes during a rollback window" do
+    # Every replica runs 1.0.0, then 2.0.0 is published and its full deployment opens a window
+    # on instance 1. The versions live in an agent, so each sname reports what was deployed to it
+    defp open_window(name, replicas) do
+      test_pid = self()
+      {:ok, versions} = Agent.start_link(fn -> %{release: "1.0.0"} end)
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn sname -> Agent.get(versions, &Map.get(&1, sname)) end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> stub(:set_current_version_map, fn sname, release, _attrs ->
+        Agent.update(versions, &Map.put(&1, sname, release.version))
+      end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn %{sname: sname, ports: ports} ->
+        send(test_pid, {:started, sname, ports})
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, sname ->
+        send(test_pid, {:stopped, sname})
+        :ok
+      end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: Agent.get(versions, & &1.release), hash: "local", pre_commands: []}
+      end)
+      |> stub(:download_release, fn _app_name, _version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> stub(:check, fn check -> {:ok, %{check | deploy: :full_deployment}} end)
+
+      {:ok, worker_pid} =
+        Engine.Worker.start_link(%Engine.Worker{
+          replicas: replicas,
+          replica_ports: [%{key: "PORT", base: 4000}],
+          deploy_rollback_timeout_ms: 60_000,
+          deploy_schedule_interval_ms: 50,
+          name: name,
+          language: "elixir"
+        })
+
+      snames =
+        for _instance <- 1..replicas do
+          assert_receive {:started, sname, _ports}, 1_000
+          Engine.notify_application_running(sname)
+          sname
+        end
+
+      Agent.update(versions, &Map.put(&1, :release, "2.0.0"))
+
+      assert_receive {:started, new_sname, _ports}, 1_000
+      [first_sname | _] = snames
+
+      assert %{current: 1, deployment_to_terminate: %{sname: ^first_sname}} =
+               :sys.get_state(worker_pid)
+
+      {worker_pid, snames, new_sname}
+    end
+
+    # The report of the window on instance 1 moves the rollout to instance 2, whose window opens
+    defp move_window_to_instance_2(worker_pid, [first_sname, second_sname | _], new_sname) do
+      Engine.notify_application_running(new_sname)
+      assert_receive {:stopped, ^first_sname}, 1_000
+      assert_receive {:started, window_sname, _ports}, 1_000
+
+      assert %{current: 2, deployment_to_terminate: %{sname: ^second_sname}} =
+               :sys.get_state(worker_pid)
+
+      window_sname
+    end
+
+    @tag :capture_log
+    test "Restarting the deployments stops the previous version too" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, [previous_sname], new_sname} = open_window(name, 1)
+
+        Engine.Worker.restart_deployments(name)
+
+        assert %{deployment_to_terminate: nil} = :sys.get_state(worker_pid)
+        assert_received {:stopped, ^new_sname}
+        assert_received {:stopped, ^previous_sname}
+      end
+    end
+
+    @tag :capture_log
+    test "Adding a replica keeps the window on its instance" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, [previous_sname], new_sname} = open_window(name, 1)
+
+        # The previous version runs on the ports of instance 1 until the window closes
+        assert %{deployment_to_terminate: %{ports: previous_ports}} = :sys.get_state(worker_pid)
+
+        Engine.Worker.updated_state_values(name, %{replicas: 2})
+
+        assert %{
+                 current: 1,
+                 deployments: %{1 => %{sname: ^new_sname}, 2 => %{sname: nil, ports: ports}},
+                 deployment_to_terminate: %{sname: ^previous_sname}
+               } = :sys.get_state(worker_pid)
+
+        refute ports == previous_ports
+
+        # The new instance is deployed once the window closes, on the ports it freed
+        Engine.notify_application_running(new_sname)
+
+        assert_receive {:stopped, ^previous_sname}, 1_000
+        assert_receive {:started, added_sname, ^previous_ports}, 1_000
+
+        assert %{current: 2, deployments: %{2 => %{sname: ^added_sname}}} =
+                 :sys.get_state(worker_pid)
+      end
+    end
+
+    @tag :capture_log
+    test "Removing the instance of the window stops the previous version too" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, snames, new_sname} = open_window(name, 2)
+        [_first_sname, second_sname] = snames
+        window_sname = move_window_to_instance_2(worker_pid, snames, new_sname)
+
+        assert %{deployment_to_terminate: %{ports: previous_ports}} = :sys.get_state(worker_pid)
+
+        Engine.Worker.updated_state_values(name, %{replicas: 1})
+
+        assert %{
+                 current: 1,
+                 deployments: deployments,
+                 deployment_to_terminate: nil,
+                 available_ports: ^previous_ports
+               } = :sys.get_state(worker_pid)
+
+        assert [1] == Map.keys(deployments)
+        assert_received {:stopped, ^window_sname}
+        assert_received {:stopped, ^second_sname}
+      end
+    end
+
+    @tag :capture_log
+    test "Removing another instance keeps the window on its instance" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, snames, new_sname} = open_window(name, 3)
+        [_first_sname, second_sname, third_sname] = snames
+        window_sname = move_window_to_instance_2(worker_pid, snames, new_sname)
+
+        Engine.Worker.updated_state_values(name, %{replicas: 2})
+
+        assert %{
+                 current: 2,
+                 deployments: %{2 => %{sname: ^window_sname}},
+                 deployment_to_terminate: %{sname: ^second_sname}
+               } = :sys.get_state(worker_pid)
+
+        assert_received {:stopped, ^third_sname}
+
+        Engine.notify_application_running(window_sname)
+
+        assert_receive {:stopped, ^second_sname}, 1_000
+        assert %{current: 1, deployment_to_terminate: nil} = :sys.get_state(worker_pid)
+      end
     end
   end
 
