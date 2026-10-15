@@ -293,8 +293,10 @@ defmodule Deployer.Engine.Worker do
       when new_replicas > current_replicas do
     Logger.warning("Adding new replicas for #{state.name}")
 
-    # The new replica becomes current, so a pending request ends here like on a restart
-    state = abandon_pending_pre_commands(state)
+    # An open window stays current, so its pending request still applies. Otherwise the new
+    # replica becomes current and a pending request ends here like on a restart
+    window_open? = window_open?(state)
+    state = if window_open?, do: state, else: abandon_pending_pre_commands(state)
 
     # Check the available port between the old set and the new set.
     all_ports =
@@ -333,7 +335,7 @@ defmodule Deployer.Engine.Worker do
 
     # An open window stays current, so its report and its timeout still count. The rollout
     # reaches the new instances after it
-    current = if window_open?(state), do: state.current, else: next_instance
+    current = if window_open?, do: state.current, else: next_instance
 
     {:noreply,
      %{

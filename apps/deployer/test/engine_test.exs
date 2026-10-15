@@ -1405,6 +1405,66 @@ defmodule Deployer.EngineTest do
       end
     end
 
+    test "Adding a replica while pre-commands run in an open window keeps the request" do
+      pid = self()
+      name = "myelixir"
+
+      Deployer.StatusMock
+      |> expect(:list_installed_apps, fn _name -> [] end)
+      |> stub(:current_version, fn _sname -> "1.0.0" end)
+      |> stub(:update, fn _sname -> :ok end)
+      |> stub(:set_current_version_map, fn _sname, _release, _attrs -> :ok end)
+
+      Deployer.MonitorMock
+      |> stub(:start_service, fn service ->
+        send(pid, {:started, service.sname})
+        {:ok, self()}
+      end)
+      |> stub(:stop_service, fn _name, _sname -> :ok end)
+      |> expect(:start_pre_commands, 1, fn _sname, ["eval Migrate.run"], :new ->
+        ref = make_ref()
+        send(pid, {:requested, ref})
+        {:ok, ref}
+      end)
+      # the window stays on the instance, so its migration keeps running
+      |> expect(:cancel_pre_commands, 0, fn _sname, _ref -> :ok end)
+
+      Deployer.ReleaseMock
+      |> stub(:download_version_map, fn _app_name ->
+        %{version: "2.0.0", hash: "local", pre_commands: ["eval Migrate.run"]}
+      end)
+      |> stub(:download_release, fn _app_name, _version, _download_path -> :ok end)
+
+      Deployer.HotUpgradeMock
+      |> stub(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
+      |> expect(:check, 1, fn check -> {:ok, %{check | deploy: :hot_upgrade}} end)
+      |> expect(:execute, 0, fn _execute -> :ok end)
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        assert {:ok, worker} =
+                 Engine.Worker.start_link(%Engine.Worker{
+                   deploy_rollback_timeout_ms: 60_000,
+                   deploy_schedule_interval_ms: 50,
+                   name: name,
+                   language: "elixir"
+                 })
+
+        # the start up window stays open, the app has not reported running
+        assert_receive {:started, sname}, 1_000
+        assert_receive {:requested, ref}, 1_000
+
+        Engine.Worker.updated_state_values(name, %{replicas: 2})
+
+        assert %Engine.Worker{
+                 current: 1,
+                 replicas: 2,
+                 deployments: %{1 => %{sname: ^sname}},
+                 pending_pre_commands: %{ref: ^ref}
+               } = :sys.get_state(worker)
+      end
+    end
+
     test "With two replicas, a monitored app that comes back after app_down takes the upgrade" do
       pid = self()
 
