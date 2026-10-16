@@ -65,7 +65,7 @@ defmodule Foundation.Notifications.Slack do
   | `certificate_failed`            | 🔓    | TLS certificate renewal failed                        |
   | `config_changed`                | ⚙️    | Upgradable config change detected in YAML             |
   | `config_change_applied`         | ✅    | Pending config changes successfully applied           |
-  | `pre_command_failed`            | ⛔    | A pre-command failed, retries stay silent             |
+  | `pre_command_failed`            | ⛔    | A pre-command failed, each command reported once      |
   | `version_ghosted`               | 👻    | A version was ghosted, it is not deployed again here  |
   """
 

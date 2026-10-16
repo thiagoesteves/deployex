@@ -29,7 +29,7 @@ defmodule Foundation.Notifications do
   | `"deployment_shutdown"`           | DeployEx was force-terminated (kill -9 path)               | `node`, `sname`                                                             |
   | `"config_changed"`                | Upgradable config change detected in the YAML file         | `node`, `changes_count`, `fields`                                           |
   | `"config_change_applied"`         | Pending config changes were successfully applied           | `node`, `changes_count`, `fields`                                           |
-  | `"pre_command_failed"`            | A pre-command failed. Retries that fail again send nothing | `node`, `sname`, `name`, `command`, `reason`                                |
+  | `"pre_command_failed"`            | A pre-command failed. Retries report each command once     | `node`, `sname`, `name`, `command`, `reason`                                |
   | `"version_ghosted"`               | A version was ghosted, this host does not deploy it again  | `node`, `sname`, `name`, `version`, `reason`                                |
 
   ## Available adapters

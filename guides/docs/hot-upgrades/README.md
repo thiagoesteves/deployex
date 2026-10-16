@@ -523,7 +523,8 @@ Either way, the ghosted version is stored on the host that ghosted it.
 Other hosts, and new hosts that a scale-out adds, still deploy it while `current.json` points to it.
 After a ghost, point `current.json` to a good version.
 The `version_ghosted` notification tells the pipeline that writes `current.json` when to do it.
-The `pre_command_failed` notification reports a failing pre-command before that, once per run of failures.
+The `pre_command_failed` notification reports a failing pre-command before that.
+Retries report each failing pre-command once, until the pre-commands pass.
 An autoscaler must not replace a host only because its monitored application is down, the new host deploys the same version.
 Base the host health check on DeployEx, not on the monitored application.
 

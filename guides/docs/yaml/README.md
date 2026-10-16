@@ -99,7 +99,7 @@ notifications:
       - "certificate_failed"                             # TLS certificate renewal failed
       - "config_changed"                                 # Upgradable config change detected in YAML
       - "config_change_applied"                          # Pending config changes successfully applied
-      - "pre_command_failed"                             # A pre-command failed, retries that fail again stay silent
+      - "pre_command_failed"                             # A pre-command failed. Retries report each command once
       - "version_ghosted"                                # A version was ghosted, this host does not deploy it again
 
   # Slack Incoming Webhook adapter

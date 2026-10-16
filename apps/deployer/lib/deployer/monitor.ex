@@ -23,7 +23,8 @@ defmodule Deployer.Monitor do
           start_time: nil | integer(),
           timeout_app_ready: integer(),
           retry_delay_pre_commands: integer(),
-          pre_commands_run: map() | nil
+          pre_commands_run: map() | nil,
+          reported_pre_commands: [String.t()]
         }
 
   defstruct current_pid: nil,
@@ -40,7 +41,8 @@ defmodule Deployer.Monitor do
             start_time: nil,
             timeout_app_ready: nil,
             retry_delay_pre_commands: nil,
-            pre_commands_run: nil
+            pre_commands_run: nil,
+            reported_pre_commands: []
 
   ### ==========================================================================
   ### Callback function implementation
