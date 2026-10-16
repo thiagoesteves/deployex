@@ -24,6 +24,8 @@ defmodule Foundation.Notifications.Webhook do
             - "certificate_failed"
             - "config_changed"
             - "config_change_applied"
+            - "pre_command_failed"
+            - "version_ghosted"
 
   The `options:` key is accepted but currently unused; it is reserved for
   future extensions such as custom headers or HMAC signing.
@@ -62,6 +64,8 @@ defmodule Foundation.Notifications.Webhook do
   | `certificate_failed`            | `app_name`, `domains`, `reason`                                                                        |
   | `config_changed`                | `node`, `changes_count`, `fields`                                                                      |
   | `config_change_applied`         | `node`, `changes_count`, `fields`                                                                      |
+  | `pre_command_failed`            | `node`, `sname`, `name`, `command`, `reason`                                                           |
+  | `version_ghosted`               | `node`, `sname`, `name`, `version`, `reason`                                                           |
   """
 
   @behaviour Foundation.Notifications.Adapter

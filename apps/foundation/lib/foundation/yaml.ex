@@ -740,6 +740,8 @@ defmodule Foundation.Yaml do
     deployment_shutdown
     config_changed
     config_change_applied
+    pre_command_failed
+    version_ghosted
   )
 
   defp parse_notification_events(events) do

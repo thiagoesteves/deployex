@@ -192,5 +192,49 @@ defmodule Foundation.Notifications.SlackTest do
         end)
       end
     end
+
+    test "names the command of a failed pre-command and the version of a ghost" do
+      test_pid = self()
+
+      with_mocks([
+        {Finch, [],
+         [
+           build: fn :post, _url, _headers, body ->
+             send(test_pid, {:text, Jason.decode!(body)["text"]})
+             %{}
+           end,
+           request: fn _req, Foundation.Finch ->
+             {:ok, %Finch.Response{status: 200, headers: [], body: "ok"}}
+           end
+         ]}
+      ]) do
+        payload = %{
+          node: :n@h,
+          sname: "s-1",
+          name: "myapp",
+          command: "eval M.run",
+          reason: "{:exit_status, 256}"
+        }
+
+        assert :ok = Slack.notify("pre_command_failed", payload, @config)
+        assert_receive {:text, text}
+        assert text =~ "*pre_command_failed* — `s-1` on `n@h`"
+        assert text =~ "`eval M.run`"
+        assert text =~ "{:exit_status, 256}"
+
+        payload = %{
+          node: :n@h,
+          sname: "s-1",
+          name: "myapp",
+          version: "1.1.0",
+          reason: "not running within deploy_rollback_timeout_ms"
+        }
+
+        assert :ok = Slack.notify("version_ghosted", payload, @config)
+        assert_receive {:text, text}
+        assert text =~ "*version_ghosted* — `myapp` *1.1.0* on `n@h`"
+        assert text =~ "not running within deploy_rollback_timeout_ms"
+      end
+    end
   end
 end

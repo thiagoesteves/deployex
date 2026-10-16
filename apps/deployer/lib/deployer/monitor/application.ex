@@ -217,6 +217,7 @@ defmodule Deployer.Monitor.Application do
       "Error running pre-command: #{run.command} for sname: #{state.sname} reason: #{inspect(reason)}"
     )
 
+    notify_pre_command_failed(state, run.command, reason)
     send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
 
     {:noreply, end_pre_commands_run(state, run)}
@@ -604,6 +605,9 @@ defmodule Deployer.Monitor.Application do
             "Error running pre-command: #{pre_command} for sname: #{sname} reason: #{inspect(reason)}"
           )
 
+          # A retry after a failed run sends nothing, so a start that keeps failing reports once
+          if status != :pre_commands, do: notify_pre_command_failed(state, pre_command, reason)
+
           {:halt, {:error, :pre_commands}}
       end
     end)
@@ -652,6 +656,7 @@ defmodule Deployer.Monitor.Application do
           "Error running pre-command: #{command} for sname: #{sname} reason: #{inspect(reason)}"
         )
 
+        notify_pre_command_failed(state, command, reason)
         send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
         end_pre_commands_run(state, run)
     end
@@ -674,6 +679,17 @@ defmodule Deployer.Monitor.Application do
       true ->
         state
     end
+  end
+
+  # The reason is inspected, so every adapter can encode it
+  defp notify_pre_command_failed(%Monitor{} = state, command, reason) do
+    Foundation.Notifications.notify("pre_command_failed", %{
+      node: Node.self(),
+      sname: state.sname,
+      name: state.name,
+      command: command,
+      reason: inspect(reason)
+    })
   end
 
   defp do_restart(state) do

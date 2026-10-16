@@ -51,6 +51,8 @@ defmodule Foundation.Notifications.Adapter do
   | `"certificate_failed"`         | `app_name`, `domains`, `reason`                                                               |
   | `"config_changed"`             | `node`, `changes_count`, `fields`                                                             |
   | `"config_change_applied"`      | `node`, `changes_count`, `fields`                                                             |
+  | `"pre_command_failed"`         | `node`, `sname`, `name`, `command`, `reason`                                                  |
+  | `"version_ghosted"`            | `node`, `sname`, `name`, `version`, `reason`                                                  |
   """
 
   alias Foundation.Notifications.Worker
