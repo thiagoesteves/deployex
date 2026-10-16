@@ -1303,7 +1303,7 @@ defmodule Deployer.EngineTest do
         %{worker_pid: worker_pid, other_sname: other_sname, removed: [_leftover, oldest_sname]} =
           rollout = start_rollout_on_stopped_replica(3)
 
-        # The change sets current to 1, which is up to date
+        # The rollout stays on the stopped replica of instance 2
         Engine.Worker.updated_state_values("myelixir", %{replicas: 2})
         :sys.get_state(worker_pid)
         rollout.open_download.()
@@ -1320,24 +1320,27 @@ defmodule Deployer.EngineTest do
     end
 
     @tag :capture_log
-    test "With two replicas, adding one mid-rollout goes back to the stopped replica" do
+    test "With two replicas, adding one mid-rollout stays on the stopped replica" do
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         %{worker_pid: worker_pid, other_sname: other_sname} =
           rollout = start_rollout_on_stopped_replica(2)
 
-        # The change sets current to the new instance, then the rollout wraps to 1
+        # The rollout stays on instance 2 and reaches the new instance after it
         Engine.Worker.updated_state_values("myelixir", %{replicas: 3})
-        assert %{current: 3} = :sys.get_state(worker_pid)
+        assert %{current: 2} = :sys.get_state(worker_pid)
         rollout.open_download.()
 
-        added_sname = receive_started([rollout.previous_sname])
-        Engine.notify_application_running(added_sname)
-
-        upgrade_sname = receive_started([])
+        upgrade_sname = receive_started([rollout.previous_sname])
         refute upgrade_sname == other_sname
 
         assert %{current: 2, deployment_to_terminate: %{sname: ^other_sname, state: :stopped}} =
+                 :sys.get_state(worker_pid)
+
+        Engine.notify_application_running(upgrade_sname)
+        added_sname = receive_started([])
+
+        assert %{current: 3, deployments: %{3 => %{sname: ^added_sname}}} =
                  :sys.get_state(worker_pid)
       end
     end
@@ -2194,7 +2197,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
-    for change <- [:restart, :replicas, :replica_ports] do
+    for change <- [:restart, :replica_ports] do
       @change change
       test "A #{change} while pre-commands run ends the request without a ghost or an upgrade" do
         pid = self()
@@ -2260,10 +2263,6 @@ defmodule Deployer.EngineTest do
               Engine.Worker.restart_deployments(name)
               assert_receive :cancelled, 1_000
 
-            :replicas ->
-              Engine.Worker.updated_state_values(name, %{replicas: 2})
-              assert_receive :cancelled, 1_000
-
             :replica_ports ->
               Engine.Worker.updated_state_values(name, %{
                 replica_ports: [%{key: "PORT", base: 5000}]
@@ -2281,7 +2280,7 @@ defmodule Deployer.EngineTest do
       end
     end
 
-    test "Adding a replica while pre-commands run in an open window keeps the request" do
+    test "Adding a replica while pre-commands run keeps the request" do
       pid = self()
       name = "myelixir"
 
@@ -2302,7 +2301,7 @@ defmodule Deployer.EngineTest do
         send(pid, {:requested, ref})
         {:ok, ref}
       end)
-      # the window stays on the instance, so its migration keeps running
+      # the rollout stays on the instance, so its migration keeps running
       |> expect(:cancel_pre_commands, 0, fn _sname, _ref -> :ok end)
 
       Deployer.ReleaseMock
@@ -2326,8 +2325,8 @@ defmodule Deployer.EngineTest do
                    language: "elixir"
                  })
 
-        # the start up window stays open, the app has not reported running
         assert_receive {:started, sname}, 1_000
+        Engine.notify_application_running(sname)
         assert_receive {:requested, ref}, 1_000
 
         Engine.Worker.updated_state_values(name, %{replicas: 2})
@@ -4469,7 +4468,8 @@ defmodule Deployer.EngineTest do
                      timer_ref: nil
                    }
                  },
-                 deployment_to_terminate: nil
+                 # 2.0.0 is in its window, the previous version stays as its fallback
+                 deployment_to_terminate: %Deployer.Engine.Deployment{state: :active}
                } = :sys.get_state(module_name)
       end
     end
@@ -4625,7 +4625,7 @@ defmodule Deployer.EngineTest do
                  # Check the State is fully restarted and ready to deploy again
                  assert %Deployer.Engine.Worker{
                           replicas: 5,
-                          current: 4,
+                          current: 2,
                           deployments: %{
                             1 => %Deployer.Engine.Deployment{
                               ports: [],
@@ -4757,7 +4757,7 @@ defmodule Deployer.EngineTest do
                  # Check the State is fully restarted and ready to deploy again
                  assert %Deployer.Engine.Worker{
                           replicas: 5,
-                          current: 4,
+                          current: 2,
                           deployments: %{
                             1 => %Deployer.Engine.Deployment{
                               ports: [%{base: 6003, key: "PORT"}],
@@ -5036,7 +5036,7 @@ defmodule Deployer.EngineTest do
   describe "Config changes during a rollback window" do
     # Every replica runs 1.0.0, then 2.0.0 is published and its full deployment opens a window
     # on instance 1. The versions live in an agent, so each sname reports what was deployed to it
-    defp open_window(name, replicas) do
+    defp open_window(name, replicas, rollback_timeout_ms \\ 60_000) do
       test_pid = self()
       {:ok, versions} = Agent.start_link(fn -> %{release: "1.0.0"} end)
 
@@ -5047,6 +5047,10 @@ defmodule Deployer.EngineTest do
       |> stub(:set_current_version_map, fn sname, release, _attrs ->
         Agent.update(versions, &Map.put(&1, sname, release.version))
       end)
+      |> stub(:current_version_map, fn sname ->
+        %{version: Agent.get(versions, &Map.get(&1, sname)), hash: "local", pre_commands: []}
+      end)
+      |> stub(:add_ghosted_version, fn version_map -> {:ok, [version_map]} end)
 
       Deployer.MonitorMock
       |> stub(:start_service, fn %{sname: sname, ports: ports} ->
@@ -5072,7 +5076,7 @@ defmodule Deployer.EngineTest do
         Engine.Worker.start_link(%Engine.Worker{
           replicas: replicas,
           replica_ports: [%{key: "PORT", base: 4000}],
-          deploy_rollback_timeout_ms: 60_000,
+          deploy_rollback_timeout_ms: rollback_timeout_ms,
           deploy_schedule_interval_ms: 50,
           name: name,
           language: "elixir"
@@ -5109,18 +5113,95 @@ defmodule Deployer.EngineTest do
     end
 
     @tag :capture_log
-    test "Restarting the deployments stops the previous version too" do
+    test "Restarting the deployments keeps the previous version when the new one fails" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, [previous_sname, second_sname], new_sname} = open_window(name, 2, 500)
+
+        assert %{deployment_to_terminate: %{ports: previous_ports}} = :sys.get_state(worker_pid)
+
+        Engine.Worker.restart_deployments(name)
+
+        # No instance takes the ports the previous version holds
+        assert %{
+                 current: 1,
+                 deployments: %{1 => %{sname: nil, ports: ports}, 2 => %{sname: nil}},
+                 deployment_to_terminate: %{sname: ^previous_sname, ports: ^previous_ports},
+                 available_ports: []
+               } = :sys.get_state(worker_pid)
+
+        refute ports == previous_ports
+        assert_received {:stopped, ^new_sname}
+        assert_received {:stopped, ^second_sname}
+        refute_received {:stopped, ^previous_sname}
+
+        # The window opens again on instance 1, the new version never reports running
+        assert_receive {:started, window_sname, ^ports}, 1_000
+        assert_receive {:stopped, ^window_sname}, 1_000
+
+        assert %{deployments: %{1 => %{sname: ^previous_sname}}, deployment_to_terminate: nil} =
+                 :sys.get_state(worker_pid)
+
+        refute_received {:stopped, ^previous_sname}
+      end
+    end
+
+    @tag :capture_log
+    test "Changing the replica ports moves the previous version to the spare set" do
       name = "myelixir"
 
       with_mock System, [:passthrough],
         cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
         {worker_pid, [previous_sname], new_sname} = open_window(name, 1)
 
-        Engine.Worker.restart_deployments(name)
+        Engine.Worker.updated_state_values(name, %{replica_ports: [%{key: "PORT", base: 5000}]})
 
-        assert %{deployment_to_terminate: nil} = :sys.get_state(worker_pid)
+        assert %{
+                 deployments: %{1 => %{sname: nil, ports: [%{key: "PORT", base: 5000}]}},
+                 deployment_to_terminate: %{
+                   sname: ^previous_sname,
+                   ports: [%{key: "PORT", base: 5001}]
+                 },
+                 available_ports: []
+               } = :sys.get_state(worker_pid)
+
         assert_received {:stopped, ^new_sname}
         assert_received {:stopped, ^previous_sname}
+        assert_received {:started, ^previous_sname, [%{key: "PORT", base: 5001}]}
+
+        # The window opens again with the new config, and its report stops the previous version
+        assert_receive {:started, window_sname, [%{key: "PORT", base: 5000}]}, 1_000
+        Engine.notify_application_running(window_sname)
+        assert_receive {:stopped, ^previous_sname}, 1_000
+
+        assert %{deployment_to_terminate: nil, available_ports: [%{key: "PORT", base: 5001}]} =
+                 :sys.get_state(worker_pid)
+      end
+    end
+
+    @tag :capture_log
+    test "Adding a replica to an idle rollout deploys it after the current instance" do
+      name = "myelixir"
+
+      with_mock System, [:passthrough],
+        cmd: fn "tar", ["-x", "-f", _source_path, "-C", _dest_path] -> {"", 0} end do
+        {worker_pid, [_previous_sname], new_sname} = open_window(name, 1)
+        Engine.notify_application_running(new_sname)
+
+        assert %{current: 1, deployment_to_terminate: nil} = :sys.get_state(worker_pid)
+
+        Engine.Worker.updated_state_values(name, %{replicas: 2})
+
+        assert_receive {:started, added_sname, _ports}, 1_000
+        Engine.notify_application_running(added_sname)
+
+        assert %{
+                 current: 1,
+                 deployments: %{1 => %{sname: ^new_sname}, 2 => %{sname: ^added_sname}}
+               } =
+                 :sys.get_state(worker_pid)
       end
     end
 
