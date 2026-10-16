@@ -118,7 +118,9 @@ config :foundation,
     #     "certificate_valid",
     #     "certificate_failed",
     #     "config_changed",
-    #     "config_change_applied"
+    #     "config_change_applied",
+    #     "pre_command_failed",
+    #     "version_ghosted"
     #   ],
     #   options: %{}
     # }

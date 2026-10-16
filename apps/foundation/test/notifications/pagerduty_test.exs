@@ -204,7 +204,12 @@ defmodule Foundation.Notifications.PagerDutyTest do
         {"config_changed",
          %{node: :n@h, changes_count: 2, fields: ["notifications", "monitoring"]}, "warning"},
         {"config_change_applied",
-         %{node: :n@h, changes_count: 2, fields: ["notifications", "monitoring"]}, "info"}
+         %{node: :n@h, changes_count: 2, fields: ["notifications", "monitoring"]}, "info"},
+        {"pre_command_failed",
+         %{node: :n@h, sname: "s", name: "app", command: "eval M.run", reason: ":enoent"},
+         "error"},
+        {"version_ghosted",
+         %{node: :n@h, sname: "s", name: "app", version: "1.0", reason: "not running"}, "error"}
       ]
 
       test_pid = self()

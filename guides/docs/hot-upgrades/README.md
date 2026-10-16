@@ -518,6 +518,16 @@ reason: :make_relup. myphoenixapp is still running 1.0.0, ghosting version 1.1.0
 A ghosted version is skipped by every following deployment, so the same broken release is not attempted again.
 Publish a new version once the cause is fixed, the application is not stuck waiting for it.
 
+A version is also ghosted when a full deployment does not report running within `deploy_rollback_timeout_ms`.
+Either way, the ghosted version is stored on the host that ghosted it.
+Other hosts, and new hosts that a scale-out adds, still deploy it while `current.json` points to it.
+After a ghost, point `current.json` to a good version.
+The `version_ghosted` notification tells the pipeline that writes `current.json` when to do it.
+The `pre_command_failed` notification reports a failing pre-command before that.
+Retries report each failing pre-command once, until the pre-commands pass.
+An autoscaler must not replace a host only because its monitored application is down, the new host deploys the same version.
+Base the host health check on DeployEx, not on the monitored application.
+
 If the node could not be reached, was stopping, or did not answer in time, nothing says the release is bad, so DeployEx deploys it fully instead of ghosting it.
 A monitored application in a crash loop then still gets the release that fixes it.
 

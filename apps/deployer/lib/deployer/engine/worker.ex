@@ -285,10 +285,15 @@ defmodule Deployer.Engine.Worker do
         Catalog.cleanup(sname)
 
         # Add current version to the ghosted version list
-        {:ok, new_list} =
-          sname
-          |> Status.current_version_map()
-          |> Status.add_ghosted_version()
+        version_map = Status.current_version_map(sname)
+        {:ok, new_list} = Status.add_ghosted_version(version_map)
+
+        notify_version_ghosted(
+          name,
+          sname,
+          version_map.version,
+          "not running within deploy_rollback_timeout_ms"
+        )
 
         # Return deployment to the current one. When the rollback timer was
         # armed by the initial boot there is no previous deployment to return
@@ -1264,6 +1269,17 @@ defmodule Deployer.Engine.Worker do
     })
   end
 
+  # The ghost stays on this host, current.json still points other hosts to the version
+  defp notify_version_ghosted(name, sname, version, reason) do
+    Foundation.Notifications.notify("version_ghosted", %{
+      node: node(),
+      name: name,
+      sname: sname,
+      version: to_string(version),
+      reason: reason
+    })
+  end
+
   # The deployment wrote the version to the catalog before the sname reported running, so
   # the notification reads it from there instead of threading it through the call
   defp notify_deployment_complete(sname) do
@@ -1308,6 +1324,13 @@ defmodule Deployer.Engine.Worker do
         deployment: :hot_upgrade,
         inserted_at: NaiveDateTime.utc_now()
       })
+
+    notify_version_ghosted(
+      name,
+      sname,
+      release.version,
+      "hot upgrade failed before install, reason: #{inspect(reason)}"
+    )
 
     %{state | ghosted_version_list: ghosted_version_list}
   end
