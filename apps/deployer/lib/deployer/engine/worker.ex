@@ -324,18 +324,16 @@ defmodule Deployer.Engine.Worker do
       when new_replicas > current_replicas do
     Logger.warning("Adding new replicas for #{state.name}")
 
-    # The new replica becomes current, so a pending request ends here like on a restart
-    state = abandon_pending_pre_commands(state)
-
     # Check the available port between the old set and the new set.
     all_ports =
       Enum.with_index(0..new_replicas, fn _instance, index ->
         Enum.shuffle(build_ports_by_index(state.replica_ports, index))
       end)
 
+    # The previous version of an open window still runs on its ports
     used_ports =
       Enum.map(state.deployments, fn {_instance, %Engine.Deployment{ports: ports}} -> ports end) ++
-        [state.available_ports]
+        [state.available_ports | previous_ports(state)]
 
     available_ports =
       MapSet.difference(
@@ -361,13 +359,9 @@ defmodule Deployer.Engine.Worker do
         end
       )
 
-    {:noreply,
-     %{
-       state
-       | deployments: new_deployments,
-         replicas: new_replicas,
-         current: next_instance
-     }}
+    # The rollout stays on its instance, with its window or pending request. It reaches the new
+    # instances in order, or once it is idle, as check_deployment/1 moves to an empty instance
+    {:noreply, %{state | deployments: new_deployments, replicas: new_replicas}}
   end
 
   def handle_cast(
@@ -382,25 +376,21 @@ defmodule Deployer.Engine.Worker do
         _pending -> state
       end
 
+    state = if state.current > new_replicas, do: close_removed_window(state), else: state
+
     new_deployments =
       Enum.reduce(1..current_replicas, state.deployments, fn instance, deployments ->
         if instance <= new_replicas do
           deployments
         else
-          %{sname: sname} = deployment = deployments[instance]
-          Logger.info(" # Terminating node: #{sname}")
-          if deployment.state != :stopped, do: Monitor.stop_service(state.name, sname)
-          Catalog.cleanup(sname)
+          terminate_node(state, deployments[instance])
           Map.delete(deployments, instance)
         end
       end)
 
-    # A request that stays keeps its instance current, so its outcome still counts
-    current =
-      case Map.get(state, :pending_pre_commands) do
-        %{instance: instance} -> instance
-        nil -> 1
-      end
+    # An instance that stays keeps the rollout, with its window or pending request, on it.
+    # The instances before it are done, so a removed one hands the rollout back to 1
+    current = if state.current <= new_replicas, do: state.current, else: 1
 
     {:noreply,
      %{
@@ -650,27 +640,77 @@ defmodule Deployer.Engine.Worker do
 
   defp sort_ports(ports), do: Enum.sort_by(ports, & &1.key)
 
+  # The previous version of an open window keeps running as its fallback, as on a DeployEx
+  # restart. The next full deployment of the window's instance puts it back there and opens a
+  # new window with it
   defp do_restart_deployments(
          %__MODULE__{deployments: deployments, replica_ports: replica_ports, replicas: replicas} =
            state
        ) do
-    new_deployments =
-      Enum.reduce(deployments, %{}, fn {instance, %Engine.Deployment{sname: sname}}, acc ->
-        Logger.info(" # Terminating node: #{sname}")
-        Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: sname})
-        Monitor.stop_service(state.name, sname)
-        Catalog.cleanup(sname)
+    current_deployment = deployments[state.current]
+    if current_deployment.timer_ref, do: Process.cancel_timer(current_deployment.timer_ref)
 
-        ports = build_ports_by_index(replica_ports, instance - 1)
-        Map.put(acc, instance, %Engine.Deployment{ports: ports})
+    Enum.each(deployments, fn {_instance, deployment} -> terminate_node(state, deployment) end)
+
+    port_sets = Enum.map(0..replicas, &build_ports_by_index(replica_ports, &1))
+    {deployment_to_terminate, port_sets} = keep_previous_deployment(state, port_sets)
+
+    new_deployments =
+      Map.new(1..replicas, fn instance ->
+        {instance, %Engine.Deployment{ports: Enum.at(port_sets, instance - 1, [])}}
       end)
 
     %{
       state
       | deployments: new_deployments,
-        available_ports: build_ports_by_index(replica_ports, replicas),
-        deployment_to_terminate: nil
+        available_ports: Enum.at(port_sets, replicas, []),
+        deployment_to_terminate: deployment_to_terminate
     }
+  end
+
+  defp terminate_node(_state, %Engine.Deployment{sname: nil}), do: :ok
+
+  defp terminate_node(state, %Engine.Deployment{sname: sname} = deployment) do
+    Logger.info(" # Terminating node: #{sname}")
+    Foundation.Notifications.notify("deployment_shutdown", %{node: node(), sname: sname})
+    if deployment.state != :stopped, do: Monitor.stop_service(state.name, sname)
+    Catalog.cleanup(sname)
+  end
+
+  defp previous_ports(%{deployment_to_terminate: %Engine.Deployment{ports: ports}}), do: [ports]
+  defp previous_ports(_state), do: []
+
+  # The previous version keeps its set, which no instance takes. After a replica_ports change
+  # its set is not in the new config, so it starts again on the spare set of the new config
+  defp keep_previous_deployment(%{deployment_to_terminate: nil}, port_sets), do: {nil, port_sets}
+
+  defp keep_previous_deployment(%{deployment_to_terminate: previous} = state, port_sets) do
+    Logger.info(" # Keeping previous node: #{previous.sname} until the rollback window closes")
+
+    case Enum.find_index(port_sets, &(sort_ports(&1) == sort_ports(previous.ports))) do
+      nil ->
+        {ports, port_sets} = List.pop_at(port_sets, -1)
+        previous = %{previous | ports: ports}
+
+        if previous.state != :stopped do
+          Monitor.stop_service(state.name, previous.sname)
+          start_deployment(state, previous)
+        end
+
+        {previous, port_sets}
+
+      index ->
+        {previous, List.delete_at(port_sets, index)}
+    end
+  end
+
+  # The instance of an open window is removed, so the window ends. Its previous version stops
+  # with it and the ports it held become the spare set
+  defp close_removed_window(state) do
+    timer_ref = state.deployments[state.current].timer_ref
+    if timer_ref, do: Process.cancel_timer(timer_ref)
+
+    terminate_previous_deployment(state)
   end
 
   defp initialize_version(%{language: language, current: current, name: name, env: env} = state) do
@@ -767,6 +807,10 @@ defmodule Deployer.Engine.Worker do
     })
   end
 
+  defp waiting?(%Engine.Deployment{state: :stopped}), do: true
+  defp waiting?(%Engine.Deployment{state: :init, sname: nil}), do: true
+  defp waiting?(_deployment), do: false
+
   # The new version runs, so the window is over and the deployment kept to return to stops
   defp terminate_previous_deployment(%{deployment_to_terminate: nil} = state), do: state
 
@@ -789,7 +833,7 @@ defmodule Deployer.Engine.Worker do
 
     ghosted_version? = Enum.any?(ghosted_version_list, &(&1.version == release_version))
     stopped? = state.deployments[current].state == :stopped
-    waiting = Enum.find(1..state.replicas, &(state.deployments[&1].state == :stopped))
+    waiting = Enum.find(1..state.replicas, &waiting?(state.deployments[&1]))
 
     deploy_application = fn ->
       new_sname = new_sname(name)
@@ -838,10 +882,11 @@ defmodule Deployer.Engine.Worker do
       stopped? ->
         put_in(state.deployments[current].state, :init)
 
-      # A replica change can move the rollout off a sname that a restart kept stopped. An armed
-      # rollback timer means a running report is still due, even after a hot upgrade
+      # An idle rollout moves to a sname that a restart kept stopped, or to an instance that
+      # replicas added. An armed rollback timer means a running report is still due, even after a
+      # hot upgrade
       waiting != nil and is_nil(state.deployments[current].timer_ref) ->
-        Logger.info(" # Moving to the stopped instance: #{waiting}")
+        Logger.info(" # Moving to the waiting instance: #{waiting}")
         %{state | current: waiting}
 
       true ->
@@ -1111,10 +1156,12 @@ defmodule Deployer.Engine.Worker do
     sname = state.deployments[state.current].sname
     ports = state.deployments[state.current].ports
 
-    Logger.info(" # Terminating node: #{sname} before receiving running state")
-
-    Monitor.stop_service(name, sname)
-    Catalog.cleanup(sname)
+    # A restart in the window leaves the instance empty, with the previous version to return to
+    if sname do
+      Logger.info(" # Terminating node: #{sname} before receiving running state")
+      Monitor.stop_service(name, sname)
+      Catalog.cleanup(sname)
+    end
 
     # Return deployment to the current one
     deployments = Map.put(deployments, state.current, deployment_to_terminate)
