@@ -13,7 +13,8 @@ defmodule Foundation.ConfigProvider.Secrets.Env do
   # Fetched only when set, so a deployment without the feature does not have to
   # define them.
   @optional_secrets [
-    "DEPLOYEX_OAUTH_CLIENT_SECRET"
+    "DEPLOYEX_OAUTH_CLIENT_SECRET",
+    "DEPLOYEX_API_TOKENS"
   ]
 
   @doc """

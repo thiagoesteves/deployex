@@ -68,6 +68,7 @@ defmodule Foundation.ConfigProvider.Secrets.EnvTest do
       end,
       get_env: fn
         "DEPLOYEX_OAUTH_CLIENT_SECRET" -> "gho_secret_abc"
+        "DEPLOYEX_API_TOKENS" -> nil
       end do
       config =
         Manager.load(
@@ -81,6 +82,34 @@ defmodule Foundation.ConfigProvider.Secrets.EnvTest do
         )
 
       assert config[:deployex_web][DeployexWeb.OAuth][:client_secret] == "gho_secret_abc"
+    end
+  end
+
+  @tag :capture_log
+  test "secrets/3 fetches the optional agent API tokens when set" do
+    with_mock System, [:passthrough],
+      fetch_env!: fn
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" ->
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq"
+
+        "DEPLOYEX_ERLANG_COOKIE" ->
+          "cookie"
+
+        "DEPLOYEX_SECRET_KEY_BASE" ->
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+      end,
+      get_env: fn
+        "DEPLOYEX_OAUTH_CLIENT_SECRET" -> nil
+        "DEPLOYEX_API_TOKENS" -> "ci:read:abc123"
+      end do
+      config =
+        Manager.load(
+          [foundation: [{Manager, adapter: Env, path: "any-env-path"}, {:env, "prod"}]],
+          []
+        )
+
+      assert config[:deployex_web][DeployexWeb.AgentApi] == [tokens: "ci:read:abc123"]
+      refute Keyword.has_key?(config[:deployex_web], DeployexWeb.OAuth)
     end
   end
 

@@ -103,6 +103,10 @@ config :deployex_web, DeployexWeb.Endpoint,
   secret_key_base: "hQ1CDXnnsqNi2+sEYF2SSOkj+SrzzqtbwtfjjHYgNDdH97obAtrDPjtN3HyAy6ns",
   server: false
 
+config :deployex_web, DeployexWeb.AgentApi.Endpoint,
+  http: [ip: {127, 0, 0, 1}, port: 4003],
+  server: false
+
 # In test we don't send emails
 config :deployex_web, DeployexWeb.Mailer, adapter: Swoosh.Adapters.Test
 

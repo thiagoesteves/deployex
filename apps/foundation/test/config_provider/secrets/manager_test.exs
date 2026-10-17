@@ -135,6 +135,51 @@ defmodule Foundation.ConfigProvider.Secrets.ManagerTest do
   end
 
   @tag :capture_log
+  test "load/2 merges the agent API tokens as written when present" do
+    SecretsMock
+    |> stub(:secrets, fn _config, _path, _options ->
+      %{
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+        "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+        "DEPLOYEX_SECRET_KEY_BASE" =>
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM",
+        "DEPLOYEX_API_TOKENS" => "ci:read:abc123"
+      }
+    end)
+
+    config =
+      Manager.load(
+        [foundation: [{Manager, adapter: SecretsMock, path: "any-env-path"}, {:env, "prod"}]],
+        []
+      )
+
+    assert config[:deployex_web][DeployexWeb.AgentApi] == [tokens: "ci:read:abc123"]
+  end
+
+  @tag :capture_log
+  test "load/2 omits the agent API key when the tokens are absent" do
+    SecretsMock
+    |> stub(:secrets, fn _config, _path, _options ->
+      %{
+        "DEPLOYEX_ADMIN_HASHED_PASSWORD" =>
+          "$2b$12$nqB622nfq7KOWYS97xDrP.8DNToPxf4zHZFXeVOPc7GnlJbZ7.Dyq",
+        "DEPLOYEX_ERLANG_COOKIE" => "my-cookie",
+        "DEPLOYEX_SECRET_KEY_BASE" =>
+          "RsE6okQAKEfugxTRy5AGrQSZxnywA95AR/PRKGQNoemjg7w+Zgb8wp+UexIkgwsM"
+      }
+    end)
+
+    config =
+      Manager.load(
+        [foundation: [{Manager, adapter: SecretsMock, path: "any-env-path"}, {:env, "prod"}]],
+        []
+      )
+
+    refute Keyword.has_key?(config[:deployex_web], DeployexWeb.AgentApi)
+  end
+
+  @tag :capture_log
   test "load/2 omits the OAuth key when the client_secret is absent" do
     SecretsMock
     |> stub(:secrets, fn _config, _path, _options ->
