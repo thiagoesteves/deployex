@@ -83,6 +83,7 @@ defmodule Foundation.Notifications do
   alias Foundation.Notifications.Worker
 
   @topic_prefix "deployex::notifications"
+  @events_topic "deployex::local_notifications"
 
   ### ==========================================================================
   ### Public Functions
@@ -131,8 +132,17 @@ defmodule Foundation.Notifications do
   """
   @spec notify(event :: String.t(), payload :: map()) :: :ok
   def notify(event, payload) do
+    Phoenix.PubSub.local_broadcast(Foundation.PubSub, @events_topic, {event, payload})
     Phoenix.PubSub.broadcast(Foundation.PubSub, topic(event), {event, payload})
   end
+
+  @doc """
+  Subscribes the caller to every event that this node sends, as `{event, payload}`.
+
+  Events from connected DeployEx nodes are not included, each node reports its own.
+  """
+  @spec subscribe_events() :: :ok | {:error, term()}
+  def subscribe_events, do: Phoenix.PubSub.subscribe(Foundation.PubSub, @events_topic)
 
   ### ==========================================================================
   ### Private Functions

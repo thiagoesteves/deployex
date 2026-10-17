@@ -145,6 +145,30 @@ defmodule Foundation.NotificationsTest do
     end
   end
 
+  describe "subscribe_events/0" do
+    test "delivers every event that this node sends" do
+      Notifications.subscribe_events()
+
+      Notifications.notify("crash_restart", @payload)
+      Notifications.notify("config_changed", %{node: :deployex@host})
+
+      assert_receive {"crash_restart", @payload}
+      assert_receive {"config_changed", %{node: :deployex@host}}
+    end
+
+    test "does not deliver the per-event broadcast that a connected node sends" do
+      Notifications.subscribe_events()
+
+      Phoenix.PubSub.broadcast(
+        Foundation.PubSub,
+        Notifications.topic("crash_restart"),
+        {"crash_restart", @payload}
+      )
+
+      refute_receive {"crash_restart", _}, 50
+    end
+  end
+
   describe "Worker integration" do
     @tag :capture_log
     test "worker calls its adapter when a matching event is received" do
