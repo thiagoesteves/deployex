@@ -173,6 +173,7 @@ DeployEx application typically requires a few environment variables to be define
 | **DEPLOYEX_ERLANG_COOKIE**         | cookie                           | aws, gcp or env secrets | erlang cookie                                             |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | 2b1...42ASi                      | aws, gcp or env secrets | Hashed admin password for authentication                  |
 | **DEPLOYEX_OAUTH_CLIENT_SECRET**   | 3f9c...a1b2                      | aws, gcp or env secrets | Optional, the GitHub OAuth App secret when `auth` is set  |
+| **DEPLOYEX_API_TOKENS**            | ci:read:9f86...0f00a08           | aws, gcp or env secrets | Optional, the [agent API](guides/docs/agent-api/README.md) token entries |
 | **DEPLOYEX_CONFIG_YAML_PATH**      | /home/ubuntu/deployex.yaml       |         system ENV      | Yaml configuration for Deployex and Monitored application |
 | **DEPLOYEX_OTP_TLS_CERT_PATH**     | /usr/local/share/ca-certificates |         system ENV      | If using mTLS, the certificate PATH is needed             |
 
@@ -221,6 +222,7 @@ Within the secrets, the following key-value pairs are required:
 | **DEPLOYEX_ERLANG_COOKIE** | my-cookie | erlang cookie |
 | **DEPLOYEX_ADMIN_HASHED_PASSWORD** | $2b$1...5PAYTZjNQ42ASi | Bcrypt.hash_pwd_salt("my-pass") |
 | **DEPLOYEX_OAUTH_CLIENT_SECRET** | 3f9c...a1b2 | Optional, the GitHub OAuth App secret, needed only when the YAML has an `auth` section |
+| **DEPLOYEX_API_TOKENS** | ci:read:9f86...0f00a08 | Optional, `name:scopes:sha256` entries, needed only when the YAML has an `agent_api` section |
 
 ## 🏠 Local Development & Application Setup
 

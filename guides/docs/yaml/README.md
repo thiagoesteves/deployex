@@ -150,6 +150,20 @@ auth:
     - "example.com"
 
 # ============================================================================
+# AGENT API (optional)
+# ============================================================================
+# A read-only JSON API and an event stream on their own port, off by default.
+# Each request needs a bearer token from DEPLOYEX_API_TOKENS, a secret that the
+# secrets adapter provides. The section is read when DeployEx starts. See the
+# Agent API guide.
+
+agent_api:
+  enabled: true                                          # Turn the listener on (optional, default: false)
+  port: 5002                                             # Listen port (optional, default: 5002)
+  # certfile: "/etc/deployex/api.crt"                    # Serve only HTTPS (optional, with keyfile, must exist at boot)
+  # keyfile: "/etc/deployex/api.key"                     # Private key of the certificate (optional, with certfile)
+
+# ============================================================================
 # DEPLOYEX MONITORING (optional)
 # ============================================================================
 
@@ -386,6 +400,7 @@ These fields require a **full DeployEx restart**:
 - `secrets_path` - Secrets path
 - `aws_region` - AWS region
 - `google_credentials` - GCP credentials path
+- `agent_api` - Agent API listener, port and TLS files
 
 #### System Requirements
 - `version` - DeployEx version
@@ -475,5 +490,5 @@ applications:
         value: true
 
 # Full deploy required
-port: 5002  # Changing DeployEx port requires restart
+port: 5003  # Changing DeployEx port requires restart
 ```
