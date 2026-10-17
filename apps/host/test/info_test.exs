@@ -287,6 +287,28 @@ defmodule Host.InfoTest do
   end
 
   @tag :capture_log
+  test "latest/1 returns the last reading of the server" do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
+    Host.CommanderMock
+    |> stub(:os_type, fn -> {:unix, :linux} end)
+    |> stub(:run, fn _, [:stdout, :sync] -> {:error, "any"} end)
+
+    assert InfoServer.latest(name) == nil
+
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
+
+    InfoServer.subscribe()
+    assert_receive {:update_system_info, %Host.Info{} = host_info}, 1_000
+
+    assert InfoServer.latest(name) == host_info
+  end
+
+  test "latest/0 returns nil with no server running" do
+    assert Host.Info.latest() == nil
+  end
+
+  @tag :capture_log
   test "Host Uptime variations" do
     Host.CommanderMock
     |> stub(:run, fn "cat /proc/uptime", [:stdout, :sync] ->

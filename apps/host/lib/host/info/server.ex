@@ -33,12 +33,18 @@ defmodule Host.Info.Server do
     |> Keyword.get(:update_info_interval, @update_info_interval)
     |> :timer.send_interval(:update_info)
 
-    {:ok, %{self_node: Node.self()}}
+    # The table takes the server name, so each server keeps its own last reading
+    table = Keyword.get(args, :name, __MODULE__)
+    :ets.new(table, [:set, :protected, :named_table])
+
+    {:ok, %{self_node: Node.self(), table: table}}
   end
 
   @impl true
-  def handle_info(:update_info, %{self_node: self_node} = state) do
+  def handle_info(:update_info, %{self_node: self_node, table: table} = state) do
     host_info = host_info(self_node)
+
+    :ets.insert(table, {:host_info, host_info})
 
     Phoenix.PubSub.broadcast(
       Host.PubSub,
@@ -55,6 +61,19 @@ defmodule Host.Info.Server do
 
   @spec subscribe() :: :ok | {:error, any()}
   def subscribe, do: Phoenix.PubSub.subscribe(Host.PubSub, @system_info_updated_topic)
+
+  @doc """
+  Returns the last host reading, or nil before the first one or with no server running.
+  """
+  @spec latest(name :: atom()) :: Host.Info.t() | nil
+  def latest(name \\ __MODULE__) do
+    with tid when tid != :undefined <- :ets.whereis(name),
+         [{:host_info, host_info}] <- :ets.lookup(tid, :host_info) do
+      host_info
+    else
+      _ -> nil
+    end
+  end
 
   ### ==========================================================================
   ### Private Functions

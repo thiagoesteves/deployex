@@ -32,6 +32,9 @@ defmodule Host.Info do
   @spec subscribe() :: :ok | {:error, any()}
   def subscribe, do: Server.subscribe()
 
+  @spec latest() :: t() | nil
+  def latest, do: Server.latest()
+
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
