@@ -70,9 +70,11 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
           ]
         )
 
-      # OAuth client_secret is optional. Merge it only when present, so a
-      # deployment without OAuth keeps its config unchanged.
-      merge_oauth_client_secret(config, secrets["DEPLOYEX_OAUTH_CLIENT_SECRET"])
+      # The OAuth client_secret and the agent API tokens are optional. Merge each only
+      # when present, so a deployment without the feature keeps its config unchanged.
+      config
+      |> merge_oauth_client_secret(secrets["DEPLOYEX_OAUTH_CLIENT_SECRET"])
+      |> merge_api_tokens(secrets["DEPLOYEX_API_TOKENS"])
     end
   end
 
@@ -82,6 +84,17 @@ defmodule Foundation.ConfigProvider.Secrets.Manager do
     Config.Reader.merge(config,
       deployex_web: [
         {DeployexWeb.OAuth, keyword(:client_secret, client_secret)}
+      ]
+    )
+  end
+
+  # Merged as written, DeployexWeb.AgentApi.Tokens parses them
+  defp merge_api_tokens(config, nil), do: config
+
+  defp merge_api_tokens(config, tokens) do
+    Config.Reader.merge(config,
+      deployex_web: [
+        {DeployexWeb.AgentApi, keyword(:tokens, tokens)}
       ]
     )
   end
