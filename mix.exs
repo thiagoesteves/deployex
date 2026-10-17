@@ -103,6 +103,7 @@ defmodule Deployex.MixProject do
         "guides/docs/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
         "guides/docs/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"],
         "guides/docs/yaml/README.md": [filename: "README.md", title: "YAML"],
+        "guides/docs/agent-api/README.md": [filename: "README.md", title: "Agent API"],
         "guides/docs/hot-upgrades/README.md": [filename: "README.md", title: "Hot Upgrades"]
       ]
     ]
