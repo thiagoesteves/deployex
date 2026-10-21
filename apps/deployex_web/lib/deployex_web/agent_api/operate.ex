@@ -15,8 +15,8 @@ defmodule DeployexWeb.AgentApi.Operate do
   @type error :: {:error, :not_found | :unavailable | {:invalid, String.t()}}
 
   @doc """
-  Restarts every instance of the app, as the dashboard restart button does. The engine
-  worker restarts them after the reply.
+  Stops every instance of the monitored app and deploys each again, as the dashboard Full
+  Restart button does. The engine worker does it after the reply.
   """
   @spec restart(name :: String.t()) :: {:ok, map()} | error()
   def restart(name) do
