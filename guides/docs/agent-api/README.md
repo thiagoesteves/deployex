@@ -102,14 +102,15 @@ curl -H "Authorization: Bearer $TOKEN" http://10.0.1.12:5002/v1/apps/myphoenixap
 
 ## Operate
 
-A token with the `operate` scope can do what the dashboard buttons do. Each call first checks that the host monitors the app.
+A token with the `operate` scope can do what the dashboard buttons do. Each call first checks that the host monitors the app
+named in the path. The restart is the Full Restart: the monitored app is down until its first instance is back.
 
 | Call | Does | Returns |
 |---|---|---|
-| `POST /v1/apps/:name/restart` | Restarts every instance of the app, as the restart button does | `202`. It restarts after the reply |
+| `POST /v1/apps/:name/restart` | Stops every instance at once and deploys each again, as Full Restart | `202`. It runs after the reply |
 | `DELETE /v1/apps/:name/ghosted/:version` | Removes one ghosted version | `200` with the rest. `404` if it is not ghosted |
 | `DELETE /v1/apps/:name/ghosted` | Clears the ghosted versions | `200` with an empty list |
-| `PUT /v1/apps/:name/mode` | Sets the mode | `200` with the mode. `422` for an unknown mode or a version not in the history |
+| `PUT /v1/apps/:name/mode` | Sets the mode | `200`. `422` for an unknown mode or a version not in the history. `400` for bad JSON |
 
 The mode call takes a JSON body, `{"mode": "automatic"}` or `{"mode": "manual", "version": "1.4.1"}`:
 
@@ -118,9 +119,11 @@ curl -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json
   -d '{"mode": "manual", "version": "1.4.1"}' http://10.0.1.12:5002/v1/apps/myphoenixapp/mode
 ```
 
-`GET /v1/apps/:name` shows a new mode within about one second, at the next status refresh.
+`GET /v1/apps/:name` shows a new mode within about one second, at the next status refresh. A `503` from the mode call can still
+set the mode later, so read `GET /v1/apps/:name` before a retry.
 
-Each operate call writes one audit line to the DeployEx log, also when it fails or the token has no `operate` scope:
+Each operate call with a known token writes one audit line to the DeployEx log, also when it fails or the token has no
+`operate` scope:
 
 ```text
 Agent API operate: token=ops from=10.0.1.20 action=set_mode app="myphoenixapp" mode="manual" version="1.4.1" result=ok
