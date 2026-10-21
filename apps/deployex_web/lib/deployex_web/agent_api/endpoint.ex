@@ -18,5 +18,12 @@ defmodule DeployexWeb.AgentApi.Endpoint do
     event_prefix: [:phoenix, :endpoint],
     log: {DeployexWeb.Logger, :log, []}
 
+  # Only the mode call has a body, and it is a few bytes
+  plug Plug.Parsers,
+    parsers: [:json],
+    pass: ["application/json"],
+    json_decoder: Phoenix.json_library(),
+    length: 4_096
+
   plug DeployexWeb.AgentApi.Router
 end
