@@ -88,8 +88,11 @@ defmodule Deployer.Monitor.Application do
   # as the old MatchError did, so that hot upgrade fails instead of installing
   def handle_call({:run_pre_commands, pre_commands, app_bin_service}, _from, state) do
     case execute_pre_commands(state, pre_commands, app_bin_service) do
-      :ok -> {:reply, {:ok, pre_commands}, state}
-      {:error, _reason} = error -> {:stop, :pre_commands_failed, error, state}
+      :ok ->
+        {:reply, {:ok, pre_commands}, state}
+
+      {:error, :pre_commands, _command} ->
+        {:stop, :pre_commands_failed, {:error, :pre_commands}, state}
     end
   end
 
@@ -217,6 +220,7 @@ defmodule Deployer.Monitor.Application do
       "Error running pre-command: #{run.command} for sname: #{state.sname} reason: #{inspect(reason)}"
     )
 
+    notify_pre_command_failed(state, run.command, reason)
     send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
 
     {:noreply, end_pre_commands_run(state, run)}
@@ -296,9 +300,11 @@ defmodule Deployer.Monitor.Application do
 
   def terminate(_reason, _state), do: :ok
 
-  # A state from a version without pre_commands_run gets the field on a relup
+  # A state from an older version gets the fields it lacks on a relup
   @impl true
-  def code_change(_old_vsn, state, _extra), do: {:ok, Map.put_new(state, :pre_commands_run, nil)}
+  def code_change(_old_vsn, state, _extra) do
+    {:ok, state |> Map.put_new(:pre_commands_run, nil) |> Map.put_new(:reported_pre_commands, [])}
+  end
 
   ### ==========================================================================
   ### Public functions
@@ -430,9 +436,10 @@ defmodule Deployer.Monitor.Application do
         Logger.error("Version: #{version} set but no #{app_exec}")
         state
 
-      {:error, :pre_commands} ->
+      {:error, :pre_commands, command} ->
         trigger_run_service(sname, retry_delay_pre_commands)
-        %{state | status: :pre_commands}
+        reported = Enum.uniq([command | reported_pre_commands(state)])
+        Map.put(%{state | status: :pre_commands}, :reported_pre_commands, reported)
     end
   end
 
@@ -604,7 +611,11 @@ defmodule Deployer.Monitor.Application do
             "Error running pre-command: #{pre_command} for sname: #{sname} reason: #{inspect(reason)}"
           )
 
-          {:halt, {:error, :pre_commands}}
+          # A retry sends nothing for a pre_command this run of failures already reported
+          if pre_command not in reported_pre_commands(state),
+            do: notify_pre_command_failed(state, pre_command, reason)
+
+          {:halt, {:error, :pre_commands, pre_command}}
       end
     end)
     |> tap(fn _response -> update_non_blocking_state(%{state | status: status}) end)
@@ -652,6 +663,7 @@ defmodule Deployer.Monitor.Application do
           "Error running pre-command: #{command} for sname: #{sname} reason: #{inspect(reason)}"
         )
 
+        notify_pre_command_failed(state, command, reason)
         send(run.from, {:pre_commands_result, run.ref, {:error, :pre_commands}})
         end_pre_commands_run(state, run)
     end
@@ -674,6 +686,23 @@ defmodule Deployer.Monitor.Application do
       true ->
         state
     end
+  end
+
+  # Only a pass moves the status off :pre_commands, so the next failure starts a new run
+  defp reported_pre_commands(%Monitor{status: :pre_commands} = state),
+    do: Map.get(state, :reported_pre_commands, [])
+
+  defp reported_pre_commands(_state), do: []
+
+  # The reason is inspected, so every adapter can encode it
+  defp notify_pre_command_failed(%Monitor{} = state, command, reason) do
+    Foundation.Notifications.notify("pre_command_failed", %{
+      node: Node.self(),
+      sname: state.sname,
+      name: state.name,
+      command: command,
+      reason: inspect(reason)
+    })
   end
 
   defp do_restart(state) do

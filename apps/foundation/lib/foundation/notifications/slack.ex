@@ -26,6 +26,8 @@ defmodule Foundation.Notifications.Slack do
             - "certificate_failed"
             - "config_changed"
             - "config_change_applied"
+            - "pre_command_failed"
+            - "version_ghosted"
           options:
             username: "DeployEx"        # optional, default: "DeployEx"
             icon_emoji: ":rocket:"      # optional, default: ":robot_face:"
@@ -63,6 +65,8 @@ defmodule Foundation.Notifications.Slack do
   | `certificate_failed`            | 🔓    | TLS certificate renewal failed                        |
   | `config_changed`                | ⚙️    | Upgradable config change detected in YAML             |
   | `config_change_applied`         | ✅    | Pending config changes successfully applied           |
+  | `pre_command_failed`            | ⛔    | A pre-command failed, each command reported once      |
+  | `version_ghosted`               | 👻    | A version was ghosted, it is not deployed again here  |
   """
 
   @behaviour Foundation.Notifications.Adapter
@@ -214,6 +218,20 @@ defmodule Foundation.Notifications.Slack do
     """
     ✅ *config_change_applied* — `#{payload.node}`
     #{payload.changes_count} change(s) applied: #{Enum.join(payload.fields, ", ")}\
+    """
+  end
+
+  defp format_message("pre_command_failed", payload) do
+    """
+    ⛔ *pre_command_failed* — `#{payload.sname}` on `#{payload.node}`
+    Command: `#{payload.command}`, reason: #{payload.reason}\
+    """
+  end
+
+  defp format_message("version_ghosted", payload) do
+    """
+    👻 *version_ghosted* — `#{payload.name}` *#{payload.version}* on `#{payload.node}`
+    Reason: #{payload.reason}\
     """
   end
 

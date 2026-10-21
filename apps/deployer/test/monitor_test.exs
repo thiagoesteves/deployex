@@ -1124,11 +1124,11 @@ defmodule Deployer.MonitorTest do
                MonitorApp.start_pre_commands(sname, ["eval Migrate.run"], :new)
     end
 
-    test "code_change adds the pre-commands run field to a state from an older version" do
-      old_state = Map.delete(%Deployer.Monitor{sname: "myelixir-abc"}, :pre_commands_run)
+    test "code_change adds the pre-commands fields to a state from an older version" do
+      state = %Deployer.Monitor{sname: "myelixir-abc"}
+      old_state = Map.drop(state, [:pre_commands_run, :reported_pre_commands])
 
-      assert {:ok, %Deployer.Monitor{sname: "myelixir-abc", pre_commands_run: nil}} =
-               MonitorApp.code_change("0.10.0", old_state, [])
+      assert {:ok, ^state} = MonitorApp.code_change("0.10.0", old_state, [])
     end
 
     @tag :capture_log
@@ -1370,6 +1370,212 @@ defmodule Deployer.MonitorTest do
       assert_receive {:handle_ref_event, ^test_event_ref}, 1_000
 
       assert %{status: :running} = MonitorApp.state(sname)
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+  end
+
+  describe "Pre-command failed notification" do
+    setup do
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("pre_command_failed")
+      )
+    end
+
+    @tag :capture_log
+    test "A failing hot upgrade pre_command is reported", context do
+      start_running_monitor(context, fn _command -> exit_pre_command({:exit_status, 256}) end)
+
+      assert {:ok, ref} =
+               MonitorApp.start_pre_commands(context.elixir_sname, ["eval Migrate.run"], :new)
+
+      assert_receive {:pre_commands_result, ^ref, {:error, :pre_commands}}, 1_000
+
+      assert_receive {"pre_command_failed", payload}, 1_000
+      assert payload.node == node()
+      assert payload.name == context.elixir_name
+      assert payload.sname == context.elixir_sname
+      assert payload.command == "eval Migrate.run"
+      # a string, so every adapter can encode it
+      assert payload.reason == "{:exit_status, 256}"
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A hot upgrade pre_command that cannot start is reported", context do
+      start_running_monitor(context, fn _command -> {:error, :enoent} end)
+
+      assert {:ok, ref} = MonitorApp.start_pre_commands(context.elixir_sname, ["eval x"], :new)
+      assert_receive {:pre_commands_result, ^ref, {:error, :pre_commands}}, 1_000
+
+      assert_receive {"pre_command_failed", %{command: "eval x", reason: ":enoent"}}, 1_000
+
+      assert :ok = MonitorApp.stop_service(context.elixir_name, context.elixir_sname)
+    end
+
+    @tag :capture_log
+    test "A start up pre_command that keeps failing is reported once per failure streak", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_pid = self()
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0", pre_commands: ["eval Migrate.run"]}
+      end)
+
+      Host.CommanderMock
+      |> stub(:run_link, fn _command, _options -> {:ok, test_pid, 123_456} end)
+      |> stub(:run, fn command, _options ->
+        if command =~ "eval Migrate.run" do
+          # runs in the monitor, which retries until the fourth attempt passes
+          attempt = Process.get(:attempt, 0) + 1
+          Process.put(:attempt, attempt)
+          send(test_pid, {:attempt, attempt})
+
+          if attempt == 4, do: {:ok, test_pid}, else: {:error, [exit_status: 256]}
+        else
+          {:ok, test_pid}
+        end
+      end)
+      |> stub(:stop, fn _pid -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 timeout_app_ready: 10,
+                 retry_delay_pre_commands: 10
+               })
+
+      assert_receive {"pre_command_failed", payload}, 1_000
+      assert payload.sname == sname
+      assert payload.command == "eval Migrate.run"
+      assert payload.reason == "[exit_status: 256]"
+
+      # the retries that fail again before the pass send nothing
+      assert_receive {:attempt, 4}, 1_000
+      refute_received {"pre_command_failed", _payload}
+
+      # the app started, so a failure on its next start begins a new streak
+      assert :ok = MonitorApp.restart(sname)
+      assert_receive {"pre_command_failed", %{sname: ^sname}}, 2_000
+
+      assert_receive {:attempt, 7}, 1_000
+      refute_received {"pre_command_failed", _payload}
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
+    test "A retry that fails on another pre_command reports that command, once per run", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_pid = self()
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0", pre_commands: ["eval Seed.run", "eval Migrate.run"]}
+      end)
+
+      Host.CommanderMock
+      |> stub(:run, fn command, _options ->
+        cond do
+          # flaky: fails on every other attempt, so the failing command alternates
+          command =~ "eval Seed.run" ->
+            attempt = Process.get(:seed_attempt, 0) + 1
+            Process.put(:seed_attempt, attempt)
+            if rem(attempt, 2) == 1, do: {:error, [exit_status: 256]}, else: {:ok, test_pid}
+
+          command =~ "eval Migrate.run" ->
+            attempt = Process.get(:migrate_attempt, 0) + 1
+            Process.put(:migrate_attempt, attempt)
+            send(test_pid, {:migrate_attempt, attempt})
+            {:error, [exit_status: 256]}
+
+          true ->
+            {:ok, test_pid}
+        end
+      end)
+      |> stub(:stop, fn _pid -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 retry_delay_pre_commands: 10
+               })
+
+      assert_receive {"pre_command_failed", %{command: "eval Seed.run"}}, 1_000
+      assert_receive {"pre_command_failed", %{command: "eval Migrate.run"}}, 1_000
+
+      # the retries that fail on a pre_command already reported send nothing
+      assert_receive {:migrate_attempt, 4}, 1_000
+      refute_received {"pre_command_failed", _payload}
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
+    test "A monitor state without the reported field from an older version reports once more", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_pid = self()
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0", pre_commands: ["eval Migrate.run"]}
+      end)
+
+      Host.CommanderMock
+      |> stub(:run, fn command, _options ->
+        if command =~ "eval Migrate.run" do
+          attempt = Process.get(:attempt, 0) + 1
+          Process.put(:attempt, attempt)
+          send(test_pid, {:attempt, attempt})
+          {:error, [exit_status: 256]}
+        else
+          {:ok, test_pid}
+        end
+      end)
+      |> stub(:stop, fn _pid -> :ok end)
+
+      assert {:ok, monitor} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 retry_delay_pre_commands: 10
+               })
+
+      assert_receive {"pre_command_failed", _payload}, 1_000
+      assert_receive {:attempt, 2}, 1_000
+
+      # a relup that could not suspend the monitor leaves its old state in place
+      :sys.replace_state(monitor, &Map.delete(&1, :reported_pre_commands))
+
+      # the monitor keeps running, reports once more and stores the field again
+      assert_receive {"pre_command_failed", %{command: "eval Migrate.run"}}, 1_000
+      assert %{reported_pre_commands: ["eval Migrate.run"]} = :sys.get_state(monitor)
+
+      assert_receive {:attempt, 10}, 1_000
+      refute_received {"pre_command_failed", _payload}
 
       assert :ok = MonitorApp.stop_service(name, sname)
     end

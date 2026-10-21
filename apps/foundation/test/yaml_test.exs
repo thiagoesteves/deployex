@@ -791,6 +791,8 @@ defmodule Foundation.YamlTest do
           deployment_shutdown
           config_changed
           config_change_applied
+          pre_command_failed
+          version_ghosted
         )
 
         assert Enum.sort(webhook.events) == Enum.sort(all_events)

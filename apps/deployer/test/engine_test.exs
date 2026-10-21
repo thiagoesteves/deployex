@@ -1863,6 +1863,11 @@ defmodule Deployer.EngineTest do
         {:error, {:not_installed, :make_relup}}
       end)
 
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("version_ghosted")
+      )
+
       log =
         capture_log(fn ->
           with_mock System, [:passthrough],
@@ -1886,6 +1891,12 @@ defmodule Deployer.EngineTest do
       assert log =~ "Hot upgrade failed before the release was installed"
       assert log =~ "ghosting version #{to_version}"
       refute log =~ "running for full deployment"
+
+      assert_received {"version_ghosted", payload}
+      assert payload.node == node()
+      assert payload.name == name
+      assert payload.version == to_version
+      assert payload.reason == "hot upgrade failed before install, reason: :make_relup"
     end
 
     test "A hot upgrade whose node cannot be reached deploys fully, no ghost" do
@@ -1918,6 +1929,11 @@ defmodule Deployer.EngineTest do
       # a monitored app that is down, for example in a crash loop, cannot be connected to
       |> expect(:execute, 1, fn _execute -> {:error, {:unreachable, :not_connecting}} end)
 
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("version_ghosted")
+      )
+
       log =
         capture_log(fn ->
           with_mock System, [:passthrough],
@@ -1940,6 +1956,7 @@ defmodule Deployer.EngineTest do
 
       assert log =~ "Hot Upgrade failed, running for full deployment"
       refute log =~ "ghosting version"
+      refute_received {"version_ghosted", _payload}
     end
 
     for {mode, log_line} <- [
@@ -1998,6 +2015,11 @@ defmodule Deployer.EngineTest do
         # the migration did not run, so the release must not be installed
         |> expect(:execute, 0, fn _execute -> :ok end)
 
+        Phoenix.PubSub.subscribe(
+          Foundation.PubSub,
+          Foundation.Notifications.topic("version_ghosted")
+        )
+
         log =
           capture_log(fn ->
             with_mock System, [:passthrough],
@@ -2025,6 +2047,9 @@ defmodule Deployer.EngineTest do
         assert log =~ "reason: :pre_commands"
         assert log =~ "ghosting version #{to_version}"
         refute log =~ "running for full deployment"
+
+        assert_received {"version_ghosted", %{version: ^to_version, reason: reason}}
+        assert reason == "hot upgrade failed before install, reason: :pre_commands"
       end
     end
 
@@ -4329,6 +4354,11 @@ defmodule Deployer.EngineTest do
       Deployer.HotUpgradeMock
       |> expect(:prepare_new_path, fn _name, _language, _to_version, _new_path -> :ok end)
 
+      Phoenix.PubSub.subscribe(
+        Foundation.PubSub,
+        Foundation.Notifications.topic("version_ghosted")
+      )
+
       logs =
         capture_log(fn ->
           with_mock System, [:passthrough],
@@ -4354,6 +4384,12 @@ defmodule Deployer.EngineTest do
       assert logs =~ "base: 2"
       assert logs =~ "key: \"PORT1\""
       assert logs =~ "is not stable, ghosting version"
+
+      assert_received {"version_ghosted", payload}
+      assert payload.node == node()
+      assert payload.name == name
+      assert payload.version == version_to_ghost
+      assert payload.reason == "not running within deploy_rollback_timeout_ms"
     end
   end
 
