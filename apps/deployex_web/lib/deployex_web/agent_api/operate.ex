@@ -57,7 +57,7 @@ defmodule DeployexWeb.AgentApi.Operate do
   def set_mode(name, params) do
     with {:ok, _app} <- Apps.find(name),
          {:ok, mode, version} <- mode(name, params),
-         {:ok, _config} <- Status.set_mode(name, mode, version || "") do
+         {:ok, _config} <- status_set_mode(name, mode, version) do
       {:ok, %{name: name, mode: to_string(mode), manual_version: version}}
     end
   end
@@ -87,11 +87,23 @@ defmodule DeployexWeb.AgentApi.Operate do
   The client address of a request, as text.
   """
   @spec remote_ip(Plug.Conn.t()) :: String.t()
-  def remote_ip(%Plug.Conn{remote_ip: ip}), do: ip |> :inet.ntoa() |> to_string()
+  def remote_ip(%Plug.Conn{remote_ip: ip}), do: ip |> ipv4_mapped() |> :inet.ntoa() |> to_string()
 
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+
+  # An endpoint bound to :: sees an IPv4 client as ::ffff:a.b.c.d
+  defp ipv4_mapped({0, 0, 0, 0, 0, 0xFFFF, _, _} = ip), do: :inet.ipv4_mapped_ipv6_address(ip)
+  defp ipv4_mapped(ip), do: ip
+
+  # The status server can time out. The caller then gets 503, as for a read
+  defp status_set_mode(name, mode, version) do
+    case Status.set_mode(name, mode, version || "") do
+      {:ok, config} -> {:ok, config}
+      {:error, _reason} -> {:error, :unavailable}
+    end
+  end
 
   defp ghosted(name, version) do
     if Enum.any?(Status.ghosted_version_list(name), &(&1.version == version)),

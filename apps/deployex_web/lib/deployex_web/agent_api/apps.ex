@@ -62,7 +62,7 @@ defmodule DeployexWeb.AgentApi.Apps do
       language: app.language,
       replicas: app.replicas,
       mode: Map.get(config, :mode),
-      manual_version: manual_version(Map.get(config, :manual_version)),
+      manual_version: manual_version(config),
       ghosted_versions: ghosted |> newest_first() |> Enum.map(& &1.version),
       instances: Enum.map(app.children, &instance/1)
     }
@@ -133,6 +133,7 @@ defmodule DeployexWeb.AgentApi.Apps do
   defp utc(%NaiveDateTime{} = at), do: DateTime.from_naive!(at, "Etc/UTC")
   defp utc(_at), do: nil
 
-  defp manual_version(%{version: version}), do: version
-  defp manual_version(_manual_version), do: nil
+  # The automatic mode keeps the last pinned version in the config, so read it only when manual
+  defp manual_version(%{mode: :manual, manual_version: %{version: version}}), do: version
+  defp manual_version(_config), do: nil
 end
