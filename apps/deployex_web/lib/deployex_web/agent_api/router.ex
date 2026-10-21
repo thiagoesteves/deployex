@@ -6,9 +6,17 @@ defmodule DeployexWeb.AgentApi.Router do
     plug DeployexWeb.AgentApi.Auth, scope: "read"
   end
 
+  # The body is parsed after the token check, so a call with a bad body is refused or audited
+  # first. Only the mode call has a body. Other content types pass unparsed
   pipeline :operate do
     plug :accepts, ["json"]
     plug DeployexWeb.AgentApi.Auth, scope: "operate"
+
+    plug Plug.Parsers,
+      parsers: [:json],
+      pass: ["*/*"],
+      json_decoder: Phoenix.json_library(),
+      length: 4_096
   end
 
   scope "/v1", DeployexWeb.AgentApi do
