@@ -118,6 +118,8 @@ curl -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json
   -d '{"mode": "manual", "version": "1.4.1"}' http://10.0.1.12:5002/v1/apps/myphoenixapp/mode
 ```
 
+`GET /v1/apps/:name` shows a new mode within about one second, at the next status refresh.
+
 Each operate call writes one audit line to the DeployEx log, also when it fails or the token has no `operate` scope:
 
 ```text
