@@ -242,11 +242,13 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
       assert_receive {:"$gen_cast", :restart_deployments}
     end
 
-    test "a read token with a body that is not JSON gets 403 and its audit line", %{conn: conn} do
+    test "a read token gets 403 and its audit line before the body and the accept header are read",
+         %{conn: conn} do
       log =
         capture_log(fn ->
           assert conn
                  |> bearer("read-token")
+                 |> put_req_header("accept", "text/html")
                  |> put_req_header("content-type", "application/json")
                  |> put("/v1/apps/test_app/mode", "{mode")
                  |> json_response(403)
@@ -256,14 +258,27 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
                ~s(token=ci from=127.0.0.1 action="PUT /v1/apps/test_app/mode" result=forbidden)
     end
 
-    test "an operate token with a body that is not JSON gets 400", %{conn: conn} do
+    test "an operate token with a call that cannot be read gets 400, 406 or 413 and no audit line",
+         %{conn: conn} do
       Deployer.StatusMock |> expect(:set_mode, 0, fn _name, _mode, _version -> {:ok, %{}} end)
+      conn = put_req_header(conn, "content-type", "application/json")
 
-      assert_raise Plug.Parsers.ParseError, fn ->
-        conn
-        |> put_req_header("content-type", "application/json")
-        |> put("/v1/apps/test_app/mode", "{mode")
-      end
+      log =
+        capture_log(fn ->
+          assert_error_sent 400, fn -> put(conn, "/v1/apps/test_app/mode", "{mode") end
+
+          assert_error_sent 413, fn ->
+            put(conn, "/v1/apps/test_app/mode", String.duplicate(" ", 4_097))
+          end
+
+          assert_error_sent 406, fn ->
+            conn
+            |> put_req_header("accept", "text/html")
+            |> put("/v1/apps/test_app/mode", ~s({"mode": "automatic"}))
+          end
+        end)
+
+      refute log =~ "Agent API operate"
     end
 
     test "an operate token does not imply read", %{conn: conn} do

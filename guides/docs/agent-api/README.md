@@ -124,13 +124,16 @@ curl -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json
 `GET /v1/apps/:name` shows a new mode within about one second, at the next status refresh. A `503` from the mode call can still
 set the mode later, so read `GET /v1/apps/:name` before a retry.
 
-Each operate call with a known token writes one audit line to the DeployEx log, also when it fails or the token has no
-`operate` scope:
+Each operate call with a known token writes one audit line to the DeployEx log, also when DeployEx refuses the call
+(`404`, `422`, `503`) or the token has no `operate` scope:
 
 ```text
 Agent API operate: token=ops from=10.0.1.20 action=set_mode app="myphoenixapp" mode="manual" version="1.4.1" result=ok
 Agent API operate: token=ci from=10.0.1.20 action="POST /v1/apps/myphoenixapp/restart" result=forbidden
 ```
+
+A call with the `operate` scope that DeployEx cannot read gets no audit line: `400` for a body that is not JSON, `413` for
+a body over 4 KB, and `406` for an `Accept` header without JSON.
 
 ## Event stream
 

@@ -6,11 +6,11 @@ defmodule DeployexWeb.AgentApi.Router do
     plug DeployexWeb.AgentApi.Auth, scope: "read"
   end
 
-  # The body is parsed after the token check, so a call with a bad body is refused or audited
-  # first. Only the mode call has a body. Other content types pass unparsed
+  # The token check runs first, so a token with no operate scope is always audited. Only the
+  # mode call has a body. Other content types pass unparsed
   pipeline :operate do
-    plug :accepts, ["json"]
     plug DeployexWeb.AgentApi.Auth, scope: "operate"
+    plug :accepts, ["json"]
 
     plug Plug.Parsers,
       parsers: [:json],
