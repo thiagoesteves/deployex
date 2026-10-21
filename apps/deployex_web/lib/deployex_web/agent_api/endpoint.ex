@@ -18,13 +18,5 @@ defmodule DeployexWeb.AgentApi.Endpoint do
     event_prefix: [:phoenix, :endpoint],
     log: {DeployexWeb.Logger, :log, []}
 
-  # Only the mode call reads a body, a few bytes of JSON. Other content types pass unparsed,
-  # so a call with no body never fails before the token check
-  plug Plug.Parsers,
-    parsers: [:json],
-    pass: ["*/*"],
-    json_decoder: Phoenix.json_library(),
-    length: 4_096
-
   plug DeployexWeb.AgentApi.Router
 end

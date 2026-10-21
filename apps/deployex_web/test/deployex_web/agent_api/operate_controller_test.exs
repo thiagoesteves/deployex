@@ -242,6 +242,30 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
       assert_receive {:"$gen_cast", :restart_deployments}
     end
 
+    test "a read token with a body that is not JSON gets 403 and its audit line", %{conn: conn} do
+      log =
+        capture_log(fn ->
+          assert conn
+                 |> bearer("read-token")
+                 |> put_req_header("content-type", "application/json")
+                 |> put("/v1/apps/test_app/mode", "{mode")
+                 |> json_response(403)
+        end)
+
+      assert log =~
+               ~s(token=ci from=127.0.0.1 action="PUT /v1/apps/test_app/mode" result=forbidden)
+    end
+
+    test "an operate token with a body that is not JSON gets 400", %{conn: conn} do
+      Deployer.StatusMock |> expect(:set_mode, 0, fn _name, _mode, _version -> {:ok, %{}} end)
+
+      assert_raise Plug.Parsers.ParseError, fn ->
+        conn
+        |> put_req_header("content-type", "application/json")
+        |> put("/v1/apps/test_app/mode", "{mode")
+      end
+    end
+
     test "an operate token does not imply read", %{conn: conn} do
       assert conn |> bearer("operate-only-token") |> get("/v1/apps") |> json_response(403)
     end
