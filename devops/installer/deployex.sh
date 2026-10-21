@@ -33,7 +33,8 @@ usage() {
     echo "                            downloading (use with --hot-upgrade)"
     echo "  --set-version <version>   Override the version read from the config file"
     echo "                            (used with --hot-upgrade download mode)"
-    echo "  --dist <base_url>         Base URL for downloading releases"
+    echo "  --dist <base_url>         Base URL for downloading releases, https:// or"
+    echo "                            s3://<bucket>/<prefix> (read with the AWS CLI)"
     echo "                            (default: ${DEFAULT_DIST_URL})"
     echo "  --help                    Print help"
     echo
@@ -52,6 +53,9 @@ usage() {
     echo
     echo "  Update with custom config and distribution:"
     echo "    $0 --update my-config.yaml --dist https://example.com/releases"
+    echo
+    echo "  Update from a private S3 bucket, one prefix per version:"
+    echo "    $0 --update --dist 's3://my-bucket/deployex/{version}'"
     echo
     echo "  Uninstall deployex completely:"
     echo "    $0 --uninstall"
@@ -218,6 +222,27 @@ DEPLOYEX_SYSTEMD_FILE="
     echo "#    Deployex installed with success       #"
 }
 
+# Download one release file. An s3:// URL is read with the AWS CLI, which signs the
+# request with the instance role, so the bucket can stay private.
+fetch_release_file() {
+  local url=$1 dest=$2 out
+  local region_args=()
+
+    if [[ "${url}" != s3://* ]]; then
+      wget --timeout=30 --tries=3 -O "${dest}" "${url}"
+      return
+    fi
+    if [[ -n "${aws_region}" && "${aws_region}" != "null" ]]; then
+      region_args=(--region "${aws_region}")
+    fi
+    if ! out=$(aws s3 cp --only-show-errors --cli-connect-timeout 30 "${region_args[@]}" "${url}" "${dest}" 2>&1); then
+      # One line, so the key and the reason stay together in the log.
+      out=$(printf '%s' "${out}" | tr '\n' ' ' | sed 's/^ *//')
+      echo "Error: cannot read ${url}: ${out}" >&2
+      return 1
+    fi
+}
+
 download_and_verify_release() {
   local OS_TARGET=$1
   local OTP_VERSION=$2
@@ -240,12 +265,12 @@ download_and_verify_release() {
     echo "# Download the deployex from Distribution URL: ${BASE_RELEASE}" >&2
     echo "#           Downloading files              #" >&2
     # Bound each download so a stalled host fails instead of hanging the caller.
-    # Check both wgets: the previous single check only covered the second one.
-    if ! wget --timeout=30 --tries=3 -O "${CHECKSUM_FILE}" ${BASE_RELEASE}/${CHECKSUM_FILE}; then
+    # Check both downloads: the previous single check only covered the second one.
+    if ! fetch_release_file "${BASE_RELEASE}/${CHECKSUM_FILE}" "${CHECKSUM_FILE}"; then
       echo "Error while trying to download checksum from: ${BASE_RELEASE}" >&2
       exit 1
     fi
-    if ! wget --timeout=30 --tries=3 -O "${FILENAME}" ${BASE_RELEASE}/${FILENAME}; then
+    if ! fetch_release_file "${BASE_RELEASE}/${FILENAME}" "${FILENAME}"; then
       echo "Error while trying to download release from: ${BASE_RELEASE}" >&2
       exit 1
     fi
@@ -471,6 +496,7 @@ version=$(yq '.version' $config_file | tr -d '"')
 otp_version=$(yq '.otp_version' $config_file | tr -d '"')
 otp_tls_certificates=$(yq '.otp_tls_certificates' $config_file | tr -d '"')
 os_target=$(yq '.os_target' $config_file | tr -d '"')
+aws_region=$(yq '.aws_region' $config_file | tr -d '"')
 install_path=$(yq '.install_path' $config_file | tr -d '"')
 var_path=$(yq '.var_path' $config_file | tr -d '"')
 log_path=$(yq '.log_path' $config_file | tr -d '"')
@@ -512,6 +538,14 @@ if [ "$dist_url" != "$DEFAULT_DIST_URL" ]; then
     base_release=$(echo "$dist_url" | sed "s|{version}|${version}|g")
 else
     base_release=${dist_url}/${version}
+fi
+# A trailing slash, as in a copied S3 folder URI, would give a double slash in the file URLs.
+base_release=${base_release%/}
+
+# Check before --install removes the current installation.
+if [[ "${base_release}" == s3://* && $operation != uninstall && -z $release_path ]] && ! command -v aws >/dev/null 2>&1; then
+    echo "Error: ${base_release} is an S3 location, install the AWS CLI (aws) to read it"
+    exit 1
 fi
 
 # Check if all required parameters are provided based on the operation
