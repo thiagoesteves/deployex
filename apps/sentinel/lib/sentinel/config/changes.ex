@@ -20,6 +20,12 @@ defmodule Sentinel.Config.Changes do
           apply_strategy: apply_strategy()
         }
 
+  @type auth_change :: %{
+          old: Foundation.Yaml.Auth.t() | nil,
+          new: Foundation.Yaml.Auth.t() | nil,
+          apply_strategy: apply_strategy()
+        }
+
   @type app_diff :: %{
           optional(:language) => string_change(),
           optional(:replicas) => numeric_change(),
@@ -42,6 +48,7 @@ defmodule Sentinel.Config.Changes do
           optional(:releases_retention) => numeric_change(),
           optional(:monitoring) => list_change(),
           optional(:notifications) => list_change(),
+          optional(:auth) => auth_change(),
           optional(:applications) => %{
             old: [Foundation.Yaml.Application.t()],
             new: [Foundation.Yaml.Application.t()],

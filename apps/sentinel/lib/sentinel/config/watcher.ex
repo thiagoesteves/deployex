@@ -11,7 +11,10 @@ defmodule Sentinel.Config.Watcher do
   Only a subset of configuration fields can be upgraded at runtime without restart:
   - logs_retention_time_ms
   - metrics_retention_time_ms
+  - releases_retention
   - monitoring settings
+  - notifications
+  - auth (OAuth sign-in), except the client_secret
   - application configurations
 
   Fields like account_name, hostname, and cloud credentials are intentionally
@@ -37,6 +40,10 @@ defmodule Sentinel.Config.Watcher do
 
   @pubsub_topic_new "deployex::config::changes::new"
   @pubsub_topic_apply "deployex::config::changes::apply"
+  @pubsub_topic_auth_apply "deployex::config::auth::apply"
+
+  # Keys of the :deployex_web OAuth env that come from the YAML auth section
+  @auth_env_keys [:provider, :client_id, :redirect_uri, :allowlist]
 
   defmodule State do
     @moduledoc false
@@ -189,6 +196,15 @@ defmodule Sentinel.Config.Watcher do
     Phoenix.PubSub.subscribe(Foundation.PubSub, @pubsub_topic_apply)
   end
 
+  @doc """
+  Subscribe to receive notification when a change to the auth config was applied, so
+  open sessions can check their access again
+  """
+  @spec subscribe_auth_apply() :: :ok
+  def subscribe_auth_apply do
+    Phoenix.PubSub.subscribe(Foundation.PubSub, @pubsub_topic_auth_apply)
+  end
+
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
@@ -285,6 +301,7 @@ defmodule Sentinel.Config.Watcher do
     |> add_number_changes(:releases_retention, old, new, :immediate)
     |> add_monitoring_changes(old, new, :immediate)
     |> add_notification_changes(old, new, :immediate)
+    |> add_auth_changes(old, new, :immediate)
     |> add_application_changes(old, new)
   end
 
@@ -355,6 +372,14 @@ defmodule Sentinel.Config.Watcher do
         new: new.notifications,
         apply_strategy: strategy
       })
+    else
+      acc
+    end
+  end
+
+  defp add_auth_changes(acc, old, new, strategy) do
+    if normalize(old.auth) != normalize(new.auth) do
+      Map.put(acc, :auth, %{old: old.auth, new: new.auth, apply_strategy: strategy})
     else
       acc
     end
@@ -554,6 +579,19 @@ defmodule Sentinel.Config.Watcher do
           Sentinel.Logs.update_data_retention_period(change.new)
           :ok
 
+        # The sign-in reads the new values from the :deployex_web env on each request. Open
+        # LiveView sessions are told to check their access again.
+        :auth ->
+          warn_if_oauth_secret_missing(change.new)
+
+          Phoenix.PubSub.broadcast(
+            Foundation.PubSub,
+            @pubsub_topic_auth_apply,
+            {:watcher_auth_apply, Node.self()}
+          )
+
+          :ok
+
         # The new value is written to :foundation app env by build_config_updates/1, and
         # prune_old_releases/1 reads it on the next hot upgrade, so there is nothing to do here
         :releases_retention ->
@@ -567,6 +605,9 @@ defmodule Sentinel.Config.Watcher do
       case key do
         :metrics_retention_time_ms ->
           add_observer_web_config(acc, change.new)
+
+        :auth ->
+          add_auth_config(acc, change.new)
 
         _ ->
           add_foundation_config(acc, key, change.new)
@@ -582,6 +623,36 @@ defmodule Sentinel.Config.Watcher do
 
   defp add_observer_web_config(config_list, retention_time_ms) do
     Keyword.put(config_list, :observer_web, data_retention_period: retention_time_ms)
+  end
+
+  # Replaces only the keys that come from the YAML, so the client_secret set by the secrets
+  # provider is kept. A removed auth section leaves OAuth off, since it has no client_id.
+  defp add_auth_config(config_list, auth) do
+    current = Application.get_env(:deployex_web, DeployexWeb.OAuth, [])
+
+    updated =
+      if auth do
+        Keyword.merge(current, Map.take(auth, @auth_env_keys) |> Map.to_list())
+      else
+        Keyword.drop(current, @auth_env_keys)
+      end
+
+    Keyword.put(config_list, :deployex_web, [{DeployexWeb.OAuth, updated}])
+  end
+
+  # The client_secret is fetched only when DeployEx starts, so it cannot arrive with the YAML
+  defp warn_if_oauth_secret_missing(nil), do: :ok
+
+  defp warn_if_oauth_secret_missing(_auth) do
+    client_secret = Application.get_env(:deployex_web, DeployexWeb.OAuth, [])[:client_secret]
+
+    if client_secret in [nil, ""] do
+      Logger.warning(
+        "ConfigWatcher: OAuth sign-in stays off until DEPLOYEX_OAUTH_CLIENT_SECRET is set, which is read when DeployEx starts"
+      )
+    end
+
+    :ok
   end
 
   defp monitoring_differs?(old_mon, new_mon) do

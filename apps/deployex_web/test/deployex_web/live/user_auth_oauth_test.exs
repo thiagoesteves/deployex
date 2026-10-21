@@ -2,6 +2,10 @@ defmodule DeployexWeb.UserAuthOAuthTest do
   # async: false, the tests change the shared OAuth application environment
   use DeployexWeb.ConnCase, async: false
 
+  import Mox
+  import Phoenix.LiveViewTest
+
+  alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias DeployexWeb.UserAuth
   alias Foundation.Accounts
   alias Foundation.Accounts.UserToken
@@ -131,5 +135,82 @@ defmodule DeployexWeb.UserAuthOAuthTest do
 
     refute UserAuth.fetch_current_user(conn, []).assigns.current_user
     refute mount_user(conn)
+  end
+
+  describe "an open LiveView when the auth config changes" do
+    setup [:set_mox_global, :verify_on_exit!]
+
+    setup do
+      Deployer.StatusMock
+      |> stub(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+      |> stub(:subscribe, fn -> :ok end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      :ok
+    end
+
+    @tag :capture_log
+    test "stays open when the email is still allowed", %{conn: conn} do
+      {:ok, liveview, _html} = conn |> oauth_session() |> live(~p"/applications")
+
+      put_oauth_config(%{emails: ["me@co.com", "someone@co.com"], domains: []})
+      send(liveview.pid, {:watcher_auth_apply, Node.self()})
+
+      assert render(liveview) =~ "Applications"
+    end
+
+    @tag :capture_log
+    test "redirects to the login page when the email is removed", %{conn: conn} do
+      {:ok, liveview, _html} = conn |> oauth_session() |> live(~p"/applications")
+
+      put_oauth_config(%{emails: ["someone@co.com"], domains: []})
+      send(liveview.pid, {:watcher_auth_apply, Node.self()})
+
+      flash = assert_redirect(liveview, ~p"/users/log_in")
+      assert flash["error"] == "Not authorized for this instance."
+    end
+
+    @tag :capture_log
+    test "redirects to the login page when OAuth is turned off", %{conn: conn} do
+      {:ok, liveview, _html} = conn |> oauth_session() |> live(~p"/applications")
+
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, client_secret: "secret")
+      send(liveview.pid, {:watcher_auth_apply, Node.self()})
+
+      assert_redirect(liveview, ~p"/users/log_in")
+    end
+
+    @tag :capture_log
+    test "is told when an auth change is applied", %{conn: conn} do
+      {:ok, liveview, _html} = conn |> oauth_session() |> live(~p"/applications")
+
+      put_oauth_config(%{emails: [], domains: []})
+
+      Phoenix.PubSub.broadcast(
+        Foundation.PubSub,
+        "deployex::config::auth::apply",
+        {:watcher_auth_apply, Node.self()}
+      )
+
+      assert_redirect(liveview, ~p"/users/log_in")
+    end
+
+    @tag :capture_log
+    test "a password session is not affected", %{conn: conn} do
+      {:ok, liveview, _html} =
+        conn
+        |> log_in_user(%{username: "admin"})
+        |> live(~p"/applications")
+
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, [])
+
+      Phoenix.PubSub.broadcast(
+        Foundation.PubSub,
+        "deployex::config::auth::apply",
+        {:watcher_auth_apply, Node.self()}
+      )
+
+      assert render(liveview) =~ "Applications"
+    end
   end
 end

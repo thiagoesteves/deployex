@@ -338,6 +338,68 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
     """
   end
 
+  defp render_change_section(%{field: :auth} = assigns) do
+    %{old: old_auth, new: new_auth} = assigns.change_data
+
+    # Entries that gain or lose access. When SSO is turned on or off, the panes below
+    # already show the whole allowlist.
+    {added, removed} =
+      if old_auth && new_auth do
+        {allowlist_diff(new_auth, old_auth), allowlist_diff(old_auth, new_auth)}
+      else
+        {[], []}
+      end
+
+    assigns =
+      assigns
+      |> assign(:added, added)
+      |> assign(:removed, removed)
+
+    ~H"""
+    <div class="bg-base-200 rounded-lg p-4 border border-base-300">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            >
+            </path>
+          </svg>
+          <h3 class="text-lg font-bold text-base-content">Authentication</h3>
+        </div>
+        <.strategy_badge strategy={@change_data.apply_strategy} />
+      </div>
+      <div :if={@added != [] or @removed != []} class="flex flex-wrap gap-2 mb-4">
+        <span
+          :for={entry <- @added}
+          class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono bg-success/20 text-success border border-success/30"
+        >
+          + {entry}
+        </span>
+        <span
+          :for={entry <- @removed}
+          class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono bg-error/20 text-error border border-error/30"
+        >
+          - {entry}
+        </span>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-error/10 border border-error/20 rounded-lg p-3">
+          <div class="text-xs font-semibold text-error mb-2">Current</div>
+          <.render_auth_entry auth={@change_data.old} />
+        </div>
+        <div class="bg-success/10 border border-success/20 rounded-lg p-3">
+          <div class="text-xs font-semibold text-success mb-2">New</div>
+          <.render_auth_entry auth={@change_data.new} />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp render_change_section(%{field: field} = assigns) do
     field_name = format_field_name(field)
 
@@ -392,6 +454,41 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
         {Enum.join(@notification.events, ", ")}
       </div>
     </div>
+    """
+  end
+
+  attr :auth, :map, required: true
+
+  defp render_auth_entry(%{auth: nil} = assigns) do
+    ~H"""
+    <div class="font-mono text-sm text-base-content/60">SSO disabled</div>
+    """
+  end
+
+  defp render_auth_entry(assigns) do
+    ~H"""
+    <dl class="font-mono text-sm space-y-1 break-words">
+      <div>
+        <dt class="inline text-base-content/60">provider:</dt>
+        <dd class="inline">{@auth.provider |> Module.split() |> List.last()}</dd>
+      </div>
+      <div>
+        <dt class="inline text-base-content/60">client_id:</dt>
+        <dd class="inline">{@auth.client_id || "none"}</dd>
+      </div>
+      <div>
+        <dt class="inline text-base-content/60">redirect_uri:</dt>
+        <dd class="inline">{@auth.redirect_uri || "none"}</dd>
+      </div>
+      <div>
+        <dt class="inline text-base-content/60">allowed_emails:</dt>
+        <dd class="inline">{format_auth_list(@auth.allowlist.emails)}</dd>
+      </div>
+      <div>
+        <dt class="inline text-base-content/60">allowed_domains:</dt>
+        <dd class="inline">{format_auth_list(@auth.allowlist.domains)}</dd>
+      </div>
+    </dl>
     """
   end
 
@@ -643,6 +740,17 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   end
 
   defp format_cert_value(value), do: to_string(value)
+
+  defp format_auth_list([]), do: "none"
+  defp format_auth_list(list), do: Enum.join(list, ", ")
+
+  # Allowlist matching is case-insensitive, so a change of case only is not a difference
+  defp allowlist_diff(auth, other_auth) do
+    other = MapSet.new(auth_allowlist(other_auth), &String.downcase/1)
+    Enum.reject(auth_allowlist(auth), &(String.downcase(&1) in other))
+  end
+
+  defp auth_allowlist(%{allowlist: allowlist}), do: allowlist.emails ++ allowlist.domains
 
   defp format_timestamp(timestamp) do
     Calendar.strftime(timestamp, "%Y-%m-%d %H:%M:%S UTC")
