@@ -176,7 +176,7 @@ defmodule Deployer.Status do
   """
   @impl true
   @spec set_mode(name :: String.t(), mode :: :automatic | :manual, version :: String.t()) ::
-          {:ok, map()}
+          {:ok, map()} | {:error, :rescued}
   def set_mode(name, mode, version), do: default().set_mode(name, mode, version)
 
   ### ==========================================================================

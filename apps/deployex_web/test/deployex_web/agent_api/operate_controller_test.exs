@@ -59,6 +59,8 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
     end
 
     test "gives 404 for an app that the host does not monitor", %{conn: conn} do
+      Process.register(self(), :unknown)
+
       log =
         capture_log(fn ->
           assert conn |> post("/v1/apps/unknown/restart") |> json_response(404)
@@ -173,6 +175,20 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
       assert log =~ ~s(result=invalid)
     end
 
+    test "gives 503 when the status server does not answer", %{conn: conn} do
+      Deployer.StatusMock
+      |> expect(:set_mode, fn "test_app", :automatic, "" -> {:error, :rescued} end)
+
+      log =
+        capture_log(fn ->
+          assert conn
+                 |> put("/v1/apps/test_app/mode", %{"mode" => "automatic"})
+                 |> json_response(503)
+        end)
+
+      assert log =~ ~s(action=set_mode app="test_app" mode="automatic" result=unavailable)
+    end
+
     test "refuses a mode it does not know, and a manual mode with no version", %{conn: conn} do
       Deployer.StatusMock |> expect(:set_mode, 0, fn _name, _mode, _version -> {:ok, %{}} end)
 
@@ -203,7 +219,27 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
       assert log =~
                ~s(token=ci from=127.0.0.1 action="POST /v1/apps/test_app/restart" result=forbidden)
 
-      assert log =~ ~s(action="PUT /v1/apps/test_app/mode" result=forbidden)
+      for action <- [
+            "DELETE /v1/apps/test_app/ghosted/4.5.7",
+            "DELETE /v1/apps/test_app/ghosted",
+            "PUT /v1/apps/test_app/mode"
+          ] do
+        assert log =~ ~s(token=ci from=127.0.0.1 action="#{action}" result=forbidden)
+      end
+    end
+
+    test "a restart with a form content type and no body is not refused before the token check",
+         %{conn: conn} do
+      Process.register(self(), :test_app)
+
+      capture_log(fn ->
+        assert conn
+               |> put_req_header("content-type", "application/x-www-form-urlencoded")
+               |> post("/v1/apps/test_app/restart", "")
+               |> json_response(202)
+      end)
+
+      assert_receive {:"$gen_cast", :restart_deployments}
     end
 
     test "an operate token does not imply read", %{conn: conn} do

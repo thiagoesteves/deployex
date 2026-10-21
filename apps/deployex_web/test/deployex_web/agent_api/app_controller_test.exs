@@ -84,6 +84,15 @@ defmodule DeployexWeb.AgentApi.AppControllerTest do
                conn |> get("/v1/apps/test_app") |> json_response(200)
     end
 
+    test "hides the last pinned version in automatic mode", %{conn: conn} do
+      config = %{mode: :automatic, manual_version: FixtureStatus.version(%{version: "4.5.5"})}
+
+      stub_status({:ok, [FixtureStatus.deployex(), FixtureStatus.application(%{}, config)]})
+
+      assert %{"mode" => "automatic", "manual_version" => nil} =
+               conn |> get("/v1/apps/test_app") |> json_response(200)
+    end
+
     test "returns 404 for an app that this host does not monitor", %{conn: conn} do
       stub_status()
 
