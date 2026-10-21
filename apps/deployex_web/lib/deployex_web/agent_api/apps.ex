@@ -68,12 +68,12 @@ defmodule DeployexWeb.AgentApi.Apps do
     }
   end
 
-  ### ==========================================================================
-  ### Private functions
-  ### ==========================================================================
-
-  # The name is checked against the monitored apps before any catalog read
-  defp find(name) do
+  @doc """
+  Returns the monitored app with the given name. The name is checked against the monitored
+  apps before any catalog read.
+  """
+  @spec find(name :: String.t()) :: {:ok, Status.t()} | {:error, :not_found | :unavailable}
+  def find(name) do
     with {:ok, apps} <- monitored_apps() do
       case Enum.find(apps, &(&1.name == name)) do
         nil -> {:error, :not_found}
@@ -81,6 +81,10 @@ defmodule DeployexWeb.AgentApi.Apps do
       end
     end
   end
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
 
   defp monitored_apps do
     with {:ok, monitoring} <- Status.monitoring(),
