@@ -39,11 +39,16 @@ defmodule Deployer.Github.Release do
 
   @impl true
   def init(args) do
-    args
-    |> Keyword.get(:update_github_interval, @update_github_interval)
-    |> :timer.send_interval(:updated_github_info)
+    if enabled?() do
+      args
+      |> Keyword.get(:update_github_interval, @update_github_interval)
+      |> :timer.send_interval(:updated_github_info)
 
-    {:ok, update_github_info()}
+      {:ok, update_github_info()}
+    else
+      Logger.info("GitHub release check is off")
+      {:ok, %__MODULE__{}}
+    end
   end
 
   @impl true
@@ -105,6 +110,8 @@ defmodule Deployer.Github.Release do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  defp enabled?, do: Application.get_env(:deployer, __MODULE__, [])[:enabled] != false
+
   defp new_release?(current_version, tag_version) do
     with {:ok, current} <- parse_version(current_version),
          {:ok, tag} <- parse_version(tag_version) do

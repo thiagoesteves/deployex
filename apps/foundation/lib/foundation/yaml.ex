@@ -287,6 +287,7 @@ defmodule Foundation.Yaml do
             otp_version: nil,
             otp_tls_certificates: nil,
             os_target: nil,
+            enable_release_check: nil,
             install_path: nil,
             log_path: nil,
             monitored_app_log_path: nil,
@@ -317,6 +318,7 @@ defmodule Foundation.Yaml do
           otp_version: non_neg_integer() | nil,
           otp_tls_certificates: String.t() | nil,
           os_target: String.t() | nil,
+          enable_release_check: boolean() | nil,
           install_path: String.t() | nil,
           var_path: String.t() | nil,
           log_path: String.t() | nil,
@@ -446,6 +448,7 @@ defmodule Foundation.Yaml do
       otp_version: data["otp_version"],
       otp_tls_certificates: data["otp_tls_certificates"],
       os_target: data["os_target"],
+      enable_release_check: parse_enable_release_check(data["enable_release_check"]),
       install_path: data["install_path"] || @default_install_path,
       var_path: data["var_path"] || @default_var_path,
       log_path: data["log_path"] || @default_log_path,
@@ -569,6 +572,13 @@ defmodule Foundation.Yaml do
   # NOTE: enable_restart is a boolean, || would promote an explicit false to the default
   defp parse_enable_restart(nil), do: @default_monitoring_enable_restart
   defp parse_enable_restart(enable_restart), do: enable_restart
+
+  # A missing value stays nil so the config provider keeps the release config.
+  defp parse_enable_release_check(nil), do: nil
+  defp parse_enable_release_check(value) when is_boolean(value), do: value
+
+  defp parse_enable_release_check(value),
+    do: raise("enable_release_check #{inspect(value)} not supported, expected true or false")
 
   # The floor keeps the current and previous release, which a hot upgrade needs on disk
   defp parse_releases_retention(nil), do: @default_releases_retention
