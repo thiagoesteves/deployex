@@ -7,6 +7,7 @@ defmodule DeployexWeb.UserAuth do
 
   alias DeployexWeb.OAuth.{Allowlist, Config}
   alias Foundation.Accounts
+  alias Sentinel.Config.Watcher
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -172,6 +173,8 @@ defmodule DeployexWeb.UserAuth do
       and assigns the current_user to socket assigns based
       on user_token.
       Redirects to login page if there's no logged user.
+      For an OAuth session, checks the access again when the auth config
+      changes at runtime, and redirects to the login page once it is lost.
 
     * `:redirect_if_user_is_authenticated` - Authenticates the user from the session.
       Redirects to signed_in_path if there's a logged user.
@@ -202,7 +205,7 @@ defmodule DeployexWeb.UserAuth do
     socket = mount_current_user(socket, session)
 
     if socket.assigns.current_user do
-      {:cont, socket}
+      {:cont, watch_oauth_access(socket, session)}
     else
       socket =
         socket
@@ -219,6 +222,47 @@ defmodule DeployexWeb.UserAuth do
       {:halt, Phoenix.LiveView.redirect(socket, to: signed_in_path(socket))}
     else
       {:cont, socket}
+    end
+  end
+
+  # Each request checks an OAuth session again, but a mounted LiveView keeps running, so it
+  # checks the session when a change to the auth config, such as a removed email, is applied
+  defp watch_oauth_access(socket, %{"user_token" => user_token}) when is_binary(user_token),
+    do: socket
+
+  defp watch_oauth_access(socket, %{"oauth_token" => oauth_token}) do
+    if Phoenix.LiveView.connected?(socket) do
+      Watcher.subscribe_auth_apply()
+
+      # The hook lives as long as the LiveView, so it is a remote capture resolved at each
+      # call, which keeps working after a hot upgrade purges the old code of this module
+      socket
+      |> Phoenix.LiveView.put_private(:oauth_token, oauth_token)
+      |> Phoenix.LiveView.attach_hook(
+        :oauth_access,
+        :handle_info,
+        &__MODULE__.handle_oauth_access/2
+      )
+    else
+      socket
+    end
+  end
+
+  defp watch_oauth_access(socket, _session), do: socket
+
+  @doc false
+  def handle_oauth_access({:watcher_auth_apply, _node}, socket),
+    do: {:halt, check_oauth_access(socket, socket.private.oauth_token)}
+
+  def handle_oauth_access(_message, socket), do: {:cont, socket}
+
+  defp check_oauth_access(socket, oauth_token) do
+    if oauth_user(oauth_token) do
+      socket
+    else
+      socket
+      |> Phoenix.LiveView.put_flash(:error, "Not authorized for this instance.")
+      |> Phoenix.LiveView.redirect(to: ~p"/users/log_in")
     end
   end
 

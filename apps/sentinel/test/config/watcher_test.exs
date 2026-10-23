@@ -2151,4 +2151,179 @@ defmodule Sentinel.Config.WatcherTest do
       end
     end
   end
+
+  describe "auth" do
+    @auth %Yaml.Auth{
+      provider: DeployexWeb.OAuth.Provider.GitHub,
+      client_id: "Ov23liExample",
+      redirect_uri: "https://deployex.example.com/auth/github/callback",
+      allowlist: %{emails: ["alice@example.com"], domains: []}
+    }
+
+    setup do
+      original = Application.get_env(:deployex_web, DeployexWeb.OAuth)
+      on_exit(fn -> Application.put_env(:deployex_web, DeployexWeb.OAuth, original) end)
+    end
+
+    # Detects the change from current_auth to new_auth, then applies it
+    defp detect_and_apply_auth(name, current_auth, new_auth) do
+      test_pid = self()
+      ref = make_ref()
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> %{@default_upgradable | auth: current_auth} end,
+           from_yaml: fn _config ->
+             %{@default_upgradable | config_checksum: "new_checksum", auth: new_auth}
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn
+             %Yaml{config_checksum: "current_checksum"} ->
+               send(test_pid, {:handle_ref_event, ref})
+               {:ok, %Yaml{}}
+
+             _config ->
+               {:error, :unchanged}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        Watcher.subscribe_auth_apply()
+        node = Node.self()
+
+        {:ok, pid} = Watcher.start_link(name: name, check_interval_ms: 10)
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+
+        assert_receive {:watcher_config_new, ^node, %Changes{summary: summary}}, 1_000
+        assert summary.auth == %{old: current_auth, new: new_auth, apply_strategy: :immediate}
+
+        assert :ok = Watcher.apply_changes(pid)
+        assert_receive {:watcher_auth_apply, ^node}, 1_000
+      end
+    end
+
+    @tag :capture_log
+    test "enables OAuth and keeps the client_secret from the secrets provider" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, client_secret: "secret")
+
+      detect_and_apply_auth(:test_auth_enable, nil, @auth)
+
+      assert Application.get_env(:deployex_web, DeployexWeb.OAuth) |> Enum.sort() == [
+               allowlist: @auth.allowlist,
+               client_id: @auth.client_id,
+               client_secret: "secret",
+               provider: @auth.provider,
+               redirect_uri: @auth.redirect_uri
+             ]
+    end
+
+    @tag :capture_log
+    test "updates the allowlist" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        client_secret: "secret",
+        provider: @auth.provider,
+        client_id: @auth.client_id,
+        redirect_uri: @auth.redirect_uri,
+        allowlist: @auth.allowlist
+      )
+
+      allowlist = %{emails: ["alice@example.com", "bob@example.com"], domains: ["example.org"]}
+
+      detect_and_apply_auth(:test_auth_allowlist, @auth, %{@auth | allowlist: allowlist})
+
+      config = Application.get_env(:deployex_web, DeployexWeb.OAuth)
+      assert config[:allowlist] == allowlist
+      assert config[:client_secret] == "secret"
+    end
+
+    @tag :capture_log
+    test "disables OAuth when the auth section is removed" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        client_secret: "secret",
+        provider: @auth.provider,
+        client_id: @auth.client_id,
+        redirect_uri: @auth.redirect_uri,
+        allowlist: @auth.allowlist
+      )
+
+      detect_and_apply_auth(:test_auth_disable, @auth, nil)
+
+      assert Application.get_env(:deployex_web, DeployexWeb.OAuth) == [client_secret: "secret"]
+      assert Upgradable.from_app_env().auth == nil
+    end
+
+    test "warns when OAuth is enabled without a client_secret" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, [])
+
+      log = capture_log(fn -> detect_and_apply_auth(:test_auth_no_secret, nil, @auth) end)
+
+      assert log =~ "OAuth sign-in stays off until DEPLOYEX_OAUTH_CLIENT_SECRET is set"
+    end
+
+    @tag :capture_log
+    test "detects auth when the current config predates the auth field" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, client_secret: "secret")
+      test_pid = self()
+      ref = make_ref()
+
+      # The Watcher state kept across a hot upgrade from a version without the :auth key
+      legacy_upgradable = Map.delete(@default_upgradable, :auth)
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> legacy_upgradable end,
+           from_yaml: fn _config ->
+             %{@default_upgradable | config_checksum: "new_checksum", auth: @auth}
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn
+             %Yaml{config_checksum: "current_checksum"} ->
+               send(test_pid, {:handle_ref_event, ref})
+               {:ok, %Yaml{}}
+
+             _config ->
+               {:error, :unchanged}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        node = Node.self()
+
+        {:ok, pid} = Watcher.start_link(name: :test_auth_legacy_state, check_interval_ms: 10)
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+        assert_receive {:watcher_config_new, ^node, %Changes{summary: summary}}, 1_000
+        assert summary.auth == %{old: nil, new: @auth, apply_strategy: :immediate}
+        assert Process.alive?(pid)
+      end
+    end
+
+    test "from_app_env reads the auth section stored next to the client_secret" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        provider: DeployexWeb.OAuth.ProviderMock,
+        client_secret: "secret"
+      )
+
+      assert Upgradable.from_app_env().auth == nil
+
+      Application.put_env(:deployex_web, DeployexWeb.OAuth,
+        client_id: @auth.client_id,
+        redirect_uri: @auth.redirect_uri,
+        allowlist: @auth.allowlist
+      )
+
+      assert Upgradable.from_app_env().auth == @auth
+    end
+
+    test "from_yaml reads the auth section" do
+      assert Upgradable.from_yaml(%Yaml{auth: @auth}).auth == @auth
+    end
+  end
 end

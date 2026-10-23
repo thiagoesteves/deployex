@@ -272,6 +272,21 @@ defmodule Sentinel.Fixture.Watcher do
     }
   end
 
+  def build_pending_changes_with_auth(old_auth \\ nil) do
+    new_auth = %Foundation.Yaml.Auth{
+      provider: DeployexWeb.OAuth.Provider.GitHub,
+      client_id: "Ov23liExample",
+      redirect_uri: "https://deployex.example.com/auth/github/callback",
+      allowlist: %{emails: ["alice@example.com", "bob@example.com"], domains: ["example.org"]}
+    }
+
+    %Changes{
+      summary: %{auth: %{old: old_auth, new: new_auth, apply_strategy: :immediate}},
+      timestamp: ~U[2025-11-14 23:41:07.000464Z],
+      changes_count: 1
+    }
+  end
+
   def build_pending_changes_with_certificates do
     cert = %Foundation.Yaml.Certificate{
       type: :domains,

@@ -135,7 +135,8 @@ notifications:
 # deny-by-default: only allow-listed emails or domains may sign in. The GitHub
 # account's primary email must be verified and allowed. The client_secret is a
 # secret, so it is not set here. Provide it through the secrets adapter as
-# DEPLOYEX_OAUTH_CLIENT_SECRET. The auth section is read when DeployEx starts.
+# DEPLOYEX_OAUTH_CLIENT_SECRET. The auth section can be changed at runtime, but
+# the client secret is read only when DeployEx starts.
 # A domain entry trusts every GitHub account that has ever verified an address
 # at that domain, including people who have left. Prefer allowed_emails, and
 # remove the entry to end a person's access.
@@ -328,6 +329,19 @@ These fields can be modified and applied at runtime without restarting DeployEx:
 - `releases_retention` - Releases kept per app after a hot upgrade (minimum 2)
 - `monitoring` - DeployEx monitoring settings (host memory, atom, process, port thresholds)
 - `notifications` - External notification channels (workers are stopped and restarted on apply)
+- `auth` - Single sign-on settings: enable or disable it, change the provider settings, or add and remove allowed emails and domains (see below)
+
+#### Authentication
+
+Adding the `auth` section enables single sign-on, and removing it disables it, without a restart.
+Allowed emails and domains can be added or removed the same way.
+After the change is applied, every request checks the session against the new settings.
+Open pages of a user who is no longer allowed, or of any SSO user when SSO is disabled, are redirected to the login page.
+Password logins are not affected.
+
+The `DEPLOYEX_OAUTH_CLIENT_SECRET` secret is read only when DeployEx starts.
+To enable single sign-on without a restart, provide the secret before DeployEx starts, even if the `auth` section is added later.
+If the secret is missing when the `auth` section is applied, DeployEx logs a warning and the sign-in button stays hidden.
 
 #### Application Level (Runtime Upgradable)
 - `monitoring` - Application monitoring settings (atom, process, port thresholds)
@@ -460,7 +474,19 @@ metrics_retention_time_ms: 7200000  # ✓ 2 hours
 logs_retention_time_ms: 10800000    # ✓ 3 hours
 ```
 
-#### Example 4: Mixed Changes (Various Types)
+#### Example 4: Granting Access to a New User (Immediate)
+
+```yaml
+auth:
+  provider: "github"
+  client_id: "Ov23liExample"
+  redirect_uri: "https://deployex.example.com/auth/github/callback"
+  allowed_emails:
+    - "alice@example.com"
+    - "bob@example.com"   # ✓ Can sign in once the change is applied
+```
+
+#### Example 5: Mixed Changes (Various Types)
 
 ```yaml
 # Immediate changes

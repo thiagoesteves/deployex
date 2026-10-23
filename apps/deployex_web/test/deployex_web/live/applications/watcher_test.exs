@@ -150,6 +150,64 @@ defmodule DeployexWeb.Applications.WatcherTest do
   end
 
   @tag :capture_log
+  test "GET /applications Review pending auth changes when SSO is enabled", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, liveview, _html} = live(conn, ~p"/applications")
+
+    send(
+      liveview.pid,
+      {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_auth()}
+    )
+
+    assert liveview |> element("#deployex-config-changes") |> render_click()
+
+    html = render(liveview)
+    assert html =~ "Authentication"
+    assert html =~ "SSO disabled"
+    assert html =~ "GitHub"
+    assert html =~ "Ov23liExample"
+    assert html =~ "bob@example.com"
+    refute html =~ "+ bob@example.com"
+  end
+
+  @tag :capture_log
+  test "GET /applications Review pending auth changes to the allowlist", %{conn: conn} do
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> expect(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+    {:ok, liveview, _html} = live(conn, ~p"/applications")
+
+    old_auth = %Foundation.Yaml.Auth{
+      provider: DeployexWeb.OAuth.Provider.GitHub,
+      client_id: "Ov23liExample",
+      redirect_uri: nil,
+      allowlist: %{emails: ["Alice@example.com", "carol@example.com"], domains: []}
+    }
+
+    send(
+      liveview.pid,
+      {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_auth(old_auth)}
+    )
+
+    assert liveview |> element("#deployex-config-changes") |> render_click()
+
+    html = render(liveview)
+    refute html =~ "SSO disabled"
+    # A change of case only is not an added or removed entry
+    refute html =~ "+ alice@example.com"
+    refute html =~ "- Alice@example.com"
+    assert html =~ "+ bob@example.com"
+    assert html =~ "- carol@example.com"
+    assert html =~ "none"
+  end
+
+  @tag :capture_log
   test "GET /applications ignore changes from other nodes", %{conn: conn} do
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
