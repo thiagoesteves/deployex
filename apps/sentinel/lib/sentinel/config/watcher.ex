@@ -377,9 +377,12 @@ defmodule Sentinel.Config.Watcher do
     end
   end
 
+  # A state kept across a hot upgrade from a version without auth has no :auth key
   defp add_auth_changes(acc, old, new, strategy) do
-    if normalize(old.auth) != normalize(new.auth) do
-      Map.put(acc, :auth, %{old: old.auth, new: new.auth, apply_strategy: strategy})
+    old_auth = Map.get(old, :auth)
+
+    if normalize(old_auth) != normalize(new.auth) do
+      Map.put(acc, :auth, %{old: old_auth, new: new.auth, apply_strategy: strategy})
     else
       acc
     end

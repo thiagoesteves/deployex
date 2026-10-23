@@ -234,19 +234,27 @@ defmodule DeployexWeb.UserAuth do
     if Phoenix.LiveView.connected?(socket) do
       Watcher.subscribe_auth_apply()
 
-      Phoenix.LiveView.attach_hook(socket, :oauth_access, :handle_info, fn
-        {:watcher_auth_apply, _node}, socket ->
-          {:halt, check_oauth_access(socket, oauth_token)}
-
-        _message, socket ->
-          {:cont, socket}
-      end)
+      # The hook lives as long as the LiveView, so it is a remote capture resolved at each
+      # call, which keeps working after a hot upgrade purges the old code of this module
+      socket
+      |> Phoenix.LiveView.put_private(:oauth_token, oauth_token)
+      |> Phoenix.LiveView.attach_hook(
+        :oauth_access,
+        :handle_info,
+        &__MODULE__.handle_oauth_access/2
+      )
     else
       socket
     end
   end
 
   defp watch_oauth_access(socket, _session), do: socket
+
+  @doc false
+  def handle_oauth_access({:watcher_auth_apply, _node}, socket),
+    do: {:halt, check_oauth_access(socket, socket.private.oauth_token)}
+
+  def handle_oauth_access(_message, socket), do: {:cont, socket}
 
   defp check_oauth_access(socket, oauth_token) do
     if oauth_user(oauth_token) do

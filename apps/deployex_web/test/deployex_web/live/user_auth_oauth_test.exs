@@ -196,6 +196,18 @@ defmodule DeployexWeb.UserAuthOAuthTest do
     end
 
     @tag :capture_log
+    test "the hook is a remote capture, so it survives a hot upgrade of UserAuth", %{conn: conn} do
+      {:ok, liveview, _html} = conn |> oauth_session() |> live(~p"/applications")
+
+      %{socket: socket} = :sys.get_state(liveview.pid)
+
+      %{function: hook} =
+        Enum.find(socket.private.lifecycle.handle_info, &(&1.id == :oauth_access))
+
+      assert Function.info(hook, :type) == {:type, :external}
+    end
+
+    @tag :capture_log
     test "a password session is not affected", %{conn: conn} do
       {:ok, liveview, _html} =
         conn

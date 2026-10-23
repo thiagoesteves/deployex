@@ -2264,6 +2264,47 @@ defmodule Sentinel.Config.WatcherTest do
       assert log =~ "OAuth sign-in stays off until DEPLOYEX_OAUTH_CLIENT_SECRET is set"
     end
 
+    @tag :capture_log
+    test "detects auth when the current config predates the auth field" do
+      Application.put_env(:deployex_web, DeployexWeb.OAuth, client_secret: "secret")
+      test_pid = self()
+      ref = make_ref()
+
+      # The Watcher state kept across a hot upgrade from a version without the :auth key
+      legacy_upgradable = Map.delete(@default_upgradable, :auth)
+
+      with_mocks([
+        {Upgradable, [],
+         [
+           from_app_env: fn -> legacy_upgradable end,
+           from_yaml: fn _config ->
+             %{@default_upgradable | config_checksum: "new_checksum", auth: @auth}
+           end
+         ]},
+        {Yaml, [],
+         [
+           load: fn
+             %Yaml{config_checksum: "current_checksum"} ->
+               send(test_pid, {:handle_ref_event, ref})
+               {:ok, %Yaml{}}
+
+             _config ->
+               {:error, :unchanged}
+           end
+         ]}
+      ]) do
+        Watcher.subscribe_new_config()
+        node = Node.self()
+
+        {:ok, pid} = Watcher.start_link(name: :test_auth_legacy_state, check_interval_ms: 10)
+
+        assert_receive {:handle_ref_event, ^ref}, 1_000
+        assert_receive {:watcher_config_new, ^node, %Changes{summary: summary}}, 1_000
+        assert summary.auth == %{old: nil, new: @auth, apply_strategy: :immediate}
+        assert Process.alive?(pid)
+      end
+    end
+
     test "from_app_env reads the auth section stored next to the client_secret" do
       Application.put_env(:deployex_web, DeployexWeb.OAuth,
         provider: DeployexWeb.OAuth.ProviderMock,
