@@ -122,6 +122,7 @@ defmodule DeployexWeb.AgentApi.Apps do
   defp inserted_at(%{inserted_at: %NaiveDateTime{} = at}),
     do: NaiveDateTime.to_gregorian_seconds(at)
 
+  # to_gregorian_seconds/1 returns {seconds, microseconds}, so {0, 0} is below every real time and :desc lists it last
   defp inserted_at(_version), do: {0, 0}
 
   # The catalog writes inserted_at with NaiveDateTime.utc_now/0
