@@ -191,24 +191,11 @@ config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,
   bucket: "/tmp/deployex/bucket"
 
-# OAuth (GitHub SSO) for local testing.
-# Enable by exporting these before starting DeployEx. Leave them unset to keep
-# the password login only:
-#   export GITHUB_CLIENT_ID=...        # from your GitHub OAuth app
-#   export GITHUB_CLIENT_SECRET=...    # from your GitHub OAuth app
-#   export OAUTH_ALLOWED_EMAILS=you@example.com   # comma-separated
+# OAuth (GitHub SSO) for local testing, set up as in a release. The YAML `auth` section
+# holds the client_id, redirect_uri and allowlist, and the secret comes from the env,
+# read only at startup. Leave it unset to keep the password login only:
+#   export DEPLOYEX_OAUTH_CLIENT_SECRET=...   # from your GitHub OAuth app
 # GitHub OAuth app callback URL: http://localhost:5001/auth/github/callback
-if System.get_env("GITHUB_CLIENT_ID") do
-  config :deployex_web, DeployexWeb.OAuth,
-    client_id: System.get_env("GITHUB_CLIENT_ID"),
-    client_secret: System.get_env("GITHUB_CLIENT_SECRET"),
-    redirect_uri: "http://localhost:5001/auth/github/callback",
-    allowlist: %{
-      emails:
-        "OAUTH_ALLOWED_EMAILS"
-        |> System.get_env("")
-        |> String.split(",", trim: true)
-        |> Enum.map(&String.trim/1),
-      domains: []
-    }
+if client_secret = System.get_env("DEPLOYEX_OAUTH_CLIENT_SECRET") do
+  config :deployex_web, DeployexWeb.OAuth, client_secret: client_secret
 end
