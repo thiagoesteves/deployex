@@ -10,7 +10,7 @@ defmodule DeployexWeb.AgentApi.NodeController do
       json(conn, %{
         node: deployex.node,
         version: deployex.version,
-        uptime: deployex.uptime,
+        started_at: deployex.started_at,
         otp_version: deployex.otp_version,
         elixir_version: deployex.elixir_version,
         host: host(Host.Info.latest())
@@ -33,7 +33,7 @@ defmodule DeployexWeb.AgentApi.NodeController do
     %{
       os: info.host,
       description: info.description,
-      uptime: info.uptime,
+      uptime_seconds: info.uptime_seconds,
       cpus: info.cpus,
       cpu_percent: cpu_percent(info),
       memory_total: info.memory_total,

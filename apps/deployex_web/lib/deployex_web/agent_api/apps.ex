@@ -101,7 +101,7 @@ defmodule DeployexWeb.AgentApi.Apps do
       last_deployment: instance.last_deployment,
       crash_restart_count: instance.crash_restart_count,
       force_restart_count: instance.force_restart_count,
-      uptime: instance.uptime,
+      started_at: instance.started_at,
       ports: Enum.map(instance.ports, &%{key: &1.key, port: &1.base})
     }
   end
@@ -112,7 +112,7 @@ defmodule DeployexWeb.AgentApi.Apps do
       hash: version.hash,
       sname: version.sname,
       deployment: version.deployment,
-      inserted_at: version.inserted_at
+      inserted_at: utc(version.inserted_at)
     }
   end
 
@@ -123,6 +123,10 @@ defmodule DeployexWeb.AgentApi.Apps do
     do: NaiveDateTime.to_gregorian_seconds(at)
 
   defp inserted_at(_version), do: {0, 0}
+
+  # The catalog writes inserted_at with NaiveDateTime.utc_now/0
+  defp utc(%NaiveDateTime{} = at), do: DateTime.from_naive!(at, "Etc/UTC")
+  defp utc(_at), do: nil
 
   defp manual_version(%{version: version}), do: version
   defp manual_version(_manual_version), do: nil

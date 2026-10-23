@@ -125,6 +125,25 @@ defmodule Foundation.Common do
   end
 
   @doc """
+  Converts a monotonic time of this node to UTC, in whole seconds. Returns nil for nil.
+
+  ## Examples
+
+    iex> alias Foundation.Common
+    ...> assert Common.monotonic_to_utc(nil) == nil
+    ...> start_time = System.monotonic_time() - System.convert_time_unit(90, :second, :native)
+    ...> assert DateTime.diff(DateTime.utc_now(), Common.monotonic_to_utc(start_time)) in 90..91
+  """
+  @spec monotonic_to_utc(monotonic_time :: integer() | nil) :: DateTime.t() | nil
+  def monotonic_to_utc(nil), do: nil
+
+  def monotonic_to_utc(monotonic_time) do
+    (monotonic_time + System.time_offset())
+    |> DateTime.from_unix!(:native)
+    |> DateTime.truncate(:second)
+  end
+
+  @doc """
   This function converts diff time to string
 
   ## Examples

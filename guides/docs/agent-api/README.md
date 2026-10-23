@@ -60,7 +60,7 @@ curl -H "Authorization: Bearer $TOKEN" http://10.0.1.12:5002/v1/apps/myphoenixap
 
 | Path | Returns |
 |---|---|
-| `GET /v1/node` | DeployEx: the node, version, uptime, OTP and Elixir versions. The host: the OS, uptime, CPU and memory |
+| `GET /v1/node` | DeployEx: the node, version, `started_at` (the start of its VM), OTP and Elixir versions. The host: the OS, `uptime_seconds`, CPU and memory |
 | `GET /v1/apps` | Every monitored app, as below |
 | `GET /v1/apps/:name` | One monitored app: its mode, its ghosted versions and its instances |
 | `GET /v1/apps/:name/versions` | The version history of the app |
@@ -84,12 +84,14 @@ curl -H "Authorization: Bearer $TOKEN" http://10.0.1.12:5002/v1/apps/myphoenixap
       "last_deployment": "hot_upgrade",
       "crash_restart_count": 0,
       "force_restart_count": 0,
-      "uptime": "3h ago",
+      "started_at": "2026-10-23T09:12:45Z",
       "ports": [{"key": "PORT", "port": 4000}]
     }
   ]
 }
 ```
+
+Times are UTC, in ISO 8601. `started_at` is when the instance last started, and it is `null` for an instance that did not start.
 
 | Status | When |
 |---|---|

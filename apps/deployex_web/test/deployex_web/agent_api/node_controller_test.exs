@@ -25,6 +25,7 @@ defmodule DeployexWeb.AgentApi.NodeControllerTest do
       host: "Linux",
       description: "Ubuntu 24.04",
       uptime: "15 days",
+      uptime_seconds: 1_296_000,
       cpu: 50.0,
       cpus: 2,
       memory_total: 2_000,
@@ -35,13 +36,13 @@ defmodule DeployexWeb.AgentApi.NodeControllerTest do
       assert conn |> get("/v1/node") |> json_response(200) == %{
                "node" => "deployex@host",
                "version" => "1.2.3",
-               "uptime" => "short time",
+               "started_at" => "2026-10-01T07:00:00Z",
                "otp_version" => "29",
                "elixir_version" => "1.20.4",
                "host" => %{
                  "os" => "Linux",
                  "description" => "Ubuntu 24.04",
-                 "uptime" => "15 days",
+                 "uptime_seconds" => 1_296_000,
                  "cpus" => 2,
                  "cpu_percent" => 25.0,
                  "memory_total" => 2_000,

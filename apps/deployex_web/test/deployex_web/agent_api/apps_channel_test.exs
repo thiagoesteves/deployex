@@ -46,6 +46,28 @@ defmodule DeployexWeb.AgentApi.AppsChannelTest do
     assert_push "app", %{name: "test_app", instances: [%{crash_restart_count: 1}]}
   end
 
+  test "does not push an app when only its display uptime changes" do
+    {:ok, _reply, socket} = join()
+
+    later = FixtureStatus.application(%{uptime: "2d ago"})
+    send(socket.channel_pid, {:monitoring_app_updated, node(), [FixtureStatus.deployex(), later]})
+
+    refute_push "app", _snapshot
+  end
+
+  test "pushes an app when an instance starts again" do
+    {:ok, _reply, socket} = join()
+
+    started = FixtureStatus.application(%{started_at: ~U[2026-10-23 12:00:00Z]})
+
+    send(
+      socket.channel_pid,
+      {:monitoring_app_updated, node(), [FixtureStatus.deployex(), started]}
+    )
+
+    assert_push "app", %{name: "test_app", instances: [%{started_at: ~U[2026-10-23 12:00:00Z]}]}
+  end
+
   test "pushes an app when its ghosted list changes" do
     {:ok, _reply, socket} = join()
 

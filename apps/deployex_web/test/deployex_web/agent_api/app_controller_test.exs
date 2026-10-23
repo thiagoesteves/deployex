@@ -50,7 +50,7 @@ defmodule DeployexWeb.AgentApi.AppControllerTest do
                "last_deployment" => "full_deployment",
                "crash_restart_count" => 0,
                "force_restart_count" => 0,
-               "uptime" => "long time",
+               "started_at" => "2026-10-20T08:00:00Z",
                "ports" => [%{"key" => "PORT", "port" => 5678}]
              }
     end
@@ -110,8 +110,10 @@ defmodule DeployexWeb.AgentApi.AppControllerTest do
                "hash" => "local",
                "sname" => "testapp-abc123",
                "deployment" => "full_deployment",
-               "inserted_at" => _inserted_at
+               "inserted_at" => inserted_at
              } = version
+
+      assert {:ok, _at, 0} = DateTime.from_iso8601(inserted_at)
 
       refute Map.has_key?(version, "pre_commands")
     end
