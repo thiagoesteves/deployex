@@ -26,6 +26,7 @@ defmodule Deployer.Status do
           crash_restart_count: non_neg_integer(),
           force_restart_count: non_neg_integer(),
           uptime: String.t() | nil,
+          started_at: DateTime.t() | nil,
           latest_release: Github.Release.t(),
           config: map() | nil,
           # Self-referential for nested apps
@@ -57,6 +58,7 @@ defmodule Deployer.Status do
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,
+            started_at: nil,
             latest_release: %Github.Release{},
             config: nil,
             children: [],

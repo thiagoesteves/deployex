@@ -303,7 +303,11 @@ defmodule Deployer.Monitor.Application do
   # A state from an older version gets the fields it lacks on a relup
   @impl true
   def code_change(_old_vsn, state, _extra) do
-    {:ok, state |> Map.put_new(:pre_commands_run, nil) |> Map.put_new(:reported_pre_commands, [])}
+    {:ok,
+     state
+     |> Map.put_new(:pre_commands_run, nil)
+     |> Map.put_new(:reported_pre_commands, [])
+     |> Map.put_new_lazy(:started_at, fn -> Common.monotonic_to_utc(state.start_time) end)}
   end
 
   ### ==========================================================================
@@ -429,7 +433,12 @@ defmodule Deployer.Monitor.Application do
 
       Process.send_after(self(), {:check_running, pid, sname}, timeout_app_ready)
 
-      %{state | current_pid: pid, status: :starting, start_time: now()}
+      # Map.put, since a state that missed code_change on a relup has no started_at key
+      Map.put(
+        %{state | current_pid: pid, status: :starting, start_time: now()},
+        :started_at,
+        DateTime.utc_now(:second)
+      )
     else
       false ->
         trigger_run_service(sname, retry_delay_pre_commands)

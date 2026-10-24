@@ -56,6 +56,7 @@ defmodule DeployexWeb.Fixture.Status do
       tls: default_public_key(),
       status: :running,
       uptime: "short time",
+      started_at: ~U[2026-10-01 07:00:00Z],
       ports: [%{key: "PORT", base: 8765}],
       urls: ["http://localhost:8765"],
       certificates: [default_public_key()]
@@ -98,6 +99,7 @@ defmodule DeployexWeb.Fixture.Status do
       status: :running,
       crash_restart_count: 0,
       uptime: "long time",
+      started_at: ~U[2026-10-20 08:00:00Z],
       ports: [%{key: "PORT", base: 5678}],
       urls: ["http://localhost:5678"],
       certificates: [default_public_key()],

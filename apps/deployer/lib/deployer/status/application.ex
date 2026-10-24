@@ -332,6 +332,7 @@ defmodule Deployer.Status.Application do
       last_deployment: current_version_map(name).deployment,
       status: :running,
       uptime: uptime,
+      started_at: deployex_started_at(),
       latest_release: deployex_latest_release,
       monitoring: Application.get_env(:foundation, :monitoring),
       certificates: certificates,
@@ -351,7 +352,7 @@ defmodule Deployer.Status.Application do
       force_restart_count: force_restart_count,
       start_time: start_time,
       ports: ports
-    } = Monitor.state(sname)
+    } = monitor_state = Monitor.state(sname)
 
     check_otp_monitored_app = fn
       node, :running ->
@@ -380,6 +381,8 @@ defmodule Deployer.Status.Application do
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
+      # A monitor state written before a relup has no started_at until its next update
+      started_at: Map.get(monitor_state, :started_at),
       language: language,
       monitoring: monitoring,
       otp_version: node_otp_version(node),
@@ -417,6 +420,19 @@ defmodule Deployer.Status.Application do
         value ->
           value
       end
+    end
+  end
+
+  # Converted once, since the offset between monotonic and wall clock time can move
+  defp deployex_started_at do
+    case Process.get(:deployex_started_at) do
+      nil ->
+        started_at = Common.monotonic_to_utc(:erlang.system_info(:start_time))
+        Process.put(:deployex_started_at, started_at)
+        started_at
+
+      started_at ->
+        started_at
     end
   end
 
