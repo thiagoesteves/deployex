@@ -88,6 +88,37 @@ defmodule Deployer.GithubTest do
     end
   end
 
+  describe "release check turned off" do
+    setup do
+      previous = Application.get_env(:deployer, Release)
+      Application.put_env(:deployer, Release, enabled: false)
+
+      on_exit(fn ->
+        if previous,
+          do: Application.put_env(:deployer, Release, previous),
+          else: Application.delete_env(:deployer, Release)
+      end)
+    end
+
+    @tag :capture_log
+    test "makes no call to GitHub and reports no new release" do
+      custom_name = :test_github_server_off
+
+      with_mock Finch, [:passthrough], request: fn _request, _module -> {:error, :called} end do
+        {:ok, pid} = Release.start_link(name: custom_name, update_github_interval: 10)
+
+        assert Release.latest_release(custom_name) == %Release{}
+        assert :sys.get_state(pid) == %Release{}
+
+        # Longer than the interval, so a timer would have fired by now
+        Process.sleep(50)
+        assert_not_called(Finch.request(:_, :_))
+
+        GenServer.stop(pid)
+      end
+    end
+  end
+
   describe "handle_info/2" do
     test "updates state on :updated_github_info message" do
       initial_state = %Release{tag_name: "1.0.0"}

@@ -57,6 +57,7 @@ google_credentials: "/home/ubuntu/gcp-config.json"       # Google credentials (o
 version: "0.10.0"                                        # DeployEx version
 otp_version: 28                                          # OTP version (must match monitored apps)
 os_target: "ubuntu-24.04"                                # Target OS server
+enable_release_check: true                               # Hourly GitHub check for a newer DeployEx (optional, default: true)
 
 # Path Configuration (optional with defaults)
 otp_tls_certificates: "/usr/local/share/ca-certificates" # Path to TLS certificates
@@ -406,6 +407,7 @@ These fields require a **full DeployEx restart**:
 - `otp_version` - OTP version
 - `otp_tls_certificates` - TLS certificate path
 - `os_target` - Target operating system
+- `enable_release_check` - GitHub check for a newer DeployEx release
 
 #### Installation Paths
 - `install_path` - DeployEx installation directory

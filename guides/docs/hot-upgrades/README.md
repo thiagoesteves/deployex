@@ -410,6 +410,9 @@ config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Sou
 # config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Source.Gcp
 ```
 
+`dist_base_url` is the base the DeployEx release is read from, with one path per version. Without it, the installer reads GitHub releases.
+For a private bucket, set `s3://<bucket>/<prefix>`, see [AWS Hosts With No Internet Route](../aws-air-gapped/README.md).
+
 The self-upgrade is hot-only: it tries a hot upgrade, and if the target is not hot-upgradeable, for example a new OTP line,
 DeployEx stays on the current version and reports the failure. You then upgrade with one of the manual methods above. A restart
 fallback would have to stop and re-lay-down `/opt/deployex`, which the unprivileged `deployex` service user cannot do safely, so it
