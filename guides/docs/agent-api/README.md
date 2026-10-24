@@ -1,8 +1,8 @@
 # Agent API
 
 DeployEx can serve a JSON API and an event stream on a port of its own. Scripts, CI pipelines and other tools use it to read
-the state of the host without the dashboard, and to restart an app, clear its ghosted versions or set its mode. It is off by
-default.
+the state of the host and the logs of its apps without the dashboard, and to restart an app, clear its ghosted versions or set
+its mode. It is off by default.
 
 ## Turn it on
 
@@ -50,7 +50,7 @@ each change of the secret.
 Keep the port off public load balancers. Allow it only from the hosts that call it, for example with a security group rule.
 Set `certfile` and `keyfile` when the traffic leaves the private network. The HTTP resources and the `apps` topic never
 return the app env, a secret or the pre_commands of a version. The `events` topic sends the payloads that the webhook adapter
-gets.
+gets. The logs are what the apps write to stdout and stderr, so a `read` token sees all that an app logs.
 
 ## HTTP
 
@@ -67,6 +67,7 @@ curl -H "Authorization: Bearer $TOKEN" http://10.0.1.12:5002/v1/apps/myphoenixap
 | `GET /v1/apps/:name` | One monitored app: its mode, its ghosted versions and its instances |
 | `GET /v1/apps/:name/versions` | The version history of the app |
 | `GET /v1/apps/:name/ghosted` | The ghosted versions of the app |
+| `GET /v1/apps/:name/logs` | The stdout or stderr lines of one instance of the app (see [Logs](#logs)) |
 
 ```json
 {
@@ -160,10 +161,57 @@ It sends a `heartbeat` on the `phoenix` topic at least every 60 seconds, or Depl
 |---|---|
 | `events` | `event` for each notification event, with the body that the webhook adapter posts: `event`, `timestamp`, `payload` |
 | `apps` | The join reply has `apps`, every app as in `GET /v1/apps`. Then `app` each time one app changes |
+| `logs:<sname>:<type>` | `logs` with the new lines of one instance, in the body of `GET /v1/apps/:name/logs` (see [Logs](#logs)) |
 
 The `apps` topic also pushes `app_removed`, with the `name` of an app that the host no longer monitors. The events have the
 names and payloads that the `Foundation.Notifications` module documents. The `events` topic sends only the events
 of this host, also when DeployEx nodes are connected.
+
+## Logs
+
+DeployEx keeps the stdout and stderr lines of each instance in memory for `logs_retention_time_ms` (1 hour by default). A
+restart of DeployEx clears them. A `read` token gets them by the `sname` of the instance and the log type:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://10.0.1.12:5002/v1/apps/myphoenixapp/logs?sname=myphoenixapp-kxp3wq&type=stdout&since=2026-10-23T09:12:00Z"
+```
+
+```json
+{
+  "logs": [
+    {"timestamp": "2026-10-23T09:12:45.120Z", "line": "09:12:45.118 [info] Running MyphoenixappWeb.Endpoint with Bandit"},
+    {"timestamp": "2026-10-23T09:12:45.120Z", "line": "09:12:45.119 [info] Access MyphoenixappWeb.Endpoint at http://localhost:4000"}
+  ]
+}
+```
+
+| Parameter | Value |
+|---|---|
+| `sname` | Required. An instance in `GET /v1/apps/:name`, or an old one: each version in `/versions` and `/ghosted` has its `sname` |
+| `type` | Required. `stdout` or `stderr` |
+| `since` | Optional. An ISO 8601 time with an offset. Returns the lines at or after it. Without it, all lines that DeployEx keeps |
+
+The lines come oldest first. `timestamp` is the time DeployEx read the line, to the millisecond. A long line that `tail` sends
+in two parts comes as two entries. In a URL, write the `+` of an offset as `%2B`, or use `Z`. To poll, send the last
+`timestamp` as `since` on each call, and drop the lines with that time that you already have.
+
+| Status | When |
+|---|---|
+| `404` | The `sname` is not an instance of the app, or DeployEx keeps no logs for it |
+| `422` | No `sname`, a `type` that is not `stdout` or `stderr`, or a `since` that is not ISO 8601 with an offset |
+
+The `logs:<sname>:<type>` topic pushes `logs` with each new group of lines:
+
+```js
+const channel = socket.channel("logs:myphoenixapp-kxp3wq:stderr")
+channel.on("logs", ({logs}) => logs.forEach(({timestamp, line}) => console.log(timestamp, line)))
+channel.join()
+```
+
+The join fails with `not_found` for an `sname` or a `type` that the `GET` refuses with `404` or `422`, with `forbidden` for a
+token without `read`, and with `unavailable` before the first status update, so join again later. To miss no line, join the
+topic before the `GET`, and drop the lines that come in both.
 
 ## Check a rollout from a pipeline
 
