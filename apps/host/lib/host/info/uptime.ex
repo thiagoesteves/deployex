@@ -6,10 +6,11 @@ defmodule Host.Info.Uptime do
   alias Host.Commander
 
   @type t :: %__MODULE__{
-          uptime: nil | String.t()
+          uptime: nil | String.t(),
+          uptime_seconds: nil | non_neg_integer()
         }
 
-  defstruct uptime: nil
+  defstruct uptime: nil, uptime_seconds: nil
 
   ### ==========================================================================
   ### Public APIs
@@ -19,15 +20,15 @@ defmodule Host.Info.Uptime do
   def get_linux do
     case Commander.run("cat /proc/uptime", [:stdout, :sync]) do
       {:ok, [{:stdout, stdout}]} ->
-        uptime =
+        uptime_seconds =
           stdout
           |> List.first()
           |> String.split()
           |> List.first()
           |> String.to_float()
-          |> format_uptime()
+          |> trunc()
 
-        %__MODULE__{uptime: uptime}
+        %__MODULE__{uptime: format_uptime(uptime_seconds), uptime_seconds: uptime_seconds}
 
       _ ->
         %__MODULE__{}
@@ -47,7 +48,7 @@ defmodule Host.Info.Uptime do
       uptime_seconds = current_time - boot_time
       format_uptime(uptime_seconds)
 
-      %__MODULE__{uptime: format_uptime(uptime_seconds)}
+      %__MODULE__{uptime: format_uptime(uptime_seconds), uptime_seconds: uptime_seconds}
     else
       _ ->
         %__MODULE__{}
@@ -60,10 +61,6 @@ defmodule Host.Info.Uptime do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
-
-  defp format_uptime(seconds) when is_float(seconds) do
-    format_uptime(trunc(seconds))
-  end
 
   defp format_uptime(seconds) when is_integer(seconds) do
     cond do
