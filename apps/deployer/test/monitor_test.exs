@@ -731,7 +731,7 @@ defmodule Deployer.MonitorTest do
 
       send(pid, {:check_running, test_pid_process, sname})
 
-      assert %{status: :starting} = MonitorApp.state(sname)
+      assert %{status: :starting, started_at: %DateTime{}} = MonitorApp.state(sname)
 
       assert :ok = MonitorApp.stop_service(name, sname)
     end
@@ -1124,11 +1124,20 @@ defmodule Deployer.MonitorTest do
                MonitorApp.start_pre_commands(sname, ["eval Migrate.run"], :new)
     end
 
-    test "code_change adds the pre-commands fields to a state from an older version" do
+    test "code_change adds the new fields to a state from an older version" do
       state = %Deployer.Monitor{sname: "myelixir-abc"}
-      old_state = Map.drop(state, [:pre_commands_run, :reported_pre_commands])
+      old_state = Map.drop(state, [:pre_commands_run, :reported_pre_commands, :started_at])
 
       assert {:ok, ^state} = MonitorApp.code_change("0.10.0", old_state, [])
+
+      # A running instance keeps its start time, taken from start_time
+      start_time = System.monotonic_time()
+      old_state = Map.put(old_state, :start_time, start_time)
+
+      assert {:ok, %{started_at: %DateTime{} = started_at}} =
+               MonitorApp.code_change("0.10.0", old_state, [])
+
+      assert DateTime.diff(DateTime.utc_now(), started_at) in 0..1
     end
 
     @tag :capture_log

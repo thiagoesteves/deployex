@@ -16,6 +16,9 @@ config :deployex_web, DeployexWeb.Endpoint,
   ],
   server: true
 
+# Same interfaces as the dashboard. The agent_api YAML section sets the port and turns it on.
+config :deployex_web, DeployexWeb.AgentApi.Endpoint, http: [ip: {0, 0, 0, 0, 0, 0, 0, 0}]
+
 # NOTE: DO NOT cache the static files to properly hot upgrade
 # cache_static_manifest: "priv/static/cache_manifest.json"
 

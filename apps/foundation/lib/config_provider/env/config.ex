@@ -158,6 +158,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
             updated_config
           end
 
+        # Agent API Config. Without enabled: true the listener stays off.
+        agent_api = yaml_config.agent_api
+
+        updated_config =
+          if agent_api.enabled do
+            Config.Reader.merge(updated_config,
+              deployex_web: [{DeployexWeb.AgentApi.Endpoint, agent_api_endpoint_opts(agent_api)}]
+            )
+          else
+            updated_config
+          end
+
         # NOTE: Merge original config with the constructed config from yaml file
         Config.Reader.merge(config, updated_config)
 
@@ -184,6 +196,28 @@ defmodule Foundation.ConfigProvider.Env.Config do
     do: [host: yaml_config.hostname, scheme: "http", port: 80]
 
   defp endpoint_url(yaml_config), do: [host: yaml_config.hostname]
+
+  # With TLS, http is turned off so the port serves only HTTPS. A missing file stops the boot
+  # here with the section name, not later in the listener.
+  defp agent_api_endpoint_opts(%Yaml.AgentApi{certfile: nil, port: port}),
+    do: [server: true, http: [port: port]]
+
+  defp agent_api_endpoint_opts(%Yaml.AgentApi{} = agent_api) do
+    Enum.each([certfile: agent_api.certfile, keyfile: agent_api.keyfile], fn {key, path} ->
+      unless File.exists?(path), do: raise("agent_api #{key} #{path} not found")
+    end)
+
+    [
+      server: true,
+      http: false,
+      https: [
+        ip: {0, 0, 0, 0, 0, 0, 0, 0},
+        port: agent_api.port,
+        certfile: agent_api.certfile,
+        keyfile: agent_api.keyfile
+      ]
+    ]
+  end
 
   # Adds key only when the value is not nil, so an absent yaml value keeps the
   # existing (Phoenix default) config instead of overriding it with nil.

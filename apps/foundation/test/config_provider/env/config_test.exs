@@ -902,6 +902,106 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
     end
   end
 
+  describe "agent_api configuration" do
+    @tag :capture_log
+    test "load/3 turns the agent API listener on with the port from the yaml" do
+      path = agent_api_yaml("  enabled: true\n  port: 6002\n")
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        config = Config.load(@release_config, [])
+
+        assert config[:deployex_web][DeployexWeb.AgentApi.Endpoint] == [
+                 server: true,
+                 http: [port: 6002]
+               ]
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 serves only HTTPS when the yaml sets the certfile and keyfile" do
+      dir =
+        Path.join(
+          System.tmp_dir!(),
+          "deployex-agent-api-tls-#{System.unique_integer([:positive])}"
+        )
+
+      File.mkdir_p!(dir)
+      on_exit(fn -> File.rm_rf(dir) end)
+      certfile = Path.join(dir, "api.crt")
+      keyfile = Path.join(dir, "api.key")
+      File.write!(certfile, "cert")
+      File.write!(keyfile, "key")
+
+      path =
+        agent_api_yaml("""
+          enabled: true
+          certfile: "#{certfile}"
+          keyfile: "#{keyfile}"
+        """)
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        endpoint = Config.load(@release_config, [])[:deployex_web][DeployexWeb.AgentApi.Endpoint]
+
+        assert endpoint[:server] == true
+        assert endpoint[:http] == false
+
+        assert endpoint[:https] == [
+                 ip: {0, 0, 0, 0, 0, 0, 0, 0},
+                 port: 5002,
+                 certfile: certfile,
+                 keyfile: keyfile
+               ]
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 stops with the section name when a TLS file does not exist" do
+      path =
+        agent_api_yaml("""
+          enabled: true
+          certfile: "/nonexistent/api.crt"
+          keyfile: "/nonexistent/api.key"
+        """)
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        assert_raise RuntimeError, "agent_api certfile /nonexistent/api.crt not found", fn ->
+          Config.load(@release_config, [])
+        end
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 keeps the release config when the agent API is off" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        refute Keyword.has_key?(
+                 Config.load(@release_config, [])[:deployex_web],
+                 DeployexWeb.AgentApi.Endpoint
+               )
+      end
+    end
+  end
+
+  defp agent_api_yaml(section) do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "deployex-agent-api-#{System.unique_integer([:positive])}.yaml"
+      )
+
+    File.write!(path, File.read!(@yaml_aws_default) <> "\nagent_api:\n" <> section)
+    on_exit(fn -> File.rm(path) end)
+    path
+  end
+
   describe "auth configuration" do
     @tag :capture_log
     test "load/3 sets the DeployexWeb.OAuth config from the auth section" do

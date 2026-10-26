@@ -272,6 +272,24 @@ defmodule Foundation.Yaml do
           }
   end
 
+  defmodule AgentApi do
+    @moduledoc """
+    The agent API: an HTTP and Channels endpoint on its own port, off by default.
+
+    The tokens are not here. They are a secret, `DEPLOYEX_API_TOKENS`, fetched
+    through the secrets provider. With `certfile` and `keyfile` the port serves HTTPS.
+    """
+
+    defstruct enabled: false, port: 5002, certfile: nil, keyfile: nil
+
+    @type t :: %__MODULE__{
+            enabled: boolean(),
+            port: non_neg_integer(),
+            certfile: String.t() | nil,
+            keyfile: String.t() | nil
+          }
+  end
+
   defstruct account_name: nil,
             hostname: nil,
             port: nil,
@@ -300,6 +318,7 @@ defmodule Foundation.Yaml do
             notifications: [],
             self_upgrade: nil,
             auth: nil,
+            agent_api: nil,
             config_checksum: nil
 
   @type t :: %__MODULE__{
@@ -331,6 +350,7 @@ defmodule Foundation.Yaml do
           notifications: [Foundation.Yaml.Notification.t()] | [],
           self_upgrade: Foundation.Yaml.SelfUpgrade.t() | nil,
           auth: Foundation.Yaml.Auth.t() | nil,
+          agent_api: Foundation.Yaml.AgentApi.t() | nil,
           # Checksum of the YAML configuration file content.
           # Used internally to detect configuration changes and trigger dynamic reloads.
           # This value is computed from the file contents, not the file metadata.
@@ -462,6 +482,7 @@ defmodule Foundation.Yaml do
       notifications: parse_notifications(data["notifications"]),
       self_upgrade: parse_self_upgrade(data["self_upgrade"]),
       auth: parse_auth(data["auth"]),
+      agent_api: parse_agent_api(data["agent_api"]),
       config_checksum: checksum
     }
   end
@@ -524,6 +545,45 @@ defmodule Foundation.Yaml do
       do: value,
       else: raise("auth #{key} #{inspect(value)} not supported, expected a list of strings")
   end
+
+  defp parse_agent_api(nil), do: %Foundation.Yaml.AgentApi{}
+
+  defp parse_agent_api(data) when is_map(data) do
+    %Foundation.Yaml.AgentApi{
+      enabled: parse_agent_api_enabled(data["enabled"]),
+      port: parse_agent_api_port(data["port"]),
+      certfile: data["certfile"],
+      keyfile: data["keyfile"]
+    }
+    |> validate_agent_api_tls()
+  end
+
+  defp parse_agent_api(data),
+    do:
+      raise("agent_api #{inspect(data)} not supported, expected a section with enabled and port")
+
+  # An empty value keeps the default, as a missing key does
+  defp parse_agent_api_enabled(nil), do: %Foundation.Yaml.AgentApi{}.enabled
+  defp parse_agent_api_enabled(value) when is_boolean(value), do: value
+
+  defp parse_agent_api_enabled(value),
+    do: raise("agent_api enabled #{inspect(value)} not supported, expected true or false")
+
+  defp parse_agent_api_port(nil), do: %Foundation.Yaml.AgentApi{}.port
+  defp parse_agent_api_port(port) when is_integer(port) and port in 1..65_535, do: port
+
+  defp parse_agent_api_port(port),
+    do: raise("agent_api port #{inspect(port)} not supported, expected a port number")
+
+  # A half TLS config would start a plain HTTP listener the operator did not ask for
+  defp validate_agent_api_tls(%{certfile: nil, keyfile: nil} = agent_api), do: agent_api
+
+  defp validate_agent_api_tls(%{certfile: certfile, keyfile: keyfile} = agent_api)
+       when is_binary(certfile) and is_binary(keyfile),
+       do: agent_api
+
+  defp validate_agent_api_tls(_agent_api),
+    do: raise("agent_api certfile and keyfile not supported, expected both paths or neither")
 
   defp secrets_adapter("aws"), do: Foundation.ConfigProvider.Secrets.Aws
   defp secrets_adapter("gcp"), do: Foundation.ConfigProvider.Secrets.Gcp

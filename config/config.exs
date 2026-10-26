@@ -61,6 +61,16 @@ config :deployex_web, DeployexWeb.Endpoint,
   pubsub_server: DeployexWeb.PubSub,
   live_view: [signing_salt: "NiuvxePg"]
 
+# Configures the agent API endpoint. Off by default, the agent_api YAML section turns it on.
+# The socket accepts an Origin that matches the address the client called, as CLI clients send.
+config :deployex_web, DeployexWeb.AgentApi.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  http: [port: 5002],
+  check_origin: :conn,
+  render_errors: [formats: [json: DeployexWeb.ErrorJSON], layout: false],
+  pubsub_server: DeployexWeb.PubSub,
+  server: false
+
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

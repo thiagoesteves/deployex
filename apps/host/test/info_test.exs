@@ -78,6 +78,7 @@ defmodule Host.InfoTest do
                       memory_free: 1_263_837_184,
                       memory_total: 2_055_806_976,
                       uptime: "15 days",
+                      uptime_seconds: 1_297_530,
                       cpu: 31.4,
                       cpus: 2
                     }},
@@ -287,6 +288,28 @@ defmodule Host.InfoTest do
   end
 
   @tag :capture_log
+  test "latest/1 returns the last reading of the server" do
+    name = "#{__MODULE__}-#{Common.random_small_alphanum()}" |> String.to_atom()
+
+    Host.CommanderMock
+    |> stub(:os_type, fn -> {:unix, :linux} end)
+    |> stub(:run, fn _, [:stdout, :sync] -> {:error, "any"} end)
+
+    assert InfoServer.latest(name) == nil
+
+    assert {:ok, _pid} = InfoServer.start_link(name: name, update_info_interval: 100)
+
+    InfoServer.subscribe()
+    assert_receive {:update_system_info, %Host.Info{} = host_info}, 1_000
+
+    assert InfoServer.latest(name) == host_info
+  end
+
+  test "latest/0 returns nil with no server running" do
+    assert Host.Info.latest() == nil
+  end
+
+  @tag :capture_log
   test "Host Uptime variations" do
     Host.CommanderMock
     |> stub(:run, fn "cat /proc/uptime", [:stdout, :sync] ->
@@ -320,13 +343,13 @@ defmodule Host.InfoTest do
       end
     end)
 
-    assert %{uptime: "1 second"} = Uptime.get_linux()
-    assert %{uptime: "3 seconds"} = Uptime.get_linux()
-    assert %{uptime: "1 minute"} = Uptime.get_linux()
-    assert %{uptime: "3 minutes"} = Uptime.get_linux()
-    assert %{uptime: "1 hour"} = Uptime.get_linux()
-    assert %{uptime: "3 hours"} = Uptime.get_linux()
-    assert %{uptime: "1 day"} = Uptime.get_linux()
-    assert %{uptime: "15 days"} = Uptime.get_linux()
+    assert %{uptime: "1 second", uptime_seconds: 1} = Uptime.get_linux()
+    assert %{uptime: "3 seconds", uptime_seconds: 3} = Uptime.get_linux()
+    assert %{uptime: "1 minute", uptime_seconds: 60} = Uptime.get_linux()
+    assert %{uptime: "3 minutes", uptime_seconds: 180} = Uptime.get_linux()
+    assert %{uptime: "1 hour", uptime_seconds: 3_600} = Uptime.get_linux()
+    assert %{uptime: "3 hours", uptime_seconds: 10_800} = Uptime.get_linux()
+    assert %{uptime: "1 day", uptime_seconds: 86_400} = Uptime.get_linux()
+    assert %{uptime: "15 days", uptime_seconds: 1_296_000} = Uptime.get_linux()
   end
 end

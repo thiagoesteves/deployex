@@ -12,6 +12,7 @@ defmodule Host.Info do
           memory_free: nil | non_neg_integer(),
           memory_total: nil | non_neg_integer(),
           uptime: nil | String.t(),
+          uptime_seconds: nil | non_neg_integer(),
           cpu: nil | non_neg_integer(),
           cpus: nil | non_neg_integer()
         }
@@ -22,6 +23,7 @@ defmodule Host.Info do
             memory_free: nil,
             memory_total: nil,
             uptime: nil,
+            uptime_seconds: nil,
             cpu: nil,
             cpus: nil
 
@@ -31,6 +33,9 @@ defmodule Host.Info do
 
   @spec subscribe() :: :ok | {:error, any()}
   def subscribe, do: Server.subscribe()
+
+  @spec latest() :: t() | nil
+  def latest, do: Server.latest()
 
   ### ==========================================================================
   ### Private functions

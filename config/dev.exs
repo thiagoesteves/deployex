@@ -199,3 +199,14 @@ config :deployer, Deployer.Release,
 if client_secret = System.get_env("DEPLOYEX_OAUTH_CLIENT_SECRET") do
   config :deployex_web, DeployexWeb.OAuth, client_secret: client_secret
 end
+
+# Agent API for local testing, on http://localhost:5002. Enable it by exporting the
+# tokens before starting DeployEx (see guides/docs/agent-api/README.md):
+#   export DEPLOYEX_API_TOKENS="dev:read:<sha256 of the token>"
+if System.get_env("DEPLOYEX_API_TOKENS") do
+  config :deployex_web, DeployexWeb.AgentApi.Endpoint,
+    http: [ip: {127, 0, 0, 1}, port: 5002],
+    server: true
+
+  config :deployex_web, DeployexWeb.AgentApi, tokens: System.get_env("DEPLOYEX_API_TOKENS")
+end

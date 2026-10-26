@@ -302,6 +302,41 @@ defmodule Deployer.Status.ApplicationTest do
            )
   end
 
+  test "update monitoring apps reports the start time that the monitor recorded", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    started_at = ~U[2026-10-23 12:00:00Z]
+
+    Deployer.MonitorMock
+    |> expect(:state, 3, fn
+      ^sname_1 ->
+        %Deployer.Monitor{sname: sname_1, status: :running, started_at: started_at}
+
+      # A monitor state written before a relup has no started_at
+      sname ->
+        Map.delete(%Deployer.Monitor{sname: sname, status: :running}, :started_at)
+    end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
+
+    Deployer.HotUpgradeMock
+    |> stub(:connect, fn _node -> {:error, :not_connecting} end)
+
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
+
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    assert %{started_at: %DateTime{}} = Enum.find(monitoring, &(&1.name == "deployex"))
+
+    started = for app <- monitoring, child <- app.children, do: {child.sname, child.started_at}
+
+    assert Enum.sort(started) ==
+             Enum.sort([{sname_1, started_at}, {sname_2, nil}, {sname_3, nil}])
+  end
+
   test "update monitoring apps with running state and otp connected", %{
     sname_1: sname_1,
     sname_2: sname_2,

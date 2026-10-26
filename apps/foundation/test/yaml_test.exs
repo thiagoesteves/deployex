@@ -954,6 +954,95 @@ defmodule Foundation.YamlTest do
     end
   end
 
+  describe "agent_api" do
+    test "is off by default when the section is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.agent_api == %Yaml.AgentApi{enabled: false, port: 5002}
+      end
+    end
+
+    test "parses the section, with TLS" do
+      path =
+        agent_api_yaml("""
+          enabled: true
+          port: 6002
+          certfile: "/etc/deployex/api.crt"
+          keyfile: "/etc/deployex/api.key"
+        """)
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+
+        assert config.agent_api == %Yaml.AgentApi{
+                 enabled: true,
+                 port: 6002,
+                 certfile: "/etc/deployex/api.crt",
+                 keyfile: "/etc/deployex/api.key"
+               }
+      end
+    end
+
+    test "keeps the default port when the section sets none" do
+      path = agent_api_yaml("  enabled: true\n")
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.agent_api == %Yaml.AgentApi{enabled: true, port: 5002}
+      end
+    end
+
+    test "keeps the defaults for keys with an empty value" do
+      path = agent_api_yaml("  enabled:\n  port:\n")
+
+      with_mocks([
+        {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.agent_api == %Yaml.AgentApi{enabled: false, port: 5002}
+      end
+    end
+
+    test "rejects a value that is not valid" do
+      for {section, message} <- [
+            {" true\n", "agent_api true not supported, expected a section with enabled and port"},
+            {"  enabled: \"yes\"\n",
+             ~s(agent_api enabled "yes" not supported, expected true or false)},
+            {"  enabled: true\n  port: 70000\n",
+             "agent_api port 70000 not supported, expected a port number"},
+            {"  enabled: true\n  certfile: \"/etc/deployex/api.crt\"\n",
+             "agent_api certfile and keyfile not supported, expected both paths or neither"}
+          ] do
+        path = agent_api_yaml(section)
+
+        with_mocks([
+          {System, [:passthrough], [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> path end]}
+        ]) do
+          assert_raise RuntimeError, message, fn -> Yaml.load() end
+        end
+      end
+    end
+  end
+
+  defp agent_api_yaml(section) do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "deployex-agent-api-#{System.unique_integer([:positive])}.yaml"
+      )
+
+    File.write!(path, File.read!(@yaml_aws_default) <> "\nagent_api:\n" <> section)
+    on_exit(fn -> File.rm(path) end)
+    path
+  end
+
   describe "auth" do
     test "parses the auth section" do
       with_mocks([
