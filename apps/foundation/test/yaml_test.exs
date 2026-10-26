@@ -30,6 +30,8 @@ defmodule Foundation.YamlTest do
   @yaml_endpoint_origin_host_error "#{@file_paths}/deployex-endpoint-origin-host-error.yaml"
   @yaml_endpoint_origin_string_error "#{@file_paths}/deployex-endpoint-origin-string-error.yaml"
   @yaml_endpoint_origin_empty_error "#{@file_paths}/deployex-endpoint-origin-empty-error.yaml"
+  @yaml_release_check_off "#{@file_paths}/deployex-release-check-off.yaml"
+  @yaml_release_check_error "#{@file_paths}/deployex-release-check-error.yaml"
   @yaml_notifications_all "#{@file_paths}/deployex-notifications-all.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
   @yaml_auth "#{@file_paths}/deployex-auth.yaml"
@@ -877,6 +879,39 @@ defmodule Foundation.YamlTest do
         {:ok, config} = Yaml.load()
         assert config.scheme == nil
         assert config.check_origin == nil
+      end
+    end
+  end
+
+  describe "enable_release_check" do
+    test "parses false" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_release_check_off end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.enable_release_check == false
+      end
+    end
+
+    test "defaults to nil when absent (the release config stays)" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        {:ok, config} = Yaml.load()
+        assert config.enable_release_check == nil
+      end
+    end
+
+    test "rejects a value that is not a boolean" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_release_check_error end]}
+      ]) do
+        assert_raise RuntimeError,
+                     ~s(enable_release_check "false" not supported, expected true or false),
+                     fn -> Yaml.load() end
       end
     end
   end

@@ -20,6 +20,7 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
   @yaml_endpoint "#{@file_paths}/deployex-endpoint.yaml"
   @yaml_endpoint_http "#{@file_paths}/deployex-endpoint-http.yaml"
   @yaml_self_upgrade "#{@file_paths}/deployex-self-upgrade.yaml"
+  @yaml_release_check_off "#{@file_paths}/deployex-release-check-off.yaml"
   @yaml_auth "#{@file_paths}/deployex-auth.yaml"
 
   # What config.exs + prod.exs give the provider in a release.
@@ -833,6 +834,30 @@ defmodule Foundation.ConfigProvider.Env.ConfigTest do
                    ]}
                 ]}
              ] = Config.load([], [])
+    end
+  end
+
+  describe "release check configuration" do
+    @tag :capture_log
+    test "load/3 turns the release check off when enable_release_check is false" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_release_check_off end]}
+      ]) do
+        config = Config.load([deployer: [{Deployer.Github.Release, [enabled: true]}]], [])
+        assert config[:deployer][Deployer.Github.Release] == [enabled: false]
+      end
+    end
+
+    @tag :capture_log
+    test "load/3 keeps the release config when enable_release_check is absent" do
+      with_mocks([
+        {System, [:passthrough],
+         [get_env: fn "DEPLOYEX_CONFIG_YAML_PATH" -> @yaml_aws_default end]}
+      ]) do
+        config = Config.load([deployer: [{Deployer.Github.Release, [enabled: true]}]], [])
+        assert config[:deployer][Deployer.Github.Release] == [enabled: true]
+      end
     end
   end
 

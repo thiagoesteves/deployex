@@ -115,6 +115,18 @@ defmodule Foundation.ConfigProvider.Env.Config do
             ]
           )
 
+        # GitHub release check. Without the key, the release config stays.
+        updated_config =
+          case yaml_config.enable_release_check do
+            nil ->
+              updated_config
+
+            enabled ->
+              Config.Reader.merge(updated_config,
+                deployer: [{Deployer.Github.Release, [enabled: enabled]}]
+              )
+          end
+
         # Secrets Config
         updated_config =
           Config.Reader.merge(updated_config,

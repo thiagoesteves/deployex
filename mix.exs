@@ -90,6 +90,7 @@ defmodule Deployex.MixProject do
         ],
         "guides/docs/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
         "guides/docs/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
+        "guides/docs/aws-air-gapped/README.md": [filename: "README.md", title: "AWS-Air-Gapped"],
         "guides/docs/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
         "guides/docs/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
         "guides/docs/local-elixir-ecto/README.md": [

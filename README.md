@@ -195,6 +195,9 @@ DeployEx offers a comprehensive set of Terraform examples for programmatically d
 
 If you intend to install DeployEx directly on an Ubuntu/Debian server, you can utilize the [deployex script](/devops/installer/deployex.sh) provided in the release package. This script is able to `install`, `update` and `hot-upgrade` DeployEx. However, you have the option to manually compile and install DeployEx on your target system.
 
+For a host with no internet route, the script can install and upgrade DeployEx from a private S3 bucket,
+see [AWS hosts with no internet route](guides/docs/aws-air-gapped/README.md).
+
 For more information, please check [YAML Management](guides/docs/yaml/README.md) details.
 
 #### 🔥 Hot-Upgrades

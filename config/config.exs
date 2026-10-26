@@ -149,6 +149,9 @@ config :deployer, Deployer.SelfUpgrade.Source, adapter: Deployer.SelfUpgrade.Sou
 
 config :deployer, Deployer.SelfUpgrade.Executor, adapter: Deployer.SelfUpgrade.Executor.Shell
 
+# Hourly check of GitHub for a newer DeployEx release, shown on the dashboard.
+config :deployer, Deployer.Github.Release, enabled: true
+
 # Default GCP credentials are empty
 config :goth, file_credentials: nil
 

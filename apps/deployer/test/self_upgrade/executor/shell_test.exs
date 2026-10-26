@@ -58,5 +58,13 @@ defmodule Deployer.SelfUpgrade.Executor.ShellTest do
       assert Shell.dist_args("https://example.com/{version}/rel") ==
                ["--dist", "https://example.com/{version}/rel"]
     end
+
+    test "an s3:// base follows the same {version} rule" do
+      assert Shell.dist_args("s3://releases-bucket/deployex/") ==
+               ["--dist", "s3://releases-bucket/deployex/{version}"]
+
+      assert Shell.dist_args("s3://releases-bucket/deployex/{version}") ==
+               ["--dist", "s3://releases-bucket/deployex/{version}"]
+    end
   end
 end
