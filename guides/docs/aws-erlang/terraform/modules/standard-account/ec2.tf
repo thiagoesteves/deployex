@@ -1,9 +1,18 @@
+# The AMI follows the instance type: arm64 for a Graviton type such as t4g, amd64 otherwise
+data "aws_ec2_instance_type" "deployex" {
+  instance_type = var.ec2_instance_type
+}
+
+locals {
+  debian_arch = contains(data.aws_ec2_instance_type.deployex.supported_architectures, "arm64") ? "arm64" : "amd64"
+}
+
 data "aws_ami" "debian" {
   most_recent = true
 
   filter {
     name   = "name"
-    values = ["debian-13-amd64-*"]
+    values = ["debian-13-${local.debian_arch}-*"]
   }
 
   filter {
@@ -107,6 +116,7 @@ data "cloudinit_config" "server_config" {
       account_name = "${var.account_name}"
       aws_region = "${var.aws_region}"
       replicas = "${var.replicas}"
+      debian_arch = local.debian_arch
     })
   }
 }

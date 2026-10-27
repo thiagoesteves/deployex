@@ -43,7 +43,7 @@ variable "root_volume_size" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "EC2 instance type. A Graviton type such as t4g.medium runs on arm64"
   type        = string
 }
 

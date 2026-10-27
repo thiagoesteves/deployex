@@ -443,6 +443,7 @@ version from looping. After you fix the cause, retry the same version in one of 
 ### Choosing the right release file
 
 Each release publishes one artifact per OTP line, `deployex-ubuntu-24.04-otp-28.tar.gz` and `deployex-ubuntu-24.04-otp-29.tar.gz`.
+An arm64 host takes the same files with `-arm64` after the OS, such as `deployex-ubuntu-24.04-arm64-otp-28.tar.gz`.
 The file has to match the `otp_version` the installation runs, which is the one in its `deployex.yaml`.
 Picking the wrong one is the easiest way to hit the first entry of [When NOT to hot-upgrade](#when-not-to-hot-upgrade), updating Erlang OTP, without meaning to.
 

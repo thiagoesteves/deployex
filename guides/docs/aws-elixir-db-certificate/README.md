@@ -32,6 +32,8 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 
 Check the file [main.tf][main] and configure the [variables][var] according to your specific environment. These variables will be utilized across all Terraform templates to ensure correct setup.
 
+For an arm64 host, set `instance_type` to a Graviton type such as `t4g.medium`. The AMI, the CloudWatch agent and the DeployEx release follow the instance type. Build the monitored app release on arm64 as well.
+
 ## 5. Provisioning the Environment
 
 Create manually the S3 bucket that will contain the terraform state, the name must follow the name defined in [main.tf][main]:

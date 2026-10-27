@@ -29,7 +29,8 @@ s3://my-deployex-releases/deployex/0.10.1/deployex.sh
 s3://my-deployex-releases/deployex/0.10.1/deployex-ubuntu-24.04-otp-28.tar.gz
 ```
 
-The tarball name is `deployex-<os_target>-otp-<otp_version>.tar.gz`, from the DeployEx YAML. Upload `checksum.txt` as it is:
+The tarball name is `deployex-<os_target>-otp-<otp_version>.tar.gz`, from the DeployEx YAML. An arm64 host takes
+`deployex-<os_target>-arm64-otp-<otp_version>.tar.gz`. Upload `checksum.txt` as it is:
 the installer checks the tarball against it, and cloud-init checks `deployex.sh` against it.
 
 A pipeline step that downloads, scans and uploads a version:

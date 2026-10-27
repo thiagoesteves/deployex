@@ -61,7 +61,7 @@ Upon deployment, the following dashboard becomes available, providing easy acces
 - Supports safe tracing for all connected applications.
 - Provides visualization of Host System memory and CPU usage.
 - Provides easy access to the host shell (tmux).
-- Provides script to be used with ubuntu/debian hosts to install/update and hotupgrade DeployEx.
+- Provides script to be used with ubuntu/debian hosts, amd64 or arm64, to install/update and hotupgrade DeployEx.
 - Provides status information per node:
   - OTP connectivity
   - Version history
