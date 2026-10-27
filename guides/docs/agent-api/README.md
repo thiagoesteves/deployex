@@ -111,7 +111,7 @@ named in the path. The restart is the Full Restart: the monitored app is down un
 |---|---|---|
 | `POST /v1/apps/:name/restart` | Stops every instance at once and deploys each again, as Full Restart | `202`. It runs after the reply |
 | `DELETE /v1/apps/:name/ghosted/:version` | Removes one ghosted version | `200` with the rest. `404` if it is not ghosted |
-| `DELETE /v1/apps/:name/ghosted` | Clears the ghosted versions | `200` with an empty list |
+| `POST /v1/apps/:name/ghosted/clear` | Clears the ghosted versions | `200` with an empty list |
 | `PUT /v1/apps/:name/mode` | Sets the mode | `200`. `422` for an unknown mode or a version not in the history. `400` for bad JSON |
 
 The mode call takes a JSON body, `{"mode": "automatic"}` or `{"mode": "manual", "version": "1.4.1"}`:

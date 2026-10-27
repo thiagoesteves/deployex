@@ -34,7 +34,8 @@ defmodule DeployexWeb.AgentApi.Router do
 
     post "/apps/:name/restart", OperateController, :restart
     delete "/apps/:name/ghosted/:version", OperateController, :remove_ghosted
-    delete "/apps/:name/ghosted", OperateController, :clear_ghosted
+    # Not DELETE /ghosted: Plug drops an empty version segment, so that path would clear all
+    post "/apps/:name/ghosted/clear", OperateController, :clear_ghosted
     put "/apps/:name/mode", OperateController, :set_mode
   end
 end

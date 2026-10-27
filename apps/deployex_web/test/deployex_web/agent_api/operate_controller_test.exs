@@ -103,9 +103,20 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
 
       assert log =~ ~s(version="9.9.9" result=not_found)
     end
+
+    # Plug drops the empty segment, so the path has no version at all
+    test "an empty version clears nothing", %{conn: conn} do
+      stub_ghosted(["4.5.7"])
+
+      Deployer.StatusMock
+      |> expect(:clear_ghosted_versions, 0, fn _name -> {:ok, []} end)
+      |> expect(:remove_ghosted_version, 0, fn _name, _version -> {:ok, []} end)
+
+      assert conn |> delete("/v1/apps/test_app/ghosted/") |> json_response(404)
+    end
   end
 
-  describe "DELETE /v1/apps/:name/ghosted" do
+  describe "POST /v1/apps/:name/ghosted/clear" do
     test "clears every ghosted version", %{conn: conn} do
       ghosted = stub_ghosted(["4.5.7", "4.5.8"])
 
@@ -117,7 +128,7 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
 
       log =
         capture_log(fn ->
-          assert conn |> delete("/v1/apps/test_app/ghosted") |> json_response(200) == %{
+          assert conn |> post("/v1/apps/test_app/ghosted/clear") |> json_response(200) == %{
                    "ghosted_versions" => []
                  }
         end)
@@ -209,7 +220,7 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
           for {method, path} <- [
                 {:post, "/v1/apps/test_app/restart"},
                 {:delete, "/v1/apps/test_app/ghosted/4.5.7"},
-                {:delete, "/v1/apps/test_app/ghosted"},
+                {:post, "/v1/apps/test_app/ghosted/clear"},
                 {:put, "/v1/apps/test_app/mode"}
               ] do
             assert conn |> dispatch(@endpoint, method, path, nil) |> json_response(403)
@@ -221,7 +232,7 @@ defmodule DeployexWeb.AgentApi.OperateControllerTest do
 
       for action <- [
             "DELETE /v1/apps/test_app/ghosted/4.5.7",
-            "DELETE /v1/apps/test_app/ghosted",
+            "POST /v1/apps/test_app/ghosted/clear",
             "PUT /v1/apps/test_app/mode"
           ] do
         assert log =~ ~s(token=ci from=127.0.0.1 action="#{action}" result=forbidden)
