@@ -80,6 +80,49 @@ defmodule Deployer.Installer.DeployexShTest do
     assert result.aws == nil
   end
 
+  describe "release_file_name" do
+    @run_name ~S"""
+    eval "$(sed -n '/^release_file_name() {$/,/^}$/p' "${INSTALLER}")"
+    release_file_name ubuntu-24.04 28 2>"${ERR}"
+    """
+
+    test "an x86_64 host gets the asset name without an architecture", context do
+      assert release_file_name(context, "x86_64") ==
+               {"deployex-ubuntu-24.04-otp-28.tar.gz\n", 0, ""}
+    end
+
+    test "an aarch64 host gets the arm64 asset", context do
+      assert release_file_name(context, "aarch64") ==
+               {"deployex-ubuntu-24.04-arm64-otp-28.tar.gz\n", 0, ""}
+    end
+
+    test "another architecture fails with the reason", context do
+      {name, status, stderr} = release_file_name(context, "riscv64")
+
+      assert name == ""
+      assert status != 0
+
+      assert stderr ==
+               "Error: no DeployEx release for the riscv64 architecture, only x86_64 and aarch64\n"
+    end
+  end
+
+  defp release_file_name(%{tmp_dir: tmp_dir, bin: bin}, arch) do
+    err = Path.join(tmp_dir, "stderr")
+    uname = Path.join(bin, "uname")
+    File.write!(uname, "#!/bin/bash\necho #{arch}\n")
+    File.chmod!(uname, 0o755)
+
+    env = [
+      {"PATH", bin <> ":" <> System.get_env("PATH")},
+      {"INSTALLER", @installer},
+      {"ERR", err}
+    ]
+
+    {output, status} = System.cmd("bash", ["-c", @run_name], env: env)
+    {output, status, File.read!(err)}
+  end
+
   defp fetch_release_file(%{tmp_dir: tmp_dir, bin: bin, dest: dest}, url, env) do
     err = Path.join(tmp_dir, "stderr")
     Enum.each(["aws", "wget"], &File.rm(Path.join(tmp_dir, &1)))
