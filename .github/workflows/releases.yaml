@@ -12,15 +12,24 @@ env:
 jobs:
   build:
     if: github.event.base_ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         otp: [28, 29]
+        arch: [amd64, arm64]
+        # An amd64 asset has no architecture in its name, so existing installs keep working.
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            suffix: ""
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            suffix: "-arm64"
     env:
-      ARTIFACT_NAME: deployex-ubuntu-24.04-otp-${{ matrix.otp }}.tar.gz
+      ARTIFACT_NAME: deployex-ubuntu-24.04${{ matrix.suffix }}-otp-${{ matrix.otp }}.tar.gz
     steps:
       - uses: actions/checkout@v7
         with:
@@ -137,5 +146,5 @@ jobs:
       - name: Release the files
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "deployex-ubuntu-24.04-otp-*.tar.gz, deployex.sh, checksum.txt"
+          artifacts: "deployex-*.tar.gz, deployex.sh, checksum.txt"
           bodyFile: "CHANGELOG.md"
