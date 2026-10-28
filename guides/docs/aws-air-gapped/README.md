@@ -21,7 +21,7 @@ These opt-in features need the internet and do not work. Leave them off: Let's E
 
 ## 1. Bucket layout
 
-Put each version under its own prefix, with the three files of the GitHub release that the host uses:
+Put each version under its own prefix, with the files of the GitHub release that the hosts use:
 
 ```
 s3://my-deployex-releases/deployex/0.10.1/checksum.txt
@@ -29,7 +29,8 @@ s3://my-deployex-releases/deployex/0.10.1/deployex.sh
 s3://my-deployex-releases/deployex/0.10.1/deployex-ubuntu-24.04-otp-28.tar.gz
 ```
 
-The tarball name is `deployex-<os_target>-otp-<otp_version>.tar.gz`, from the DeployEx YAML. Upload `checksum.txt` as it is:
+The tarball name is `deployex-<os_target>-otp-<otp_version>.tar.gz`, from the DeployEx YAML. An arm64 host takes
+`deployex-<os_target>-arm64-otp-<otp_version>.tar.gz`. Upload `checksum.txt` as it is:
 the installer checks the tarball against it, and cloud-init checks `deployex.sh` against it.
 
 A pipeline step that downloads, scans and uploads a version:
@@ -39,9 +40,9 @@ set -euo pipefail
 VERSION=0.10.1
 mkdir -p "release/${VERSION}" && cd "release/${VERSION}"
 gh release download "${VERSION}" -R thiagoesteves/deployex \
-  -p checksum.txt -p deployex.sh -p "deployex-ubuntu-24.04-otp-28.tar.gz"
+  -p checksum.txt -p deployex.sh -p "deployex-ubuntu-24.04*-otp-28.tar.gz"
 sha256sum --check --ignore-missing checksum.txt
-# Scan the three files here, and stop if the scan fails.
+# Scan the files here, and stop if the scan fails.
 aws s3 cp . "s3://my-deployex-releases/deployex/${VERSION}/" --recursive
 ```
 

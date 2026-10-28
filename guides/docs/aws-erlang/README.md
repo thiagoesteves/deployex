@@ -31,6 +31,8 @@ Ensure you have access to the following secrets for storage in Secrets Manager:
 ## 4. Variables Configuration
 
 Rename the file [main\_example.tf\_][main] to `main.tf` and verify and configure the variables according to your specific environment. Ensure that you also review and update the [variables file][var]. These variables will be utilized across all Terraform templates to ensure correct setup.
+
+For an arm64 host, set `ec2_instance_type` to a Graviton type such as `t4g.medium`. The AMI, the CloudWatch agent and the DeployEx release follow the instance type. In the same apply, set `deployex_version` to a release that lists `deployex-ubuntu-24.04-arm64-otp-<otp>.tar.gz`. An earlier release installs the amd64 build, which does not start on an arm64 host. Build the monitored app release on arm64 as well.
 ## 5. Provisioning the Environment
 
 Check you have the correct credentials to create/update resources in aws:
@@ -151,7 +153,7 @@ vi deployex.yaml
 version: "0.9.1"
 otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
-os_target: "ubuntu-24.04"                                # DeployEx release artifact, the only one published. It runs on Debian 13 as well
+os_target: "ubuntu-24.04"                                # DeployEx release artifact, for amd64 and arm64. It runs on Debian 13 as well
 ...
 ```
 

@@ -165,7 +165,7 @@ vi deployex.yaml
 version: "0.9.1"
 otp_version: 28
 otp_tls_certificates: "/usr/local/share/ca-certificates"
-os_target: "ubuntu-24.04"                                # DeployEx release artifact, the only one published. It runs on Debian 13 as well
+os_target: "ubuntu-24.04"                                # DeployEx release artifact, for amd64 and arm64. It runs on Debian 13 as well
 ...
 ```
 

@@ -243,14 +243,31 @@ fetch_release_file() {
     fi
 }
 
+# The release asset for the host CPU. An amd64 asset has no architecture in its name,
+# as before the arm64 builds, so existing installs and mirrors keep working.
+release_file_name() {
+  local os_target=$1 otp_version=$2 arch
+
+    arch=$(uname -m)
+    case "${arch}" in
+      x86_64) echo "deployex-${os_target}-otp-${otp_version}.tar.gz" ;;
+      aarch64|arm64) echo "deployex-${os_target}-arm64-otp-${otp_version}.tar.gz" ;;
+      *)
+        echo "Error: no DeployEx release for the ${arch} architecture, only x86_64 and aarch64" >&2
+        return 1
+        ;;
+    esac
+}
+
 download_and_verify_release() {
   local OS_TARGET=$1
   local OTP_VERSION=$2
   local BASE_RELEASE=$3
-  local FILENAME="deployex-${OS_TARGET}-otp-${OTP_VERSION}.tar.gz"
+  local FILENAME
   local CHECKSUM_FILE="checksum.txt"
   local WORK_DIR
 
+    FILENAME=$(release_file_name "${OS_TARGET}" "${OTP_VERSION}") || exit 1
     echo "" >&2
     # A new directory per run. With fixed names in /tmp, root-owned files left by a root
     # run (--install, --update) cannot be replaced by the deployex service user, and the
@@ -373,8 +390,8 @@ download_and_hot_upgrade_deployex() {
   fi
   cleanup_release_dir "$RELEASE_PATH"
   # deployex_execute parses the TARGET version from the filename and expects
-  # deployex-<version>.tar.gz. The downloaded asset is named
-  # deployex-<os_target>-otp-<otp>.tar.gz, so copy it to the version-named form
+  # deployex-<version>.tar.gz. The downloaded asset is named by release_file_name,
+  # deployex-<os_target>[-arm64]-otp-<otp>.tar.gz, so copy it to the version-named form
   # first, otherwise the version check fails with :no_match_versions.
   VERSIONED_PATH="$(dirname "$RELEASE_PATH")/deployex-${version}.tar.gz"
   if ! cp "$RELEASE_PATH" "$VERSIONED_PATH"; then
@@ -545,6 +562,9 @@ base_release=${base_release%/}
 # Check before --install removes the current installation.
 if [[ "${base_release}" == s3://* && $operation != uninstall && -z $release_path ]] && ! command -v aws >/dev/null 2>&1; then
     echo "Error: ${base_release} is an S3 location, install the AWS CLI (aws) to read it"
+    exit 1
+fi
+if [[ $operation != uninstall && -z $release_path ]] && ! release_file_name "${os_target}" "${otp_version}" >/dev/null; then
     exit 1
 fi
 

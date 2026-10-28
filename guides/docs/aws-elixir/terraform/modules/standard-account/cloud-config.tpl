@@ -354,7 +354,7 @@ runcmd:
     chmod a+x /home/root/deployex.sh
     /home/root/deployex.sh --install /home/root/deployex.yaml
   # Install and configure CloudWatch agent
-  - wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+  - wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/${debian_arch}/latest/amazon-cloudwatch-agent.deb
   - dpkg -i -E ./amazon-cloudwatch-agent.deb
   - /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/home/root/cloud-watch-config.json -s
   # Enable Nginx

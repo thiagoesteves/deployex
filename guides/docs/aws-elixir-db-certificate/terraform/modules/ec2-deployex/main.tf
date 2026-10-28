@@ -1,10 +1,19 @@
+# The AMI follows the instance type: arm64 for a Graviton type such as t4g, amd64 otherwise
+data "aws_ec2_instance_type" "ec2_deployex" {
+  instance_type = var.instance_type
+}
+
+locals {
+  debian_arch = contains(data.aws_ec2_instance_type.ec2_deployex.supported_architectures, "arm64") ? "arm64" : "amd64"
+}
+
 data "aws_ami" "ec2_deployex_ami_id" {
   most_recent = true
   owners      = ["136693071363"] # Debian official
 
   filter {
     name   = "name"
-    values = ["debian-13-amd64-*"]
+    values = ["debian-13-${local.debian_arch}-*"]
   }
 
   filter {
@@ -184,6 +193,7 @@ data "cloudinit_config" "server_config" {
       myapp_cert_acme_zone = var.myapp_cert_acme_zone
       myapp_cert_arn       = var.certificate_arn
       myapp_cloudflare_api_token = data.aws_secretsmanager_secret_version.myapp_cloudflare_api_token_version.secret_string
+      debian_arch                = local.debian_arch
     })
   }
 }
