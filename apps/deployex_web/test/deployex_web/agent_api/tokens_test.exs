@@ -27,7 +27,7 @@ defmodule DeployexWeb.AgentApi.TokensTest do
           [
             "ci:read:#{@hash}",
             "no-scope::#{@hash}",
-            "unknown:operate:#{@hash}",
+            "unknown:admin:#{@hash}",
             "short:read:abcd",
             "not-hex:read:#{String.duplicate("zz", 32)}",
             "bad name:read:#{@hash}",
@@ -37,6 +37,12 @@ defmodule DeployexWeb.AgentApi.TokensTest do
         )
 
       assert {[%{name: "ci"}], [2, 3, 4, 5, 6, 7]} = Tokens.parse(value)
+    end
+
+    test "parses the operate scope, alone or with read" do
+      assert {[ops, bot], []} = Tokens.parse("ops:read+operate:#{@hash},bot:operate:#{@hash}")
+      assert ops.scopes == ["read", "operate"]
+      assert bot.scopes == ["operate"]
     end
 
     test "counts a value that is not a string as one invalid entry" do

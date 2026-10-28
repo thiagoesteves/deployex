@@ -6,6 +6,19 @@ defmodule DeployexWeb.AgentApi.Router do
     plug DeployexWeb.AgentApi.Auth, scope: "read"
   end
 
+  # The token check runs first, so a token with no operate scope is always audited. Only the
+  # mode call has a body. Other content types pass unparsed
+  pipeline :operate do
+    plug DeployexWeb.AgentApi.Auth, scope: "operate"
+    plug :accepts, ["json"]
+
+    plug Plug.Parsers,
+      parsers: [:json],
+      pass: ["*/*"],
+      json_decoder: Phoenix.json_library(),
+      length: 4_096
+  end
+
   scope "/v1", DeployexWeb.AgentApi do
     pipe_through :read
 
@@ -14,5 +27,15 @@ defmodule DeployexWeb.AgentApi.Router do
     get "/apps/:name", AppController, :show
     get "/apps/:name/versions", AppController, :versions
     get "/apps/:name/ghosted", AppController, :ghosted
+  end
+
+  scope "/v1", DeployexWeb.AgentApi do
+    pipe_through :operate
+
+    post "/apps/:name/restart", OperateController, :restart
+    delete "/apps/:name/ghosted/:version", OperateController, :remove_ghosted
+    # Not DELETE /ghosted: Plug drops an empty version segment, so that path would clear all
+    post "/apps/:name/ghosted/clear", OperateController, :clear_ghosted
+    put "/apps/:name/mode", OperateController, :set_mode
   end
 end

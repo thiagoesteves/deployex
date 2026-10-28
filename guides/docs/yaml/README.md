@@ -154,7 +154,7 @@ auth:
 # ============================================================================
 # AGENT API (optional)
 # ============================================================================
-# A read-only JSON API and an event stream on their own port, off by default.
+# A JSON API and an event stream on their own port, off by default.
 # Each request needs a bearer token from DEPLOYEX_API_TOKENS, a secret that the
 # secrets adapter provides. The section is read when DeployEx starts. See the
 # Agent API guide.

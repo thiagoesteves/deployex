@@ -12,6 +12,7 @@ defmodule DeployexWeb.AgentApi.Auth do
   import Plug.Conn
   import Phoenix.Controller, only: [json: 2]
 
+  alias DeployexWeb.AgentApi.Operate
   alias DeployexWeb.AgentApi.Tokens
 
   @impl Plug
@@ -24,6 +25,7 @@ defmodule DeployexWeb.AgentApi.Auth do
       if Tokens.allows?(entry, scope) do
         assign(conn, :api_token_name, entry.name)
       else
+        if scope == "operate", do: audit_forbidden(conn, entry.name)
         halt_with(conn, 403, "Forbidden")
       end
     else
@@ -32,6 +34,17 @@ defmodule DeployexWeb.AgentApi.Auth do
         |> put_resp_header("www-authenticate", "Bearer")
         |> halt_with(401, "Unauthorized")
     end
+  end
+
+  # An operate call that a token may not make is part of the audit trail too
+  defp audit_forbidden(conn, token_name) do
+    Operate.audit(
+      %{token: token_name, from: Operate.remote_ip(conn)},
+      inspect("#{conn.method} #{conn.request_path}"),
+      nil,
+      [],
+      :forbidden
+    )
   end
 
   defp bearer_token(conn) do
