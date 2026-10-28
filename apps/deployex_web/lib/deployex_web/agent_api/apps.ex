@@ -62,18 +62,18 @@ defmodule DeployexWeb.AgentApi.Apps do
       language: app.language,
       replicas: app.replicas,
       mode: Map.get(config, :mode),
-      manual_version: manual_version(Map.get(config, :manual_version)),
+      manual_version: manual_version(config),
       ghosted_versions: ghosted |> newest_first() |> Enum.map(& &1.version),
       instances: Enum.map(app.children, &instance/1)
     }
   end
 
-  ### ==========================================================================
-  ### Private functions
-  ### ==========================================================================
-
-  # The name is checked against the monitored apps before any catalog read
-  defp find(name) do
+  @doc """
+  Returns the monitored app with the given name. The name is checked against the monitored
+  apps before any catalog read.
+  """
+  @spec find(name :: String.t()) :: {:ok, Status.t()} | {:error, :not_found | :unavailable}
+  def find(name) do
     with {:ok, apps} <- monitored_apps() do
       case Enum.find(apps, &(&1.name == name)) do
         nil -> {:error, :not_found}
@@ -81,6 +81,10 @@ defmodule DeployexWeb.AgentApi.Apps do
       end
     end
   end
+
+  ### ==========================================================================
+  ### Private functions
+  ### ==========================================================================
 
   defp monitored_apps do
     with {:ok, monitoring} <- Status.monitoring(),
@@ -129,6 +133,7 @@ defmodule DeployexWeb.AgentApi.Apps do
   defp utc(%NaiveDateTime{} = at), do: DateTime.from_naive!(at, "Etc/UTC")
   defp utc(_at), do: nil
 
-  defp manual_version(%{version: version}), do: version
-  defp manual_version(_manual_version), do: nil
+  # The automatic mode keeps the last pinned version in the config, so read it only when manual
+  defp manual_version(%{mode: :manual, manual_version: %{version: version}}), do: version
+  defp manual_version(_config), do: nil
 end

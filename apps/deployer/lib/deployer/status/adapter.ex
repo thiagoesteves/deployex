@@ -19,5 +19,6 @@ defmodule Deployer.Status.Adapter do
   @callback subscribe_ghosted_versions(String.t()) :: :ok
   @callback history_version_list(String.t(), Keyword.t()) :: list()
   @callback update(String.t()) :: :ok
-  @callback set_mode(String.t(), :automatic | :manual, String.t()) :: {:ok, map()}
+  @callback set_mode(String.t(), :automatic | :manual, String.t()) ::
+              {:ok, map()} | {:error, :rescued}
 end

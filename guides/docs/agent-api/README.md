@@ -1,7 +1,8 @@
 # Agent API
 
 DeployEx can serve a JSON API and an event stream on a port of its own. Scripts, CI pipelines and other tools use it to read
-the state of the host without the dashboard. The API is read-only, and it is off by default.
+the state of the host without the dashboard, and to restart an app, clear its ghosted versions or set its mode. It is off by
+default.
 
 ## Turn it on
 
@@ -18,11 +19,12 @@ the state of the host without the dashboard. The API is read-only, and it is off
    Separate the entries with commas:
 
    ```text
-   ci:read:9f86d081...,controller:read:2c26b46b...
+   ci:read:9f86d081...,ops:read+operate:2c26b46b...
    ```
 
-   Each entry is `name:scopes:sha256`. Join the scopes with `+`. The only scope is `read`. DeployEx ignores an entry that it
-   cannot parse, and logs its position, not its value.
+   Each entry is `name:scopes:sha256`. Join the scopes with `+`. The scopes are `read` and `operate` (see [Operate](#operate)).
+   `operate` does not include `read`, so a token that reads and operates lists `read+operate`. DeployEx ignores an entry that
+   it cannot parse, and logs its position, not its value.
 
 3. Turn the listener on in the YAML file:
 
@@ -99,6 +101,39 @@ Times are UTC, in ISO 8601. `started_at` is when the instance last started, and 
 | `403` | The token does not have the scope of the path |
 | `404` | The host does not monitor the app, or the path does not exist |
 | `503` | DeployEx did not answer, for example while it starts |
+
+## Operate
+
+A token with the `operate` scope can do what the dashboard buttons do. Each call first checks that the host monitors the app
+named in the path. The restart is the Full Restart: the monitored app is down until its first instance is back.
+
+| Call | Does | Returns |
+|---|---|---|
+| `POST /v1/apps/:name/restart` | Stops every instance at once and deploys each again, as Full Restart | `202`. It runs after the reply |
+| `DELETE /v1/apps/:name/ghosted/:version` | Removes one ghosted version | `200` with the rest. `404` if it is not ghosted |
+| `POST /v1/apps/:name/ghosted/clear` | Clears the ghosted versions | `200` with an empty list |
+| `PUT /v1/apps/:name/mode` | Sets the mode | `200`. `422` for an unknown mode or a version not in the history. `400` for bad JSON |
+
+The mode call takes a JSON body, `{"mode": "automatic"}` or `{"mode": "manual", "version": "1.4.1"}`:
+
+```bash
+curl -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"mode": "manual", "version": "1.4.1"}' http://10.0.1.12:5002/v1/apps/myphoenixapp/mode
+```
+
+`GET /v1/apps/:name` shows a new mode within about one second, at the next status refresh. A `503` from the mode call can still
+set the mode later, so read `GET /v1/apps/:name` before a retry.
+
+Each operate call with a known token writes one audit line to the DeployEx log, also when DeployEx refuses the call
+(`404`, `422`, `503`) or the token has no `operate` scope:
+
+```text
+Agent API operate: token=ops from=10.0.1.20 action=set_mode app="myphoenixapp" mode="manual" version="1.4.1" result=ok
+Agent API operate: token=ci from=10.0.1.20 action="POST /v1/apps/myphoenixapp/restart" result=forbidden
+```
+
+A call with the `operate` scope that DeployEx cannot read gets no audit line: `400` for a body that is not JSON, `413` for
+a body over 4 KB, and `406` for an `Accept` header without JSON.
 
 ## Event stream
 

@@ -4,12 +4,13 @@ defmodule DeployexWeb.AgentApi.Tokens do
 
   The secret is a comma-separated list of `name:scopes:sha256` entries, with the
   scopes joined by `+` and the hex SHA-256 of the token, for example
-  `ci:read:9f86d081...,controller:read:2c26b46b...`. DeployEx keeps only the hashes.
+  `ci:read:9f86d081...,ops:read+operate:2c26b46b...`. DeployEx keeps only the hashes.
+  `operate` does not include `read`.
   """
 
   require Logger
 
-  @scopes ["read"]
+  @scopes ["read", "operate"]
 
   @type t :: %{name: String.t(), scopes: [String.t()], hash: binary()}
 
