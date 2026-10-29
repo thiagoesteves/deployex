@@ -314,6 +314,36 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert severity.(app([child(%{})])) == 0
   end
 
+  test "a TLS certificate within 7 days and an instance at its restart threshold are urgent" do
+    at_restart = %Resources{process: %Limit{count: 95, limit: 100, percent: 95}}
+
+    children = [
+      child(%{
+        resources: at_restart,
+        monitoring: [process: %{}],
+        certificates: [%PublicKey{expires_in_days: 5}]
+      }),
+      child(%{sname: "myapp-def", certificates: [%PublicKey{expires_in_days: 20}]})
+    ]
+
+    assert [%{urgent: [tls, limit]}] = View.apps([app(children)], @now)
+    assert %{kind: :tls, title: "TLS certificate expires in 5 days"} = tls
+
+    assert %{
+             kind: :limit,
+             sname: "myapp-abc",
+             title: "myapp-abc processes at 95% of the limit",
+             detail: "The watchdog restarts the instance at 90%."
+           } = limit
+
+    off = [process: %{enable_restart: false}]
+
+    assert [%{urgent: [%{detail: "Restart is off for this limit" <> _}]}] =
+             View.apps([app([child(%{resources: at_restart, monitoring: off})])], @now)
+
+    assert [%{urgent: []}] = View.apps([app([child(%{})])], @now)
+  end
+
   test "a duration reads in its largest whole unit" do
     assert View.duration(5_000) == "5 seconds"
     assert View.duration(1_000) == "1 second"

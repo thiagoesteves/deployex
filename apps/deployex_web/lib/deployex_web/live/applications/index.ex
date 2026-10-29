@@ -190,6 +190,13 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  def handle_event("show-instance", %{"name" => name, "sname" => sname}, socket) do
+    {:noreply,
+     socket
+     |> update(:open, &MapSet.put(&1, name))
+     |> update(:limits_open, &Map.put(&1, sname, true))}
+  end
+
   def handle_event("toggle-app", %{"name" => name, "open" => "true"}, socket),
     do: {:noreply, update(socket, :open, &MapSet.put(&1, name))}
 

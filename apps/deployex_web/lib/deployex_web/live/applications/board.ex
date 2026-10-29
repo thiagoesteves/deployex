@@ -316,6 +316,12 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       </div>
 
       <.alert :if={@app.alert || @cleared} app={@app} cleared={@cleared} />
+      <.urgent
+        :for={{item, index} <- Enum.with_index(@app.urgent)}
+        app={@app.name}
+        item={item}
+        index={index}
+      />
 
       <div :if={@open} class="dx-inset">
         <div :if={@app.notes != []} class="flex flex-col gap-1 px-4 py-2.5 text-[0.78125rem]">
@@ -440,6 +446,46 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           phx-click={dock_open("logs", @app.name, @app.name)}
         >
           View logs
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  attr :app, :string, required: true
+  attr :item, :map, required: true
+  attr :index, :integer, required: true
+
+  # A problem that needs action now, under the row with the app collapsed
+  defp urgent(assigns) do
+    ~H"""
+    <div id={"app-#{@app}-urgent-#{@index}"} class="dx-callout dx-callout-error">
+      <Icons.icon
+        name={if @item.kind == :tls, do: "lock-closed", else: "warning"}
+        stroke="2"
+        class="dx-ico dx-callout-ico"
+      />
+      <div class="dx-callout-text">
+        <b>{@item.title}</b>
+        <span>{@item.detail}</span>
+      </div>
+      <div class="dx-callout-acts">
+        <.link
+          :if={@item.kind == :tls}
+          class="dx-btn no-underline"
+          navigate={~p"/logs/history?#{%{source: "events"}}"}
+        >
+          View events
+        </.link>
+        <button
+          :if={@item.kind == :limit}
+          type="button"
+          class="dx-btn"
+          phx-click="show-instance"
+          phx-value-name={@app}
+          phx-value-sname={@item.sname}
+        >
+          Show instance
         </button>
       </div>
     </div>

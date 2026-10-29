@@ -141,6 +141,27 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
+  test "an instance at its restart threshold shows under the collapsed row, and opens", %{
+    conn: conn
+  } do
+    at_restart = %Limit{count: 95, limit: 100, percent: 95}
+
+    stub_monitoring([
+      FixtureStatus.application(%{
+        name: "myphoenixapp",
+        resources: resources(%{process: at_restart})
+      })
+    ])
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+    assert html =~ "myphoenixapp-abc123 processes at 95% of the limit"
+    refute has_element?(view, "#instance-myphoenixapp-abc123")
+
+    view |> element("#app-myphoenixapp-urgent-0 button", "Show instance") |> render_click()
+    assert has_element?(view, ~s(#instance-myphoenixapp-abc123-limits[aria-expanded="true"]))
+  end
+
+  @tag :capture_log
   test "the apps that need attention come worst first", %{conn: conn} do
     stub_monitoring([
       FixtureStatus.application(%{name: "anear", resources: resources()}),

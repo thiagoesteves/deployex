@@ -96,6 +96,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
       restarts: restarts(status.children),
       deploy: deploy(status, ghosted, now),
       alert: alert,
+      urgent: urgent(tls, instances),
       severity: severity(alert, instances, tls, crashes),
       notes: notes(status, instances),
       instances: instances
@@ -286,6 +287,42 @@ defmodule DeployexWeb.ApplicationsLive.View do
         }
     end
   end
+
+  # The problems at severity 3 show under the row, so they need no open app: a TLS certificate within 7 days
+  # and an instance at its restart threshold
+  defp urgent(tls, instances) do
+    certificates =
+      for %{tone: :error, text: text} <- tls do
+        %{
+          kind: :tls,
+          title: text,
+          detail: "Renew it before then. The certificate events are in the events log.",
+          sname: nil
+        }
+      end
+
+    limits =
+      for instance <- instances, limit <- instance.limits, limit.level == 2 do
+        %{
+          kind: :limit,
+          title:
+            "#{instance.sname} #{String.downcase(limit.name)} at #{limit.percent}% of the limit",
+          detail: limit_detail(limit),
+          sname: instance.sname
+        }
+      end
+
+    certificates ++ limits
+  end
+
+  defp limit_detail(%{restart_at: restart}) when is_integer(restart),
+    do: "The watchdog restarts the instance at #{restart}%."
+
+  defp limit_detail(%{watch: "restart off"}),
+    do: "Restart is off for this limit, so nothing stops the instance at the limit."
+
+  defp limit_detail(_limit),
+    do: "DeployEx does not watch this limit, so nothing stops the instance at the limit."
 
   # How bad an app's state is, for the attention list: 4 down, 3 at a restart threshold or a TLS
   # certificate within 7 days, 2 a failed version, a crash or a limit warning, 1 the rest, 0 nothing
