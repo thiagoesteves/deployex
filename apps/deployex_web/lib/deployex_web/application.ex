@@ -21,6 +21,9 @@ defmodule DeployexWeb.Application do
       DeployexWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:deployex_web, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: DeployexWeb.PubSub},
+      # Shell sessions outlive the page that opened them
+      {Registry, keys: :unique, name: DeployexWeb.Shell.Registry},
+      {DynamicSupervisor, name: DeployexWeb.Shell.Supervisor, strategy: :one_for_one},
       # Start the Finch HTTP client for sending emails
       {Finch, name: DeployexWeb.Finch},
       # Start a worker by calling: DeployexWeb.Worker.start_link(arg)

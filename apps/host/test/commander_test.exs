@@ -35,6 +35,13 @@ defmodule Host.CommanderTest do
     assert {:ok, "any"} = Commander.send(10, "msg")
   end
 
+  test "winsz/3" do
+    Host.CommanderMock
+    |> expect(:winsz, fn 10, 24, 80 -> :ok end)
+
+    assert :ok = Commander.winsz(10, 24, 80)
+  end
+
   test "os_type/2" do
     Host.CommanderMock
     |> expect(:os_type, fn -> {:unix, :any} end)
