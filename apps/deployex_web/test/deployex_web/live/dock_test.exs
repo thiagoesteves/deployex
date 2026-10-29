@@ -215,14 +215,17 @@ defmodule DeployexWeb.DockTest do
     html = dock |> element("#dock-pick-logs-deployex") |> render_click()
     assert html =~ "a log line"
     assert html =~ ~s(phx-hook="XTerm")
+    # The second pane has its own stream of lines and controls
+    assert html =~ ~s(id="dock-lines-2")
+    assert html =~ ~s(id="dock-filter-2")
     assert {shell, _} = :binary.match(html, "dock-xterm-")
-    assert {logs, _} = :binary.match(html, ~s(id="dock-log"))
+    assert {logs, _} = :binary.match(html, ~s(id="dock-log))
     assert shell < logs
 
     # The second pane's tab swaps the panes
     html = dock |> element("#dock-tab-logs\\:deployex") |> render_click()
     assert {shell, _} = :binary.match(html, "dock-xterm-")
-    assert {logs, _} = :binary.match(html, ~s(id="dock-log"))
+    assert {logs, _} = :binary.match(html, ~s(id="dock-log))
     assert logs < shell
 
     # Closing the second pane keeps its tab, and the shell keeps running
@@ -231,7 +234,7 @@ defmodule DeployexWeb.DockTest do
     assert html =~ "dock-tab-shell:deployex"
     assert [%{target: "deployex"}] = Shell.list(user.username)
 
-    # Beside a logs tab, the picker offers no other logs
+    # Beside a logs tab, the picker offers its shell, and no second copy of itself
     dock |> element("#dock-split") |> render_click()
     assert has_element?(dock, "#dock-pick-shell-deployex")
     refute has_element?(dock, "#dock-pick-logs-deployex")
@@ -239,11 +242,85 @@ defmodule DeployexWeb.DockTest do
 
     # Closing the first pane's tab while split leaves the second one alone
     html = dock |> element("#dock-close-logs\\:deployex") |> render_click()
-    refute html =~ ~s(id="dock-log")
+    refute html =~ ~s(id="dock-log)
     refute has_element?(dock, "#dock-unsplit")
     assert html =~ ~s(phx-hook="XTerm")
 
     [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
+    ref = Process.monitor(pid)
+    dock |> element("#dock-close") |> render_click()
+    dock |> element("#dock-close-confirm") |> render_click()
+    assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+  end
+
+  @tag :capture_log
+  test "a logs tab splits with a sibling's logs, and each pane follows its own instance", %{
+    conn: conn,
+    sname: sname
+  } do
+    sibling = Catalog.create_sname("myelixir")
+    stub(Deployer.MonitorMock, :list, fn -> [String.to_atom(sname), String.to_atom(sibling)] end)
+
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn
+      ^sname, "stdout", _options -> [message("from the first")]
+      ^sibling, "stdout", _options -> [message("from the sibling")]
+      _sname, _type, _options -> []
+    end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "logs", "target" => sname, "app" => "myelixir"})
+
+    dock |> element("#dock-split") |> render_click()
+    assert has_element?(dock, "#dock-pick-logs-#{sibling}", "another instance")
+
+    html = dock |> element("#dock-pick-logs-#{sibling}") |> render_click()
+    assert html =~ "from the first"
+    assert html =~ "from the sibling"
+
+    # A new line goes to its instance's pane only
+    send(dock.pid, {:logs_new_data, sibling, "stdout", message("sibling again")})
+    html = render(dock)
+    [first, second] = String.split(html, ~s(id="dock-lines-2"))
+    refute first =~ "sibling again"
+    assert second =~ "sibling again"
+
+    # Each pane filters its own tab
+    html = dock |> element("#dock-filter-2") |> render_change(%{"filter" => "again"})
+    assert html =~ "from the first"
+    refute html =~ "from the sibling"
+  end
+
+  @tag :capture_log
+  test "a shell opened next to a logs tab keeps both, as lines and output come", %{
+    conn: conn,
+    sname: sname,
+    user: user
+  } do
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn _sname, _type, _options ->
+      [message("a log line")]
+    end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "logs", "target" => sname, "app" => "myelixir"})
+    render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
+
+    send(dock.pid, {:logs_new_data, sname, "stdout", message("while hidden")})
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
+    send(:sys.get_state(pid).terminal, {:stdout, @os_pid, "iex> "})
+
+    render_hook(dock |> element("[phx-hook=XTerm]"), "shell-resize", %{
+      "target" => "deployex",
+      "rows" => 20,
+      "cols" => 80
+    })
+
+    html = render(dock)
+    assert html =~ "dock-tab-logs:#{sname}"
+    assert html =~ "dock-tab-shell:deployex"
+
+    html = dock |> element("#dock-tab-logs\\:#{sname}") |> render_click()
+    assert html =~ "while hidden"
+
     ref = Process.monitor(pid)
     dock |> element("#dock-close") |> render_click()
     dock |> element("#dock-close-confirm") |> render_click()

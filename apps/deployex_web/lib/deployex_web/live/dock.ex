@@ -177,7 +177,7 @@ defmodule DeployexWeb.DockLive do
             <.pane
               :for={tab <- @visible}
               tab={tab}
-              lines={@streams.lines}
+              lines={if tab.id == @split, do: @streams.lines_b, else: @streams.lines}
               split={@split_tab != nil or @picking}
               second={tab.id == @split}
               help={@help_open && @shell_tab != nil && tab.id == @shell_tab.id}
@@ -256,7 +256,12 @@ defmodule DeployexWeb.DockLive do
         <div class="dx-k-head">
           <span class="dx-muted dx-mono text-xs">{logs_subtitle(@tab)} · last 30 minutes, then live</span>
           <div class="flex flex-wrap items-center gap-1.5">
-            <form id="dock-filter" phx-change="filter-logs" phx-submit="filter-logs">
+            <form
+              id={"dock-filter#{pane_suffix(@second)}"}
+              phx-change="filter-logs"
+              phx-submit="filter-logs"
+            >
+              <input type="hidden" name="tab" value={@tab.id} />
               <input
                 class="dx-filter dx-filter-sm"
                 type="search"
@@ -270,12 +275,13 @@ defmodule DeployexWeb.DockLive do
             </form>
             <button
               :for={type <- ["stdout", "stderr"]}
-              id={"dock-stream-#{type}"}
+              id={"dock-stream-#{type}#{pane_suffix(@second)}"}
               type="button"
               class="dx-tog dx-tog-sm"
               aria-pressed={to_string(type in @tab.types)}
               phx-click="toggle-stream"
               phx-value-type={type}
+              phx-value-id={@tab.id}
             >
               <Icons.icon
                 :if={type in @tab.types}
@@ -286,7 +292,7 @@ defmodule DeployexWeb.DockLive do
               <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
             </button>
             <button
-              id="dock-open-logs"
+              id={"dock-open-logs#{pane_suffix(@second)}"}
               type="button"
               class="dx-btn"
               phx-click={
@@ -299,7 +305,7 @@ defmodule DeployexWeb.DockLive do
           </div>
         </div>
         <div
-          id="dock-log"
+          id={"dock-log#{pane_suffix(@second)}"}
           class="dx-k-log"
           role="log"
           aria-live="off"
@@ -307,7 +313,7 @@ defmodule DeployexWeb.DockLive do
           tabindex="0"
           phx-hook="ScrollBottom"
         >
-          <div id="dock-lines" phx-update="stream">
+          <div id={"dock-lines#{pane_suffix(@second)}"} phx-update="stream">
             <div
               :for={{dom_id, line} <- @lines}
               id={dom_id}
@@ -360,7 +366,8 @@ defmodule DeployexWeb.DockLive do
      |> assign(:attached, %{})
      |> assign(:asking_close, false)
      |> assign(:help_open, false)
-     |> stream(:lines, []), layout: false}
+     |> stream(:lines, [])
+     |> stream(:lines_b, []), layout: false}
   end
 
   @impl true
@@ -392,7 +399,6 @@ defmodule DeployexWeb.DockLive do
       cond do
         split == :picker -> nil
         id == split -> active
-        both_logs?(socket.assigns.tabs, id, split) -> nil
         true -> split
       end
 
@@ -417,12 +423,12 @@ defmodule DeployexWeb.DockLive do
   def handle_event("cancel-close", _params, socket),
     do: {:noreply, assign(socket, :asking_close, false)}
 
-  def handle_event("filter-logs", %{"filter" => filter}, socket),
-    do: {:noreply, socket |> update_tab(logs_id(socket), &%{&1 | filter: filter}) |> show_logs()}
+  def handle_event("filter-logs", %{"filter" => filter, "tab" => id}, socket),
+    do: {:noreply, socket |> update_tab(id, &%{&1 | filter: filter}) |> show_logs()}
 
-  def handle_event("toggle-stream", %{"type" => type}, socket) when type in @types do
+  def handle_event("toggle-stream", %{"type" => type, "id" => id}, socket) when type in @types do
     socket =
-      update_tab(socket, logs_id(socket), fn tab ->
+      update_tab(socket, id, fn tab ->
         types = if type in tab.types, do: List.delete(tab.types, type), else: tab.types ++ [type]
         %{tab | types: types}
       end)
@@ -447,8 +453,6 @@ defmodule DeployexWeb.DockLive do
 
   @impl true
   def handle_info({:logs_new_data, sname, type, message}, %{assigns: %{tabs: tabs}} = socket) do
-    shown_id = logs_id(socket)
-
     socket =
       Enum.reduce(tabs, socket, fn
         %{kind: :logs, snames: snames} = tab, socket ->
@@ -464,9 +468,12 @@ defmodule DeployexWeb.DockLive do
 
             shown = Enum.filter(lines, &holds?(&1, tab.filter))
 
-            if tab.id == shown_id and type in tab.types and shown != [] do
+            pane = pane_stream(socket.assigns, tab.id)
+
+            # A hidden logs tab has no pane, and only keeps the lines in its buffer
+            if pane != nil and type in tab.types and shown != [] do
               socket
-              |> stream(:lines, shown, limit: -@log_cap)
+              |> stream(pane, shown, limit: -@log_cap)
               |> update_tab(tab.id, &%{&1 | empty: false})
             else
               socket
@@ -565,7 +572,7 @@ defmodule DeployexWeb.DockLive do
   end
 
   # What the split picker offers beside a tab: its own logs or shell first, then the app's other
-  # instances, then the logs of every instance, then the tabs open already. Never two logs tabs
+  # instances, then the logs of every instance, then the tabs open already
   defp split_options(tabs, %{} = active) do
     siblings = Enum.reject(instances(active.app), &(&1 == active.target))
 
@@ -590,9 +597,7 @@ defmodule DeployexWeb.DockLive do
 
     (own ++ siblings ++ app_logs ++ open)
     |> Enum.uniq_by(fn {kind, target, _note} -> {kind, target} end)
-    |> Enum.reject(fn {kind, target, _note} ->
-      "#{kind}:#{target}" == active.id or (kind == "logs" and active.kind == :logs)
-    end)
+    |> Enum.reject(fn {kind, target, _note} -> "#{kind}:#{target}" == active.id end)
     |> Enum.map(fn {kind, target, note} ->
       %{
         kind: kind,
@@ -656,12 +661,6 @@ defmodule DeployexWeb.DockLive do
     end
   end
 
-  # Two logs tabs cannot show together, as the dock has one stream of log lines
-  defp both_logs?(tabs, id, split) do
-    kinds = for tab <- tabs, tab.id in [id, split], do: tab.kind
-    kinds == [:logs, :logs]
-  end
-
   # The tabs in the panes: the active one, and the split one beside it
   defp visible(%{split: :picker} = assigns), do: visible(%{assigns | split: nil})
 
@@ -671,32 +670,34 @@ defmodule DeployexWeb.DockLive do
       |> Enum.map(fn id -> Enum.find(tabs, &(&1.id == id)) end)
       |> Enum.reject(&is_nil/1)
 
-  # The logs tab in view, which the one stream of lines shows
-  defp logs_id(%{assigns: assigns}) do
-    case Enum.find(visible(assigns), &(&1.kind == :logs)) do
-      %{id: id} -> id
-      nil -> nil
-    end
+  # The stream of lines of a logs tab's pane: the first pane's, the second's, or none when hidden
+  defp pane_stream(%{active: id}, id), do: :lines
+  defp pane_stream(%{split: id}, id), do: :lines_b
+  defp pane_stream(_assigns, _id), do: nil
+
+  # Fills each pane's stream with its logs tab's lines, or empties it for a shell or no tab
+  defp show_logs(%{assigns: %{tabs: tabs, active: active, split: split}} = socket) do
+    [{:lines, active}, {:lines_b, split}]
+    |> Enum.reduce(socket, fn {pane, id}, socket ->
+      case Enum.find(tabs, &(&1.id == id)) do
+        %{kind: :logs} = tab ->
+          lines =
+            tab.buffer
+            |> Enum.reverse()
+            |> Enum.filter(&(&1.type in tab.types and holds?(&1, tab.filter)))
+
+          socket
+          |> stream(pane, lines, reset: true, limit: -@log_cap)
+          |> update_tab(tab.id, &%{&1 | empty: lines == []})
+
+        _shell_or_none ->
+          stream(socket, pane, [], reset: true)
+      end
+    end)
   end
 
-  defp show_logs(%{assigns: %{tabs: tabs}} = socket) do
-    id = logs_id(socket)
-
-    case Enum.find(tabs, &(&1.id == id)) do
-      %{kind: :logs} = tab ->
-        lines =
-          tab.buffer
-          |> Enum.reverse()
-          |> Enum.filter(&(&1.type in tab.types and holds?(&1, tab.filter)))
-
-        socket
-        |> stream(:lines, lines, reset: true, limit: -@log_cap)
-        |> update_tab(tab.id, &%{&1 | empty: lines == []})
-
-      _shell_or_none ->
-        stream(socket, :lines, [], reset: true)
-    end
-  end
+  defp pane_suffix(true), do: "-2"
+  defp pane_suffix(false), do: ""
 
   defp close_tab(
          %{assigns: %{tabs: tabs, active: active, user: user}} = socket,
@@ -734,6 +735,7 @@ defmodule DeployexWeb.DockLive do
     socket
     |> assign(tabs: [], active: nil, split: nil, attached: %{}, asking_close: false)
     |> stream(:lines, [], reset: true)
+    |> stream(:lines_b, [], reset: true)
   end
 
   defp stop(%{kind: :logs, snames: snames}, _user, _end_session) do
