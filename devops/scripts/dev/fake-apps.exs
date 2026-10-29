@@ -40,6 +40,67 @@ defmodule DevFakeApps.Fakes do
 
   def put_count(count), do: :persistent_term.put(__MODULE__, count)
 
+  def find(name), do: Enum.find(apps(), &(&1.name == name))
+
+  # The versions page of a fake app: its current version, and an earlier full deployment
+  def history(name) do
+    case find(name) do
+      nil ->
+        []
+
+      app ->
+        Enum.flat_map(app.children, fn child ->
+          current = child.version || List.first(app.config.versions)
+          at = DateTime.to_naive(child.deployed_at)
+
+          [
+            %Foundation.Catalog.Version{
+              version: current,
+              name: name,
+              sname: child.sname,
+              deployment: child.last_deployment,
+              inserted_at: at
+            },
+            %Foundation.Catalog.Version{
+              version: previous(current),
+              name: name,
+              sname: child.sname,
+              deployment: :full_deployment,
+              inserted_at: NaiveDateTime.add(at, -3 * 86_400, :second)
+            }
+          ]
+        end)
+    end
+  end
+
+  def ghosted(name) do
+    case find(name) do
+      %{config: %{last_ghosted_version: "-/-"}} ->
+        []
+
+      %{config: config, children: [child | _]} ->
+        [
+          %Foundation.Catalog.Version{
+            version: config.last_ghosted_version,
+            name: name,
+            sname: child.sname,
+            deployment: :full_deployment,
+            inserted_at: DateTime.to_naive(config.last_ghosted_at)
+          }
+        ]
+
+      _app ->
+        []
+    end
+  end
+
+  defp previous(version) do
+    case version |> to_string() |> String.split(".") do
+      [major, minor, patch] -> "#{major}.#{minor}.#{max(String.to_integer(patch) - 1, 0)}"
+      _other -> "0.0.1"
+    end
+  end
+
   # More apps than the list repeat it with a number, like checkout_2
   def apps do
     now = DateTime.utc_now()
@@ -185,11 +246,50 @@ defmodule DevFakeApps.Status do
   @real Deployer.Status.Application
   @topic "dev-fake-apps::monitoring_app_updated"
 
-  for {fun, arity} <- Deployer.Status.Adapter.behaviour_info(:callbacks),
-      fun not in [:monitoring, :subscribe] do
+  # A fake app has no catalog on disk, so its history, ghosted list and changes are answered here
+  @own [
+    :monitoring,
+    :subscribe,
+    :history_version_list,
+    :ghosted_version_list,
+    :remove_ghosted_version,
+    :clear_ghosted_versions,
+    :set_mode
+  ]
+
+  for {fun, arity} <- Deployer.Status.Adapter.behaviour_info(:callbacks), fun not in @own do
     args = Macro.generate_arguments(arity, __MODULE__)
     @impl true
     def unquote(fun)(unquote_splicing(args)), do: apply(@real, unquote(fun), unquote(args))
+  end
+
+  defp fake?(name), do: DevFakeApps.Fakes.find(name) != nil
+
+  @impl true
+  def history_version_list(name, options) do
+    if fake?(name),
+      do: DevFakeApps.Fakes.history(name),
+      else: @real.history_version_list(name, options)
+  end
+
+  @impl true
+  def ghosted_version_list(name) do
+    if fake?(name), do: DevFakeApps.Fakes.ghosted(name), else: @real.ghosted_version_list(name)
+  end
+
+  @impl true
+  def remove_ghosted_version(name, version) do
+    if fake?(name), do: {:ok, []}, else: @real.remove_ghosted_version(name, version)
+  end
+
+  @impl true
+  def clear_ghosted_versions(name) do
+    if fake?(name), do: {:ok, []}, else: @real.clear_ghosted_versions(name)
+  end
+
+  @impl true
+  def set_mode(name, mode, version) do
+    if fake?(name), do: {:ok, %{}}, else: @real.set_mode(name, mode, version)
   end
 
   @impl true
