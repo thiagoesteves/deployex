@@ -141,6 +141,23 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
+  test "the apps that need attention come worst first", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{name: "anear", resources: resources()}),
+      FixtureStatus.application(
+        %{name: "zdown", language: "erlang", status: :idle},
+        @ghosted_config
+      )
+    ])
+
+    {:ok, view, _html} = live(conn, ~p"/applications?filter=status:attention")
+    html = render(view)
+    {down, _} = :binary.match(html, ~s(id="app-zdown"))
+    {near, _} = :binary.match(html, ~s(id="app-anear"))
+    assert down < near
+  end
+
+  @tag :capture_log
   test "tags in the URL filter the apps, and an older app link is an app tag", %{conn: conn} do
     apps = [
       FixtureStatus.application(%{name: "calmapp", language: "erlang"}),

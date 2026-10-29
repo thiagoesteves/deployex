@@ -21,6 +21,12 @@ defmodule DeployexWeb.ApplicationsLive do
   def render(assigns) do
     shown = Filter.select(assigns.apps, assigns.tags)
 
+    # The apps that need attention come worst first
+    shown =
+      if {"status", "attention"} in assigns.tags,
+        do: Enum.sort_by(shown, &{-&1.severity, &1.name}),
+        else: shown
+
     assigns =
       assign(assigns,
         attention: View.attention(assigns.apps),

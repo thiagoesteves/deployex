@@ -65,16 +65,20 @@ defmodule DeployexWeb.ApplicationsLive.View do
     running = Enum.count(status.children, &(&1.status == :running))
     total = max(status.replicas, length(status.children))
 
+    tls = tls(status, @tls_warn_days)
+    crashes = recent_crashes(instances, now)
+
     problems =
-      Enum.map(tls(status, @tls_warn_days), & &1.text) ++
+      Enum.map(tls, & &1.text) ++
         for(
           instance <- instances,
           warning <- instance.warnings,
           do: "#{instance.sname} #{warning}"
         ) ++
-        recent_crashes(instances, now)
+        crashes
 
     ghosted = ghosted(status, instances)
+    alert = alert(status, ghosted, running)
 
     %{
       name: status.name,
@@ -91,7 +95,8 @@ defmodule DeployexWeb.ApplicationsLive.View do
       memory: sum_text(instances, :memory_value, &bytes/1),
       restarts: restarts(status.children),
       deploy: deploy(status, ghosted, now),
-      alert: alert(status, ghosted, running),
+      alert: alert,
+      severity: severity(alert, instances, tls, crashes),
       notes: notes(status, instances),
       instances: instances
     }
@@ -281,6 +286,28 @@ defmodule DeployexWeb.ApplicationsLive.View do
         }
     end
   end
+
+  # How bad an app's state is, for the attention list: 4 down, 3 at a restart threshold or a TLS
+  # certificate within 7 days, 2 a failed version, a crash or a limit warning, 1 the rest, 0 nothing
+  defp severity(alert, instances, tls, crashes) do
+    levels = for instance <- instances, limit <- instance.limits, do: limit.level
+
+    cond do
+      match?(%{blocking: true}, alert) -> 4
+      near_restart?(levels, tls) -> 3
+      failing?(alert, crashes, levels) -> 2
+      any_problem?(alert, tls, instances) -> 1
+      true -> 0
+    end
+  end
+
+  defp near_restart?(levels, tls), do: 2 in levels or Enum.any?(tls, &(&1.tone == :error))
+
+  defp failing?(alert, crashes, levels),
+    do: match?(%{kind: :ghosted}, alert) or crashes != [] or 1 in levels
+
+  defp any_problem?(nil, [], instances), do: Enum.any?(instances, &(&1.warnings != []))
+  defp any_problem?(_alert, _tls, _instances), do: true
 
   # The TLS certificates of the app that expire within the given days
   defp tls(status, within) do

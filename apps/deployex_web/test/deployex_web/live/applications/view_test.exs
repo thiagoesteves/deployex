@@ -288,6 +288,32 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert View.attention?(crashed)
   end
 
+  test "severity ranks down first, then a restart threshold or TLS soon, then failures, then the rest" do
+    ghosted = %{last_ghosted_version: "1.1.0", last_ghosted_at: ~U[2026-10-28 15:00:00Z]}
+    deployed = ~U[2026-10-28 14:00:00Z]
+    at_restart = %Resources{process: %Limit{count: 95, limit: 100, percent: 95}}
+    warning = %Resources{process: %Limit{count: 80, limit: 100, percent: 80}}
+
+    severity = fn app ->
+      app |> List.wrap() |> View.apps(@now) |> hd() |> Map.fetch!(:severity)
+    end
+
+    assert severity.(
+             app([child(%{status: :idle, version: nil, deployed_at: deployed})], %{
+               config: ghosted
+             })
+           ) == 4
+
+    assert severity.(app([child(%{resources: at_restart})])) == 3
+    assert severity.(app([child(%{certificates: [%PublicKey{expires_in_days: 5}]})])) == 3
+    assert severity.(app([child(%{deployed_at: deployed})], %{config: ghosted})) == 2
+    assert severity.(app([child(%{last_crash_at: ~U[2026-10-28 15:40:00Z]})])) == 2
+    assert severity.(app([child(%{resources: warning})])) == 2
+    assert severity.(app([child(%{certificates: [%PublicKey{expires_in_days: 20}]})])) == 1
+    assert severity.(app([child(%{status: :pre_commands})])) == 1
+    assert severity.(app([child(%{})])) == 0
+  end
+
   test "a duration reads in its largest whole unit" do
     assert View.duration(5_000) == "5 seconds"
     assert View.duration(1_000) == "1 second"
