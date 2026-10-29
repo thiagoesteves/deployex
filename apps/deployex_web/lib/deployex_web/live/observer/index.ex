@@ -13,6 +13,7 @@ defmodule DeployexWeb.ObserverLive do
       current_path={@current_path}
       current_user={@current_user}
       host_info={@host_info}
+      recent_events={@recent_events}
     >
       <div class="min-h-screen bg-base-300">
         <!-- Header -->

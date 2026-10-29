@@ -1,4 +1,4 @@
-defmodule DeployexWeb.ShellTest do
+defmodule DeployexWeb.LayoutTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -17,7 +17,7 @@ defmodule DeployexWeb.ShellTest do
     {"/logs/live", "Live Logs"},
     {"/logs/history", "History Logs"},
     {"/embedded-observer", "Observer Web"},
-    {"/terminal", "Host Terminal"},
+    {"/terminal", "Terminal"},
     {"/hotupgrade", "Hot Upgrade"},
     {"/documentation", "Documentation"}
   ]
@@ -32,6 +32,9 @@ defmodule DeployexWeb.ShellTest do
 
     assert [_active] = Regex.scan(~r/aria-current="page"/, html)
     assert html =~ ~r/href="\/documentation"[^>]*aria-current="page"/
+
+    # Observer Web keeps its own logo
+    assert html =~ "dx-ow-logo-gradient"
   end
 
   @tag :capture_log

@@ -28,15 +28,17 @@ defmodule DeployexWeb.UI.ComponentsTest do
     end
 
     test "is blue below 75, amber from 75 and red from 90" do
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 74) =~ "bg-info"
+      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 74) =~
+               "var(--dx-info)"
 
       assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 75) =~
-               "bg-warning"
+               "var(--dx-warning)"
 
       assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 89) =~
-               "bg-warning"
+               "var(--dx-warning)"
 
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 90) =~ "bg-error"
+      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 90) =~
+               "var(--dx-error)"
     end
 
     test "keeps the bar in range and shows the reading as it is" do
@@ -83,6 +85,51 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ "phx-click-away"
       assert html =~ ~s(data-method="delete")
       assert html =~ ~r/<button type="button" class="[^"]*" phx-click="noop">\s*Act/
+    end
+  end
+
+  describe "Bell.bell/1" do
+    test "lists the items with their tone, and says when there is none" do
+      items = [
+        %{
+          id: 2,
+          at: ~U[2026-10-28 14:20:00Z],
+          tone: :ghost,
+          title: "myapp 1.1 ghosted",
+          detail: "lost",
+          href: "/applications"
+        },
+        %{
+          id: 1,
+          at: ~U[2026-10-28 14:10:00Z],
+          tone: :warning,
+          title: "myapp-abc crash restart",
+          detail: "1",
+          href: "/logs/live"
+        }
+      ]
+
+      html =
+        render_component(&DeployexWeb.UI.Bell.bell/1,
+          items: items,
+          all_href: "/logs/live",
+          all_text: "View logs"
+        )
+
+      assert html =~ ~s(data-bell-item="2")
+      assert html =~ "myapp 1.1 ghosted"
+      assert html =~ ~s(datetime="2026-10-28T14:20:00Z")
+      assert html =~ "var(--dx-warning)"
+      assert html =~ "View logs"
+
+      empty =
+        render_component(&DeployexWeb.UI.Bell.bell/1,
+          items: [],
+          all_href: "/logs/live",
+          all_text: "View logs"
+        )
+
+      assert empty =~ "No events yet."
     end
   end
 
@@ -137,7 +184,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ ~s(data-phx-link="redirect")
       assert [_active] = Regex.scan(~r/aria-current="page"/, html)
       assert html =~ ~r/href="\/logs\/live"[^>]*aria-current="page"/
-      assert html =~ "bg-nav-active"
+      assert html =~ "dx-nav dx-nav-on"
     end
   end
 end

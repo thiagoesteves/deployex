@@ -7,8 +7,7 @@ defmodule DeployexWeb.UI.ThemeSwitch do
   """
   use Phoenix.Component
 
-  import DeployexWeb.CoreComponents, only: [icon: 1]
-
+  alias DeployexWeb.UI.Icons
   alias Phoenix.LiveView.JS
 
   attr :id, :string, default: "theme-switch"
@@ -18,24 +17,19 @@ defmodule DeployexWeb.UI.ThemeSwitch do
     <button
       id={@id}
       type="button"
+      class="dx-switch"
       role="switch"
       aria-checked="false"
       aria-label="Dark mode"
-      title="Dark mode"
-      class="inline-flex min-h-11 items-center justify-center rounded-lg px-1"
+      title="Switch between light and dark mode"
       phx-hook="ShellState"
       data-state="theme-dark"
       data-state-attr="aria-checked"
       phx-click={JS.dispatch("dx:toggle-theme")}
     >
-      <span
-        class="relative block h-7.5 w-14 rounded-full border border-base-300 bg-base-300 transition-colors motion-reduce:transition-none dark:bg-info/40"
-        aria-hidden="true"
-      >
-        <span class="absolute top-0.5 left-0.5 flex size-6 items-center justify-center rounded-full bg-base-100 shadow transition-transform motion-reduce:transition-none dark:translate-x-6.5">
-          <.icon name="hero-sun-micro" class="size-3.5 text-warning-text dark:hidden" />
-          <.icon name="hero-moon-micro" class="hidden size-3.5 text-info-text dark:block" />
-        </span>
+      <span class="dx-sw-knob" aria-hidden="true">
+        <Icons.icon name="sun" stroke="2" class="dx-ico size-3.5 text-warning-text dark:hidden" />
+        <Icons.icon name="moon" stroke="2" class="dx-ico hidden size-3.5 text-info-text dark:block" />
       </span>
     </button>
     """

@@ -67,6 +67,7 @@ defmodule DeployexWeb.Router do
       on_mount: [
         {DeployexWeb.UserAuth, :ensure_authenticated},
         DeployexWeb.HostInfo,
+        DeployexWeb.RecentEvents,
         DeployexWeb.ProcessLabel
       ] do
       live "/", ApplicationsLive, :index

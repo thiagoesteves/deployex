@@ -3,6 +3,7 @@
 
 @import "tailwindcss" source(none);
 @import "./tokens.css";
+@import "./ui.css" layer(components);
 @source "../css";
 @source "../js";
 @source "../../lib/deployex_web";

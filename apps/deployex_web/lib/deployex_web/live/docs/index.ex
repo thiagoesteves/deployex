@@ -16,6 +16,7 @@ defmodule DeployexWeb.DocsLive do
       current_path={@current_path}
       current_user={@current_user}
       host_info={@host_info}
+      recent_events={@recent_events}
     >
       <div>
         <iframe

@@ -12,6 +12,9 @@ defmodule DeployexWeb.UI.Menu do
   attr :id, :string, required: true
   attr :label, :string, required: true, doc: "the accessible name of the button"
   attr :button_class, :any, default: nil
+  attr :panel_class, :any, default: nil
+  attr :panel_role, :string, default: nil
+  attr :panel_label, :string, default: nil
   slot :button, required: true, doc: "the button content"
   slot :inner_block, required: true, doc: "the panel content, usually `item/1` entries"
 
@@ -37,7 +40,9 @@ defmodule DeployexWeb.UI.Menu do
       </button>
       <div
         id={"#{@id}-panel"}
-        class="absolute top-full right-0 z-50 mt-2 hidden w-64 max-w-[calc(100vw-2rem)] rounded-(--dx-radius-menu) border border-base-300 bg-base-100 p-1.5 shadow-xl"
+        class={["dx-menu hidden", @panel_class]}
+        role={@panel_role}
+        aria-label={@panel_label}
       >
         {render_slot(@inner_block)}
       </div>
@@ -63,10 +68,7 @@ defmodule DeployexWeb.UI.Menu do
     """
   end
 
-  defp item_class do
-    "flex min-h-10 w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-left text-sm font-medium " <>
-      "text-base-content hover:bg-base-200"
-  end
+  defp item_class, do: "dx-menu-item"
 
   defp toggle(id) do
     JS.toggle(to: "##{id}-panel")

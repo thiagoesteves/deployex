@@ -28,6 +28,7 @@ defmodule DeployexWeb.TerminalLive do
       current_path={@current_path}
       current_user={@current_user}
       host_info={@host_info}
+      recent_events={@recent_events}
     >
       <div class="flex min-h-screen bg-gray-700">
         <div :if={@id}>

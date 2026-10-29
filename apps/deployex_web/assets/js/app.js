@@ -119,6 +119,114 @@ const hooks = {
     }
   },
 
+  // The bell's read state is per browser: the newest read item id stays in localStorage. Sets the
+  // badge, bolds the unread items, and shows each time in the browser's time zone.
+  Bell: {
+    mounted() {
+      this.el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-bell-mark-read]")) this.markRead();
+      });
+      this.sync();
+    },
+
+    updated() {
+      this.sync();
+    },
+
+    lastRead() {
+      try {
+        return Number(localStorage.getItem("dx:bell-read")) || 0;
+      } catch (_e) {
+        return 0;
+      }
+    },
+
+    markRead() {
+      const ids = [...this.el.querySelectorAll("[data-bell-item]")].map((el) => Number(el.dataset.bellItem));
+      try {
+        if (ids.length) localStorage.setItem("dx:bell-read", String(Math.max(...ids)));
+      } catch (_e) {}
+      this.sync();
+    },
+
+    sync() {
+      const last = this.lastRead();
+      let unread = 0;
+      this.el.querySelectorAll("[data-bell-item]").forEach((el) => {
+        const isNew = Number(el.dataset.bellItem) > last;
+        if (isNew) unread++;
+        el.querySelector("[data-bell-title]").style.fontWeight = isNew ? "700" : "500";
+      });
+      const badge = this.el.querySelector("[data-bell-badge]");
+      badge.textContent = unread;
+      badge.classList.toggle("hidden", unread === 0);
+      this.el.querySelector("[data-bell-mark-read]").classList.toggle("hidden", unread === 0);
+      this.el.querySelector("button[aria-controls]")
+        .setAttribute("aria-label", unread ? `Notifications, ${unread} unread` : "Notifications");
+      this.el.querySelectorAll("time[datetime]").forEach((t) => {
+        const at = new Date(t.getAttribute("datetime"));
+        t.textContent = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      });
+    }
+  },
+
+  // The search combobox: the arrow keys move through the results, Enter opens one, Escape clears the
+  // field, then leaves it
+  Search: {
+    mounted() {
+      this.input = this.el.querySelector("input[role=combobox]");
+      this.active = -1;
+      this.input.addEventListener("keydown", (e) => this.onKey(e));
+      this.input.addEventListener("focus", () => this.input.setAttribute("aria-expanded", "true"));
+      this.input.addEventListener("blur", () => this.input.setAttribute("aria-expanded", "false"));
+      // Keep the focus in the field when a result is pressed, so the list stays open until the click
+      this.el.querySelector("[role=listbox]").addEventListener("mousedown", (e) => e.preventDefault());
+    },
+
+    updated() {
+      this.active = -1;
+      this.highlight();
+    },
+
+    options() {
+      return [...this.el.querySelectorAll("[role=option]")];
+    },
+
+    highlight() {
+      this.options().forEach((el, i) => el.setAttribute("aria-selected", String(i === this.active)));
+      const current = this.options()[this.active];
+      if (current) {
+        this.input.setAttribute("aria-activedescendant", current.id);
+        current.scrollIntoView({ block: "nearest" });
+      } else {
+        this.input.removeAttribute("aria-activedescendant");
+      }
+    },
+
+    onKey(e) {
+      const options = this.options();
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (!options.length) return;
+        e.preventDefault();
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        this.active = (this.active + step + options.length) % options.length;
+        this.highlight();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const choice = options[this.active] || options[0];
+        if (choice) choice.click();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        if (this.input.value) {
+          this.input.value = "";
+          this.input.dispatchEvent(new Event("input", { bubbles: true }));
+        } else {
+          this.input.blur();
+        }
+      }
+    }
+  },
+
   // Clear Flash message automatically after 3,5 seconds
   AutoDismissFlash: {
     mounted() {

@@ -11,6 +11,8 @@ defmodule DeployexWeb.Layouts do
   use DeployexWeb, :html
 
   alias DeployexWeb.HostInfo
+  alias DeployexWeb.UI.Bell
+  alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Menu
   alias DeployexWeb.UI.Meter
   alias DeployexWeb.UI.Shell
@@ -19,13 +21,13 @@ defmodule DeployexWeb.Layouts do
   embed_templates "layouts/*"
 
   @nav_items [
-    %{path: "/applications", label: "Applications", icon: "hero-home"},
-    %{path: "/logs/live", label: "Live Logs", icon: "hero-signal"},
-    %{path: "/logs/history", label: "History Logs", icon: "hero-clock"},
-    %{path: "/embedded-observer", label: "Observer Web", icon: "observer-web-logo"},
-    %{path: "/terminal", label: "Host Terminal", icon: "hero-command-line"},
-    %{path: "/hotupgrade", label: "Hot Upgrade", icon: "hero-arrow-up-circle"},
-    %{path: "/documentation", label: "Documentation", icon: "hero-book-open"}
+    %{path: "/applications", label: "Applications", icon: "home"},
+    %{path: "/logs/live", label: "Live Logs", icon: "signal"},
+    %{path: "/logs/history", label: "History Logs", icon: "clock"},
+    %{path: "/embedded-observer", label: "Observer Web", icon: "observer-web"},
+    %{path: "/terminal", label: "Terminal", icon: "command-line"},
+    %{path: "/hotupgrade", label: "Hot Upgrade", icon: "arrow-up-circle"},
+    %{path: "/documentation", label: "Documentation", icon: "book-open"}
   ]
 
   @doc """
@@ -51,6 +53,10 @@ defmodule DeployexWeb.Layouts do
     default: nil,
     doc: "the latest `Host.Info` reading, from `DeployexWeb.HostInfo`"
 
+  attr :recent_events, :list,
+    default: [],
+    doc: "the bell items, from `DeployexWeb.RecentEvents`"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -58,8 +64,11 @@ defmodule DeployexWeb.Layouts do
 
     ~H"""
     <Shell.shell console="Agent Console" home={~p"/applications"}>
+      <:top_bar_center>
+        <.live_component module={DeployexWeb.Components.Search} id="search" />
+      </:top_bar_center>
       <:top_bar_status>
-        <div class="flex flex-wrap items-center gap-x-4.5 gap-y-1" role="group" aria-label="Host">
+        <div class="dx-meters" role="group" aria-label="Host">
           <Meter.meter
             id="host-cpu"
             label="CPU"
@@ -77,19 +86,16 @@ defmodule DeployexWeb.Layouts do
         </div>
       </:top_bar_status>
       <:top_bar_end>
+        <Bell.bell items={@recent_events} all_href="/logs?mode=live" all_text="View logs" />
         <ThemeSwitch.theme_switch />
         <Menu.menu
           id="account-menu"
           label={"Account menu for #{display_name(@current_user)}"}
-          button_class="inline-flex size-11 cursor-pointer items-center justify-center rounded-full"
+          button_class="dx-avatar"
         >
-          <:button>
-            <span class="flex size-9 items-center justify-center rounded-full bg-primary/20 text-[0.8125rem] font-bold text-primary-text">
-              {initials(@current_user)}
-            </span>
-          </:button>
-          <div class="mb-1.5 border-b border-base-300 px-2.5 pt-2 pb-2.5">
-            <p class="truncate text-sm font-semibold">{display_name(@current_user)}</p>
+          <:button>{initials(@current_user)}</:button>
+          <div class="mb-1.5 border-b border-(--dx-base-300) px-2.5 pt-2 pb-2.5">
+            <div class="truncate text-[13.5px] font-semibold">{display_name(@current_user)}</div>
           </div>
           <Menu.item
             id="theme-system"
@@ -100,11 +106,15 @@ defmodule DeployexWeb.Layouts do
             data-state-attr="aria-pressed"
             phx-click={JS.dispatch("dx:toggle-system-theme")}
           >
-            <.icon name="hero-computer-desktop" class="size-4" /> Match system theme
-            <.icon name="hero-check" class="invisible ml-auto size-4 group-aria-pressed:visible" />
+            <Icons.icon name="computer-desktop" class="dx-ico size-4" /> Match system theme
+            <Icons.icon
+              name="check"
+              stroke="2"
+              class="dx-ico invisible ml-auto size-4 group-aria-pressed:visible"
+            />
           </Menu.item>
           <Menu.item href={~p"/users/log_out"} method="delete">
-            <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Log out
+            <Icons.icon name="logout" class="dx-ico size-4" /> Log out
           </Menu.item>
         </Menu.menu>
       </:top_bar_end>
@@ -115,7 +125,7 @@ defmodule DeployexWeb.Layouts do
           label={item.label}
           active={active_route?(item.path, @current_path)}
         >
-          <:icon><.nav_icon name={item.icon} /></:icon>
+          <:icon><Icons.icon name={item.icon} stroke="1.6" /></:icon>
         </Shell.nav_item>
       </:sidebar>
       {render_slot(@inner_block)}
@@ -192,54 +202,5 @@ defmodule DeployexWeb.Layouts do
   # Only exact matches are active, so a parent route is not highlighted for its child routes
   defp active_route?(item_path, current_path) do
     String.trim_trailing(item_path, "/") == String.trim_trailing(current_path || "/", "/")
-  end
-
-  # The Observer Web item shows the Supervision Lens logo from the Observer Web
-  # project (Observer.Web.Components.Icons), kept in sync manually.
-  defp nav_icon(%{name: "observer-web-logo"} = assigns) do
-    ~H"""
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      class="size-5"
-    >
-      <defs>
-        <linearGradient id="dx-ow-logo-gradient" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stop-color="#2563eb" />
-          <stop offset="1" stop-color="#06b6d4" />
-        </linearGradient>
-      </defs>
-      <circle cx="10.5" cy="10.5" r="7.5" /><line
-        x1="16.2"
-        y1="16.2"
-        x2="21"
-        y2="21"
-        stroke-width="2.4"
-      /><line x1="10.5" y1="8" x2="7.2" y2="13" /><line x1="10.5" y1="8" x2="13.8" y2="13" /><circle
-        cx="10.5"
-        cy="7.6"
-        r="1.7"
-        fill="url(#dx-ow-logo-gradient)"
-        stroke="none"
-      /><circle cx="7.0" cy="13.4" r="1.4" fill="currentColor" stroke="none" /><circle
-        cx="14.0"
-        cy="13.4"
-        r="1.4"
-        fill="currentColor"
-        stroke="none"
-      />
-    </svg>
-    """
-  end
-
-  defp nav_icon(assigns) do
-    ~H"""
-    <.icon name={@name} class="size-5" />
-    """
   end
 end
