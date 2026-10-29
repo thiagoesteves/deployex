@@ -204,7 +204,7 @@
 
 .dx-arow {
     display: grid;
-    grid-template-columns: minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.75rem calc(6.5rem + 13px);
+    grid-template-columns: minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem calc(6.875rem + 13px);
     gap: 1rem;
     align-items: center;
     padding: 0 20px 0 26px;
@@ -415,7 +415,7 @@
    margin, border and padding. In rem, so the columns grow with a larger font */
 .dx-irow {
     display: grid;
-    grid-template-columns: minmax(0,1fr) 11rem 3.5rem 5.25rem 4.25rem 8.75rem 6.5rem;
+    grid-template-columns: minmax(0,1fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem 6.875rem;
     gap: 1rem;
     align-items: center;
     padding: 0 12px 0 16px;
@@ -1376,14 +1376,14 @@
 
 .dx-iact-icon {
     justify-content: center;
-    width: 32px;
-    min-height: 32px;
+    width: 34px;
+    min-height: 34px;
     padding: 0;
 }
 
 .dx-iact-icon svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
 }
 
 .dx-iact-er {

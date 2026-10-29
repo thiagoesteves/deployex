@@ -10,7 +10,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Tags
 
-  @columns "minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.75rem calc(6.5rem + 13px)"
+  @columns "minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem calc(6.875rem + 13px)"
 
   attr :host_name, :string, required: true
 
