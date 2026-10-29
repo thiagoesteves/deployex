@@ -74,6 +74,71 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
+# The sample app joins once `make dev-app` has published it to the local bucket, so a plain
+# `make start` manages no app. `make dev-app` also adds it to a running DeployEx
+sample_app_published? =
+  File.exists?("/tmp/deployex/bucket/versions/myphoenixapp/local/current.json")
+
+sample_app = %{
+  name: "myphoenixapp",
+  replicas: 2,
+  language: "elixir",
+  deploy_rollback_timeout_ms: :timer.minutes(10),
+  deploy_schedule_interval_ms: :timer.seconds(5),
+  replica_ports: [%{key: "PORT", base: 4000}],
+  env: [
+    "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
+    "PHX_SERVER=true",
+    "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
+  ],
+  monitoring: [
+    atom: %{
+      enable_restart: true,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
+    },
+    process: %{
+      enable_restart: true,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
+    },
+    port: %{
+      enable_restart: true,
+      warning_threshold_percent: 75,
+      restart_threshold_percent: 90
+    }
+  ],
+  certificates: [
+    # NOTE: Enable for certificate testing
+    #   %{
+    #     type: :domains,
+    #     domains: ["*.calori.com.br"],
+    #     certificate_check_interval_ms: 86_400_000,
+    #     dns_propagation_timeout_ms: 120_000,
+    #     dns_check_interval_ms: 5_000,
+    #     renew_before_days: 30,
+    #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
+    #     dns_options: %{
+    #       ttl: 1,
+    #       zone: "Z6767676776I8",
+    #       api_token: "ABC123GHB" (for cloudflare only)
+    #     },
+    #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
+    #     acme_options: %{
+    #       contact_email: "myapp@mydomain.com",
+    #       url: "https://acme-v02.api.letsencrypt.org/directory",
+    #       key_size: 2048,
+    #       propagation_timeout_ms: 120_000,
+    #       check_interval_ms: 2_000
+    #     },
+    #     importer: Foundation.Certificates.Importer.Mock,
+    #     importer_options: %{
+    #       certificate_arn: "add::certificate::arn"
+    #     }
+    #   }
+  ]
+}
+
 config :foundation,
   env: "local",
   var_path: "/tmp/deployex/varlib",
@@ -125,67 +190,7 @@ config :foundation,
     #   options: %{}
     # }
   ],
-  applications: [
-    %{
-      name: "myphoenixapp",
-      replicas: 2,
-      language: "elixir",
-      deploy_rollback_timeout_ms: :timer.minutes(10),
-      deploy_schedule_interval_ms: :timer.seconds(5),
-      replica_ports: [%{key: "PORT", base: 4000}],
-      env: [
-        "SECRET_KEY_BASE=e4CXwPpjrAJp9NbRobS8dXmOHfn0EBpFdhZlPmZo1y3N/BzW9Z/k7iP7FjMk+chi",
-        "PHX_SERVER=true",
-        "DATABASE_URL=ecto://postgres:postgres@localhost:5432/myphoenixapp_prod"
-      ],
-      monitoring: [
-        atom: %{
-          enable_restart: true,
-          warning_threshold_percent: 75,
-          restart_threshold_percent: 90
-        },
-        process: %{
-          enable_restart: true,
-          warning_threshold_percent: 75,
-          restart_threshold_percent: 90
-        },
-        port: %{
-          enable_restart: true,
-          warning_threshold_percent: 75,
-          restart_threshold_percent: 90
-        }
-      ],
-      certificates: [
-        # NOTE: Enable for certificate testing
-        #   %{
-        #     type: :domains,
-        #     domains: ["*.calori.com.br"],
-        #     certificate_check_interval_ms: 86_400_000,
-        #     dns_propagation_timeout_ms: 120_000,
-        #     dns_check_interval_ms: 5_000,
-        #     renew_before_days: 30,
-        #     dns_provider: Foundation.Certificates.DNSProvider.Mock,
-        #     dns_options: %{
-        #       ttl: 1,
-        #       zone: "Z6767676776I8",
-        #       api_token: "ABC123GHB" (for cloudflare only)
-        #     },
-        #     acme_provider: Foundation.Certificates.ACMEProvider.LetsEncrypt,
-        #     acme_options: %{
-        #       contact_email: "myapp@mydomain.com",
-        #       url: "https://acme-v02.api.letsencrypt.org/directory",
-        #       key_size: 2048,
-        #       propagation_timeout_ms: 120_000,
-        #       check_interval_ms: 2_000
-        #     },
-        #     importer: Foundation.Certificates.Importer.Mock,
-        #     importer_options: %{
-        #       certificate_arn: "add::certificate::arn"
-        #     }
-        #   }
-      ]
-    }
-  ]
+  applications: if(sample_app_published?, do: [sample_app], else: [])
 
 config :deployer, Deployer.Release,
   adapter: Deployer.Release.Local,

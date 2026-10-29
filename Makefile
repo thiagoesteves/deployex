@@ -91,6 +91,8 @@ dev-app: preflight ## Build + publish the sample app to the local bucket so Depl
 		'{version: $$version, pre_commands: $$pre_commands, hash: "local"}' \
 		> "$(BUCKET)/versions/$(APP_NAME)/local/current.json"; \
 	echo "Published $(APP_NAME) $$VERSION to $(BUCKET). DeployEx picks it up on its next tick."
+	@$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") \
+		elixir --sname dev-app-$$$$ --cookie $(COOKIE) devops/scripts/dev/add-apps.exs
 
 dev-app-clean: ## Remove the local bucket
 	rm -rf "$(BUCKET)"
