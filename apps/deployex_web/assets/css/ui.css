@@ -489,13 +489,74 @@
     position: relative;
 }
 
-.dx-search input {
-    width: 100%;
-    height: 38px;
-    padding: 0 38px;
+/* The field holds the filter tags and the text, and grows to a second line when the tags need it */
+.dx-s-field {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-height: 38px;
+    padding: 3px 36px 3px 36px;
     border: 1px solid var(--dx-base-300);
     border-radius: 8px;
     background: var(--dx-base-200);
+}
+
+.dx-s-field:focus-within {
+    outline: 2px solid var(--dx-info);
+    background: var(--dx-base-100);
+}
+
+.dx-s-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dx-s-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 26px;
+    padding: 0 2px 0 8px;
+    border: 1px solid color-mix(in oklab, var(--dx-info) 55%, var(--dx-base-100));
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--dx-info) 14%, var(--dx-base-100));
+    color: var(--dx-base-content);
+    font: 600 0.75rem/1 var(--dx-font-mono);
+    white-space: nowrap;
+}
+
+.dx-s-untag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    color: var(--dx-muted);
+}
+
+.dx-s-untag:hover {
+    background: var(--dx-base-300);
+    color: var(--dx-base-content);
+}
+
+.dx-s-form {
+    flex: 1 1 120px;
+    min-width: 120px;
+}
+
+.dx-search input {
+    width: 100%;
+    height: 30px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
     color: var(--dx-base-content);
     font: 0.875rem var(--dx-font-sans);
 }
@@ -511,9 +572,7 @@
 }
 
 .dx-search input:focus {
-    outline: 2px solid var(--dx-info);
-    outline-offset: 0;
-    background: var(--dx-base-100);
+    outline: none;
 }
 
 .dx-search .dx-s-ico {
@@ -527,7 +586,7 @@
 .dx-search .dx-s-clear {
     position: absolute;
     right: 3px;
-    top: 3px;
+    top: 2px;
     width: 32px;
     height: 32px;
 }
@@ -536,7 +595,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: 44px;
+    top: calc(100% + 6px);
     z-index: 40;
     background: var(--dx-base-100);
     border: 1px solid var(--dx-base-300);
@@ -1635,7 +1694,7 @@
     display: none;
 }
 
-.dx-search:focus-within .dx-drop {
+.dx-search:focus-within .dx-drop:has(> *) {
     display: block;
 }
 

@@ -147,6 +147,8 @@ const hooks = {
     updated() {
       this.active = -1;
       this.highlight();
+      // A picked result clears the search, and the focused field keeps its text unless told
+      if (this.el.dataset.query === "") this.input.value = "";
     },
 
     options() {
@@ -172,6 +174,12 @@ const hooks = {
         const step = e.key === "ArrowDown" ? 1 : -1;
         this.active = (this.active + step + options.length) % options.length;
         this.highlight();
+      } else if (e.key === "Backspace" && this.input.value === "") {
+        const tags = this.el.querySelectorAll("[data-tag-remove]");
+        if (tags.length) {
+          e.preventDefault();
+          tags[tags.length - 1].click();
+        }
       } else if (e.key === "Enter") {
         e.preventDefault();
         const choice = options[this.active] || options[0];

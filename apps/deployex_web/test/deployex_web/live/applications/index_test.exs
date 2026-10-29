@@ -117,7 +117,7 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
-  test "the attention chip shows only the apps that need attention, until Show all", %{conn: conn} do
+  test "the attention chip adds the status tag, and Clear brings every app back", %{conn: conn} do
     stub_monitoring([
       FixtureStatus.application(%{name: "calmapp"}),
       FixtureStatus.application(%{name: "myphoenixapp", resources: resources()})
@@ -127,31 +127,43 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "1 app needs attention"
     assert has_element?(view, "#app-calmapp")
 
-    html = view |> element("#apps-attention") |> render_click()
+    view |> element("#apps-attention") |> render_click()
+    assert_patch(view, "/applications?filter=status%3Aattention")
+    html = render(view)
     assert html =~ ~r/id="apps-attention"[^>]*aria-pressed="true"/
+    assert html =~ "status: needs attention"
     refute has_element?(view, "#app-calmapp")
-    assert has_element?(view, "#app-myphoenixapp")
-    assert html =~ "1 more app has no problem."
-
-    view |> element("#apps-show-all") |> render_click()
-    assert has_element?(view, "#app-calmapp")
-  end
-
-  @tag :capture_log
-  test "a search result shows only its app, until Show all", %{conn: conn} do
-    stub_monitoring([
-      FixtureStatus.application(%{name: "calmapp"}),
-      FixtureStatus.application(%{name: "myphoenixapp"})
-    ])
-
-    {:ok, view, html} = live(conn, ~p"/applications?app=myphoenixapp")
-    assert has_element?(view, "#app-myphoenixapp")
-    refute has_element?(view, "#app-calmapp")
-    assert html =~ "Showing myphoenixapp only. 1 more app runs on this host."
+    assert html =~ "1 of 2 apps match."
 
     view |> element("#apps-show-all") |> render_click()
     assert_patch(view, ~p"/applications")
     assert has_element?(view, "#app-calmapp")
+  end
+
+  @tag :capture_log
+  test "tags in the URL filter the apps, and an older app link is an app tag", %{conn: conn} do
+    apps = [
+      FixtureStatus.application(%{name: "calmapp", language: "erlang"}),
+      FixtureStatus.application(%{name: "myphoenixapp"})
+    ]
+
+    stub_monitoring(apps)
+    {:ok, view, html} = live(conn, ~p"/applications?app=myphoenixapp")
+    assert has_element?(view, "#app-myphoenixapp")
+    refute has_element?(view, "#app-calmapp")
+    assert html =~ "app: myphoenixapp"
+    assert html =~ ~s(aria-label="Remove the filter app: myphoenixapp")
+
+    stub_monitoring(apps)
+    {:ok, view, html} = live(conn, ~p"/applications?filter=runtime:erlang,runtime:gleam")
+    assert has_element?(view, "#app-calmapp")
+    refute has_element?(view, "#app-myphoenixapp")
+    assert html =~ "1 of 2 apps match."
+
+    stub_monitoring(apps)
+    {:ok, _view, html} = live(conn, ~p"/applications?filter=runtime:gleam")
+    assert html =~ "No app matches these filters."
+    refute html =~ "apps-empty"
   end
 
   @tag :capture_log

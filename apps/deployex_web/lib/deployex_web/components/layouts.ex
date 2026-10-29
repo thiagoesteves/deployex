@@ -47,6 +47,11 @@ defmodule DeployexWeb.Layouts do
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :current_path, :string, default: "/"
+
+  attr :search_tags, :list,
+    default: [],
+    doc: "the tags that filter the Applications list, shown in the search bar"
+
   attr :current_user, :map, default: nil
 
   attr :host_info, :any,
@@ -67,7 +72,12 @@ defmodule DeployexWeb.Layouts do
     ~H"""
     <Shell.shell console="Agent Console" home={~p"/applications"}>
       <:top_bar_center>
-        <.live_component module={DeployexWeb.Components.Search} id="search" />
+        <.live_component
+          module={DeployexWeb.Components.Search}
+          id="search"
+          tags={@search_tags}
+          on_apps={@current_path == "/applications"}
+        />
       </:top_bar_center>
       <:top_bar_status>
         <div class="dx-meters" role="group" aria-label="Host">

@@ -20,6 +20,10 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :only_attention, :boolean, required: true, doc: "whether the list shows only those apps"
 
+  attr :attention_path, :string,
+    required: true,
+    doc: "the list with the attention tag added or removed"
+
   def page_head(assigns) do
     ~H"""
     <header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
@@ -27,20 +31,23 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">Applications</h1>
         <p class="dx-muted dx-mono mt-1.5 text-[0.8125rem]">{@host_name}</p>
       </div>
-      <button
+      <.link
         :if={@attention.count > 0}
         id="apps-attention"
-        type="button"
-        class={["dx-chip dx-chip-btn", if(@attention.blocking, do: "dx-s-ghost", else: "dx-s-start")]}
+        class={[
+          "dx-chip dx-chip-btn no-underline",
+          if(@attention.blocking, do: "dx-s-ghost", else: "dx-s-start")
+        ]}
+        role="button"
         aria-pressed={to_string(@only_attention)}
-        phx-click="toggle-attention"
+        patch={@attention_path}
       >
         <Icons.icon :if={@only_attention} name="check" stroke="2.4" class="dx-ico size-3.5" />
         <Icons.icon :if={not @only_attention} name="warning" stroke="2" class="dx-ico size-3.5" />
         {if @attention.count == 1,
           do: "1 app needs attention",
           else: "#{@attention.count} apps need attention"}
-      </button>
+      </.link>
     </header>
     """
   end
@@ -150,8 +157,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :ask, :any, required: true
   attr :sent, :any, required: true, doc: "the snames with a restart sent"
-  attr :hidden, :integer, default: 0, doc: "the apps a filter hides"
-  attr :hidden_text, :string, default: nil, doc: "what the filter shows, above Show all"
+  attr :total, :integer, required: true, doc: "the apps on this host, shown or not"
+  attr :filtered, :boolean, default: false, doc: "whether search tags filter the list"
 
   attr :cleared, :map,
     required: true,
@@ -176,7 +183,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <div class="dx-lbl">Last deploy</div>
             <div></div>
           </div>
-          <div :if={@apps == []} class="dx-empty" id="apps-empty">
+          <div :if={@total == 0} class="dx-empty" id="apps-empty">
             <Icons.icon name="cube" class="dx-ico dx-muted size-7" />
             <b class="text-[0.9375rem]">No applications on this host</b>
             <p class="dx-muted max-w-[460px] text-[0.84375rem]">
@@ -213,13 +220,18 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         </div>
       </div>
       <div
-        :if={@hidden > 0}
+        :if={@filtered and @total > 0}
         class="dx-muted flex flex-wrap items-center justify-between gap-2.5 border-t border-(--dx-base-300) px-5 py-3 text-[0.8125rem]"
+        role="status"
       >
-        <span>{@hidden_text}</span>
-        <button id="apps-show-all" type="button" class="dx-btn" phx-click="show-all">
-          Show all
-        </button>
+        <span>
+          {if @apps == [],
+            do: "No app matches these filters.",
+            else: "#{length(@apps)} of #{@total} apps match."}
+        </span>
+        <.link id="apps-show-all" class="dx-btn no-underline" patch={~p"/applications"}>
+          Clear
+        </.link>
       </div>
     </section>
     """

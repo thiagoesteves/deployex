@@ -80,4 +80,22 @@ defmodule DeployexWeb.Components.SearchTest do
     # A second focus keeps the hints it has
     assert view |> element("#search-input") |> render_focus() =~ "No match for zzz."
   end
+
+  @tag :capture_log
+  test "a filter result adds its tag to the ones set, and patches the Applications list", %{
+    conn: conn
+  } do
+    Deployer.StatusMock
+    |> stub(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
+    |> stub(:subscribe, fn -> :ok end)
+    |> stub(:history_version_list, fn _name, _options -> [] end)
+
+    {:ok, view, html} = live(conn, ~p"/applications?filter=runtime:elixir")
+    assert html =~ ~s(aria-label="Remove the filter runtime: elixir")
+
+    html = view |> element("#search-form") |> render_change(%{"q" => "status: run"})
+    assert html =~ "Filters"
+    assert html =~ ~s(href="/applications?filter=runtime%3Aelixir%2Cstatus%3Arunning")
+    assert html =~ ~s(data-phx-link="patch")
+  end
 end

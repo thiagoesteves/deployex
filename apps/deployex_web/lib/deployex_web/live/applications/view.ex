@@ -83,6 +83,9 @@ defmodule DeployexWeb.ApplicationsLive.View do
       logo: Enum.find_value(status.children, & &1.logo),
       sub: sub(status),
       status: app_status(running, total, status.children),
+      running: running,
+      total: total,
+      pinned: pinned(status.config),
       problems: problems,
       cpu: sum_text(instances, :cpu_value, &"#{&1}%"),
       memory: sum_text(instances, :memory_value, &bytes/1),
@@ -362,6 +365,9 @@ defmodule DeployexWeb.ApplicationsLive.View do
       parts -> Enum.join(parts, " · ")
     end
   end
+
+  defp pinned(%{mode: :manual, manual_version: %{version: version}}), do: version
+  defp pinned(_config), do: nil
 
   defp running_version(status) do
     case Enum.find(status.children, &(&1.status == :running)) do
