@@ -5,7 +5,7 @@ defmodule DeployexWeb.RecentEvents do
   It handles the `Foundation.Notifications.Recent` broadcasts itself, so a LiveView does not subscribe to them.
   """
   import Phoenix.Component, only: [assign: 3, update: 3]
-  import Phoenix.LiveView, only: [attach_hook: 4, connected?: 1]
+  import Phoenix.LiveView, only: [attach_hook: 4, connected?: 1, detach_hook: 3]
 
   alias Foundation.Notifications.Recent
 
@@ -22,6 +22,24 @@ defmodule DeployexWeb.RecentEvents do
       {:cont, socket}
     end
   end
+
+  # A page that shows the events itself, like Logs, also gets each one as {:recent_notification, recent}
+  def on_mount(:forward, _params, _session, socket) do
+    if connected?(socket) do
+      socket = detach_hook(socket, :recent_events, :handle_info)
+      {:cont, attach_hook(socket, :recent_events, :handle_info, &__MODULE__.forward_recent/2)}
+    else
+      {:cont, socket}
+    end
+  end
+
+  @doc false
+  def forward_recent({:recent_notification, %Recent{}} = message, socket) do
+    {:halt, socket} = handle_recent(message, socket)
+    {:cont, socket}
+  end
+
+  def forward_recent(_message, socket), do: {:cont, socket}
 
   # An external capture, so a hot upgrade of this module does not break the hook in a running LiveView
   @doc false
@@ -42,6 +60,27 @@ defmodule DeployexWeb.RecentEvents do
 
       {tone, title, detail, href} ->
         [%{id: recent.id, at: recent.at, tone: tone, title: title, detail: detail, href: href}]
+    end
+  end
+
+  @doc """
+  Returns the tone and a one-line text of any event, for the events source on the Logs page.
+  """
+  @spec line(Recent.t()) :: {atom(), String.t()}
+  def line(%Recent{event: event, payload: payload}) do
+    case describe(event, payload) do
+      {tone, title, "", _href} ->
+        {tone, title}
+
+      {tone, title, detail, _href} ->
+        {tone, "#{title} · #{detail}"}
+
+      nil ->
+        {:info,
+         Enum.join(
+           [event | Enum.flat_map([:sname, :version, :name], &List.wrap(payload[&1]))],
+           " "
+         )}
     end
   end
 

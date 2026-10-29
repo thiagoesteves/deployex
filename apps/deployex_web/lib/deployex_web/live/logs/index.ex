@@ -8,6 +8,13 @@ defmodule DeployexWeb.LogsLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.RecentEvents
+  alias DeployexWeb.UI.Icons
+  alias Foundation.Notifications.Recent
+
+  # The events source follows this host's notifications, which the bell's hook passes on
+  on_mount {RecentEvents, :forward}
+
   alias Deployer.Monitor
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
@@ -93,7 +100,8 @@ defmodule DeployexWeb.LogsLive do
               phx-value-sname={source.sname}
             >
               <span class="dx-dot" style={"color: var(#{source.color})"}></span>
-              <Tags.lang name={source.lang} small />{source.sname}
+              <Icons.icon :if={source.sname == "events"} name="bell" class="dx-ico size-4" />
+              <Tags.lang :if={source.sname != "events"} name={source.lang} small />{source.sname}
             </button>
             <span :if={@sources == []} class="dx-muted text-[13px]">No source has logs yet.</span>
           </div>
@@ -283,6 +291,21 @@ defmodule DeployexWeb.LogsLive do
   end
 
   @impl true
+  def handle_info({:recent_notification, recent}, %{assigns: %{mode: :live} = assigns} = socket) do
+    cond do
+      not MapSet.member?(assigns.selected, "events") ->
+        {:noreply, socket}
+
+      assigns.paused ->
+        {:noreply, update(socket, :pending, &Enum.take([event_line(recent) | &1], @cap))}
+
+      true ->
+        {:noreply, append(socket, [event_line(recent)])}
+    end
+  end
+
+  def handle_info({:recent_notification, _recent}, socket), do: {:noreply, socket}
+
   def handle_info({:logs_new_data, sname, type, message}, socket) do
     lines = lines(sname, type, [message], color(socket.assigns.sources, sname))
 
@@ -327,6 +350,7 @@ defmodule DeployexWeb.LogsLive do
           messages = Logs.list_data_by_sname_log_type(sname, type, from: minutes, order: :asc)
           lines(sname, type, messages, color(assigns.sources, sname))
         end)
+        |> Kernel.++(event_lines(assigns, minutes))
         |> Enum.filter(&(assigns.mode == :history or &1.timestamp > assigns.cleared_at))
         |> Enum.sort_by(& &1.timestamp)
         |> Enum.take(-@cap)
@@ -383,7 +407,9 @@ defmodule DeployexWeb.LogsLive do
         :history -> Enum.map(Logs.list_active_snames(), &to_string/1)
       end
 
-    # Only the sources the log server tails, with the streams it has for each
+    # The events, then only the sources the log server tails, with the streams it has for each
+    events = %{sname: "events", types: ["event"], lang: nil, color: "--dx-warning-text"}
+
     (["deployex"] ++ Enum.sort(snames -- ["deployex"]))
     |> Enum.map(&{&1, Enum.map(Logs.get_types_by_sname(&1), fn type -> to_string(type) end)})
     |> Enum.reject(fn {_sname, types} -> types == [] end)
@@ -396,6 +422,36 @@ defmodule DeployexWeb.LogsLive do
         color: Enum.at(@colors, rem(index, length(@colors)))
       }
     end)
+    |> then(&[events | &1])
+  end
+
+  # The events of this host in the read window. The store keeps the last ones since DeployEx started
+  defp event_lines(%{selected: selected}, minutes) do
+    if MapSet.member?(selected, "events") do
+      since = DateTime.add(DateTime.utc_now(), -minutes * 60)
+
+      Recent.list()
+      |> Enum.filter(&(DateTime.compare(&1.at, since) != :lt))
+      |> Enum.map(&event_line/1)
+    else
+      []
+    end
+  end
+
+  defp event_line(%Recent{at: at, event: event} = recent) do
+    {tone, text} = RecentEvents.line(recent)
+
+    %{
+      id: System.unique_integer([:positive, :monotonic]),
+      timestamp: DateTime.to_unix(at, :millisecond),
+      at: at,
+      source: "events",
+      type: "event",
+      text: text,
+      event: event,
+      color: "--dx-warning-text",
+      tone: tone
+    }
   end
 
   # The source and stream pairs to read and follow: the selected ones that the log server has
@@ -437,6 +493,12 @@ defmodule DeployexWeb.LogsLive do
   end
 
   defp message_color(%{type: "stderr"}), do: "var(--dx-error-text)"
+
+  defp message_color(%{type: "event", tone: tone}) when tone in [:error, :ghost],
+    do: "var(--dx-error-text)"
+
+  defp message_color(%{type: "event", tone: :warning}), do: "var(--dx-warning-text)"
+  defp message_color(%{type: "event"}), do: "var(--dx-base-content)"
 
   defp message_color(%{text: text}) do
     cond do

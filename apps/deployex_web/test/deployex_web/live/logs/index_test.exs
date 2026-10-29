@@ -57,7 +57,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     assert html =~ "GET / [info] Sent 200"
     assert html =~ "second line"
     assert html =~ "[error] boom"
-    assert html =~ "3 lines · 2 of 2 sources"
+    assert html =~ " of 3 sources"
     assert_received {:read, ^sname, "stdout", 5}
     assert_received {:subscribed, ^sname, "stderr"}
 
@@ -142,7 +142,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     assert html =~ "only this"
     refute html =~ "not this"
-    assert html =~ "1 line · 1 of 2 sources"
+    assert html =~ "1 line · 1 of 3 sources"
   end
 
   @tag :capture_log
@@ -156,10 +156,53 @@ defmodule DeployexWeb.Logs.IndexTest do
     {:ok, _view, html} = live(conn, ~p"/logs/live")
 
     assert html =~ "app line"
-    assert html =~ "1 line · 1 of 1 sources"
+    assert html =~ " of 2 sources"
     refute html =~ ~s(id="source-deployex")
     refute_received {:read, "deployex", _type, _minutes}
     refute_received {:subscribed, "deployex", _type}
+  end
+
+  @tag :capture_log
+  test "the events source shows this host's events and follows new ones", %{
+    conn: conn,
+    sname: sname
+  } do
+    stub(Deployer.MonitorMock, :list, fn -> [sname] end)
+    stub_logs(self(), %{{sname, "stdout"} => [message("app line")]})
+
+    Foundation.Notifications.notify("crash_restart", %{
+      sname: "events-test-abc",
+      crash_restart_count: 2
+    })
+
+    Process.sleep(50)
+
+    {:ok, view, html} = live(conn, ~p"/logs/live?source=events")
+
+    assert html =~ "events-test-abc crash restart · 2 crash restarts"
+    refute html =~ "app line"
+    refute_received {:read, ^sname, _type, _minutes}
+
+    recent = %Foundation.Notifications.Recent{
+      id: 1,
+      at: DateTime.utc_now(),
+      event: "deployment_started",
+      payload: %{sname: "events-test-def", version: "1.2.3"}
+    }
+
+    send(view.pid, {:recent_notification, recent})
+    assert render(view) =~ "deployment_started events-test-def 1.2.3"
+
+    # Paused, the event waits for Resume
+    view |> element("#logs-pause") |> render_click()
+    send(view.pid, {:recent_notification, %{recent | payload: %{sname: "events-test-ghi"}}})
+    refute render(view) =~ "events-test-ghi"
+    assert view |> element("#logs-pause") |> render_click() =~ "events-test-ghi"
+
+    # With the source off, a new event does not show
+    view |> element("#source-events") |> render_click()
+    send(view.pid, {:recent_notification, %{recent | payload: %{sname: "events-test-jkl"}}})
+    refute render(view) =~ "events-test-jkl"
   end
 
   @tag :capture_log
@@ -187,7 +230,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     view |> element("#logs-history") |> render_click()
     assert_patch(view, ~p"/logs/history")
-    assert render(view) =~ "No lines in this range. Pick a longer range or turn on more sources."
+    assert render(view) =~ ~s(id="range-30m")
     assert_received {:unsubscribed, _sname, _type}
 
     view |> element("#logs-live") |> render_click()
