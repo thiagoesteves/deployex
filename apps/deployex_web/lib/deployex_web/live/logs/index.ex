@@ -60,8 +60,8 @@ defmodule DeployexWeb.LogsLive do
       <div class="mx-auto flex max-w-[1180px] flex-col gap-4 px-7 pt-6 pb-12 max-md:px-4">
         <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div>
-            <h1 class="text-[26px] font-bold tracking-[-0.02em]">Logs</h1>
-            <p class="dx-muted dx-mono mt-1 text-[13px]">
+            <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">Logs</h1>
+            <p class="dx-muted dx-mono mt-1 text-[0.8125rem]">
               {@host_name} · stdout and stderr of DeployEx and every instance
             </p>
           </div>
@@ -103,10 +103,10 @@ defmodule DeployexWeb.LogsLive do
               <Icons.icon :if={source.sname == "events"} name="bell" class="dx-ico size-4" />
               <Tags.lang :if={source.sname != "events"} name={source.lang} small />{source.sname}
             </button>
-            <span :if={@sources == []} class="dx-muted text-[13px]">No source has logs yet.</span>
+            <span :if={@sources == []} class="dx-muted text-[0.8125rem]">No source has logs yet.</span>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
               <span class="dx-lbl w-16">Streams</span>
               <button
                 :for={type <- ["stdout", "stderr"]}
@@ -123,7 +123,7 @@ defmodule DeployexWeb.LogsLive do
                 id="logs-filter"
                 phx-change="filter"
                 phx-submit="filter"
-                class="ml-2 w-80 max-w-full"
+                class="w-80 max-w-full"
               >
                 <input
                   class="dx-filter"
@@ -170,7 +170,7 @@ defmodule DeployexWeb.LogsLive do
         </section>
 
         <section class="dx-card overflow-hidden" aria-label="Log lines">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--dx-base-300) px-[18px] py-2.5 text-[12.5px]">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--dx-base-300) px-[18px] py-2.5 text-[0.78125rem]">
             <span class="dx-muted" id="logs-summary">{summary(@shown, @cap, @selected, @sources)}</span>
             <span class="dx-muted">Newest at the bottom</span>
           </div>
@@ -194,7 +194,7 @@ defmodule DeployexWeb.LogsLive do
                 <span class="dx-lmsg" style={"color: #{message_color(line)}"} phx-no-format>{highlight(line.text, @filter)}</span>
               </div>
             </div>
-            <p :if={@shown == 0} class="dx-muted px-[18px] py-6 text-[13px]">
+            <p :if={@shown == 0} class="dx-muted px-[18px] py-6 text-[0.8125rem]">
               {if @mode == :live,
                 do: "No lines yet. New lines show here as they arrive.",
                 else: "No lines in this range. Pick a longer range or turn on more sources."}

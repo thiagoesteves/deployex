@@ -194,7 +194,8 @@ const hooks = {
     mounted() {
       const target = this.el.dataset.target;
       this.term = new Terminal({
-        fontSize: 13,
+        // 13 px at the browser's default font size, larger when the user sets a larger one
+        fontSize: Math.round(13 * parseFloat(getComputedStyle(document.documentElement).fontSize) / 16),
         cursorBlink: true,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
         theme: { background: "#0d1117", foreground: "#c9d1d9", cursor: "#7ee787", selectionBackground: "#264f78" }

@@ -36,7 +36,7 @@ defmodule DeployexWeb.VersionsLive do
                 <span :if={@pinned} class="dx-chip dx-s-info"><span class="dx-dot"></span>Pinned to {@pinned}</span>
                 <span :if={is_nil(@pinned)} class="dx-chip dx-s-ok"><span class="dx-dot"></span>Automatic</span>
               </div>
-              <p class="dx-muted text-[13.5px]">{mode_text(@pinned, @count)}</p>
+              <p class="dx-muted text-[0.84375rem]">{mode_text(@pinned, @count)}</p>
             </div>
             <form id="mode-form" phx-change="pick" class="flex flex-wrap items-end gap-2.5">
               <div class="dx-seg-group" role="group" aria-label="Mode">
@@ -76,7 +76,7 @@ defmodule DeployexWeb.VersionsLive do
                 }
                 id="mode-save"
                 type="button"
-                class="dx-btn dx-btn-primary min-h-10 text-[13px]"
+                class="dx-btn dx-btn-primary min-h-10 text-[0.8125rem]"
                 phx-click="ask"
               >
                 {if @segment == :pin, do: "Pin #{@pick}…", else: "Set Automatic…"}
@@ -99,12 +99,12 @@ defmodule DeployexWeb.VersionsLive do
             <button
               id="mode-confirm"
               type="button"
-              class="dx-btn dx-btn-primary min-h-10 text-[13px]"
+              class="dx-btn dx-btn-primary min-h-10 text-[0.8125rem]"
               phx-click="confirm"
             >
               {if @segment == :pin, do: "Pin #{@pick}", else: "Set Automatic"}
             </button>
-            <button type="button" class="dx-btn min-h-10 text-[13px]" phx-click="cancel">Cancel</button>
+            <button type="button" class="dx-btn min-h-10 text-[0.8125rem]" phx-click="cancel">Cancel</button>
           </div>
         </section>
 
@@ -139,9 +139,9 @@ defmodule DeployexWeb.VersionsLive do
               <div :for={row <- rows(@history, @filter, @currents, @now)} class="dx-vrow">
                 <div class="flex items-center gap-2">
                   <b class="dx-mono text-sm">{row.version}</b>
-                  <span :if={row.current} class="dx-chip dx-s-ok px-2 py-px text-[11px]">current</span>
+                  <span :if={row.current} class="dx-chip dx-s-ok px-2 py-px text-xs">current</span>
                 </div>
-                <div class="dx-mono text-[13px]">{row.sname}</div>
+                <div class="dx-mono text-[0.8125rem]">{row.sname}</div>
                 <div>
                   <Tags.deploy_tag
                     type={if row.deployment == :hot_upgrade, do: :hot, else: :full}
@@ -149,19 +149,19 @@ defmodule DeployexWeb.VersionsLive do
                   />
                 </div>
                 <div class="flex items-baseline gap-2.5">
-                  <span class="dx-mono text-[13px]">{row.at}</span>
-                  <span class="dx-muted text-[12.5px]">{row.age}</span>
+                  <span class="dx-mono text-[0.8125rem]">{row.at}</span>
+                  <span class="dx-muted text-[0.78125rem]">{row.age}</span>
                 </div>
               </div>
               <p
                 :if={@history == []}
-                class="dx-muted border-t border-(--dx-base-300) px-5 py-4 text-[13.5px]"
+                class="dx-muted border-t border-(--dx-base-300) px-5 py-4 text-[0.84375rem]"
               >
                 No version has run on this host yet.
               </p>
             </div>
           </div>
-          <p class="dx-muted border-t border-(--dx-base-300) px-5 pt-3 pb-3.5 text-[12.5px]">
+          <p class="dx-muted border-t border-(--dx-base-300) px-5 pt-3 pb-3.5 text-[0.78125rem]">
             This host keeps the releases of the last {retention()} versions.
             <.link class="dx-link" navigate={~p"/applications/#{@name}/ghosted"}>Ghosted versions</.link>
           </p>

@@ -71,13 +71,13 @@ defmodule DeployexWeb.TerminalLive do
       <div class="mx-auto flex max-w-[1240px] flex-col gap-4 px-7 pt-6 pb-12 max-md:px-4">
         <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div class="min-w-0">
-            <h1 class="text-[26px] font-bold tracking-[-0.02em]">Terminal</h1>
-            <p class="dx-muted dx-mono mt-1 text-[13px]">
+            <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">Terminal</h1>
+            <p class="dx-muted dx-mono mt-1 text-[0.8125rem]">
               {if @active_session, do: @active_session.command, else: "No open session"}
             </p>
           </div>
           <div :if={@active_session} class="flex items-center gap-3">
-            <span class="dx-muted text-[13px]">
+            <span class="dx-muted text-[0.8125rem]">
               Session closes in
               <b
                 id={"countdown-#{@active_session.id}"}
@@ -143,11 +143,11 @@ defmodule DeployexWeb.TerminalLive do
                   phx-value-target={target.target}
                 >
                   <span class="inline-flex items-center gap-2">
-                    <Tags.lang name={target.language} small /><span class="dx-mono text-[13px]">{target.title}</span>
+                    <Tags.lang name={target.language} small /><span class="dx-mono text-[0.8125rem]">{target.title}</span>
                   </span>
                   <span class="dx-muted text-xs">{target.kind}</span>
                 </Menu.item>
-                <p :if={@available == []} class="dx-muted p-2.5 text-[13px]">
+                <p :if={@available == []} class="dx-muted p-2.5 text-[0.8125rem]">
                   Every session is open.
                 </p>
               </Menu.menu>
@@ -181,7 +181,7 @@ defmodule DeployexWeb.TerminalLive do
               <h2 class="text-sm font-bold">{help_title(@active_session.kind)}</h2>
               <p
                 :if={@active_session.kind == :host_shell}
-                class="text-[12.5px] font-semibold text-warning-text"
+                class="text-[0.78125rem] font-semibold text-warning-text"
               >
                 This shell runs as the deployex user. It can read the release and the logs of every app on this host.
               </p>
@@ -197,8 +197,8 @@ defmodule DeployexWeb.TerminalLive do
             :if={is_nil(@active_session)}
             class="flex flex-col items-center gap-2.5 px-6 py-12 text-center"
           >
-            <p class="text-[15px] font-semibold">No open session</p>
-            <p class="dx-muted text-[13px]">
+            <p class="text-[0.9375rem] font-semibold">No open session</p>
+            <p class="dx-muted text-[0.8125rem]">
               Open an IEx shell on an instance, or a shell on this host, with New session.
             </p>
           </div>

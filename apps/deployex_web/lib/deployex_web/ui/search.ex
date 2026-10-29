@@ -72,7 +72,7 @@ defmodule DeployexWeb.UI.Search do
               <b>{item.label}</b><span>{item.context}</span>
             </.link>
           </div>
-          <p :if={@groups == []} class="dx-muted p-2.5 text-[13px]">No match for {@query}.</p>
+          <p :if={@groups == []} class="dx-muted p-2.5 text-[0.8125rem]">No match for {@query}.</p>
         <% else %>
           <div class="dx-drop-h">Try</div>
           <div class="flex flex-wrap gap-1.5 px-2.5 pt-1 pb-2">

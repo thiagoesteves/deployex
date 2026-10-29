@@ -48,7 +48,7 @@ defmodule DeployexWeb.UI.Bell do
           <b class="text-sm">Notifications</b>
           <button type="button" class="dx-nlink hidden" data-bell-mark-read>Mark all as read</button>
         </div>
-        <p :if={@items == []} class="dx-muted px-2.5 py-3 text-[13px]">No events yet.</p>
+        <p :if={@items == []} class="dx-muted px-2.5 py-3 text-[0.8125rem]">No events yet.</p>
         <.link :for={item <- @items} class="dx-nitem" navigate={item.href} data-bell-item={item.id}>
           <Icons.icon
             :if={item.tone == :ghost}
@@ -62,7 +62,7 @@ defmodule DeployexWeb.UI.Bell do
             <span class="dx-nd">{item.detail}</span>
           </span>
           <time
-            class="dx-mono dx-muted whitespace-nowrap text-[11.5px]"
+            class="dx-mono dx-muted whitespace-nowrap text-xs"
             datetime={DateTime.to_iso8601(item.at)}
           >
             {Calendar.strftime(item.at, "%H:%M")}

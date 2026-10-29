@@ -97,7 +97,7 @@ defmodule DeployexWeb.Layouts do
         >
           <:button>{initials(@current_user)}</:button>
           <div class="mb-1.5 border-b border-(--dx-base-300) px-2.5 pt-2 pb-2.5">
-            <div class="truncate text-[13.5px] font-semibold">{display_name(@current_user)}</div>
+            <div class="truncate text-[0.84375rem] font-semibold">{display_name(@current_user)}</div>
           </div>
           <Menu.item
             id="theme-system"

@@ -68,7 +68,7 @@ defmodule DeployexWeb.DockLive do
           <div class="dx-dock-ctl">
             <span
               :if={@active_tab && @active_tab.kind == :shell}
-              class="dx-muted mr-2 text-[12.5px] whitespace-nowrap"
+              class="dx-muted mr-2 text-[0.78125rem] whitespace-nowrap"
             >
               Closes in
               <b
@@ -147,7 +147,7 @@ defmodule DeployexWeb.DockLive do
               <span class="dx-muted dx-mono text-xs">{logs_subtitle(@active_tab)} · last 30 minutes, then live</span>
               <div class="flex items-center gap-1.5">
                 <.link
-                  class="dx-link mr-1.5 text-[12.5px] font-semibold"
+                  class="dx-link mr-1.5 text-[0.78125rem] font-semibold"
                   navigate={~p"/logs/live?#{logs_query(@active_tab)}"}
                 >
                   History and filters in Logs
@@ -190,7 +190,7 @@ defmodule DeployexWeb.DockLive do
                   <span class="dx-k-msg" style={"color: #{message_color(line)}"} phx-no-format>{line.text}</span>
                 </div>
               </div>
-              <p :if={@active_tab.empty} class="dx-muted p-3.5 text-[13px]">
+              <p :if={@active_tab.empty} class="dx-muted p-3.5 text-[0.8125rem]">
                 No lines for these streams.
               </p>
             </div>

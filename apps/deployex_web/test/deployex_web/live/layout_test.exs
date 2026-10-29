@@ -38,6 +38,22 @@ defmodule DeployexWeb.LayoutTest do
   end
 
   @tag :capture_log
+  test "the keyboard meets the skip link, then the top bar, then the sidebar before the page", %{
+    conn: conn
+  } do
+    {:ok, _view, html} = live(conn, ~p"/documentation")
+
+    [skip, sidebar, main] =
+      Enum.map([~s(href="#shell-main"), ~s(id="shell-sidebar"), ~s(id="shell-main")], fn marker ->
+        {index, _length} = :binary.match(html, marker)
+        index
+      end)
+
+    assert skip < sidebar and sidebar < main
+    assert html =~ ~s(aria-label="DeployEx Agent Console")
+  end
+
+  @tag :capture_log
   test "a sidebar link changes the page with live navigation", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/documentation")
 

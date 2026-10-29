@@ -19,8 +19,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
     ~H"""
     <header class="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div>
-        <h1 class="text-[26px] font-bold tracking-[-0.02em]">Applications</h1>
-        <p class="dx-muted dx-mono mt-1.5 text-[13px]">{@host_name}</p>
+        <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">Applications</h1>
+        <p class="dx-muted dx-mono mt-1.5 text-[0.8125rem]">{@host_name}</p>
       </div>
       <span :if={@attention > 0} class="dx-chip dx-s-ghost">
         <Icons.icon name="ghost" class="dx-gh" />
@@ -48,8 +48,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <div class="flex items-center gap-3.5">
           <Tags.lang name={@language} label={String.capitalize(@language)} />
           <div>
-            <h1 class="text-[26px] font-bold tracking-[-0.02em]">{@name}</h1>
-            <p class="dx-muted dx-mono mt-1 text-[13px]">{@subtitle}</p>
+            <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">{@name}</h1>
+            <p class="dx-muted dx-mono mt-1 text-[0.8125rem]">{@subtitle}</p>
           </div>
         </div>
         {render_slot(@inner_block)}
@@ -156,13 +156,13 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           </div>
           <div :if={@apps == []} class="dx-empty" id="apps-empty">
             <Icons.icon name="cube" class="dx-ico dx-muted size-7" />
-            <b class="text-[15px]">No applications on this host</b>
-            <p class="dx-muted max-w-[460px] text-[13.5px]">
+            <b class="text-[0.9375rem]">No applications on this host</b>
+            <p class="dx-muted max-w-[460px] text-[0.84375rem]">
               Add one under <code class="dx-mono">applications</code>
               in deployex.yaml. DeployEx deploys it when its release bucket has a version.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-2">
-              <span class="dx-muted text-[13px]">How to build and add an app:</span>
+              <span class="dx-muted text-[0.8125rem]">How to build and add an app:</span>
               <.link
                 :for={
                   {label, page} <- [
@@ -209,7 +209,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           <Tags.lang name={@app.language} label={@app.language_name} />
           <div class="min-w-0">
             <div class="text-lg font-bold tracking-[-0.01em]">{@app.name}</div>
-            <div class="dx-muted dx-mono mt-0.5 text-[13px]">{@app.sub}</div>
+            <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
           </div>
         </div>
         <div>
@@ -224,10 +224,10 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <span class="sr-only">problems: {Enum.join(@app.problems, ", ")}</span>
           </span>
         </div>
-        <div class="dx-num text-[15.5px] font-semibold">{@app.cpu}</div>
-        <div class="dx-num text-[15.5px] font-semibold">{@app.memory}</div>
+        <div class="dx-num text-[0.96875rem] font-semibold">{@app.cpu}</div>
+        <div class="dx-num text-[0.96875rem] font-semibold">{@app.memory}</div>
         <div
-          class="dx-num text-[15.5px] font-semibold"
+          class="dx-num text-[0.96875rem] font-semibold"
           style={"color: #{if @app.restarts > 0, do: Tags.tone(:warning), else: "inherit"}"}
           title={@app.restarts_title}
         >
@@ -264,7 +264,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       <.alert :if={@app.alert || @cleared} app={@app} cleared={@cleared} />
 
       <div :if={@open} class="dx-inset">
-        <div :if={@app.notes != []} class="flex flex-col gap-1 px-4 py-2.5 text-[12.5px]">
+        <div :if={@app.notes != []} class="flex flex-col gap-1 px-4 py-2.5 text-[0.78125rem]">
           <span
             :for={note <- @app.notes}
             class="font-semibold"
@@ -434,10 +434,10 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           tone={@instance.status.tone}
           class="font-medium"
         />
-        <div class="dx-num text-[12.5px]">{@instance.cpu}</div>
-        <div class="dx-num text-[12.5px]">{@instance.memory}</div>
+        <div class="dx-num text-[0.78125rem]">{@instance.cpu}</div>
+        <div class="dx-num text-[0.78125rem]">{@instance.memory}</div>
         <div
-          class="dx-num text-[12.5px]"
+          class="dx-num text-[0.78125rem]"
           style={"color: #{if @instance.restarts > 0, do: Tags.tone(:warning), else: Tags.tone(:muted)}"}
           title={@instance.restarts_title}
         >
@@ -505,14 +505,14 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         role="group"
         aria-label={"Limits of #{@instance.sname}"}
       >
-        <p :if={@instance.limits == []} class="dx-muted col-span-3 text-[12.5px]">
+        <p :if={@instance.limits == []} class="dx-muted col-span-3 text-[0.78125rem]">
           No reading yet. DeployEx reads the limits of a running instance every 5 seconds.
         </p>
         <div :for={limit <- @instance.limits} class="dx-lim">
           <div class="flex items-baseline justify-between gap-2">
             <span class="dx-lbl">{limit.name}</span>
             <span
-              class="dx-mono text-[12.5px] font-semibold"
+              class="dx-mono text-[0.78125rem] font-semibold"
               style={"color: #{level_text(limit.level)}"}
             >
               {limit.percent_text}
@@ -528,7 +528,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           >
             <i style={"width: #{max(limit.percent, 1.5)}%; background: #{level_fill(limit.level)}"}></i>
           </span>
-          <div class="flex justify-between gap-2 text-[11.5px]">
+          <div class="flex justify-between gap-2 text-xs">
             <span class="dx-mono dx-muted">{limit.count} of {limit.limit}</span>
             <span
               :if={limit.trend}

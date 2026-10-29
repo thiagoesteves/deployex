@@ -30,6 +30,7 @@ defmodule DeployexWeb.UI.Shell do
   def shell(assigns) do
     ~H"""
     <div class="dx-app flex min-h-dvh flex-col">
+      <a href="#shell-main" class="dx-skip">Skip to content</a>
       <header id="shell-top-bar" class="dx-topbar sticky top-0">
         <div class="dx-tb-left">
           <button
@@ -56,7 +57,7 @@ defmodule DeployexWeb.UI.Shell do
           >
             <Icons.icon name="bars" class="dx-ico" />
           </button>
-          <.link navigate={@home} class="dx-brand min-h-11">
+          <.link navigate={@home} class="dx-brand min-h-11" aria-label={"DeployEx #{@console}"}>
             <span class="dx-brand-mark"><img src="/images/logo.svg" alt="" width="30" height="30" /></span>
             <span><b>DeployEx</b><small>{@console}</small></span>
           </.link>
@@ -81,12 +82,6 @@ defmodule DeployexWeb.UI.Shell do
           tabindex="-1"
           phx-update="ignore"
         />
-        <div class="drawer-content flex min-w-0 flex-col">
-          <main id="shell-main" class="min-w-0 flex-1">
-            {render_slot(@inner_block)}
-          </main>
-          {render_slot(@dock)}
-        </div>
         <div class="drawer-side z-[70] lg:top-14 lg:z-30 lg:h-[calc(100dvh-3.5rem)]">
           <label for="shell-drawer" class="drawer-overlay" aria-label="Close the menu"></label>
           <aside id="shell-sidebar" class="dx-side min-h-full" aria-label="Agent navigation">
@@ -94,6 +89,12 @@ defmodule DeployexWeb.UI.Shell do
               {render_slot(@sidebar)}
             </nav>
           </aside>
+        </div>
+        <div class="drawer-content flex min-w-0 flex-col">
+          <main id="shell-main" class="min-w-0 flex-1" tabindex="-1">
+            {render_slot(@inner_block)}
+          </main>
+          {render_slot(@dock)}
         </div>
       </div>
     </div>
