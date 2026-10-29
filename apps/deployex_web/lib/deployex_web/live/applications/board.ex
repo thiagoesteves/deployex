@@ -246,7 +246,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   defp app_row(assigns) do
     ~H"""
-    <div id={"app-#{@app.name}"}>
+    <div id={"app-#{@app.name}"} class={@open && "dx-app-open"}>
       <div class="dx-arow">
         <div class="flex min-w-0 items-center gap-3.5">
           <Tags.lang name={@app.language} label={@app.language_name} logo={@app.logo} />

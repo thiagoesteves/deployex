@@ -359,6 +359,14 @@
     border-color: var(--dx-base-300);
 }
 
+/* The open app: a tint and an outline over its row, callouts and instances, so the eye knows where it is */
+.dx-app-open {
+    position: relative;
+    background: color-mix(in oklab, var(--dx-info) 5%, var(--dx-base-100));
+    outline: 2px solid color-mix(in oklab, var(--dx-info) 60%, var(--dx-base-100));
+    outline-offset: -2px;
+}
+
 .dx-inset {
     margin: 0 20px 18px 26px;
     border: 1px solid var(--dx-base-300);
