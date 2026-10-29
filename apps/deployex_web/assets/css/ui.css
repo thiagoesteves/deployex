@@ -257,6 +257,7 @@
     background: var(--dx-base-content);
     color: var(--dx-base-100);
     box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+    font-family: var(--dx-font-sans);
     font-size: 0.8125rem;
     font-weight: 500;
     line-height: 1.4;
@@ -941,6 +942,23 @@
 
 .dx-ditem + .dx-ditem {
     border-left: 1px solid var(--dx-base-300);
+}
+
+.dx-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin-left: 4px;
+    border-radius: 5px;
+    color: var(--dx-muted);
+    cursor: pointer;
+}
+
+.dx-copy:hover {
+    background: var(--dx-base-300);
+    color: var(--dx-base-content);
 }
 
 .dx-ditem dd {

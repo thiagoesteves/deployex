@@ -462,6 +462,35 @@ window.addEventListener("phx:copy_to_clipboard", event => {
   }, 1000);
 });
 
+// Copies the data-copy text of the clicked button. The clipboard API needs a secure page, so a plain HTTP
+// host falls back to a hidden text area. The button's tooltip says Copied for a moment
+window.addEventListener("dx:copy", (e) => {
+  const button = e.target;
+  const text = button.dataset.copy;
+  const fallback = () => {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position: fixed; opacity: 0";
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  };
+  const copied = navigator.clipboard ? navigator.clipboard.writeText(text).catch(fallback) : Promise.resolve(fallback());
+  copied.then(() => {
+    const wrap = button.closest("[phx-hook=Tip]");
+    const tip = wrap && wrap.querySelector("[popover]");
+    const live = wrap && wrap.querySelector("[aria-live]");
+    if (tip) tip.textContent = "Copied";
+    if (live) live.textContent = "Copied";
+    setTimeout(() => {
+      if (tip) tip.textContent = tip.dataset.text;
+      if (live) live.textContent = "";
+    }, 1500);
+  });
+});
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

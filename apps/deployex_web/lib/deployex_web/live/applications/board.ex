@@ -528,18 +528,28 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <dl class="dx-idetail">
           <div :if={@instance.node} class="dx-ditem">
             <dt class="dx-lbl">Node</dt>
-            <dd class="dx-mono">{@instance.node}</dd>
+            <dd class="dx-mono">
+              {@instance.node}<.copy_button
+                id={"instance-#{@instance.sname}-copy-node"}
+                text={@instance.node}
+                label="node name"
+              />
+            </dd>
           </div>
           <div :for={port <- @instance.ports} class="dx-ditem">
             <dt class="dx-lbl">{port.key}</dt>
             <dd class="dx-mono">{port.base}</dd>
           </div>
-          <div :for={url <- @instance.urls} class="dx-ditem">
+          <div :for={{url, index} <- Enum.with_index(@instance.urls)} class="dx-ditem">
             <dt class="dx-lbl">URL</dt>
             <dd>
               <a class="dx-link dx-mono" href={url} target="_blank" rel="noopener noreferrer">
                 {url}<Icons.icon name="external" class="dx-ico ml-1 inline size-3.5" /><span class="sr-only"> (opens in a new tab)</span>
-              </a>
+              </a><.copy_button
+                id={"instance-#{@instance.sname}-copy-url-#{index}"}
+                text={url}
+                label="URL"
+              />
             </dd>
           </div>
         </dl>
@@ -647,6 +657,32 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <span :for={line <- @restarts.lines} class="block">{line}</span>
       </span>
     </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :text, :string, required: true
+  attr :label, :string, required: true, doc: "what it copies, like node name"
+
+  # A small button that copies text, named by its tooltip, which says Copied after a click
+  defp copy_button(assigns) do
+    ~H"""
+    <span id={"#{@id}-tip"} class="inline-flex align-middle" phx-hook="Tip">
+      <button
+        id={@id}
+        type="button"
+        class="dx-copy"
+        data-copy={@text}
+        aria-label={"Copy the #{@label}"}
+        phx-click={JS.dispatch("dx:copy")}
+      >
+        <Icons.icon name="copy" class="size-3.5" />
+      </button>
+      <span popover="manual" class="dx-tip" aria-hidden="true" data-text={"Copy the #{@label}"}>
+        Copy the {@label}
+      </span>
+      <span class="sr-only" aria-live="polite"></span>
+    </span>
     """
   end
 

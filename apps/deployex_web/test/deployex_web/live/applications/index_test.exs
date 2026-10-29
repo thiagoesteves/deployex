@@ -103,6 +103,9 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "+15% in 1 hour"
     assert html =~ ~r/>PORT<\/dt>\s*<dd class="dx-mono">5678</
     assert html =~ ~s(href="http://localhost:5678")
+    assert html =~ ~s(data-copy="http://localhost:5678")
+    assert html =~ ~r/data-copy="myphoenixapp-abc123@[^"]+"/
+    assert html =~ "Copy the node name"
     assert html =~ "No restarts"
 
     html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
