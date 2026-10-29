@@ -16,13 +16,16 @@ COOKIE   ?= cookie
 # JSON list for the published version map, e.g. make dev-app PRE_COMMANDS='["eval 1"]'
 PRE_COMMANDS ?= []
 export PRE_COMMANDS
+# Fake apps that make dev-fake-apps shows on a running make start, e.g. make dev-fake-apps FAKE_APPS=40
+FAKE_APPS ?= 19
 
 # TLS distribution, as in section 9 of guides/docs/local-elixir/README.md
 TLS_CONF := /tmp/inet_tls.conf
 TLS_OPTIONS := -proto_dist inet_tls -ssl_dist_optfile $(TLS_CONF)
 
 .DEFAULT_GOAL := help
-.PHONY: help preflight setup start stop test format-check credo dialyzer check dev-app dev-app-clean dev-tls
+.PHONY: help preflight setup start stop test format-check credo dialyzer check dev-app dev-app-clean dev-tls \
+	dev-fake-apps dev-fake-apps-off
 
 preflight: ## Verify the local toolchain (.tool-versions) + tools for dev/test
 	@fail=0; \
@@ -53,7 +56,7 @@ setup: ## Install the pinned toolchain (mise) + fetch deps
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 start: ## Run DeployEx locally with OTP distribution (interactive), with TLS when make dev-tls ran
 	$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") iex --sname deployex --cookie $(COOKIE) -S mix phx.server
@@ -93,6 +96,14 @@ dev-app: preflight ## Build + publish the sample app to the local bucket so Depl
 	echo "Published $(APP_NAME) $$VERSION to $(BUCKET). DeployEx picks it up on its next tick."
 	@$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") \
 		elixir --sname dev-app-$$$$ --cookie $(COOKIE) devops/scripts/dev/add-apps.exs
+
+dev-fake-apps: ## Show FAKE_APPS fake apps (default 19) on a running make start, to try the dashboard with many apps
+	@$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") \
+		elixir --sname dev-fake-$$$$ --cookie $(COOKIE) devops/scripts/dev/eval.exs devops/scripts/dev/fake-apps.exs $(FAKE_APPS)
+
+dev-fake-apps-off: ## Remove the fake apps from a running make start
+	@$(if $(wildcard $(TLS_CONF)),ELIXIR_ERL_OPTIONS="$(TLS_OPTIONS)") \
+		elixir --sname dev-fake-$$$$ --cookie $(COOKIE) devops/scripts/dev/eval.exs devops/scripts/dev/fake-apps-off.exs
 
 dev-app-clean: ## Remove the local bucket
 	rm -rf "$(BUCKET)"
