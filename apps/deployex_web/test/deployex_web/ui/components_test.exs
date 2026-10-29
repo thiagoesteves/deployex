@@ -8,6 +8,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
   alias DeployexWeb.UI.Menu
   alias DeployexWeb.UI.Meter
   alias DeployexWeb.UI.Shell
+  alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.ThemeSwitch
 
   describe "Meter.meter/1" do
@@ -94,6 +95,23 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ "phx-click-away"
       assert html =~ ~s(data-method="delete")
       assert html =~ ~r/<button type="button" class="[^"]*" phx-click="noop">\s*Act/
+    end
+  end
+
+  describe "ShellHelp.help/1" do
+    test "lists what works in each shell, and warns where a command is risky" do
+      iex = render_component(&ShellHelp.help/1, kind: :iex)
+      assert iex =~ "IEx shortcuts"
+      assert iex =~ "runtime_info"
+      refute iex =~ "recompile</code>"
+
+      erlang = render_component(&ShellHelp.help/1, kind: :erlang_shell)
+      assert erlang =~ "Do not run q(). In this remote shell it stops the app."
+      refute erlang =~ "<code>q().</code>"
+
+      host = render_component(&ShellHelp.help/1, kind: :host_shell)
+      assert host =~ "tmux keys"
+      refute host =~ "A release has no Mix"
     end
   end
 

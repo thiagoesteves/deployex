@@ -136,6 +136,15 @@ defmodule DeployexWeb.DockTest do
     assert [%{target: "deployex"}] = Shell.list(user.username)
     assert_push_event(dock, "shell-reset-deployex", %{data: ""})
 
+    # The shortcuts of the remote IEx shell open next to it, and close again
+    refute html =~ "IEx shortcuts"
+    html = dock |> element("#dock-shortcuts") |> render_click()
+    assert html =~ "IEx shortcuts"
+    assert html =~ "runtime_info"
+    assert html =~ "A release has no Mix, sources or docs"
+    refute html =~ "#iex:break"
+    refute dock |> element("#dock-shortcuts") |> render_click() =~ "IEx shortcuts"
+
     # A logs tab next to it, then back to the shell
     render_hook(dock, "open", %{"kind" => "logs", "target" => "deployex", "app" => "deployex"})
     dock |> element("#dock-tab-shell\\:deployex") |> render_click()

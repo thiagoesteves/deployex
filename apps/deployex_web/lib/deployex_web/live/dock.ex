@@ -10,6 +10,7 @@ defmodule DeployexWeb.DockLive do
 
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
+  alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
   alias Sentinel.Logs
@@ -66,6 +67,16 @@ defmodule DeployexWeb.DockLive do
             </div>
           </div>
           <div class="dx-dock-ctl">
+            <button
+              :if={@active_tab && @active_tab.kind == :shell}
+              id="dock-shortcuts"
+              type="button"
+              class="dx-tog dx-tog-sm mr-2"
+              aria-pressed={to_string(@help_open)}
+              phx-click="toggle-help"
+            >
+              Shortcuts
+            </button>
             <span
               :if={@active_tab && @active_tab.kind == :shell}
               class="dx-muted mr-2 text-[0.8125rem] whitespace-nowrap"
@@ -220,10 +231,10 @@ defmodule DeployexWeb.DockLive do
               </p>
             </div>
           <% end %>
-          <div :if={@active_tab && @active_tab.kind == :shell} class="dx-k-term">
+          <div :if={@active_tab && @active_tab.kind == :shell} class="dx-k-term flex-row">
             <div
               id={"dock-xterm-#{@active_tab.session.id}"}
-              class="dx-xterm flex-1"
+              class="dx-xterm min-w-0 flex-1"
               phx-hook="XTerm"
               phx-update="ignore"
               data-target={@active_tab.target}
@@ -232,6 +243,11 @@ defmodule DeployexWeb.DockLive do
               aria-label={"Shell output of #{@active_tab.target}"}
             >
             </div>
+            <ShellHelp.help
+              :if={@help_open}
+              kind={@active_tab.session.kind}
+              class="dx-help-dock"
+            />
           </div>
         </div>
       </section>
@@ -248,6 +264,7 @@ defmodule DeployexWeb.DockLive do
      |> assign(:active, nil)
      |> assign(:attached, nil)
      |> assign(:asking_close, false)
+     |> assign(:help_open, false)
      |> stream(:lines, []), layout: false}
   end
 
@@ -313,6 +330,9 @@ defmodule DeployexWeb.DockLive do
       end
     end
   end
+
+  def handle_event("toggle-help", _params, socket),
+    do: {:noreply, update(socket, :help_open, &(!&1))}
 
   def handle_event("select", %{"id" => id}, socket), do: {:noreply, activate(socket, id)}
 

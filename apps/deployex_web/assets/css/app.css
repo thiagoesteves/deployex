@@ -201,7 +201,8 @@
 }
 
 .xterm .xterm-viewport {
-    scrollbar-color: #8d8b8b #f0f0f0 !important;
+    /* A dark track and thumb, like the terminal around them */
+    scrollbar-color: #3d444d #0d1117 !important;
     overflow-y: scroll;
     cursor: default;
     position: absolute;

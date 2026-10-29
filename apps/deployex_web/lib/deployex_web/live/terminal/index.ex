@@ -10,45 +10,9 @@ defmodule DeployexWeb.TerminalLive do
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Menu
+  alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
-
-  @shortcuts %{
-    iex: [
-      {"#iex:break", "back to prompt"},
-      {"ESCAPE + o", "multi-line command with an editor"},
-      {"c filename.exs", "compile"},
-      {"r Module", "reload"},
-      {"h Module.method", "help"},
-      {"i var", "display type information"},
-      {"recompile", "recompile and load"},
-      {"CTRL+G", "user switch command"},
-      {"v[n]", "session history"},
-      {"exports Map", "list public functions of a module"},
-      {"clear", "clear the screen"},
-      {"break!(MyModule.my_func/1)", "set a breakpoint"}
-    ],
-    erlang_shell: [
-      {"CTRL+G", "user switch command"},
-      {"c(filename.erl).", "compile"},
-      {"h(Module).", "help"},
-      {"b().", "print the current variable bindings"},
-      {"f().", "clear all variable bindings"},
-      {"f(X).", "remove the binding of X"},
-      {"rl().", "print all record definitions"},
-      {"q().", "quit the Erlang shell"},
-      {"e(N).", "evaluate expression N again"},
-      {"v(N).", "value of expression N"}
-    ],
-    host_shell: [
-      {"Ctrl+B d", "detach, the session keeps running"},
-      {"Ctrl+B c", "new window"},
-      {"Ctrl+B n", "next window"},
-      {"Ctrl+B %", "split side by side"},
-      {"Ctrl+B [", "scroll mode, q to leave"},
-      {"clear", "clear the screen"}
-    ]
-  }
 
   @impl true
   def render(assigns) do
@@ -177,20 +141,7 @@ defmodule DeployexWeb.TerminalLive do
               >
               </div>
             </div>
-            <aside :if={@help_open} class="dx-help" aria-label="Shortcuts" tabindex="0">
-              <h2 class="text-sm font-bold">{help_title(@active_session.kind)}</h2>
-              <p
-                :if={@active_session.kind == :host_shell}
-                class="text-[0.8125rem] font-semibold text-warning-text"
-              >
-                This shell runs as the deployex user. It can read the release and the logs of every app on this host.
-              </p>
-              <div>
-                <div :for={{command, description} <- shortcuts(@active_session.kind)} class="dx-sc">
-                  <code>{command}</code><span>{description}</span>
-                </div>
-              </div>
-            </aside>
+            <ShellHelp.help :if={@help_open} kind={@active_session.kind} />
           </div>
 
           <div
@@ -351,12 +302,6 @@ defmodule DeployexWeb.TerminalLive do
   defp kind(:host_shell), do: "Host shell"
   defp kind(:iex), do: "IEx"
   defp kind(:erlang_shell), do: "Erlang shell"
-
-  defp help_title(:iex), do: "IEx shortcuts"
-  defp help_title(:erlang_shell), do: "Erlang shell shortcuts"
-  defp help_title(:host_shell), do: "tmux keys"
-
-  defp shortcuts(kind), do: Map.fetch!(@shortcuts, kind)
 
   @doc false
   def user_key(%{username: username}) when is_binary(username), do: username

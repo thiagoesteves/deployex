@@ -1724,6 +1724,14 @@
     height: 580px;
 }
 
+/* In the dock, the panel fills the dock's height and scrolls */
+.dx-help.dx-help-dock {
+    flex: 0 0 260px;
+    height: auto;
+    color: var(--dx-base-content);
+    font-family: var(--dx-font-sans);
+}
+
 .dx-sc {
     display: grid;
     grid-template-columns: minmax(0,1fr);
