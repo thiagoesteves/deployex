@@ -154,17 +154,22 @@ defmodule DeployexWeb.Terminal.IndexTest do
     user: user
   } do
     {:ok, _session} = Shell.open(user.username, "host")
-    {:ok, _session} = Shell.open(user.username, "deployex")
     wait_running(user.username, "host")
-    wait_running(user.username, "deployex")
 
     {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
     assert_push_event(view, "shell-reset-host", %{data: ""})
     refute has_element?(view, "#terminal-unsplit")
 
-    view |> element("#split-session-panel button", "deployex") |> render_click()
+    # Split opens a picker at once, and a pick opens its session there, with nothing open before
+    html = view |> element("#terminal-split") |> render_click()
+    assert html =~ "Show beside"
+    assert has_element?(view, "#pick-deployex", "DeployEx")
+    refute has_element?(view, "#pick-host")
+
+    view |> element("#pick-deployex") |> render_click()
     assert_patch(view, "/terminal?split=deployex&target=host")
     assert_push_event(view, "shell-reset-deployex", %{data: ""})
+    wait_running(user.username, "deployex")
     assert has_element?(view, "#terminal-unsplit")
     assert [_host, _deployex] = view |> render() |> then(&Regex.scan(~r/phx-hook="XTerm"/, &1))
 

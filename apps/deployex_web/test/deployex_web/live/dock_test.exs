@@ -195,7 +195,7 @@ defmodule DeployexWeb.DockTest do
   end
 
   @tag :capture_log
-  test "a shell and a logs tab show side by side, swap, and close back to one pane", %{
+  test "Split offers what fits beside a tab, opens it there, and swaps or closes back", %{
     conn: conn,
     user: user
   } do
@@ -204,13 +204,15 @@ defmodule DeployexWeb.DockTest do
     end)
 
     {_view, dock} = dock(conn)
-    render_hook(dock, "open", %{"kind" => "logs", "target" => "deployex", "app" => "deployex"})
     render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
-    refute has_element?(dock, "#dock-unsplit")
 
-    # Two logs tabs cannot show together, a logs tab and a shell can
-    html = dock |> element("#dock-split-logs\\:deployex") |> render_click()
-    assert has_element?(dock, "#dock-unsplit")
+    # Split opens a picker at once, with the shell's own logs, which need no tab yet
+    html = dock |> element("#dock-split") |> render_click()
+    assert html =~ "Show beside deployex"
+    assert has_element?(dock, "#dock-pick-logs-deployex", "this instance")
+    refute has_element?(dock, "#dock-pick-shell-deployex")
+
+    html = dock |> element("#dock-pick-logs-deployex") |> render_click()
     assert html =~ "a log line"
     assert html =~ ~s(phx-hook="XTerm")
     assert {shell, _} = :binary.match(html, "dock-xterm-")
@@ -229,8 +231,13 @@ defmodule DeployexWeb.DockTest do
     assert html =~ "dock-tab-shell:deployex"
     assert [%{target: "deployex"}] = Shell.list(user.username)
 
+    # Beside a logs tab, the picker offers no other logs
+    dock |> element("#dock-split") |> render_click()
+    assert has_element?(dock, "#dock-pick-shell-deployex")
+    refute has_element?(dock, "#dock-pick-logs-deployex")
+    dock |> element("#dock-pick-shell-deployex") |> render_click()
+
     # Closing the first pane's tab while split leaves the second one alone
-    dock |> element("#dock-split-shell\\:deployex") |> render_click()
     html = dock |> element("#dock-close-logs\\:deployex") |> render_click()
     refute html =~ ~s(id="dock-log")
     refute has_element?(dock, "#dock-unsplit")

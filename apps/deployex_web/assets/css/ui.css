@@ -1694,6 +1694,37 @@
     font-size: 0.8125rem;
 }
 
+/* The split picker: what can show beside the first pane */
+.dx-picks {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--dx-base-100);
+}
+
+.dx-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dx-pick:hover {
+    background: var(--dx-base-300);
+}
+
 /* The pane that has the keyboard shows it */
 .dx-pane:focus-within .dx-pane-head {
     box-shadow: inset 0 -2px 0 var(--dx-info);

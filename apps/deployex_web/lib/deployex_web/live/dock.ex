@@ -10,7 +10,6 @@ defmodule DeployexWeb.DockLive do
 
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
-  alias DeployexWeb.UI.Menu
   alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
@@ -25,14 +24,16 @@ defmodule DeployexWeb.DockLive do
     active_tab = Enum.find(assigns.tabs, &(&1.id == assigns.active))
     split_tab = Enum.find(assigns.tabs, &(&1.id == assigns.split))
     visible = Enum.reject([active_tab, split_tab], &is_nil/1)
+    picking = assigns.split == :picker and active_tab != nil
 
     assigns =
       assign(assigns,
         active_tab: active_tab,
         split_tab: split_tab,
         visible: visible,
+        picking: picking,
         shell_tab: Enum.find(visible, &(&1.kind == :shell)),
-        splittable: Enum.filter(assigns.tabs, &splittable?(&1, active_tab))
+        options: if(picking, do: split_options(assigns.tabs, active_tab), else: [])
       )
 
     ~H"""
@@ -79,28 +80,16 @@ defmodule DeployexWeb.DockLive do
             </div>
           </div>
           <div class="dx-dock-ctl">
-            <div :if={@active_tab && is_nil(@split_tab) && @splittable != []} class="mr-2">
-              <Menu.menu
-                id="dock-split"
-                label="Show a second tab beside this one"
-                button_class="dx-tog dx-tog-sm"
-                panel_class="dx-menu-up right-0 w-[280px]"
-              >
-                <:button><Icons.icon name="split" stroke="1.8" class="dx-ico size-3.5" /> Split</:button>
-                <Menu.item
-                  :for={tab <- @splittable}
-                  id={"dock-split-#{tab.id}"}
-                  class="justify-between"
-                  phx-click="split"
-                  phx-value-id={tab.id}
-                >
-                  <span class="inline-flex items-center gap-2">
-                    <Tags.lang name={tab.language} small /><span class="dx-mono text-[0.8125rem]">{tab.target}</span>
-                  </span>
-                  <span class="dx-muted text-xs">{tab.label}</span>
-                </Menu.item>
-              </Menu.menu>
-            </div>
+            <button
+              :if={@active_tab && is_nil(@split_tab)}
+              id="dock-split"
+              type="button"
+              class="dx-tog dx-tog-sm mr-2"
+              aria-pressed={to_string(@picking)}
+              phx-click={if @picking, do: "unsplit", else: "split-pick"}
+            >
+              <Icons.icon name="split" stroke="1.8" class="dx-ico size-3.5" /> Split
+            </button>
             <button
               :if={@shell_tab}
               id="dock-shortcuts"
@@ -189,10 +178,45 @@ defmodule DeployexWeb.DockLive do
               :for={tab <- @visible}
               tab={tab}
               lines={@streams.lines}
-              split={@split_tab != nil}
+              split={@split_tab != nil or @picking}
               second={tab.id == @split}
               help={@help_open && @shell_tab != nil && tab.id == @shell_tab.id}
             />
+            <div :if={@picking} class="dx-pane" role="group" aria-label="Show beside">
+              <div class="dx-pane-head">
+                <span class="font-semibold">Show beside {@active_tab.target}</span>
+                <button
+                  id="dock-unsplit"
+                  type="button"
+                  class="dx-ghost size-7"
+                  aria-label="Close the second pane"
+                  title="Close the pane"
+                  phx-click="unsplit"
+                >
+                  <Icons.icon name="x-mark" stroke="2.2" class="dx-ico size-[13px]" />
+                </button>
+              </div>
+              <div class="dx-picks">
+                <button
+                  :for={option <- @options}
+                  id={"dock-pick-#{option.kind}-#{option.target}"}
+                  type="button"
+                  class="dx-pick"
+                  phx-click="split-open"
+                  phx-value-kind={option.kind}
+                  phx-value-target={option.target}
+                  phx-value-app={option.app}
+                >
+                  <Tags.lang name={option.language} small />
+                  <span class="dx-mono truncate">{option.target}</span>
+                  <b>{option.label}</b>
+                  <span class="dx-muted ml-auto">{option.note}</span>
+                </button>
+                <p :if={@options == []} class="dx-muted p-3 text-[0.8125rem]">
+                  Nothing else to show beside it.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -340,67 +364,23 @@ defmodule DeployexWeb.DockLive do
   end
 
   @impl true
-  def handle_event("open", %{"kind" => "logs", "target" => target} = params, socket) do
-    id = "logs:#{target}"
-    tabs = socket.assigns.tabs
-
-    tabs =
-      if Enum.any?(tabs, &(&1.id == id)) do
-        tabs
-      else
-        snames = log_snames(target, params["app"])
-        whole_app = target == params["app"] and target != "deployex"
-        for sname <- snames, type <- @types, do: Logs.subscribe_for_new_logs(sname, type)
-
-        tab = %{
-          id: id,
-          kind: :logs,
-          target: target,
-          label: "Logs",
-          language: language(params["app"] || target),
-          snames: snames,
-          whole_app: whole_app,
-          types: @types,
-          buffer: read_logs(snames, @types, whole_app),
-          filter: "",
-          empty: false
-        }
-
-        tabs ++ [tab]
-      end
-
-    {:noreply, socket |> assign(:tabs, tabs) |> activate(id)}
-  end
-
-  def handle_event(
-        "open",
-        %{"kind" => "shell", "target" => target} = params,
-        %{assigns: %{user: user}} = socket
-      ) do
-    id = "shell:#{target}"
-
-    if Enum.any?(socket.assigns.tabs, &(&1.id == id)) do
-      {:noreply, activate(socket, id)}
-    else
-      case Shell.open(user, target) do
-        {:ok, session} ->
-          tab = %{
-            id: id,
-            kind: :shell,
-            target: target,
-            label: if(session.kind == :iex, do: "IEx", else: "Erlang shell"),
-            language: language(params["app"] || target),
-            session: session
-          }
-
-          {:noreply, socket |> update(:tabs, &(&1 ++ [tab])) |> activate(id)}
-
-        {:error, reason} ->
-          {:noreply,
-           put_flash(socket, :error, "Could not open a shell on #{target}: #{inspect(reason)}")}
-      end
+  def handle_event("open", %{"kind" => kind, "target" => target} = params, socket) do
+    case open_tab(socket, kind, target, params["app"]) do
+      {socket, nil} -> {:noreply, socket}
+      {socket, id} -> {:noreply, activate(socket, id)}
     end
   end
+
+  # A pick in the split picker opens its tab, or finds it open, in the second pane
+  def handle_event("split-open", %{"kind" => kind, "target" => target} = params, socket) do
+    case open_tab(socket, kind, target, params["app"]) do
+      {socket, nil} -> {:noreply, socket}
+      {socket, id} -> {:noreply, socket |> assign(:split, id) |> activate(socket.assigns.active)}
+    end
+  end
+
+  def handle_event("split-pick", _params, socket),
+    do: {:noreply, assign(socket, :split, :picker)}
 
   def handle_event("toggle-help", _params, socket),
     do: {:noreply, update(socket, :help_open, &(!&1))}
@@ -408,12 +388,16 @@ defmodule DeployexWeb.DockLive do
   # The second pane's tab swaps the panes. Another tab takes the first pane, and keeps the second
   # when the two can show together
   def handle_event("select", %{"id" => id}, %{assigns: %{active: active, split: split}} = socket) do
-    split = if id == split, do: active, else: split
+    split =
+      cond do
+        split == :picker -> nil
+        id == split -> active
+        both_logs?(socket.assigns.tabs, id, split) -> nil
+        true -> split
+      end
+
     {:noreply, socket |> assign(:split, split) |> activate(id)}
   end
-
-  def handle_event("split", %{"id" => id}, socket),
-    do: {:noreply, socket |> assign(:split, id) |> activate(socket.assigns.active)}
 
   def handle_event("unsplit", _params, socket),
     do: {:noreply, socket |> assign(:split, nil) |> activate(socket.assigns.active)}
@@ -517,6 +501,126 @@ defmodule DeployexWeb.DockLive do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
+  # Opens a logs or shell tab, or finds it open, and returns its id, or nil when the shell does not start
+  defp open_tab(socket, kind, target, app) do
+    id = "#{kind}:#{target}"
+
+    cond do
+      Enum.any?(socket.assigns.tabs, &(&1.id == id)) -> {socket, id}
+      kind == "logs" -> {update(socket, :tabs, &(&1 ++ [logs_tab(id, target, app)])), id}
+      kind == "shell" -> open_shell(socket, id, target, app)
+      true -> {socket, nil}
+    end
+  end
+
+  defp logs_tab(id, target, app) do
+    snames = log_snames(target, app)
+    whole_app = target == app and target != "deployex"
+    for sname <- snames, type <- @types, do: Logs.subscribe_for_new_logs(sname, type)
+
+    %{
+      id: id,
+      kind: :logs,
+      target: target,
+      app: app || app_of(target),
+      label: "Logs",
+      language: language(app || target),
+      snames: snames,
+      whole_app: whole_app,
+      types: @types,
+      buffer: read_logs(snames, @types, whole_app),
+      filter: "",
+      empty: false
+    }
+  end
+
+  defp open_shell(%{assigns: %{user: user}} = socket, id, target, app) do
+    case Shell.open(user, target) do
+      {:ok, session} ->
+        tab = %{
+          id: id,
+          kind: :shell,
+          target: target,
+          app: app || app_of(target),
+          label: if(session.kind == :iex, do: "IEx", else: "Erlang shell"),
+          language: language(app || target),
+          session: session
+        }
+
+        {update(socket, :tabs, &(&1 ++ [tab])), id}
+
+      {:error, reason} ->
+        {put_flash(socket, :error, "Could not open a shell on #{target}: #{inspect(reason)}"),
+         nil}
+    end
+  end
+
+  defp app_of("deployex"), do: "deployex"
+
+  defp app_of(target) do
+    case Catalog.node_info(target) do
+      %{name: name} -> name
+      _ -> target
+    end
+  end
+
+  # What the split picker offers beside a tab: its own logs or shell first, then the app's other
+  # instances, then the logs of every instance, then the tabs open already. Never two logs tabs
+  defp split_options(tabs, %{} = active) do
+    siblings = Enum.reject(instances(active.app), &(&1 == active.target))
+
+    own =
+      case active do
+        %{kind: :shell, target: target} -> [{"logs", target, "this instance"}]
+        %{kind: :logs, whole_app: false, target: target} -> [{"shell", target, "this instance"}]
+        _whole_app_logs -> []
+      end
+
+    siblings =
+      Enum.flat_map(siblings, fn sname ->
+        [{"shell", sname, "another instance"}, {"logs", sname, "another instance"}]
+      end)
+
+    app_logs =
+      if active.app != "deployex" and length(instances(active.app)) > 1,
+        do: [{"logs", active.app, "every instance"}],
+        else: []
+
+    open = for tab <- tabs, do: {Atom.to_string(tab.kind), tab.target, "open"}
+
+    (own ++ siblings ++ app_logs ++ open)
+    |> Enum.uniq_by(fn {kind, target, _note} -> {kind, target} end)
+    |> Enum.reject(fn {kind, target, _note} ->
+      "#{kind}:#{target}" == active.id or (kind == "logs" and active.kind == :logs)
+    end)
+    |> Enum.map(fn {kind, target, note} ->
+      %{
+        kind: kind,
+        target: target,
+        app: active.app,
+        note: note,
+        language: language(active.app),
+        label: option_label(kind, active.app)
+      }
+    end)
+  end
+
+  defp split_options(_tabs, nil), do: []
+
+  defp option_label("logs", _app), do: "Logs"
+
+  defp option_label("shell", app),
+    do: if(language(app) == "elixir" or app == "deployex", do: "IEx", else: "Erlang shell")
+
+  # The running instances of an app, by name
+  defp instances("deployex"), do: []
+
+  defp instances(app) do
+    Deployer.Monitor.list()
+    |> Enum.map(&to_string/1)
+    |> Enum.filter(&String.starts_with?(&1, "#{app}-"))
+  end
+
   defp activate(socket, id) do
     socket
     |> assign(:active, id)
@@ -552,7 +656,15 @@ defmodule DeployexWeb.DockLive do
     end
   end
 
+  # Two logs tabs cannot show together, as the dock has one stream of log lines
+  defp both_logs?(tabs, id, split) do
+    kinds = for tab <- tabs, tab.id in [id, split], do: tab.kind
+    kinds == [:logs, :logs]
+  end
+
   # The tabs in the panes: the active one, and the split one beside it
+  defp visible(%{split: :picker} = assigns), do: visible(%{assigns | split: nil})
+
   defp visible(%{tabs: tabs, active: active, split: split}),
     do:
       Enum.filter([active, split], & &1)
@@ -566,12 +678,6 @@ defmodule DeployexWeb.DockLive do
       nil -> nil
     end
   end
-
-  # A tab can show beside the active one when it is another tab, and the two are not both logs
-  defp splittable?(_tab, nil), do: false
-  defp splittable?(%{id: id}, %{id: id}), do: false
-  defp splittable?(%{kind: :logs}, %{kind: :logs}), do: false
-  defp splittable?(_tab, _active), do: true
 
   defp show_logs(%{assigns: %{tabs: tabs}} = socket) do
     id = logs_id(socket)
@@ -604,16 +710,7 @@ defmodule DeployexWeb.DockLive do
       tab ->
         stop(tab, user, end_session)
         rest = Enum.reject(tabs, &(&1.id == id))
-        split = socket.assigns.split
-
-        # The second pane takes the first one's place when the first one's tab closes
-        {next, split} =
-          cond do
-            active == id and split -> {split, nil}
-            active == id -> {rest |> List.last() |> then(&(&1 && &1.id)), nil}
-            split == id -> {active, nil}
-            true -> {active, split}
-          end
+        {next, split} = after_close(active, socket.assigns.split, id, rest)
 
         socket
         |> assign(:tabs, rest)
@@ -622,6 +719,14 @@ defmodule DeployexWeb.DockLive do
         |> activate(next)
     end
   end
+
+  # The second pane takes the first one's place when the first one's tab closes, and an open picker
+  # closes with it
+  defp after_close(active, :picker, id, rest), do: after_close(active, nil, id, rest)
+  defp after_close(id, nil, id, rest), do: {rest |> List.last() |> then(&(&1 && &1.id)), nil}
+  defp after_close(id, split, id, _rest), do: {split, nil}
+  defp after_close(active, id, id, _rest), do: {active, nil}
+  defp after_close(active, split, _id, _rest), do: {active, split}
 
   defp close_all(%{assigns: %{tabs: tabs, user: user}} = socket) do
     Enum.each(tabs, &stop(&1, user, true))

@@ -114,35 +114,16 @@ defmodule DeployexWeb.TerminalLive do
                 </p>
               </Menu.menu>
             </div>
-            <div :if={@active_session && is_nil(@split_session)} class="mb-1">
-              <Menu.menu
-                id="split-session"
-                label="Show a second session beside this one"
-                button_class="dx-btn"
-                panel_class="left-0 right-auto w-[300px]"
-              >
-                <:button><Icons.icon name="split" stroke="1.8" class="dx-ico size-4" /> Split</:button>
-                <Menu.item
-                  :for={session <- @sessions}
-                  :if={session.target != @active}
-                  id={"split-#{session.id}"}
-                  class="justify-between"
-                  phx-click="split"
-                  phx-value-target={session.target}
-                >
-                  <span class="inline-flex items-center gap-2">
-                    <Tags.lang name={session.language} small /><span class="dx-mono text-[0.8125rem]">{title(
-                      session.target,
-                      @host_name
-                    )}</span>
-                  </span>
-                  <span class="dx-muted text-xs">{kind(session.kind)}</span>
-                </Menu.item>
-                <p :if={length(@sessions) < 2} class="dx-muted p-2.5 text-[0.8125rem]">
-                  Open a second session with New session, then show it here beside this one.
-                </p>
-              </Menu.menu>
-            </div>
+            <button
+              :if={@active_session && is_nil(@split_session)}
+              id="terminal-split"
+              type="button"
+              class="dx-btn mb-1 min-h-[30px]"
+              aria-pressed={to_string(@picking)}
+              phx-click={if @picking, do: "unsplit", else: "split-pick"}
+            >
+              <Icons.icon name="split" stroke="1.8" class="dx-ico size-4" /> Split
+            </button>
             <button
               id="terminal-shortcuts"
               type="button"
@@ -156,7 +137,11 @@ defmodule DeployexWeb.TerminalLive do
 
           <div :if={@active_session} class="flex flex-wrap">
             <div class="dx-panes flex-[999_1_520px]">
-              <.pane session={@active_session} host_name={@host_name} split={@split_session != nil} />
+              <.pane
+                session={@active_session}
+                host_name={@host_name}
+                split={@split_session != nil or @picking}
+              />
               <.pane
                 :if={@split_session}
                 session={@split_session}
@@ -164,6 +149,36 @@ defmodule DeployexWeb.TerminalLive do
                 split
                 second
               />
+              <div :if={@picking} class="dx-pane" role="group" aria-label="Show beside">
+                <div class="dx-pane-head">
+                  <span class="font-semibold">Show beside {title(@active_session.target, @host_name)}</span>
+                  <button
+                    id="terminal-unsplit"
+                    type="button"
+                    class="dx-ghost size-7"
+                    aria-label="Close the second pane"
+                    title="Close the pane"
+                    phx-click="unsplit"
+                  >
+                    <Icons.icon name="x-mark" stroke="2.2" class="dx-ico size-[13px]" />
+                  </button>
+                </div>
+                <div class="dx-picks">
+                  <button
+                    :for={option <- split_options(@active_session, @sessions, @available, @host_name)}
+                    id={"pick-#{option.target}"}
+                    type="button"
+                    class="dx-pick"
+                    phx-click="split-open"
+                    phx-value-target={option.target}
+                  >
+                    <Tags.lang name={option.language} small />
+                    <span class="dx-mono truncate">{option.title}</span>
+                    <b>{option.kind}</b>
+                    <span class="dx-muted ml-auto">{option.note}</span>
+                  </button>
+                </div>
+              </div>
             </div>
             <ShellHelp.help :if={@help_open} kind={@active_session.kind} />
           </div>
@@ -236,6 +251,7 @@ defmodule DeployexWeb.TerminalLive do
      |> assign(:help_open, true)
      |> assign(:attached, %{})
      |> assign(:split, nil)
+     |> assign(:picking, false)
      |> assign(:page_title, "Terminal")
      |> assign(:current_path, "/terminal")
      |> load_sessions()}
@@ -258,7 +274,7 @@ defmodule DeployexWeb.TerminalLive do
         _ -> nil
       end
 
-    {:noreply, socket |> assign(active: active, split: split) |> attach()}
+    {:noreply, socket |> assign(active: active, split: split, picking: false) |> attach()}
   end
 
   @impl true
@@ -268,8 +284,27 @@ defmodule DeployexWeb.TerminalLive do
     {:noreply, push_patch(socket, to: pane_path(target, split))}
   end
 
-  def handle_event("split", %{"target" => target}, %{assigns: %{active: active}} = socket),
-    do: {:noreply, push_patch(socket, to: pane_path(active, target))}
+  def handle_event("split-pick", _params, socket), do: {:noreply, assign(socket, :picking, true)}
+
+  # A pick opens its session when it is not open yet, and shows it in the second pane
+  def handle_event("split-open", %{"target" => target}, %{assigns: assigns} = socket) do
+    if Enum.any?(assigns.sessions, &(&1.target == target)) do
+      {:noreply, push_patch(socket, to: pane_path(assigns.active, target))}
+    else
+      case Shell.open(assigns.user, target) do
+        {:ok, _session} ->
+          {:noreply,
+           socket |> load_sessions() |> push_patch(to: pane_path(assigns.active, target))}
+
+        {:error, reason} ->
+          {:noreply,
+           put_flash(socket, :error, "Could not open a shell on #{target}: #{inspect(reason)}")}
+      end
+    end
+  end
+
+  def handle_event("unsplit", _params, %{assigns: %{split: nil}} = socket),
+    do: {:noreply, assign(socket, :picking, false)}
 
   def handle_event("unsplit", _params, %{assigns: %{active: active}} = socket),
     do: {:noreply, push_patch(socket, to: pane_path(active, nil))}
@@ -373,6 +408,45 @@ defmodule DeployexWeb.TerminalLive do
 
       :error ->
         socket
+    end
+  end
+
+  # What the picker offers beside a session: the other instances of its app first, then DeployEx, this
+  # host, and the sessions open already
+  defp split_options(active, sessions, available, host_name) do
+    app = app_of(active.target)
+
+    open =
+      Enum.map(sessions, fn session ->
+        %{
+          target: session.target,
+          title: title(session.target, host_name),
+          kind: kind(session.kind),
+          language: session.language
+        }
+      end)
+
+    known = Map.new(open ++ available, &{&1.target, &1})
+
+    siblings =
+      for {target, option} <- known, app && String.starts_with?(target, "#{app}-"), do: option
+
+    others = for target <- ["deployex", Shell.host()], option = known[target], do: option
+
+    (Enum.map(siblings, &Map.put(&1, :note, "another instance")) ++
+       Enum.map(
+         others,
+         &Map.put(&1, :note, if(&1.target == "deployex", do: "DeployEx", else: "this host"))
+       ) ++
+       Enum.map(open, &Map.put(&1, :note, "open")))
+    |> Enum.uniq_by(& &1.target)
+    |> Enum.reject(&(&1.target == active.target))
+  end
+
+  defp app_of(target) do
+    case Catalog.node_info(target) do
+      %{name: name} -> name
+      _ -> nil
     end
   end
 
