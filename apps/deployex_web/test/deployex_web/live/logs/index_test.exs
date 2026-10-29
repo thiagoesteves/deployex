@@ -221,6 +221,39 @@ defmodule DeployexWeb.Logs.IndexTest do
   end
 
   @tag :capture_log
+  test "since picks the shortest History range that covers that time", %{conn: conn, sname: sname} do
+    stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname] end)
+    stub_logs(self(), %{})
+
+    two_hours_ago = System.os_time(:second) - 2 * 3_600
+    {:ok, _view, html} = live(conn, ~p"/logs/history?#{%{source: sname, since: two_hours_ago}}")
+
+    assert_received {:read, ^sname, "stdout", 360}
+    assert html =~ ~r/id="range-6h"[^>]*aria-pressed="true"/
+
+    # A time past the longest range reads the longest, and a bad value keeps the default
+    {:ok, _view, _html} = live(conn, ~p"/logs/history?#{%{source: sname, since: 0}}")
+    assert_received {:read, ^sname, "stdout", 10_080}
+
+    {:ok, _view, _html} = live(conn, ~p"/logs/history?#{%{source: sname, since: "yesterday"}}")
+    assert_received {:read, ^sname, "stdout", 30}
+  end
+
+  @tag :capture_log
+  test "a comma list of sources selects the known ones", %{conn: conn, sname: sname} do
+    stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname, "deployex"] end)
+    stub_logs(self(), %{})
+
+    {:ok, view, _html} = live(conn, ~p"/logs/history?#{%{source: "events,#{sname},unknown"}}")
+
+    assert has_element?(view, ~s(#source-events[aria-pressed="true"]))
+    assert has_element?(view, ~s(#source-#{sname}[aria-pressed="true"]))
+    assert has_element?(view, ~s(#source-deployex[aria-pressed="false"]))
+    assert_received {:read, ^sname, "stdout", 30}
+    refute_received {:read, "deployex", _type, _range}
+  end
+
+  @tag :capture_log
   test "the mode switch moves between Live and History", %{conn: conn, sname: sname} do
     stub(Deployer.MonitorMock, :list, fn -> [sname] end)
     stub(Sentinel.LogsMock, :list_active_snames, fn -> [] end)

@@ -58,8 +58,17 @@ defmodule DeployexWeb.RecentEvents do
       nil ->
         []
 
-      {tone, title, detail, href} ->
-        [%{id: recent.id, at: recent.at, tone: tone, title: title, detail: detail, href: href}]
+      {tone, title, detail} ->
+        [
+          %{
+            id: recent.id,
+            at: recent.at,
+            tone: tone,
+            title: title,
+            detail: detail,
+            href: history_href(payload, recent.at)
+          }
+        ]
     end
   end
 
@@ -69,10 +78,10 @@ defmodule DeployexWeb.RecentEvents do
   @spec line(Recent.t()) :: {atom(), String.t()}
   def line(%Recent{event: event, payload: payload}) do
     case describe(event, payload) do
-      {tone, title, "", _href} ->
+      {tone, title, ""} ->
         {tone, title}
 
-      {tone, title, detail, _href} ->
+      {tone, title, detail} ->
         {tone, "#{title} · #{detail}"}
 
       nil ->
@@ -85,47 +94,38 @@ defmodule DeployexWeb.RecentEvents do
   end
 
   defp describe("version_ghosted", p),
-    do:
-      {:ghost, "#{p[:name]} #{p[:version]} ghosted", reason(p[:reason]),
-       "/applications?app=#{p[:name]}"}
+    do: {:ghost, "#{p[:name]} #{p[:version]} ghosted", reason(p[:reason])}
 
   defp describe("pre_command_failed", p),
-    do:
-      {:error, "#{p[:sname]} pre_command failed", to_string(p[:command]),
-       "/applications?app=#{p[:name]}"}
+    do: {:error, "#{p[:sname]} pre_command failed", to_string(p[:command])}
 
   defp describe("crash_restart", p),
-    do:
-      {:warning, "#{p[:sname]} crash restart", restarts(p[:crash_restart_count]), logs(p[:sname])}
+    do: {:warning, "#{p[:sname]} crash restart", restarts(p[:crash_restart_count])}
 
   defp describe("watchdog_threshold_warning", %{action: :warning} = p),
     do:
       {:warning, "#{short(p[:node])} #{p[:type]} at #{p[:current_percentage]}% of the limit",
-       "warning at #{p[:warning_threshold_percent]}%", "/applications"}
+       "warning at #{p[:warning_threshold_percent]}%"}
 
   defp describe("watchdog_threshold_exceeded", p),
     do:
       {:error, "#{short(p[:node])} #{p[:type]} at #{p[:current_percentage]}% of the limit",
-       if(p[:action] == :restart, do: "restarted", else: "restart is off"), "/applications"}
+       if(p[:action] == :restart, do: "restarted", else: "restart is off")}
 
   defp describe("config_changed", p),
-    do:
-      {:warning, changes(p[:changes_count]) <> " pending", fields(p[:fields]),
-       "/applications?review=config"}
+    do: {:warning, changes(p[:changes_count]) <> " pending", fields(p[:fields])}
 
   defp describe("config_change_applied", p),
-    do: {:info, changes(p[:changes_count]) <> " applied", fields(p[:fields]), "/applications"}
+    do: {:info, changes(p[:changes_count]) <> " applied", fields(p[:fields])}
 
   defp describe("certificate_failed", p),
-    do:
-      {:error, "TLS certificate renewal failed", "#{p[:app_name]}: #{inspect(p[:reason])}",
-       "/applications"}
+    do: {:error, "TLS certificate renewal failed", "#{p[:app_name]}: #{inspect(p[:reason])}"}
 
   defp describe("certificate_renewed", p),
-    do: {:info, "TLS certificate renewed", to_string(p[:app_name]), "/applications"}
+    do: {:info, "TLS certificate renewed", to_string(p[:app_name])}
 
   defp describe("deployment_complete", %{status: :error} = p),
-    do: {:error, "#{p[:sname]} deployment failed", to_string(p[:message]), logs(p[:sname])}
+    do: {:error, "#{p[:sname]} deployment failed", to_string(p[:message])}
 
   defp describe(_event, _payload), do: nil
 
@@ -141,7 +141,15 @@ defmodule DeployexWeb.RecentEvents do
   defp fields(fields) when is_list(fields), do: Enum.map_join(fields, ", ", &to_string/1)
   defp fields(_fields), do: ""
 
-  defp logs(sname), do: "/logs/live?source=#{sname}"
+  # Every item opens History at the event's time, with the events and the logs of the instance it names
+  defp history_href(payload, at) do
+    sources = Enum.join(["events" | instance(payload)], ",")
+    "/logs/history?" <> URI.encode_query(source: sources, since: DateTime.to_unix(at))
+  end
+
+  defp instance(%{sname: sname}) when is_binary(sname) and sname != "", do: [sname]
+  defp instance(%{node: node}) when is_atom(node) and not is_nil(node), do: [short(node)]
+  defp instance(_payload), do: []
 
   defp short(node) when is_atom(node) and not is_nil(node),
     do: node |> Atom.to_string() |> String.split("@") |> hd()

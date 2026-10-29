@@ -17,7 +17,7 @@ defmodule DeployexWeb.RecentEventsTest do
                %{
                  tone: :ghost,
                  title: "myerlangapp 0.8.2 ghosted",
-                 href: "/applications?app=myerlangapp"
+                 href: "/logs/history?source=events&since=1793197200"
                }
              ] =
                RecentEvents.item(
@@ -36,6 +36,20 @@ defmodule DeployexWeb.RecentEventsTest do
       assert [%{tone: :warning, title: "myapp-abc crash restart", detail: "2 crash restarts"}] =
                RecentEvents.item(
                  recent("crash_restart", %{sname: "myapp-abc", crash_restart_count: 2})
+               )
+
+      # History opens at the event, with the events and the logs of the instance it names
+      assert [%{href: "/logs/history?source=events%2Cmyapp-abc&since=1793197200"}] =
+               RecentEvents.item(
+                 recent("crash_restart", %{sname: "myapp-abc", crash_restart_count: 2})
+               )
+
+      assert [%{href: "/logs/history?source=events%2Cmyapp-abc&since=1793197200"}] =
+               RecentEvents.item(
+                 recent("watchdog_threshold_exceeded", %{
+                   node: :"myapp-abc@host",
+                   action: :restart
+                 })
                )
 
       assert [%{detail: "1 crash restart"}] =

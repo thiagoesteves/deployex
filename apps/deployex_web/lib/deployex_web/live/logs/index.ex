@@ -3,8 +3,9 @@ defmodule DeployexWeb.LogsLive do
   The Logs page: the stdout and stderr of DeployEx and every instance, live or from the stored history.
 
   `/logs/live` opens with the last 5 minutes and then follows new lines. `/logs/history` reads a time
-  range. `source` and `stream` in the query select one source or one stream. The page keeps at most
-  #{2_000} lines, newest at the bottom.
+  range. `source` (one or a comma list) and `stream` in the query select the sources and the stream.
+  `since` (unix seconds) picks the shortest range that covers it. The page keeps at most #{2_000} lines,
+  newest at the bottom.
   """
   use DeployexWeb, :live_view
 
@@ -228,17 +229,22 @@ defmodule DeployexWeb.LogsLive do
     sources = sources(mode)
     snames = MapSet.new(sources, & &1.sname)
 
-    selected =
+    # A comma list of sources selects the known ones, and all when none is known
+    picked =
       case params["source"] do
-        sname when is_binary(sname) ->
-          if(MapSet.member?(snames, sname), do: MapSet.new([sname]), else: snames)
+        list when is_binary(list) ->
+          list |> String.split(",") |> MapSet.new() |> MapSet.intersection(snames)
 
         _ ->
-          snames
+          MapSet.new()
       end
+
+    selected = if Enum.empty?(picked), do: snames, else: picked
 
     types =
       if params["stream"] in @types, do: MapSet.new([params["stream"]]), else: MapSet.new(@types)
+
+    socket = assign(socket, :range, range_since(params["since"], socket.assigns.range))
 
     {:noreply,
      socket
@@ -425,13 +431,28 @@ defmodule DeployexWeb.LogsLive do
     |> then(&[events | &1])
   end
 
+  # since (unix seconds) picks the shortest range that still covers that time, like a bell item's
+  defp range_since(since, current) do
+    with since when is_binary(since) <- since,
+         {seconds, ""} <- Integer.parse(since) do
+      minutes = div(System.os_time(:second) - seconds, 60) + 1
+
+      Enum.find_value(@ranges, elem(List.last(@ranges), 1), fn {_label, range} ->
+        range >= minutes && range
+      end)
+    else
+      _ -> current
+    end
+  end
+
   # The events of this host in the read window. The store keeps the last ones since DeployEx started
-  defp event_lines(%{selected: selected}, minutes) do
+  # Live shows every kept event, as the store holds only the last ones. History keeps its range
+  defp event_lines(%{selected: selected, mode: mode}, minutes) do
     if MapSet.member?(selected, "events") do
       since = DateTime.add(DateTime.utc_now(), -minutes * 60)
 
       Recent.list()
-      |> Enum.filter(&(DateTime.compare(&1.at, since) != :lt))
+      |> Enum.filter(&(mode == :live or DateTime.compare(&1.at, since) != :lt))
       |> Enum.map(&event_line/1)
     else
       []
