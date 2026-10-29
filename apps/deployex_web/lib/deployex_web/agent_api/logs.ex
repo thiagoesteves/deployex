@@ -11,29 +11,43 @@ defmodule DeployexWeb.AgentApi.Logs do
   alias Sentinel.Logs.Message
 
   @types ["stdout", "stderr"]
+  @default_limit 1_000
+  @max_limit 10_000
 
   # A + in a query string decodes to a space, so the detail names its encoding
   @invalid_since {:error,
                   {:invalid,
                    "since must be an ISO 8601 time with an offset, like 2026-10-23T12:00:00Z (write + as %2B)"}}
+  @invalid_limit {:error, {:invalid, "limit must be an integer from 1 to #{@max_limit}"}}
 
   @type entry :: %{timestamp: String.t(), line: String.t()}
+  @type history :: %{logs: [entry()], truncated: boolean()}
   @type error :: {:error, :not_found | :unavailable | {:invalid, String.t()}}
 
   @doc """
-  Returns the lines of one instance and log type at or after `since`, oldest first. Without
-  `since`, every line that DeployEx still keeps.
+  Returns the newest `limit` lines of one instance and log type at or after `since`, oldest
+  first. Without `since`, it reads every line that DeployEx still keeps. `truncated` is true
+  when older lines did not fit in `limit`.
   """
-  @spec history(name :: String.t(), sname :: term(), type :: term(), since :: term()) ::
-          {:ok, [entry()]} | error()
-  def history(name, sname, type, since) do
+  @spec history(
+          name :: String.t(),
+          sname :: term(),
+          type :: term(),
+          since :: term(),
+          limit :: term()
+        ) :: {:ok, history()} | error()
+  def history(name, sname, type, since, limit) do
     with :ok <- check(name, sname, type),
-         {:ok, since} <- since(since) do
-      {:ok,
-       sname
-       |> Logs.list_data_by_sname_log_type(type, from: minutes_back(since))
-       |> Enum.filter(&(is_nil(since) or &1.timestamp >= since))
-       |> Enum.flat_map(&entries/1)}
+         {:ok, since} <- since(since),
+         {:ok, limit} <- limit(limit) do
+      entries =
+        sname
+        |> Logs.list_data_by_sname_log_type(type, from: minutes_back(since))
+        |> Enum.filter(&(is_nil(since) or &1.timestamp >= since))
+        |> Enum.flat_map(&entries/1)
+
+      dropped = max(length(entries) - limit, 0)
+      {:ok, %{logs: Enum.drop(entries, dropped), truncated: dropped > 0}}
     end
   end
 
@@ -105,6 +119,17 @@ defmodule DeployexWeb.AgentApi.Logs do
   end
 
   defp since(_since), do: @invalid_since
+
+  defp limit(nil), do: {:ok, @default_limit}
+
+  defp limit(limit) when is_binary(limit) do
+    case Integer.parse(limit) do
+      {limit, ""} when limit in 1..@max_limit -> {:ok, limit}
+      _other -> @invalid_limit
+    end
+  end
+
+  defp limit(_limit), do: @invalid_limit
 
   # The log store reads one key per minute. It reads the clock again, so one more minute
   # keeps the minute of since when the minute changes between the two reads

@@ -60,8 +60,60 @@ defmodule DeployexWeb.AgentApi.LogControllerTest do
                  %{"timestamp" => "2026-10-23T12:00:00.123Z", "line" => "first"},
                  %{"timestamp" => "2026-10-23T12:00:00.123Z", "line" => "second"},
                  %{"timestamp" => "2026-10-23T12:00:01.000Z", "line" => "third"}
-               ]
+               ],
+               "truncated" => false
              }
+    end
+
+    test "returns the newest limit lines and says that it dropped older lines", %{conn: conn} do
+      stub_logs([
+        %Message{timestamp: unix_ms("2026-10-23T12:00:00Z"), log: "first\nsecond\n"},
+        %Message{timestamp: unix_ms("2026-10-23T12:00:01Z"), log: "third"}
+      ])
+
+      for {limit, lines, truncated} <- [
+            {"2", ["second", "third"], true},
+            {"3", ["first", "second", "third"], false}
+          ] do
+        assert %{"logs" => logs, "truncated" => ^truncated} =
+                 build_conn()
+                 |> bearer("read-token")
+                 |> get(
+                   logs_path(%{
+                     "sname" => "test_app-abc123",
+                     "type" => "stdout",
+                     "limit" => limit
+                   })
+                 )
+                 |> json_response(200)
+
+        assert Enum.map(logs, & &1["line"]) == lines
+      end
+
+      assert %{"logs" => [%{"line" => "third"}], "truncated" => true} =
+               conn
+               |> get(
+                 logs_path(%{
+                   "sname" => "test_app-abc123",
+                   "type" => "stdout",
+                   "since" => "2026-10-23T12:00:00Z",
+                   "limit" => "1"
+                 })
+               )
+               |> json_response(200)
+    end
+
+    test "returns at most 1000 lines without limit", %{conn: conn} do
+      log = Enum.map_join(1..1001, "\n", &"line #{&1}")
+      stub_logs([%Message{timestamp: unix_ms("2026-10-23T12:00:00Z"), log: log}])
+
+      assert %{"logs" => logs, "truncated" => true} =
+               conn
+               |> get("/v1/apps/test_app/logs?sname=test_app-abc123&type=stdout")
+               |> json_response(200)
+
+      assert length(logs) == 1000
+      assert hd(logs)["line"] == "line 2"
     end
 
     test "returns the lines at or after since", %{conn: conn} do
@@ -215,6 +267,25 @@ defmodule DeployexWeb.AgentApi.LogControllerTest do
                |> json_response(422)
 
       assert detail =~ "write + as %2B"
+    end
+
+    test "returns 422 for a limit that is not an integer from 1 to 10000" do
+      for limit <- ["0", "10001", "-1", "1.5", "ten", ""] do
+        assert build_conn()
+               |> bearer("read-token")
+               |> get(
+                 logs_path(%{"sname" => "test_app-abc123", "type" => "stdout", "limit" => limit})
+               )
+               |> json_response(422) == %{
+                 "errors" => %{"detail" => "limit must be an integer from 1 to 10000"}
+               }
+      end
+
+      assert %{"errors" => %{"detail" => "limit must be" <> _}} =
+               build_conn()
+               |> bearer("read-token")
+               |> get("/v1/apps/test_app/logs?sname=test_app-abc123&type=stdout&limit[]=1")
+               |> json_response(422)
     end
 
     test "needs a read token", %{conn: conn} do

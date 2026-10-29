@@ -6,8 +6,9 @@ defmodule DeployexWeb.AgentApi.LogController do
   action_fallback DeployexWeb.AgentApi.FallbackController
 
   def index(conn, %{"name" => name} = params) do
-    with {:ok, logs} <- Logs.history(name, params["sname"], params["type"], params["since"]) do
-      json(conn, %{logs: logs})
+    with {:ok, history} <-
+           Logs.history(name, params["sname"], params["type"], params["since"], params["limit"]) do
+      json(conn, history)
     end
   end
 end

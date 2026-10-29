@@ -161,7 +161,7 @@ It sends a `heartbeat` on the `phoenix` topic at least every 60 seconds, or Depl
 |---|---|
 | `events` | `event` for each notification event, with the body that the webhook adapter posts: `event`, `timestamp`, `payload` |
 | `apps` | The join reply has `apps`, every app as in `GET /v1/apps`. Then `app` each time one app changes |
-| `logs:<sname>:<type>` | `logs` with the new lines of one instance, in the body of `GET /v1/apps/:name/logs` (see [Logs](#logs)) |
+| `logs:<sname>:<type>` | `logs` with the new lines of one instance, as the `logs` list of `GET /v1/apps/:name/logs` (see [Logs](#logs)) |
 
 The `apps` topic also pushes `app_removed`, with the `name` of an app that the host no longer monitors. The events have the
 names and payloads that the `Foundation.Notifications` module documents. The `events` topic sends only the events
@@ -182,7 +182,8 @@ curl -H "Authorization: Bearer $TOKEN" \
   "logs": [
     {"timestamp": "2026-10-23T09:12:45.120Z", "line": "09:12:45.118 [info] Running MyphoenixappWeb.Endpoint with Bandit"},
     {"timestamp": "2026-10-23T09:12:45.120Z", "line": "09:12:45.119 [info] Access MyphoenixappWeb.Endpoint at http://localhost:4000"}
-  ]
+  ],
+  "truncated": false
 }
 ```
 
@@ -190,16 +191,20 @@ curl -H "Authorization: Bearer $TOKEN" \
 |---|---|
 | `sname` | Required. An instance in `GET /v1/apps/:name`, or an old one: each version in `/versions` and `/ghosted` has its `sname` |
 | `type` | Required. `stdout` or `stderr` |
-| `since` | Optional. An ISO 8601 time with an offset. Returns the lines at or after it. Without it, all lines that DeployEx keeps |
+| `since` | Optional. An ISO 8601 time with an offset. Returns the lines at or after it. Without it, the lines that DeployEx keeps |
+| `limit` | Optional. The maximum number of lines to return, from 1 to 10000. The default is 1000 |
 
 The lines come oldest first. `timestamp` is the time DeployEx read the line, to the millisecond. A long line that `tail` sends
 in two parts comes as two entries. In a URL, write the `+` of an offset as `%2B`, or use `Z`. To poll, send the last
 `timestamp` as `since` on each call, and drop the lines with that time that you already have.
 
+When more lines match than `limit`, DeployEx returns the newest ones and sets `truncated` to `true`. A poll counts the lines
+at `since` again, so a poll with `truncated` set can have missed older lines. Poll more often, or join the `logs` topic.
+
 | Status | When |
 |---|---|
 | `404` | The `sname` is not an instance of the app, or DeployEx keeps no logs for it |
-| `422` | No `sname`, a `type` that is not `stdout` or `stderr`, or a `since` that is not ISO 8601 with an offset |
+| `422` | No `sname`, a `type` that is not `stdout` or `stderr`, a `since` that is not ISO 8601 with an offset, or an invalid `limit` |
 
 The `logs:<sname>:<type>` topic pushes `logs` with each new group of lines:
 

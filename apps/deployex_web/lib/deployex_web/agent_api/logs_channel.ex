@@ -1,7 +1,7 @@
 defmodule DeployexWeb.AgentApi.LogsChannel do
   @moduledoc """
   Pushes `logs` with the new lines of one instance and log type, on the topic
-  `logs:<sname>:<type>`. Each push has the body of `GET /v1/apps/:name/logs`.
+  `logs:<sname>:<type>`. Each push has a `logs` list, as in `GET /v1/apps/:name/logs`.
   """
   use DeployexWeb, :channel
 
