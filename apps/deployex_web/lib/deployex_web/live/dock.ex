@@ -156,11 +156,17 @@ defmodule DeployexWeb.DockLive do
                   :for={type <- ["stdout", "stderr"]}
                   id={"dock-stream-#{type}"}
                   type="button"
-                  class="dx-k-tog"
+                  class="dx-tog dx-tog-sm"
                   aria-pressed={to_string(type in @active_tab.types)}
                   phx-click="toggle-stream"
                   phx-value-type={type}
                 >
+                  <Icons.icon
+                    :if={type in @active_tab.types}
+                    name="check"
+                    stroke="2.4"
+                    class="dx-ico dx-tog-check size-3"
+                  />
                   <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
                 </button>
               </div>

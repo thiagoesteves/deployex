@@ -789,25 +789,6 @@
     border-bottom: 1px solid var(--dx-base-300);
 }
 
-.dx-k-tog {
-    display: inline-flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--dx-base-300);
-    border-radius: 999px;
-    background: var(--dx-base-100);
-    color: var(--dx-muted);
-    font: 500 0.75rem/1 var(--dx-font-mono);
-    cursor: pointer;
-}
-
-.dx-k-tog[aria-pressed="true"] {
-    color: var(--dx-base-content);
-    background: var(--dx-base-200);
-    border-color: color-mix(in oklch,var(--dx-base-content) 28%,var(--dx-base-100));
-}
-
 .dx-k-log {
     flex: 1;
     min-height: 0;
@@ -1276,6 +1257,14 @@
 
 .dx-tog[aria-pressed="false"] :is(.dx-dot, svg, img) {
     opacity: 0.4;
+}
+
+/* The smaller toggle of the dock's head */
+.dx-tog-sm {
+    gap: 5px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 0.75rem;
 }
 
 .dx-tog-check {
