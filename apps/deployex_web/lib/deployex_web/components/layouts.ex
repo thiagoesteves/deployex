@@ -57,6 +57,8 @@ defmodule DeployexWeb.Layouts do
     default: [],
     doc: "the bell items, from `DeployexWeb.RecentEvents`"
 
+  attr :socket, :any, default: nil, doc: "the page's socket, for the dock, a sticky LiveView"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -128,6 +130,13 @@ defmodule DeployexWeb.Layouts do
           <:icon><Icons.icon name={item.icon} stroke="1.6" /></:icon>
         </Shell.nav_item>
       </:sidebar>
+      <:dock :if={@socket}>
+        {live_render(@socket, DeployexWeb.DockLive,
+          id: "dock-live",
+          sticky: true,
+          session: %{"user" => DeployexWeb.TerminalLive.user_key(@current_user)}
+        )}
+      </:dock>
       {render_slot(@inner_block)}
     </Shell.shell>
 

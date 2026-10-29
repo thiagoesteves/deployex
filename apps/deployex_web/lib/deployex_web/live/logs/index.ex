@@ -48,6 +48,7 @@ defmodule DeployexWeb.LogsLive do
       current_user={@current_user}
       host_info={@host_info}
       recent_events={@recent_events}
+      socket={@socket}
     >
       <div class="mx-auto flex max-w-[1180px] flex-col gap-4 px-7 pt-6 pb-12 max-md:px-4">
         <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">

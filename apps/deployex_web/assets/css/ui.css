@@ -1428,3 +1428,15 @@
     color: inherit;
     border-radius: 2px;
 }
+
+/* The page keeps room at the bottom for the open dock. The Dock hook sets the size */
+#shell-main {
+    padding-bottom: var(--dx-dock-space, 0px);
+}
+
+.dx-xterm {
+    height: 100%;
+    min-height: 0;
+    padding: 6px 0 0 12px;
+    background: #0d1117;
+}

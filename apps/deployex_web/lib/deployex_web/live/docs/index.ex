@@ -17,6 +17,7 @@ defmodule DeployexWeb.DocsLive do
       current_user={@current_user}
       host_info={@host_info}
       recent_events={@recent_events}
+      socket={@socket}
     >
       <div>
         <iframe

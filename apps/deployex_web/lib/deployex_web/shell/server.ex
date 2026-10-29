@@ -111,8 +111,11 @@ defmodule DeployexWeb.Shell.Server do
 
   def handle_info(_message, state), do: {:noreply, state}
 
+  # The session leaves the registry before it says it closed, so a page that reloads the list does not see it
   @impl true
   def terminate(_reason, %{session: session}) do
+    Registry.unregister(@registry, {session.user, session.target})
+
     Phoenix.PubSub.broadcast(
       DeployexWeb.PubSub,
       Shell.topic(session.id),

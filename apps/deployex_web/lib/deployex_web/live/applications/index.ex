@@ -26,6 +26,7 @@ defmodule DeployexWeb.ApplicationsLive do
       current_user={@current_user}
       host_info={@host_info}
       recent_events={@recent_events}
+      socket={@socket}
     >
       <div class="mx-auto flex max-w-[1140px] flex-col gap-5 px-8 pt-7 pb-14 max-md:px-4">
         <Board.page_head host_name={@host_name} attention={View.attention(@apps)} />

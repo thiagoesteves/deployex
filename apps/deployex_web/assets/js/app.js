@@ -29,45 +29,6 @@ import { Terminal } from "./xterm/xterm"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 const hooks = {
-  Terminal: {
-    mounted() {
-      const cols = this.el.dataset.cols ?? 100;
-      const rows = this.el.dataset.rows ?? 24;
-
-      const term = new Terminal({
-        fontSize: 14,
-        cols: cols,
-        rows: rows,
-        cursorBlink: true,
-        fontFamily: 'Monospace'
-      });
-      term.open(this.el.querySelector(".xtermjs_container"));
-      term.onKey(key => {
-        this.pushEventTo(this.el, "key", key);
-      });
-
-      term.attachCustomKeyEventHandler(event => {
-        // From: https://stackoverflow.com/questions/2903991/how-to-detect-ctrlv-ctrlc-using-javascript
-        // Ctrl+V or Cmd+V pressed?
-        if ((event.ctrlKey || event.metaKey) && event.keyCode == 86) {
-          // xterm calls this handler for keyup too, so paste only once, on keydown
-          if (event.type === "keydown") {
-            navigator.clipboard.readText()
-              .then(text => {
-                this.pushEventTo(this.el, "key", { key: text });
-              })
-          }
-          return false;
-        }
-        return true;
-      });
-
-      this.handleEvent("print-" + this.el.id, e => {
-        term.write(e.data);
-      });
-    }
-  },
-
   ScrollBottom: {
     mounted() {
       this.el.scrollTo(0, this.el.scrollHeight);
@@ -224,6 +185,169 @@ const hooks = {
           this.input.blur();
         }
       }
+    }
+  },
+
+  // A shell session in xterm.js, sized to its panel. Keys and the size go to the LiveView, the output
+  // comes back as shell-output events for this target, and shell-reset replays what the session printed
+  XTerm: {
+    mounted() {
+      const target = this.el.dataset.target;
+      this.term = new Terminal({
+        fontSize: 13,
+        cursorBlink: true,
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+        theme: { background: "#0d1117", foreground: "#c9d1d9", cursor: "#7ee787", selectionBackground: "#264f78" }
+      });
+      this.term.open(this.el);
+      this.term.onData((keys) => this.pushEventTo(this.el, "shell-keys", { target, keys }));
+      this.handleEvent(`shell-output-${target}`, ({ data }) => this.term.write(data));
+      this.handleEvent(`shell-reset-${target}`, ({ data }) => {
+        this.term.reset();
+        this.term.write(data);
+      });
+      this.fit = () => {
+        const cell = this.term._core._renderService.dimensions.css.cell;
+        if (!cell.width || !cell.height) return;
+        const cols = Math.max(20, Math.floor(this.el.clientWidth / cell.width));
+        const rows = Math.max(5, Math.floor(this.el.clientHeight / cell.height));
+        if (cols !== this.term.cols || rows !== this.term.rows) {
+          this.term.resize(cols, rows);
+          this.pushEventTo(this.el, "shell-resize", { target, rows, cols });
+        }
+      };
+      this.observer = new ResizeObserver(() => this.fit());
+      this.observer.observe(this.el);
+      requestAnimationFrame(() => {
+        this.fit();
+        if (this.el.dataset.focus !== undefined) this.term.focus();
+      });
+    },
+
+    destroyed() {
+      this.observer && this.observer.disconnect();
+      this.term && this.term.dispose();
+    }
+  },
+
+  // The time left of a session, from data-expires (an ISO 8601 time)
+  Countdown: {
+    mounted() {
+      this.tick = () => {
+        const left = Math.max(0, Math.floor((new Date(this.el.dataset.expires) - new Date()) / 1000));
+        this.el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+      };
+      this.tick();
+      this.timer = setInterval(this.tick, 1000);
+    },
+
+    updated() {
+      this.tick();
+    },
+
+    destroyed() {
+      clearInterval(this.timer);
+    }
+  },
+
+  // The dock: passes the dx:dock-open window events to the dock LiveView, and keeps its height (resize by
+  // the grip, the arrow keys, or Taller and Shorter), minimized and full size in localStorage
+  Dock: {
+    mounted() {
+      this.min = 160;
+      this.step = 40;
+      this.onOpen = (e) => this.pushEventTo(this.el, "open", e.detail);
+      window.addEventListener("dx:dock-open", this.onOpen);
+      this.el.addEventListener("click", (e) => {
+        const action = e.target.closest("[data-dock]");
+        if (action) this.act(action.dataset.dock);
+      });
+      this.el.addEventListener("keydown", (e) => {
+        if (!e.target.closest("[data-dock-grip]")) return;
+        if (e.key === "ArrowUp") { e.preventDefault(); this.act("taller"); }
+        if (e.key === "ArrowDown") { e.preventDefault(); this.act("shorter"); }
+      });
+      this.el.addEventListener("mousedown", (e) => {
+        if (!e.target.closest("[data-dock-grip]")) return;
+        e.preventDefault();
+        const startY = e.clientY;
+        const startHeight = this.panel() ? this.panel().getBoundingClientRect().height : this.height();
+        const move = (ev) => this.save({ height: this.clamp(startHeight + startY - ev.clientY), state: "normal" });
+        const up = () => {
+          window.removeEventListener("mousemove", move);
+          window.removeEventListener("mouseup", up);
+        };
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+      });
+      this.apply();
+    },
+
+    updated() {
+      this.apply();
+    },
+
+    destroyed() {
+      window.removeEventListener("dx:dock-open", this.onOpen);
+      document.documentElement.style.removeProperty("--dx-dock-space");
+    },
+
+    panel() {
+      return this.el.querySelector("[data-dock-panel]");
+    },
+
+    load() {
+      try {
+        return JSON.parse(localStorage.getItem("dx:dock")) || {};
+      } catch (_e) {
+        return {};
+      }
+    },
+
+    save(patch) {
+      try {
+        localStorage.setItem("dx:dock", JSON.stringify(Object.assign(this.load(), patch)));
+      } catch (_e) {}
+      this.apply();
+    },
+
+    height() {
+      return this.clamp(this.load().height || 320);
+    },
+
+    clamp(height) {
+      return Math.max(this.min, Math.min(window.innerHeight - 120, height));
+    },
+
+    act(action) {
+      const state = this.load().state || "normal";
+      if (action === "taller") this.save({ height: this.clamp(this.height() + this.step), state: "normal" });
+      if (action === "shorter") this.save({ height: this.clamp(this.height() - this.step), state: "normal" });
+      if (action === "minimize") this.save({ state: state === "min" ? "normal" : "min" });
+      if (action === "maximize") this.save({ state: state === "max" ? "normal" : "max" });
+    },
+
+    apply() {
+      const panel = this.panel();
+      const root = document.documentElement;
+      if (!panel) {
+        root.style.removeProperty("--dx-dock-space");
+        return;
+      }
+      const state = this.load().state || "normal";
+      const height = state === "min" ? 42 : state === "max" ? window.innerHeight - 57 : this.height();
+      panel.style.height = `${height}px`;
+      panel.classList.toggle("dx-dock-min", state === "min");
+      panel.dataset.state = state;
+      this.el.querySelectorAll("[data-dock=minimize]").forEach((b) => {
+        b.setAttribute("aria-label", state === "min" ? "Restore the dock" : "Minimize the dock");
+        b.querySelector("svg").style.transform = state === "min" ? "rotate(180deg)" : "none";
+      });
+      this.el.querySelectorAll("[data-dock=maximize]").forEach((b) => {
+        b.setAttribute("aria-pressed", String(state === "max"));
+        b.setAttribute("aria-label", state === "max" ? "Restore the dock size" : "Expand the dock");
+      });
+      root.style.setProperty("--dx-dock-space", `${state === "min" ? 56 : height + 24}px`);
     }
   },
 

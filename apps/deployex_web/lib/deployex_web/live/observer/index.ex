@@ -14,6 +14,7 @@ defmodule DeployexWeb.ObserverLive do
       current_user={@current_user}
       host_info={@host_info}
       recent_events={@recent_events}
+      socket={@socket}
     >
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
