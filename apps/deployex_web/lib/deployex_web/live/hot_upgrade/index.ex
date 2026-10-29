@@ -5,7 +5,6 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   alias Deployer.Github
   alias Deployer.HotUpgrade
-  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Progress
   alias DeployexWeb.Components.SystemBar
@@ -18,9 +17,9 @@ defmodule DeployexWeb.HotUpgradeLive do
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
     >
       <div class="min-h-screen bg-base-300">
         <SystemBar.content info={@host_info} />
@@ -758,9 +757,6 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   @impl true
   def mount(_params, _session, socket) when is_connected?(socket) do
-    # Subscribe to system info if needed
-    Host.Info.subscribe()
-
     # Subscribe to receive hot upgrade events
     HotUpgrade.subscribe_events()
 
@@ -777,14 +773,12 @@ defmodule DeployexWeb.HotUpgradeLive do
 
   defp default_assigns(socket) do
     socket
-    |> assign(:host_info, nil)
     |> assign(:downloaded_release, nil)
     |> assign(:applying_upgrade, false)
     |> assign(:upgrade_progress, [])
     |> assign(:upgrade_state, :init)
     |> assign(:total_upgrade_steps, 8)
     |> assign(:current_path, "/hotupgrade")
-    |> assign(:ui_settings, UiSettings.get())
     |> assign(:node, Node.self())
     |> assign(:upload_method, :file)
     |> assign(:github, github_new())
@@ -925,15 +919,6 @@ defmodule DeployexWeb.HotUpgradeLive do
   end
 
   @impl true
-  def handle_info({:update_system_info, host_info}, socket) do
-    ui_settings = UiSettings.get()
-
-    {:noreply,
-     socket
-     |> assign(:host_info, host_info)
-     |> assign(:ui_settings, ui_settings)}
-  end
-
   def handle_info(
         {:hot_upgrade_progress, source_node, _sname, msg},
         %{assigns: %{node: node, applying_upgrade: true}} = socket

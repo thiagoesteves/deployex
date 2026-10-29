@@ -2,7 +2,6 @@ defmodule DeployexWeb.Router do
   use DeployexWeb, :router
 
   import DeployexWeb.UserAuth
-  import DeployexWeb.UiSettings
   import Observer.Web.Router
 
   pipeline :browser do
@@ -18,7 +17,6 @@ defmodule DeployexWeb.Router do
     }
 
     plug :fetch_current_user
-    plug :fetch_current_ui_settings
   end
 
   pipeline :api do
@@ -39,7 +37,6 @@ defmodule DeployexWeb.Router do
     live_session :redirect_if_user_is_authenticated,
       on_mount: [
         {DeployexWeb.UserAuth, :redirect_if_user_is_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings},
         DeployexWeb.ProcessLabel
       ] do
       live "/users/log_in", UserLoginLive, :new
@@ -69,7 +66,7 @@ defmodule DeployexWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [
         {DeployexWeb.UserAuth, :ensure_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings},
+        DeployexWeb.HostInfo,
         DeployexWeb.ProcessLabel
       ] do
       live "/", ApplicationsLive, :index

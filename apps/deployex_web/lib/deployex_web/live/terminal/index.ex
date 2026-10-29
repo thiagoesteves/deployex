@@ -25,9 +25,9 @@ defmodule DeployexWeb.TerminalLive do
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
     >
       <div class="flex min-h-screen bg-gray-700">
         <div :if={@id}>

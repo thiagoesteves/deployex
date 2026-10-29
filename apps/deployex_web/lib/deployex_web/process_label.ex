@@ -13,7 +13,7 @@ defmodule DeployexWeb.ProcessLabel do
       live_session :require_authenticated_user,
         on_mount: [
           {DeployexWeb.UserAuth, :ensure_authenticated},
-          {DeployexWeb.UiSettings, :mount_ui_settings},
+          DeployexWeb.HostInfo,
           DeployexWeb.ProcessLabel
         ] do
   """

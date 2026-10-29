@@ -83,21 +83,39 @@ const hooks = {
     },
   },
 
-  // Theme management is handled in root.html.heex
-  // This hook can be used for theme-aware components if needed
-  ThemeAware: {
+  // Mirrors the theme and sidebar state, which root.html.heex keeps on <html>, into the aria
+  // state of a shell control. data-state names the state, data-state-attr the attribute to set.
+  ShellState: {
     mounted() {
-      this.updateTheme();
-
-      // Listen for theme changes
-      window.addEventListener('phx:set-theme', () => {
-        setTimeout(() => this.updateTheme(), 10);
-      });
+      this.sync = () => {
+        const html = document.documentElement;
+        const states = {
+          "theme-dark": html.dataset.theme === "dark",
+          "theme-system": html.dataset.themePref === "system",
+          "sidebar-expanded": html.dataset.sidebar !== "collapsed",
+        };
+        this.el.setAttribute(this.el.dataset.stateAttr, String(states[this.el.dataset.state]));
+      };
+      this.sync();
+      window.addEventListener("dx:shell-state", this.sync);
     },
 
-    updateTheme() {
-      const theme = document.documentElement.getAttribute('data-theme');
-      this.el.setAttribute('data-current-theme', theme);
+    updated() {
+      this.sync();
+    },
+
+    destroyed() {
+      window.removeEventListener("dx:shell-state", this.sync);
+    }
+  },
+
+  // Runs the data-escape command of a UI.Menu when Escape is pressed inside it. A phx-keydown
+  // binding fires only on the focused element itself, not on its parents.
+  Menu: {
+    mounted() {
+      this.el.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") this.liveSocket.execJS(this.el, this.el.dataset.escape);
+      });
     }
   },
 

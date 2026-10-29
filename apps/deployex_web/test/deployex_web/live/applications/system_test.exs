@@ -17,7 +17,7 @@ defmodule DeployexWeb.Applications.SystemTest do
     test_pid_process = self()
     host = "macOS"
     description = "15.1.1"
-    total_memory = "64.00"
+    total_memory = "64.0 GB"
 
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
@@ -35,6 +35,7 @@ defmodule DeployexWeb.Applications.SystemTest do
       liveview_pid,
       {:update_system_info,
        %Host.Info{
+         source_node: Node.self(),
          host: host,
          description: description,
          memory_free: 17_201_512_448,

@@ -491,6 +491,42 @@ defmodule DeployexWeb.Applications.IndexTest do
     end
   end)
 
+  describe "deployex memory from the host reading" do
+    @tag :capture_log
+    test "GET /applications shows this host's memory and drops another host's", %{conn: conn} do
+      topic = "test-topic"
+
+      deployex =
+        FixtureStatus.deployex(%{
+          node: Node.self(),
+          monitoring: add_metrics([:memory])
+        })
+
+      Deployer.StatusMock
+      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
+      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
+      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+
+      {:ok, view, _html} = live(conn, ~p"/applications")
+
+      send(
+        view.pid,
+        {:update_system_info, %Info{source_node: Node.self(), memory_total: 100, memory_free: 85}}
+      )
+
+      assert render(view) =~ "text-warning\">\n          15%"
+
+      send(
+        view.pid,
+        {:update_system_info, %Info{source_node: :other@host, memory_total: 100, memory_free: 75}}
+      )
+
+      html = render(view)
+      assert html =~ "text-warning\">\n          15%"
+      refute html =~ "25%"
+    end
+  end
+
   describe "division by zero guards" do
     @tag :capture_log
     test "GET /applications handles vm metric with limit 0 without crashing", %{conn: conn} do
@@ -550,7 +586,11 @@ defmodule DeployexWeb.Applications.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/applications")
 
       # Send system info with nil memory_total - should not crash the LiveView
-      send(view.pid, {:update_system_info, %Info{memory_total: nil, memory_free: nil}})
+      send(
+        view.pid,
+        {:update_system_info,
+         %Info{source_node: Node.self(), memory_total: nil, memory_free: nil}}
+      )
 
       # The LiveView should still be alive and renderable
       assert Process.alive?(view.pid)
@@ -575,7 +615,10 @@ defmodule DeployexWeb.Applications.IndexTest do
       {:ok, view, _html} = live(conn, ~p"/applications")
 
       # Send system info with 0 memory_total - should not crash the LiveView
-      send(view.pid, {:update_system_info, %Info{memory_total: 0, memory_free: 0}})
+      send(
+        view.pid,
+        {:update_system_info, %Info{source_node: Node.self(), memory_total: 0, memory_free: 0}}
+      )
 
       # The LiveView should still be alive and renderable
       assert Process.alive?(view.pid)

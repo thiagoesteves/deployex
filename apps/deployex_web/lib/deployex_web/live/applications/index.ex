@@ -9,12 +9,12 @@ defmodule DeployexWeb.ApplicationsLive do
   alias DeployexWeb.ApplicationsLive.Logs
   alias DeployexWeb.ApplicationsLive.Terminal
   alias DeployexWeb.ApplicationsLive.Versions
-  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.CertificateModal
   alias DeployexWeb.Components.ConfigChangesModal
   alias DeployexWeb.Components.Confirm
   alias DeployexWeb.Components.Dashboard
   alias DeployexWeb.Components.SystemBar
+  alias DeployexWeb.HostInfo
   alias Foundation.Common
   alias Host.Terminal.Server
   alias ObserverWeb.Telemetry
@@ -27,9 +27,9 @@ defmodule DeployexWeb.ApplicationsLive do
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
     >
       <div class="min-h-screen bg-base-300">
         <SystemBar.content info={@host_info} />
@@ -44,7 +44,7 @@ defmodule DeployexWeb.ApplicationsLive do
           </div>
           <Dashboard.content
             applications={@monitoring_apps_data}
-            metrics={@metrics}
+            metrics={with_host_memory(@metrics, @host_info)}
             pending_config_changes={@yaml_config.pending_config_changes}
             active_name_tab={@active_name_tab}
             active_sname_tab={@active_sname_tab}
@@ -392,9 +392,6 @@ defmodule DeployexWeb.ApplicationsLive do
     # Subscribe to receive Application Status
     Status.subscribe()
 
-    # Subscribe to receive System info
-    Host.Info.subscribe()
-
     # Subscribe to receive new config changes event
     Watcher.subscribe_new_config()
 
@@ -414,7 +411,6 @@ defmodule DeployexWeb.ApplicationsLive do
     socket =
       socket
       |> assign(:node, Node.self())
-      |> assign(:host_info, nil)
       |> assign(:metrics, metrics)
       |> assign(:monitoring_apps_data, monitoring_apps_data)
       |> assign(:selected_name, nil)
@@ -437,7 +433,6 @@ defmodule DeployexWeb.ApplicationsLive do
     {:ok,
      socket
      |> assign(:node, Node.self())
-     |> assign(:host_info, nil)
      |> assign(:metrics, %{})
      |> assign(:monitoring_apps_data, [])
      |> assign(:selected_name, nil)
@@ -557,58 +552,24 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, socket}
   end
 
-  def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket)
-      when is_integer(host_info.memory_total) and host_info.memory_total > 0 do
-    # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = UiSettings.get()
-
-    memory_used =
-      trunc((host_info.memory_total - host_info.memory_free) / host_info.memory_total * 100)
-
-    node = Node.self()
-
-    new_node_metrics =
-      metrics
-      |> Map.get(node, %{})
-      |> Map.put(:memory, memory_used)
-
-    {:noreply,
-     socket
-     |> assign(:host_info, host_info)
-     |> assign(:metrics, Map.put(metrics, node, new_node_metrics))
-     |> assign(:ui_settings, ui_settings)}
-  end
-
-  # NOTE: Ignore system info when memory_total is nil or 0 to avoid division by zero
-  def handle_info({:update_system_info, host_info}, socket) do
-    ui_settings = UiSettings.get()
-    {:noreply, socket |> assign(:host_info, host_info) |> assign(:ui_settings, ui_settings)}
-  end
-
   def handle_info(
         {:monitoring_app_updated, source_node, monitoring_apps_data},
         %{assigns: %{node: node, metrics: metrics}} = socket
       )
       when source_node == node do
-    # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = UiSettings.get()
-
     # Update monitored metrics and subscribe to receive metrics if needed
     metrics = updated_metrics(monitoring_apps_data, metrics)
 
     {:noreply,
      socket
      |> assign(:metrics, metrics)
-     |> assign(:monitoring_apps_data, monitoring_apps_data)
-     |> assign(:ui_settings, ui_settings)}
+     |> assign(:monitoring_apps_data, monitoring_apps_data)}
   end
 
   def handle_info({:monitoring_app_updated, _source_node, _monitoring_apps_data}, socket) do
     # NOTE: In future implementations, this will pattern match against other nodes
     #       to enable DeployEx to present its data.
-    # Still sync ui_settings to ensure consistency
-    ui_settings = UiSettings.get()
-    {:noreply, assign(socket, :ui_settings, ui_settings)}
+    {:noreply, socket}
   end
 
   def handle_info({:terminal_update, %{metadata: metadata, status: :closed}}, socket)
@@ -873,6 +834,14 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("swicth-app-tab", %{"name" => name}, socket) do
     {:noreply, assign(socket, :active_name_tab, name)}
+  end
+
+  # DeployEx's memory metric is the host memory from the top bar reading
+  defp with_host_memory(metrics, host_info) do
+    case HostInfo.memory_percent(host_info) do
+      nil -> metrics
+      memory -> Map.update(metrics, Node.self(), %{memory: memory}, &Map.put(&1, :memory, memory))
+    end
   end
 
   defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do

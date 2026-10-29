@@ -13,9 +13,9 @@ defmodule DeployexWeb.DocsLive do
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
     >
       <div>
         <iframe
