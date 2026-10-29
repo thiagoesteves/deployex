@@ -87,4 +87,17 @@ defmodule DeployexWeb.Applications.GhostedTest do
     send(view.pid, {:ghosted_versions_updated, Node.self(), @name, []})
     assert render(view) =~ "0.9.0"
   end
+
+  @tag :capture_log
+  test "an app this host does not run has no ghosted versions, and its catalog is not read", %{
+    conn: conn
+  } do
+    Deployer.StatusMock
+    |> stub(:monitoring, fn -> {:ok, [FixtureStatus.deployex()]} end)
+    |> stub(:subscribe_ghosted_versions, fn "unknown" -> :ok end)
+    |> expect(:ghosted_version_list, 0, fn _name -> [] end)
+
+    {:ok, _view, html} = live(conn, ~p"/applications/unknown/ghosted")
+    assert html =~ "No ghosted versions."
+  end
 end

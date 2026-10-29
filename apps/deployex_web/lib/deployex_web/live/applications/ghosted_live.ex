@@ -158,26 +158,27 @@ defmodule DeployexWeb.GhostedLive do
   end
 
   defp load(%{assigns: %{name: name}} = socket) do
-    {language, children, replicas} =
+    {known, language, children, replicas} =
       case connected?(socket) && Status.monitoring() do
         {:ok, statuses} ->
           case Enum.find(statuses, &(&1.name == name)) do
             %{language: language, children: children, replicas: replicas} ->
-              {language, children, replicas}
+              {true, language, children, replicas}
 
             nil ->
-              {"elixir", [], 0}
+              {false, "elixir", [], 0}
           end
 
         _ ->
-          {"elixir", [], 0}
+          {false, "elixir", [], 0}
       end
 
     socket
     |> assign(:language, language)
     |> assign(:logo, Enum.find_value(children, & &1.logo))
     |> assign(:summary, summary(children, replicas))
-    |> assign(:ghosted, if(connected?(socket), do: Status.ghosted_version_list(name), else: []))
+    # An app this host does not run, like a mistyped name in the URL, has no catalog to read
+    |> assign(:ghosted, if(known, do: Status.ghosted_version_list(name), else: []))
     |> assign(:now, DateTime.utc_now())
   end
 

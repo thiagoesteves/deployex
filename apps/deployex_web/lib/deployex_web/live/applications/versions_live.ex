@@ -244,7 +244,8 @@ defmodule DeployexWeb.VersionsLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   defp load(%{assigns: %{name: name}} = socket) do
-    app = find_app(socket, name)
+    found = find_app(socket, name)
+    app = found || %Status{name: name, config: %{}}
     children = app.children
     pinned = pinned(app.config)
 
@@ -259,7 +260,7 @@ defmodule DeployexWeb.VersionsLive do
       |> assign(:current, children |> Enum.map(& &1.version) |> Enum.find(& &1))
       |> assign(:pinned, pinned)
       |> assign(:versions, Map.get(app.config, :versions, []))
-      |> assign(:history, history(socket, name))
+      |> assign(:history, history(socket, found))
       |> assign(:now, DateTime.utc_now())
 
     socket
@@ -267,7 +268,7 @@ defmodule DeployexWeb.VersionsLive do
     |> assign(:pick, socket.assigns.pick || pinned || default_pick(socket.assigns))
   end
 
-  # The app's status, or an empty one before it is known
+  # The app's status, or nil when this host does not run it, or before the first reading
   defp find_app(socket, name) do
     statuses =
       case connected?(socket) && Status.monitoring() do
@@ -278,12 +279,15 @@ defmodule DeployexWeb.VersionsLive do
     case Enum.find(statuses, &(&1.name == name)) do
       %{config: config} = app when is_map(config) -> app
       app when is_map(app) -> %{app | config: %{}}
-      nil -> %Status{name: name, config: %{}}
+      nil -> nil
     end
   end
 
-  defp history(socket, name),
+  # An app this host does not run, like a mistyped name in the URL, has no catalog to read
+  defp history(socket, %Status{name: name}),
     do: if(connected?(socket), do: Status.history_version_list(name, []), else: [])
+
+  defp history(_socket, nil), do: []
 
   defp pinned(%{mode: :manual, manual_version: %{version: version}}), do: version
   defp pinned(_config), do: nil

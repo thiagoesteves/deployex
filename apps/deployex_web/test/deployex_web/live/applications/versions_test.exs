@@ -137,11 +137,11 @@ defmodule DeployexWeb.Applications.VersionsTest do
   end
 
   @tag :capture_log
-  test "an app with no history says so", %{conn: conn} do
+  test "an app this host does not run has no history, and its catalog is not read", %{conn: conn} do
     Deployer.StatusMock
     |> stub(:monitoring, fn -> {:ok, [FixtureStatus.deployex()]} end)
     |> stub(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, [] -> [] end)
+    |> expect(:history_version_list, 0, fn _name, [] -> [] end)
 
     {:ok, _view, html} = live(conn, ~p"/applications/unknown/versions")
     assert html =~ "No version has run on this host yet."
