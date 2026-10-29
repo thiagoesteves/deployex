@@ -63,6 +63,13 @@ defmodule Sentinel.Logs.ServerTest do
     assert [] == Server.get_types_by_sname(nil)
   end
 
+  test "list_data_by_sname_log_type/3 has no lines for an sname with no table" do
+    assert Server.list_data_by_sname_log_type(
+             "never-tailed-#{System.unique_integer([:positive])}",
+             "stdout"
+           ) == []
+  end
+
   test "list_active_snames/0", %{sname: sname} do
     snames = Server.list_active_snames()
     assert sname in snames

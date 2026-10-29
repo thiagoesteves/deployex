@@ -11,8 +11,8 @@ defmodule DeployexWeb.Components.Search do
 
   @pages [
     {"Applications", "every app on this host", "/applications"},
-    {"Live Logs", "stdout and stderr of every instance", "/logs?mode=live"},
-    {"History Logs", "stored log lines", "/logs?mode=history"},
+    {"Live Logs", "stdout and stderr of every instance", "/logs/live"},
+    {"History Logs", "stored log lines", "/logs/history"},
     {"Observer Web", "processes, ETS, tracing", "/embedded-observer"},
     {"Terminal", "IEx on an instance, or a shell on this host", "/terminal"},
     {"Hot Upgrade", "apply a hot upgrade", "/hotupgrade"},

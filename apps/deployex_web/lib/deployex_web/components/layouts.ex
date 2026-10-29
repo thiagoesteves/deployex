@@ -86,7 +86,7 @@ defmodule DeployexWeb.Layouts do
         </div>
       </:top_bar_status>
       <:top_bar_end>
-        <Bell.bell items={@recent_events} all_href="/logs?mode=live" all_text="View logs" />
+        <Bell.bell items={@recent_events} all_href="/logs/live" all_text="View logs" />
         <ThemeSwitch.theme_switch />
         <Menu.menu
           id="account-menu"

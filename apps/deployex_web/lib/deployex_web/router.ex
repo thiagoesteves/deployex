@@ -72,8 +72,8 @@ defmodule DeployexWeb.Router do
       ] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
-      live "/logs/live", LogsLive, :index
-      live "/logs/history", HistoryLive, :index
+      live "/logs/live", LogsLive, :live
+      live "/logs/history", LogsLive, :history
       live "/embedded-observer", ObserverLive, :index
       live "/applications", ApplicationsLive, :index
       live "/applications/:name/versions", ApplicationsLive, :versions

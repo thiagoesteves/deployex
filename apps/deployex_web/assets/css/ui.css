@@ -1422,3 +1422,9 @@
 .dx-hit[aria-selected="true"] {
     background: var(--dx-base-200);
 }
+
+.dx-mark {
+    background: color-mix(in oklch, var(--dx-warning) 35%, transparent);
+    color: inherit;
+    border-radius: 2px;
+}

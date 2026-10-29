@@ -102,7 +102,7 @@ defmodule DeployexWeb.RecentEvents do
   defp fields(fields) when is_list(fields), do: Enum.map_join(fields, ", ", &to_string/1)
   defp fields(_fields), do: ""
 
-  defp logs(sname), do: "/logs?mode=live&source=#{sname}"
+  defp logs(sname), do: "/logs/live?source=#{sname}"
 
   defp short(node) when is_atom(node) and not is_nil(node),
     do: node |> Atom.to_string() |> String.split("@") |> hd()

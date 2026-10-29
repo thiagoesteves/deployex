@@ -255,20 +255,25 @@ defmodule Sentinel.Logs.Server do
     now_minutes = unix_to_minutes()
     from_minutes = now_minutes - from
 
-    sname_table = sname_log_table(sname)
+    # An sname this server does not tail has no table, and has no lines
+    case :ets.whereis(sname_log_table(sname)) do
+      :undefined ->
+        []
 
-    result =
-      Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
-        case :ets.lookup(sname_table, log_type_key(type, minute)) do
-          [{_, value}] ->
-            value ++ acc
+      sname_table ->
+        result =
+          Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
+            case :ets.lookup(sname_table, log_type_key(type, minute)) do
+              [{_, value}] ->
+                value ++ acc
 
-          _ ->
-            acc
-        end
-      end)
+              _ ->
+                acc
+            end
+          end)
 
-    if order == :asc, do: Enum.reverse(result), else: result
+        if order == :asc, do: Enum.reverse(result), else: result
+    end
   end
 
   @impl true
