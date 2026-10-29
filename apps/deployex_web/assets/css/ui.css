@@ -1548,3 +1548,13 @@
     background: color-mix(in oklch, var(--dx-success) 9%, var(--dx-base-100));
     font-size: 13.5px;
 }
+
+.dx-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 24px;
+    border-top: 1px solid var(--dx-base-300);
+    text-align: center;
+}

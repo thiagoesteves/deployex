@@ -154,10 +154,31 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <div class="dx-lbl">Last deploy</div>
             <div></div>
           </div>
-          <p :if={@apps == []} class="dx-muted border-t border-(--dx-base-300) px-[26px] py-6">
-            No applications on this host. Add one under <code class="dx-mono">applications</code>
-            in the DeployEx YAML.
-          </p>
+          <div :if={@apps == []} class="dx-empty" id="apps-empty">
+            <Icons.icon name="cube" class="dx-ico dx-muted size-7" />
+            <b class="text-[15px]">No applications on this host</b>
+            <p class="dx-muted max-w-[460px] text-[13.5px]">
+              Add one under <code class="dx-mono">applications</code>
+              in deployex.yaml. DeployEx deploys it when its release bucket has a version.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-2">
+              <span class="dx-muted text-[13px]">How to build and add an app:</span>
+              <.link
+                :for={
+                  {label, page} <- [
+                    {"Elixir", "guide-local-elixir"},
+                    {"Erlang", "guide-local-erlang"},
+                    {"Gleam", "guide-local-gleam"}
+                  ]
+                }
+                class="dx-btn"
+                navigate={~p"/documentation?#{%{page: "#{page}.html"}}"}
+              >
+                {label}
+              </.link>
+              <.link class="dx-btn" navigate={~p"/documentation?#{%{page: "guide-yaml.html"}}"}>YAML reference</.link>
+            </div>
+          </div>
           <.app_row
             :for={app <- @apps}
             app={app}

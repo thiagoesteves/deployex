@@ -189,7 +189,9 @@ defmodule DeployexWeb.Applications.IndexTest do
     stub_monitoring([])
 
     {:ok, view, html} = live(conn, ~p"/applications")
-    assert html =~ "No applications on this host."
+    assert html =~ "No applications on this host"
+    assert html =~ ~s(href="/documentation?page=guide-local-elixir.html")
+    assert html =~ ~s(href="/documentation?page=guide-yaml.html")
 
     html = view |> element("#host-restart") |> render_click()
     assert html =~ "Restart DeployEx?"

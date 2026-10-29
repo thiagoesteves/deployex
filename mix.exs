@@ -83,29 +83,62 @@ defmodule Deployex.MixProject do
         "README.md",
         "LICENSE.md": [filename: "license", title: "License"],
         "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
-        "guides/docs/aws-elixir/README.md": [filename: "README.md", title: "AWS-Elixir"],
+        "guides/docs/aws-elixir/README.md": [
+          filename: "guide-aws-elixir",
+          title: "AWS-Elixir"
+        ],
         "guides/docs/aws-elixir-db-certificate/README.md": [
-          filename: "README.md",
+          filename: "guide-aws-elixir-db-certificate",
           title: "AWS-Elixir-DB-CertManager"
         ],
-        "guides/docs/aws-erlang/README.md": [filename: "README.md", title: "AWS-Erlang"],
-        "guides/docs/aws-gleam/README.md": [filename: "README.md", title: "AWS-Gleam"],
-        "guides/docs/aws-air-gapped/README.md": [filename: "README.md", title: "AWS-Air-Gapped"],
-        "guides/docs/gcp-elixir/README.md": [filename: "README.md", title: "GCP-Elixir"],
-        "guides/docs/local-elixir/README.md": [filename: "README.md", title: "Local-Elixir"],
+        "guides/docs/aws-erlang/README.md": [
+          filename: "guide-aws-erlang",
+          title: "AWS-Erlang"
+        ],
+        "guides/docs/aws-gleam/README.md": [
+          filename: "guide-aws-gleam",
+          title: "AWS-Gleam"
+        ],
+        "guides/docs/aws-air-gapped/README.md": [
+          filename: "guide-aws-air-gapped",
+          title: "AWS-Air-Gapped"
+        ],
+        "guides/docs/gcp-elixir/README.md": [
+          filename: "guide-gcp-elixir",
+          title: "GCP-Elixir"
+        ],
+        "guides/docs/local-elixir/README.md": [
+          filename: "guide-local-elixir",
+          title: "Local-Elixir"
+        ],
         "guides/docs/local-elixir-ecto/README.md": [
-          filename: "README.md",
+          filename: "guide-local-elixir-ecto",
           title: "Local-Elixir-Ecto"
         ],
         "guides/docs/local-elixir-umbrella/README.md": [
-          filename: "README.md",
+          filename: "guide-local-elixir-umbrella",
           title: "Local-Elixir-Umbrella"
         ],
-        "guides/docs/local-erlang/README.md": [filename: "README.md", title: "Local-Erlang"],
-        "guides/docs/local-gleam/README.md": [filename: "README.md", title: "Local-Gleam"],
-        "guides/docs/yaml/README.md": [filename: "README.md", title: "YAML"],
-        "guides/docs/agent-api/README.md": [filename: "README.md", title: "Agent API"],
-        "guides/docs/hot-upgrades/README.md": [filename: "README.md", title: "Hot Upgrades"]
+        "guides/docs/local-erlang/README.md": [
+          filename: "guide-local-erlang",
+          title: "Local-Erlang"
+        ],
+        "guides/docs/local-gleam/README.md": [
+          filename: "guide-local-gleam",
+          title: "Local-Gleam"
+        ],
+        "guides/docs/yaml/README.md": [
+          filename: "guide-yaml",
+          title: "YAML"
+        ],
+        "guides/docs/agent-api/README.md": [
+          filename: "guide-agent-api",
+          title: "Agent API"
+        ],
+        "guides/docs/hot-upgrades/README.md": [
+          filename: "guide-hot-upgrades",
+          title: "Hot Upgrades"
+        ]
       ]
     ]
   end
