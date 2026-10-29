@@ -150,7 +150,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :ask, :any, required: true
   attr :sent, :any, required: true, doc: "the snames with a restart sent"
-  attr :hidden, :integer, default: 0, doc: "the apps the attention filter hides"
+  attr :hidden, :integer, default: 0, doc: "the apps a filter hides"
+  attr :hidden_text, :string, default: nil, doc: "what the filter shows, above Show all"
 
   attr :cleared, :map,
     required: true,
@@ -215,10 +216,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         :if={@hidden > 0}
         class="dx-muted flex flex-wrap items-center justify-between gap-2.5 border-t border-(--dx-base-300) px-5 py-3 text-[0.8125rem]"
       >
-        <span>
-          {if @hidden == 1, do: "1 more app has", else: "#{@hidden} more apps have"} no problem.
-        </span>
-        <button id="apps-show-all" type="button" class="dx-btn" phx-click="toggle-attention">
+        <span>{@hidden_text}</span>
+        <button id="apps-show-all" type="button" class="dx-btn" phx-click="show-all">
           Show all
         </button>
       </div>

@@ -138,6 +138,23 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
+  test "a search result shows only its app, until Show all", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{name: "calmapp"}),
+      FixtureStatus.application(%{name: "myphoenixapp"})
+    ])
+
+    {:ok, view, html} = live(conn, ~p"/applications?app=myphoenixapp")
+    assert has_element?(view, "#app-myphoenixapp")
+    refute has_element?(view, "#app-calmapp")
+    assert html =~ "Showing myphoenixapp only. 1 more app runs on this host."
+
+    view |> element("#apps-show-all") |> render_click()
+    assert_patch(view, ~p"/applications")
+    assert has_element?(view, "#app-calmapp")
+  end
+
+  @tag :capture_log
   test "GET /applications shows a ghosted version under its app, and clears it after the Undo window",
        %{conn: conn} do
     test_pid = self()

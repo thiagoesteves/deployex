@@ -19,14 +19,26 @@ defmodule DeployexWeb.ApplicationsLive do
   @impl true
   def render(assigns) do
     attention = View.attention(assigns.apps)
-    # The filter turns itself off when no app needs attention
-    only = assigns.only_attention and attention.count > 0
+    one = Enum.find(assigns.apps, &(&1.name == assigns.only_app))
+    # The filter turns itself off when no app needs attention, and one app from search comes first
+    only = is_nil(one) and assigns.only_attention and attention.count > 0
+
+    shown =
+      cond do
+        one -> [one]
+        only -> Enum.filter(assigns.apps, &View.attention?/1)
+        true -> assigns.apps
+      end
+
+    hidden = length(assigns.apps) - length(shown)
 
     assigns =
       assign(assigns,
         attention: attention,
         only: only,
-        shown: if(only, do: Enum.filter(assigns.apps, &View.attention?/1), else: assigns.apps)
+        shown: shown,
+        hidden: hidden,
+        hidden_text: hidden_text(one, hidden)
       )
 
     ~H"""
@@ -47,7 +59,8 @@ defmodule DeployexWeb.ApplicationsLive do
         />
         <Board.app_table
           apps={@shown}
-          hidden={length(@apps) - length(@shown)}
+          hidden={@hidden}
+          hidden_text={@hidden_text}
           open={@open}
           limits_open={@limits_open}
           ask={@ask}
@@ -95,6 +108,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:open, MapSet.new())
      |> assign(:limits_open, %{})
      |> assign(:only_attention, false)
+     |> assign(:only_app, nil)
      |> assign(:ask, nil)
      |> assign(:sent, MapSet.new())
      |> assign(:cleared, %{})
@@ -104,7 +118,11 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def handle_params(params, _url, socket) do
-    {:noreply, socket |> apply_action(socket.assigns.live_action, params) |> focus(params)}
+    {:noreply,
+     socket
+     |> apply_action(socket.assigns.live_action, params)
+     |> assign(:only_app, params["app"])
+     |> focus(params)}
   end
 
   defp apply_action(socket, :index, _params), do: assign(socket, :page_title, "Applications")
@@ -165,8 +183,18 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_event("toggle-attention", _params, socket),
+  def handle_event("toggle-attention", _params, %{assigns: %{only_app: nil}} = socket),
     do: {:noreply, update(socket, :only_attention, &(not &1))}
+
+  # From one app that search opened, the chip shows the apps that need attention
+  def handle_event("toggle-attention", _params, socket),
+    do: {:noreply, socket |> assign(:only_attention, true) |> push_patch(to: ~p"/applications")}
+
+  def handle_event("show-all", _params, %{assigns: %{only_app: nil}} = socket),
+    do: {:noreply, assign(socket, :only_attention, false)}
+
+  def handle_event("show-all", _params, socket),
+    do: {:noreply, socket |> assign(:only_attention, false) |> push_patch(to: ~p"/applications")}
 
   def handle_event("toggle-app", %{"name" => name, "open" => "true"}, socket),
     do: {:noreply, update(socket, :open, &MapSet.put(&1, name))}
@@ -298,4 +326,11 @@ defmodule DeployexWeb.ApplicationsLive do
       pending_config_changes: nil
     }
   end
+
+  defp hidden_text(nil, 1), do: "1 more app has no problem."
+  defp hidden_text(nil, hidden), do: "#{hidden} more apps have no problem."
+  defp hidden_text(%{name: name}, 1), do: "Showing #{name} only. 1 more app runs on this host."
+
+  defp hidden_text(%{name: name}, hidden),
+    do: "Showing #{name} only. #{hidden} more apps run on this host."
 end
