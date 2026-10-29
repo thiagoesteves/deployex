@@ -221,6 +221,22 @@
     background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
 }
 
+/* On an open app, the head's click closes the instances too, so its hover tints the whole block */
+.dx-app-open > .dx-ahead:hover {
+    background: transparent;
+}
+
+.dx-app-open::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.dx-app-open:has(> .dx-ahead:hover)::after {
+    background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
+}
+
 /* The callouts keep the bottom margin inside the head, so the hover covers them */
 .dx-ahead > .dx-callout:last-child {
     margin-bottom: 0;
