@@ -9,6 +9,7 @@ defmodule DeployexWeb.AgentApi.Socket do
 
   channel "events", DeployexWeb.AgentApi.EventsChannel
   channel "apps", DeployexWeb.AgentApi.AppsChannel
+  channel "logs:*", DeployexWeb.AgentApi.LogsChannel
 
   @impl true
   def connect(_params, socket, connect_info) do

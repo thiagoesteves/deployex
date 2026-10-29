@@ -4,6 +4,7 @@ defmodule DeployexWeb.AgentApi.Router do
   pipeline :read do
     plug :accepts, ["json"]
     plug DeployexWeb.AgentApi.Auth, scope: "read"
+    plug :fetch_query_params
   end
 
   # The token check runs first, so a token with no operate scope is always audited. Only the
@@ -27,6 +28,7 @@ defmodule DeployexWeb.AgentApi.Router do
     get "/apps/:name", AppController, :show
     get "/apps/:name/versions", AppController, :versions
     get "/apps/:name/ghosted", AppController, :ghosted
+    get "/apps/:name/logs", LogController, :index
   end
 
   scope "/v1", DeployexWeb.AgentApi do
