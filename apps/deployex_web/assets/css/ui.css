@@ -1239,14 +1239,24 @@
     background: var(--dx-base-200);
 }
 
+/* On: a check and a tinted fill. Off: a dashed outline and faded marks */
 .dx-tog[aria-pressed="true"] {
     color: var(--dx-base-content);
-    background: var(--dx-base-200);
-    border-color: color-mix(in oklch,var(--dx-base-content) 28%,var(--dx-base-100));
+    background: color-mix(in oklab,var(--dx-info) 14%,var(--dx-base-100));
+    border-color: color-mix(in oklab,var(--dx-info) 65%,var(--dx-base-100));
 }
 
-.dx-tog[aria-pressed="false"] .dx-dot {
-    opacity: 0.3;
+.dx-tog[aria-pressed="false"] {
+    border-style: dashed;
+    background: transparent;
+}
+
+.dx-tog[aria-pressed="false"] :is(.dx-dot, svg, img) {
+    opacity: 0.4;
+}
+
+.dx-tog-check {
+    color: var(--dx-info-text);
 }
 
 .dx-rng {

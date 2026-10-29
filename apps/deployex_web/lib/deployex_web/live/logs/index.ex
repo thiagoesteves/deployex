@@ -100,6 +100,12 @@ defmodule DeployexWeb.LogsLive do
               phx-click="toggle-source"
               phx-value-sname={source.sname}
             >
+              <Icons.icon
+                :if={MapSet.member?(@selected, source.sname)}
+                name="check"
+                stroke="2.4"
+                class="dx-ico dx-tog-check size-3.5"
+              />
               <span class="dx-dot" style={"color: var(#{source.color})"}></span>
               <Icons.icon :if={source.sname == "events"} name="bell" class="dx-ico size-4" />
               <Tags.lang :if={source.sname != "events"} name={source.lang} small />{source.sname}
@@ -118,6 +124,12 @@ defmodule DeployexWeb.LogsLive do
                 phx-click="toggle-stream"
                 phx-value-type={type}
               >
+                <Icons.icon
+                  :if={MapSet.member?(@types, type)}
+                  name="check"
+                  stroke="2.4"
+                  class="dx-ico dx-tog-check size-3.5"
+                />
                 <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
               </button>
               <form
@@ -172,7 +184,13 @@ defmodule DeployexWeb.LogsLive do
 
         <section class="dx-card overflow-hidden" aria-label="Log lines">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--dx-base-300) px-[18px] py-2.5 text-[0.78125rem]">
-            <span class="dx-muted" id="logs-summary">{summary(@shown, @cap, @selected, @sources)}</span>
+            <span class="dx-muted" id="logs-summary">{summary(
+              @shown,
+              @cap,
+              @selected,
+              @sources,
+              @types
+            )}</span>
             <span class="dx-muted">Newest at the bottom</span>
           </div>
           <div
@@ -549,13 +567,20 @@ defmodule DeployexWeb.LogsLive do
     {:safe, parts}
   end
 
-  defp summary(shown, cap, selected, sources) do
+  defp summary(shown, cap, selected, sources, types) do
     lines =
       if shown >= cap,
         do: "#{cap} lines, the newest",
         else: "#{shown} #{if shown == 1, do: "line", else: "lines"}"
 
-    "#{lines} · #{MapSet.size(selected)} of #{length(sources)} sources"
+    streams =
+      case Enum.filter(@types, &MapSet.member?(types, &1)) do
+        [_stdout, _stderr] -> "stdout and stderr"
+        [type] -> "#{type} only"
+        [] -> "no stream"
+      end
+
+    "#{lines} · #{MapSet.size(selected)} of #{length(sources)} sources · #{streams}"
   end
 
   defp host_name do

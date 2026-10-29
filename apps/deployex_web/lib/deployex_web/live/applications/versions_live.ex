@@ -8,6 +8,7 @@ defmodule DeployexWeb.VersionsLive do
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Board
   alias DeployexWeb.ApplicationsLive.View
+  alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Tags
 
   @impl true
@@ -124,6 +125,12 @@ defmodule DeployexWeb.VersionsLive do
                     else: ~p"/applications/#{@name}/versions"
                 }
               >
+                <Icons.icon
+                  :if={@filter == sname}
+                  name="check"
+                  stroke="2.4"
+                  class="dx-ico dx-tog-check size-3.5"
+                />
                 {label}
               </.link>
             </div>

@@ -118,11 +118,12 @@ defmodule DeployexWeb.Applications.VersionsTest do
   test "the history shows one instance's versions from its own path", %{conn: conn} do
     stub_status(config())
 
-    {:ok, view, html} = live(conn, ~p"/applications/#{@name}/#{@sname}/versions")
-    assert html =~ ~r/aria-pressed="true"[^>]*>\s*abc123/
+    {:ok, view, _html} = live(conn, ~p"/applications/#{@name}/#{@sname}/versions")
+    assert has_element?(view, ~s(a[aria-pressed="true"]), "abc123")
 
-    html = render_patch(view, ~p"/applications/#{@name}/versions")
-    assert html =~ ~r/aria-pressed="true"[^>]*>\s*All instances/
+    render_patch(view, ~p"/applications/#{@name}/versions")
+    assert has_element?(view, ~s(a[aria-pressed="true"]), "All instances")
+    refute has_element?(view, ~s(a[aria-pressed="true"]), "abc123")
 
     # Another node's update changes nothing, this node's reloads the page
     send(view.pid, {:monitoring_app_updated, :other@host, []})

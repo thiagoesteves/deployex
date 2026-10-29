@@ -142,7 +142,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     assert html =~ "only this"
     refute html =~ "not this"
-    assert html =~ "1 line · 1 of 3 sources"
+    assert html =~ "1 line · 1 of 3 sources · stderr only"
   end
 
   @tag :capture_log
