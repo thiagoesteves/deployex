@@ -147,4 +147,45 @@ defmodule DeployexWeb.Terminal.IndexTest do
     html = view |> element("#new-myelixir-nobinary") |> render_click()
     assert html =~ "Could not open a shell on myelixir-nobinary"
   end
+
+  @tag :capture_log
+  test "two sessions show side by side, each with its output, and swap or close back to one", %{
+    conn: conn,
+    user: user
+  } do
+    {:ok, _session} = Shell.open(user.username, "host")
+    {:ok, _session} = Shell.open(user.username, "deployex")
+    wait_running(user.username, "host")
+    wait_running(user.username, "deployex")
+
+    {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
+    assert_push_event(view, "shell-reset-host", %{data: ""})
+    refute has_element?(view, "#terminal-unsplit")
+
+    view |> element("#split-session-panel button", "deployex") |> render_click()
+    assert_patch(view, "/terminal?split=deployex&target=host")
+    assert_push_event(view, "shell-reset-deployex", %{data: ""})
+    assert has_element?(view, "#terminal-unsplit")
+    assert [_host, _deployex] = view |> render() |> then(&Regex.scan(~r/phx-hook="XTerm"/, &1))
+
+    # Each session's output goes to its own pane
+    for {target, data} <- [{"host", "$ "}, {"deployex", "iex> "}] do
+      [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, target})
+      send(:sys.get_state(pid).terminal, {:stdout, @os_pid, data})
+    end
+
+    assert_push_event(view, "shell-output-host", %{data: "$ "})
+    assert_push_event(view, "shell-output-deployex", %{data: "iex> "})
+
+    # The second session's tab swaps the panes
+    view |> element("button[phx-value-target=deployex].dx-tab-sel") |> render_click()
+    assert_patch(view, "/terminal?split=host&target=deployex")
+
+    # Closing the second pane keeps its session running
+    view |> element("#terminal-unsplit") |> render_click()
+    assert_patch(view, "/terminal?target=deployex")
+    assert [_host, _deployex] = Shell.list(user.username)
+
+    close_all(user.username)
+  end
 end

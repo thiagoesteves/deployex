@@ -1662,6 +1662,37 @@
     background: rgb(127 127 127 / 0.2);
 }
 
+/* One shell, or two side by side, each with its own keyboard focus */
+.dx-panes {
+    display: flex;
+    gap: 2px;
+    min-width: 0;
+    background: var(--dx-base-300);
+}
+
+.dx-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dx-pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 6px 0 12px;
+    background: var(--dx-base-200);
+    font-size: 0.8125rem;
+}
+
+/* The pane that has the keyboard shows it */
+.dx-pane:focus-within .dx-pane-head {
+    box-shadow: inset 0 -2px 0 var(--dx-info);
+}
+
 .dx-term {
     background: #0d1117;
     color: #c9d1d9;

@@ -17,11 +17,9 @@ defmodule DeployexWeb.TerminalLive do
   @impl true
   def render(assigns) do
     assigns =
-      assign(
-        assigns,
-        :active_session,
-        Enum.find(assigns.sessions, &(&1.target == assigns.active))
-      )
+      assigns
+      |> assign(:active_session, Enum.find(assigns.sessions, &(&1.target == assigns.active)))
+      |> assign(:split_session, Enum.find(assigns.sessions, &(&1.target == assigns.split)))
 
     ~H"""
     <Layouts.app
@@ -67,7 +65,7 @@ defmodule DeployexWeb.TerminalLive do
             <div role="group" aria-label="Sessions" class="flex flex-wrap gap-1">
               <div
                 :for={session <- @sessions}
-                class={["dx-tab", session.target == @active && "dx-tab-on"]}
+                class={["dx-tab", session.target in [@active, @split] && "dx-tab-on"]}
               >
                 <button
                   id={"tab-#{session.id}"}
@@ -116,6 +114,35 @@ defmodule DeployexWeb.TerminalLive do
                 </p>
               </Menu.menu>
             </div>
+            <div :if={@active_session && is_nil(@split_session)} class="mb-1">
+              <Menu.menu
+                id="split-session"
+                label="Show a second session beside this one"
+                button_class="dx-btn"
+                panel_class="left-0 right-auto w-[300px]"
+              >
+                <:button><Icons.icon name="split" stroke="1.8" class="dx-ico size-4" /> Split</:button>
+                <Menu.item
+                  :for={session <- @sessions}
+                  :if={session.target != @active}
+                  id={"split-#{session.id}"}
+                  class="justify-between"
+                  phx-click="split"
+                  phx-value-target={session.target}
+                >
+                  <span class="inline-flex items-center gap-2">
+                    <Tags.lang name={session.language} small /><span class="dx-mono text-[0.8125rem]">{title(
+                      session.target,
+                      @host_name
+                    )}</span>
+                  </span>
+                  <span class="dx-muted text-xs">{kind(session.kind)}</span>
+                </Menu.item>
+                <p :if={length(@sessions) < 2} class="dx-muted p-2.5 text-[0.8125rem]">
+                  Open a second session with New session, then show it here beside this one.
+                </p>
+              </Menu.menu>
+            </div>
             <button
               id="terminal-shortcuts"
               type="button"
@@ -128,18 +155,15 @@ defmodule DeployexWeb.TerminalLive do
           </div>
 
           <div :if={@active_session} class="flex flex-wrap">
-            <div class="dx-term flex-[999_1_520px]">
-              <div
-                id={"xterm-#{@active_session.id}"}
-                class="dx-xterm flex-1"
-                phx-hook="XTerm"
-                phx-update="ignore"
-                data-target={@active_session.target}
-                data-focus
-                role="log"
-                aria-label={"Output of #{title(@active_session.target, @host_name)}"}
-              >
-              </div>
+            <div class="dx-panes flex-[999_1_520px]">
+              <.pane session={@active_session} host_name={@host_name} split={@split_session != nil} />
+              <.pane
+                :if={@split_session}
+                session={@split_session}
+                host_name={@host_name}
+                split
+                second
+              />
             </div>
             <ShellHelp.help :if={@help_open} kind={@active_session.kind} />
           </div>
@@ -159,6 +183,50 @@ defmodule DeployexWeb.TerminalLive do
     """
   end
 
+  attr :session, :map, required: true
+  attr :host_name, :string, required: true
+  attr :split, :boolean, default: false, doc: "whether two panes show, each with a head"
+  attr :second, :boolean, default: false, doc: "the pane on the right, which Close takes away"
+
+  # One shell. With a split, each pane names its session, and the second can close back to one pane
+  defp pane(assigns) do
+    ~H"""
+    <div class="dx-pane">
+      <div :if={@split} class="dx-pane-head">
+        <span class="inline-flex min-w-0 items-center gap-2">
+          <Tags.lang name={@session.language} small />
+          <span class="dx-mono truncate">{title(@session.target, @host_name)}</span>
+          <span class="dx-muted">{kind(@session.kind)}</span>
+        </span>
+        <button
+          :if={@second}
+          id="terminal-unsplit"
+          type="button"
+          class="dx-ghost size-7"
+          aria-label="Close the second pane. The session keeps running"
+          title="Close the pane"
+          phx-click="unsplit"
+        >
+          <Icons.icon name="x-mark" stroke="2.2" class="dx-ico size-[13px]" />
+        </button>
+      </div>
+      <div class="dx-term">
+        <div
+          id={"xterm-#{@session.id}"}
+          class="dx-xterm flex-1"
+          phx-hook="XTerm"
+          phx-update="ignore"
+          data-target={@session.target}
+          data-focus={!@second}
+          role="log"
+          aria-label={"Output of #{title(@session.target, @host_name)}"}
+        >
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -166,7 +234,8 @@ defmodule DeployexWeb.TerminalLive do
      |> assign(:user, user_key(socket.assigns.current_user))
      |> assign(:host_name, host_name())
      |> assign(:help_open, true)
-     |> assign(:attached, nil)
+     |> assign(:attached, %{})
+     |> assign(:split, nil)
      |> assign(:page_title, "Terminal")
      |> assign(:current_path, "/terminal")
      |> load_sessions()}
@@ -180,12 +249,30 @@ defmodule DeployexWeb.TerminalLive do
         _ -> sessions |> List.first() |> then(&(&1 && &1.target))
       end
 
-    {:noreply, socket |> assign(:active, active) |> attach()}
+    # The second pane shows another open session, never the first one again
+    split =
+      with target when is_binary(target) and target != active <- params["split"],
+           true <- Enum.any?(sessions, &(&1.target == target)) do
+        target
+      else
+        _ -> nil
+      end
+
+    {:noreply, socket |> assign(active: active, split: split) |> attach()}
   end
 
   @impl true
-  def handle_event("select", %{"target" => target}, socket),
-    do: {:noreply, push_patch(socket, to: ~p"/terminal?target=#{target}")}
+  def handle_event("select", %{"target" => target}, %{assigns: assigns} = socket) do
+    # The second pane's tab swaps the panes, so both sessions stay in view
+    split = if target == assigns.split, do: assigns.active, else: assigns.split
+    {:noreply, push_patch(socket, to: pane_path(target, split))}
+  end
+
+  def handle_event("split", %{"target" => target}, %{assigns: %{active: active}} = socket),
+    do: {:noreply, push_patch(socket, to: pane_path(active, target))}
+
+  def handle_event("unsplit", _params, %{assigns: %{active: active}} = socket),
+    do: {:noreply, push_patch(socket, to: pane_path(active, nil))}
 
   def handle_event("new", %{"target" => target}, %{assigns: %{user: user}} = socket) do
     case Shell.open(user, target) do
@@ -222,46 +309,75 @@ defmodule DeployexWeb.TerminalLive do
   end
 
   @impl true
-  def handle_info(
-        {:shell_output, id, data},
-        %{assigns: %{attached: %{id: id, target: target}}} = socket
-      ),
-      do: {:noreply, push_event(socket, "shell-output-#{target}", %{data: data})}
+  def handle_info({:shell_output, id, data}, %{assigns: %{attached: attached}} = socket) do
+    case Enum.find(attached, fn {_target, session} -> session.id == id end) do
+      {target, _session} ->
+        {:noreply, push_event(socket, "shell-output-#{target}", %{data: data})}
 
-  def handle_info({:shell_closed, _id}, %{assigns: %{active: active}} = socket) do
-    socket = socket |> assign(:attached, nil) |> load_sessions()
+      nil ->
+        {:noreply, socket}
+    end
+  end
 
-    if Enum.any?(socket.assigns.sessions, &(&1.target == active)) do
-      {:noreply, socket}
-    else
-      {:noreply, push_patch(socket, to: ~p"/terminal")}
+  # A closed session leaves its pane. The other pane stays, alone
+  def handle_info({:shell_closed, id}, %{assigns: assigns} = socket) do
+    socket =
+      socket
+      |> update(:attached, &Map.reject(&1, fn {_target, session} -> session.id == id end))
+      |> load_sessions()
+
+    open = MapSet.new(socket.assigns.sessions, & &1.target)
+
+    cond do
+      MapSet.member?(open, assigns.active) and
+          (is_nil(assigns.split) or MapSet.member?(open, assigns.split)) ->
+        {:noreply, socket}
+
+      MapSet.member?(open, assigns.active) ->
+        {:noreply, push_patch(socket, to: pane_path(assigns.active, nil))}
+
+      MapSet.member?(open, assigns.split || "") ->
+        {:noreply, push_patch(socket, to: pane_path(assigns.split, nil))}
+
+      true ->
+        {:noreply, push_patch(socket, to: ~p"/terminal")}
     end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  # Follows the active session, and stops following the one before. Both keep running
-  defp attach(%{assigns: %{active: active, attached: attached}} = socket) do
-    if attached && attached.target != active, do: Shell.detach(attached)
+  # Follows the sessions in the panes, and stops following the others. Every session keeps running
+  defp attach(%{assigns: %{active: active, split: split, attached: attached}} = socket) do
+    wanted = Enum.reject([active, split], &is_nil/1)
 
-    cond do
-      not connected?(socket) or is_nil(active) -> assign(socket, :attached, nil)
-      attached && attached.target == active -> socket
-      true -> attach_active(socket)
+    for {target, session} <- attached, target not in wanted, do: Shell.detach(session)
+    socket = assign(socket, :attached, Map.take(attached, wanted))
+
+    if connected?(socket) do
+      Enum.reduce(wanted, socket, fn target, socket ->
+        if Map.has_key?(socket.assigns.attached, target),
+          do: socket,
+          else: attach_target(socket, target)
+      end)
+    else
+      socket
     end
   end
 
-  defp attach_active(%{assigns: %{user: user, active: active}} = socket) do
-    case Shell.attach(user, active) do
+  defp attach_target(%{assigns: %{user: user}} = socket, target) do
+    case Shell.attach(user, target) do
       {:ok, session, scrollback} ->
         socket
-        |> assign(:attached, session)
-        |> push_event("shell-reset-#{active}", %{data: scrollback})
+        |> update(:attached, &Map.put(&1, target, session))
+        |> push_event("shell-reset-#{target}", %{data: scrollback})
 
       :error ->
-        assign(socket, :attached, nil)
+        socket
     end
   end
+
+  defp pane_path(target, nil), do: ~p"/terminal?#{%{target: target}}"
+  defp pane_path(target, split), do: ~p"/terminal?#{%{target: target, split: split}}"
 
   defp load_sessions(%{assigns: %{user: user, host_name: host_name}} = socket) do
     sessions = Shell.list(user)
