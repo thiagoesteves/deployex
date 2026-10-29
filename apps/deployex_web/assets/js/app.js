@@ -208,6 +208,8 @@ const hooks = {
         this.term.write(data);
       });
       this.fit = () => {
+        // A hidden terminal, like one in a collapsed dock, keeps its size, so the shell does not rewrap to it
+        if (!this.el.clientWidth || !this.el.clientHeight) return;
         const cell = this.term._core._renderService.dimensions.css.cell;
         if (!cell.width || !cell.height) return;
         const cols = Math.max(20, Math.floor(this.el.clientWidth / cell.width));
