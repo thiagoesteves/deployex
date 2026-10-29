@@ -113,9 +113,15 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply,
      socket
      |> apply_action(socket.assigns.live_action, params)
-     |> assign(:tags, Filter.parse(params))
+     |> tags(Filter.parse(params))
      |> focus(params)}
   end
+
+  # New tags start from collapsed apps, so Clear does not leave open what a tag opened
+  defp tags(%{assigns: %{tags: tags}} = socket, tags), do: socket
+
+  defp tags(socket, tags),
+    do: assign(socket, tags: tags, open: MapSet.new(), limits_open: %{})
 
   defp apply_action(socket, :index, _params), do: assign(socket, :page_title, "Applications")
 

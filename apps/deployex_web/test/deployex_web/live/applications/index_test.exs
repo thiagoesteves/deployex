@@ -153,6 +153,12 @@ defmodule DeployexWeb.Applications.IndexTest do
     refute has_element?(view, "#app-calmapp")
     assert html =~ "app: myphoenixapp"
     assert html =~ ~s(aria-label="Remove the filter app: myphoenixapp")
+    assert has_element?(view, ~s(#app-myphoenixapp-toggle[aria-expanded="true"]))
+
+    # Clear shows every app, collapsed
+    view |> element("#apps-show-all") |> render_click()
+    assert has_element?(view, "#app-calmapp")
+    assert has_element?(view, ~s(#app-myphoenixapp-toggle[aria-expanded="false"]))
 
     stub_monitoring(apps)
     {:ok, view, html} = live(conn, ~p"/applications?filter=runtime:erlang,runtime:gleam")
