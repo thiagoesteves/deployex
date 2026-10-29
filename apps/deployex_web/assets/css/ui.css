@@ -1550,6 +1550,13 @@
     font: 0.8125rem var(--dx-font-sans);
 }
 
+/* The filter in the dock's head */
+.dx-filter-sm {
+    height: 28px;
+    width: 13rem;
+    padding: 0 10px;
+}
+
 .dx-filter::placeholder {
     color: var(--dx-muted);
 }

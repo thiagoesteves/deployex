@@ -240,6 +240,17 @@ defmodule DeployexWeb.Logs.IndexTest do
   end
 
   @tag :capture_log
+  test "the filter in the URL sets the text filter", %{conn: conn, sname: sname} do
+    stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname] end)
+    stub_logs(self(), %{{sname, "stdout"} => [message("keep this"), message("drop that")]})
+
+    {:ok, _view, html} = live(conn, ~p"/logs/history?#{%{source: sname, filter: "keep"}}")
+    assert html =~ ~s(value="keep")
+    assert html =~ "this"
+    refute html =~ "drop that"
+  end
+
+  @tag :capture_log
   test "a comma list of sources selects the known ones", %{conn: conn, sname: sname} do
     stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname, "deployex"] end)
     stub_logs(self(), %{})

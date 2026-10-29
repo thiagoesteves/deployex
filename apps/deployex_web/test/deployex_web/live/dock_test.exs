@@ -63,11 +63,28 @@ defmodule DeployexWeb.DockTest do
     assert html =~ "#{sname} · last 30 minutes, then live"
     assert html =~ "booted"
     assert html =~ "[error] failed once"
-    assert html =~ "History and filters in Logs"
+    assert html =~ "Open in Logs"
     assert_received {:subscribed, ^sname, "stdout"}
 
     send(dock.pid, {:logs_new_data, sname, "stdout", message("a new line")})
     assert render(dock) =~ "a new line"
+
+    # The filter keeps the lines that hold its text, also as they come
+    html = dock |> element("#dock-filter") |> render_change(%{"filter" => "NEW"})
+    assert html =~ "a new line"
+    refute html =~ "failed once"
+
+    send(dock.pid, {:logs_new_data, sname, "stdout", message("another one")})
+    refute render(dock) =~ "another one"
+
+    html = dock |> element("#dock-filter") |> render_change(%{"filter" => "zzz"})
+    assert html =~ "No line holds zzz. Open in Logs reads the history too."
+
+    # Open in Logs closes the tab, then opens Live Logs with its instance and filter
+    assert html =~ "/logs/live?filter=zzz&amp;source=#{sname}"
+
+    html = dock |> element("#dock-filter") |> render_change(%{"filter" => ""})
+    assert html =~ "failed once"
 
     html = dock |> element("#dock-stream-stderr") |> render_click()
     refute html =~ "failed once"

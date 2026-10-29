@@ -145,13 +145,19 @@ defmodule DeployexWeb.DockLive do
           <%= if @active_tab && @active_tab.kind == :logs do %>
             <div class="dx-k-head">
               <span class="dx-muted dx-mono text-xs">{logs_subtitle(@active_tab)} · last 30 minutes, then live</span>
-              <div class="flex items-center gap-1.5">
-                <.link
-                  class="dx-link mr-1.5 text-[0.8125rem] font-semibold"
-                  navigate={~p"/logs/live?#{logs_query(@active_tab)}"}
-                >
-                  History and filters in Logs
-                </.link>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <form id="dock-filter" phx-change="filter-logs" phx-submit="filter-logs">
+                  <input
+                    class="dx-filter dx-filter-sm"
+                    type="search"
+                    name="filter"
+                    value={@active_tab.filter}
+                    placeholder="Filter these lines"
+                    aria-label={"Filter the logs of #{@active_tab.target}"}
+                    phx-debounce="200"
+                    autocomplete="off"
+                  />
+                </form>
                 <button
                   :for={type <- ["stdout", "stderr"]}
                   id={"dock-stream-#{type}"}
@@ -168,6 +174,17 @@ defmodule DeployexWeb.DockLive do
                     class="dx-ico dx-tog-check size-3"
                   />
                   <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
+                </button>
+                <button
+                  id="dock-open-logs"
+                  type="button"
+                  class="dx-btn"
+                  phx-click={
+                    JS.push("close-tab", value: %{id: @active_tab.id})
+                    |> JS.navigate(~p"/logs/live?#{logs_query(@active_tab)}")
+                  }
+                >
+                  Open in Logs
                 </button>
               </div>
             </div>
@@ -197,7 +214,9 @@ defmodule DeployexWeb.DockLive do
                 </div>
               </div>
               <p :if={@active_tab.empty} class="dx-muted p-3.5 text-[0.8125rem]">
-                No lines for these streams.
+                {if @active_tab.filter == "",
+                  do: "No lines for these streams.",
+                  else: "No line holds #{@active_tab.filter}. Open in Logs reads the history too."}
               </p>
             </div>
           <% end %>
@@ -255,6 +274,7 @@ defmodule DeployexWeb.DockLive do
           whole_app: whole_app,
           types: @types,
           buffer: read_logs(snames, @types, whole_app),
+          filter: "",
           empty: false
         }
 
@@ -311,6 +331,9 @@ defmodule DeployexWeb.DockLive do
   def handle_event("cancel-close", _params, socket),
     do: {:noreply, assign(socket, :asking_close, false)}
 
+  def handle_event("filter-logs", %{"filter" => filter}, %{assigns: %{active: active}} = socket),
+    do: {:noreply, socket |> update_tab(active, &%{&1 | filter: filter}) |> show_logs()}
+
   def handle_event("toggle-stream", %{"type" => type}, %{assigns: %{active: active}} = socket)
       when type in @types do
     socket =
@@ -355,9 +378,11 @@ defmodule DeployexWeb.DockLive do
                 &%{&1 | buffer: Enum.take(Enum.reverse(lines) ++ &1.buffer, @log_cap)}
               )
 
-            if tab.id == active and type in tab.types do
+            shown = Enum.filter(lines, &holds?(&1, tab.filter))
+
+            if tab.id == active and type in tab.types and shown != [] do
               socket
-              |> stream(:lines, lines, limit: -@log_cap)
+              |> stream(:lines, shown, limit: -@log_cap)
               |> update_tab(tab.id, &%{&1 | empty: false})
             else
               socket
@@ -427,7 +452,10 @@ defmodule DeployexWeb.DockLive do
   defp show_logs(%{assigns: %{tabs: tabs, active: active}} = socket) do
     case Enum.find(tabs, &(&1.id == active)) do
       %{kind: :logs} = tab ->
-        lines = tab.buffer |> Enum.reverse() |> Enum.filter(&(&1.type in tab.types))
+        lines =
+          tab.buffer
+          |> Enum.reverse()
+          |> Enum.filter(&(&1.type in tab.types and holds?(&1, tab.filter)))
 
         socket
         |> stream(:lines, lines, reset: true, limit: -@log_cap)
@@ -551,8 +579,23 @@ defmodule DeployexWeb.DockLive do
   defp logs_subtitle(%{whole_app: true, target: app}), do: "every instance of #{app}"
   defp logs_subtitle(%{target: target}), do: target
 
-  defp logs_query(%{whole_app: false, target: target}), do: %{source: target}
-  defp logs_query(_tab), do: %{}
+  # Live Logs with this tab's instances, its stream when only one is on, and its filter
+  defp logs_query(tab) do
+    stream = with [type] <- tab.types, do: type
+
+    %{source: Enum.join(tab.snames, ","), stream: is_binary(stream) && stream, filter: tab.filter}
+    |> Enum.reject(fn {_key, value} -> value in [false, nil, ""] end)
+  end
+
+  # A line holds the filter text in its message or its source, in any case
+  defp holds?(_line, ""), do: true
+
+  defp holds?(line, filter) do
+    needle = String.downcase(filter)
+
+    String.contains?(String.downcase(line.text), needle) or
+      String.contains?(String.downcase(line.source), needle)
+  end
 
   defp close_label(%{kind: :shell, label: label, target: target}),
     do: "End the #{label} session on #{target}"

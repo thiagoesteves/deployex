@@ -4,7 +4,7 @@ defmodule DeployexWeb.LogsLive do
 
   `/logs/live` opens with the last 5 minutes and then follows new lines. `/logs/history` reads a time
   range. `source` (one or a comma list) and `stream` in the query select the sources and the stream.
-  `since` (unix seconds) picks the shortest range that covers it. The page keeps at most #{2_000} lines,
+  `since` (unix seconds) picks the shortest range that covers it, and `filter` sets the text filter. The page keeps at most #{2_000} lines,
   newest at the bottom.
   """
   use DeployexWeb, :live_view
@@ -263,6 +263,9 @@ defmodule DeployexWeb.LogsLive do
       if params["stream"] in @types, do: MapSet.new([params["stream"]]), else: MapSet.new(@types)
 
     socket = assign(socket, :range, range_since(params["since"], socket.assigns.range))
+
+    socket =
+      if is_binary(params["filter"]), do: assign(socket, :filter, params["filter"]), else: socket
 
     {:noreply,
      socket
