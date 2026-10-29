@@ -396,8 +396,8 @@ defmodule DeployexWeb.Components.ApplicationCard do
       </div>
     <% else %>
       <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-red-400 rounded-full"></div>
-        <span class="text-sm font-medium text-red-400">Hot Upgrade</span>
+        <div class="w-2 h-2 bg-hot rounded-full"></div>
+        <span class="text-sm font-medium text-hot-text">Hot Upgrade</span>
       </div>
     <% end %>
     """
