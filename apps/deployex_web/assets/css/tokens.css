@@ -7,22 +7,25 @@
 [data-theme="light"] {
     color-scheme: light;
 
-    --dx-base-100: oklch(98% 0 0);
-    --dx-base-200: oklch(96% 0.001 286.375);
-    --dx-base-300: oklch(92% 0.004 286.32);
-    --dx-base-content: oklch(21% 0.006 285.885);
+    /* Warm paper tones. Cards sit lighter than the page, so the surfaces stay apart */
+    --dx-base-100: oklch(98.6% 0.006 85);
+    --dx-base-200: oklch(95% 0.011 80);
+    --dx-base-300: oklch(88.5% 0.016 75);
+    /* The empty part of a meter, lighter than a border so the fill stands out */
+    --dx-track: oklch(92.5% 0.013 78);
+    --dx-base-content: oklch(23% 0.014 60);
     --dx-muted: color-mix(in oklch, var(--dx-base-content) 66%, var(--dx-base-100));
 
     --dx-primary: oklch(70% 0.213 47.604);
     --dx-primary-content: oklch(98% 0.016 73.684);
     --dx-primary-text: oklch(50% 0.16 42);
     --dx-nav-active: oklch(53% 0.17 42);
-    --dx-secondary: oklch(55% 0.027 264.364);
-    --dx-secondary-content: oklch(98% 0.002 247.839);
+    --dx-secondary: oklch(52% 0.02 60);
+    --dx-secondary-content: oklch(98.6% 0.006 85);
     --dx-accent: oklch(0% 0 0);
     --dx-accent-content: oklch(100% 0 0);
-    --dx-neutral: oklch(44% 0.017 285.786);
-    --dx-neutral-content: oklch(98% 0 0);
+    --dx-neutral: oklch(44% 0.017 60);
+    --dx-neutral-content: oklch(98.6% 0.006 85);
 
     --dx-info: oklch(62% 0.214 259.815);
     --dx-info-content: oklch(97% 0.014 254.604);
@@ -48,6 +51,7 @@
     --dx-base-100: oklch(30.33% 0.016 252.42);
     --dx-base-200: oklch(25.26% 0.014 253.1);
     --dx-base-300: oklch(20.15% 0.012 254.09);
+    --dx-track: oklch(20.15% 0.012 254.09);
     --dx-base-content: oklch(97.807% 0.029 256.847);
 
     --dx-primary: oklch(58% 0.233 277.117);
@@ -85,6 +89,7 @@
         --dx-base-100: oklch(30.33% 0.016 252.42);
         --dx-base-200: oklch(25.26% 0.014 253.1);
         --dx-base-300: oklch(20.15% 0.012 254.09);
+        --dx-track: oklch(20.15% 0.012 254.09);
         --dx-base-content: oklch(97.807% 0.029 256.847);
 
         --dx-primary: oklch(58% 0.233 277.117);
