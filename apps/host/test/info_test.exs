@@ -239,7 +239,7 @@ defmodule Host.InfoTest do
                     %Host.Info{
                       host: "macOS",
                       description: ^os_description,
-                      memory_free: 17_201_512_448,
+                      memory_free: 42_327_769_088,
                       memory_total: 68_719_476_736,
                       uptime: _,
                       cpu: 211.4,

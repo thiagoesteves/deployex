@@ -37,28 +37,22 @@ defmodule Host.Info.Memory do
     end
   end
 
+  @doc """
+  Reads the memory in use the way Activity Monitor shows it, as app memory, wired and compressed pages.
+  `Pages free` alone is small on almost any Mac, because macOS keeps memory in caches that it gives back.
+  """
   @spec get_macos() :: t()
   def get_macos do
     with {:ok, [{:stdout, stdout_vm_stat}]} <- Commander.run("vm_stat", [:stdout, :sync]),
          {:ok, [{:stdout, stdout_hw_memsize}]} <-
-           Commander.run("sysctl -n hw.memsize", [:stdout, :sync]) do
-      info_list = stdout_vm_stat |> Enum.join() |> String.split("\n")
-
-      [page_size_text] =
-        String.split(
-          Enum.at(info_list, 0),
-          ["Mach Virtual Memory Statistics: (page size of ", " bytes)"],
-          trim: true
-        )
-
-      [page_free_text] = String.split(Enum.at(info_list, 1), ["Pages free:", "."], trim: true)
-
-      page_size = page_size_text |> String.trim() |> String.to_integer()
-      page_free = page_free_text |> String.trim() |> String.to_integer()
-
-      memory_total = stdout_hw_memsize |> Enum.join() |> String.trim() |> String.to_integer()
-
-      %__MODULE__{memory_total: memory_total, memory_free: page_size * page_free}
+           Commander.run("sysctl -n hw.memsize", [:stdout, :sync]),
+         {page_size, pages} <- parse_vm_stat(Enum.join(stdout_vm_stat)),
+         {memory_total, ""} <-
+           stdout_hw_memsize |> Enum.join() |> String.trim() |> Integer.parse() do
+      %__MODULE__{
+        memory_total: memory_total,
+        memory_free: macos_free(page_size, pages, memory_total)
+      }
     else
       _ ->
         %__MODULE__{}
@@ -71,4 +65,38 @@ defmodule Host.Info.Memory do
   ### ==========================================================================
   ### Private Functions
   ### ==========================================================================
+
+  # Used is app memory (anonymous less purgeable pages), wired and compressed pages, as Activity Monitor
+  # counts it. An older vm_stat with no anonymous pages counts free, inactive, speculative and purgeable
+  defp macos_free(page_size, %{"Anonymous pages" => anonymous} = pages, memory_total) do
+    used =
+      anonymous - Map.get(pages, "Pages purgeable", 0) + Map.get(pages, "Pages wired down", 0) +
+        Map.get(pages, "Pages occupied by compressor", 0)
+
+    max(memory_total - used * page_size, 0)
+  end
+
+  defp macos_free(page_size, pages, _memory_total) do
+    ["Pages free", "Pages inactive", "Pages speculative", "Pages purgeable"]
+    |> Enum.map(&Map.get(pages, &1, 0))
+    |> Enum.sum()
+    |> Kernel.*(page_size)
+  end
+
+  # Each line reads "Label:   1234." after a header with the page size
+  defp parse_vm_stat(text) do
+    [header | lines] = String.split(text, "\n", trim: true)
+
+    with [_, size] <- Regex.run(~r/page size of (\d+) bytes/, header) do
+      pages =
+        for line <- lines,
+            [label, value] <- [String.split(line, ":", parts: 2)],
+            {count, "."} <- [value |> String.trim() |> Integer.parse()],
+            into: %{} do
+          {label |> String.trim() |> String.trim("\""), count}
+        end
+
+      {String.to_integer(size), pages}
+    end
+  end
 end
