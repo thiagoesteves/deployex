@@ -525,19 +525,24 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         role="group"
         aria-label={"Details and limits of #{@instance.sname}"}
       >
-        <div class="dx-idetail">
-          <span :if={@instance.node} class="dx-mono dx-muted">{@instance.node}</span>
-          <span :for={port <- @instance.ports} class="dx-mono">{port}</span>
-          <a
-            :for={url <- @instance.urls}
-            class="dx-link dx-mono"
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {url}<Icons.icon name="external" class="dx-ico ml-1 inline size-3.5" /><span class="sr-only"> (opens in a new tab)</span>
-          </a>
-        </div>
+        <dl class="dx-idetail">
+          <div :if={@instance.node} class="dx-ditem">
+            <dt class="dx-lbl">Node</dt>
+            <dd class="dx-mono">{@instance.node}</dd>
+          </div>
+          <div :for={port <- @instance.ports} class="dx-ditem">
+            <dt class="dx-lbl">{port.key}</dt>
+            <dd class="dx-mono">{port.base}</dd>
+          </div>
+          <div :for={url <- @instance.urls} class="dx-ditem">
+            <dt class="dx-lbl">URL</dt>
+            <dd>
+              <a class="dx-link dx-mono" href={url} target="_blank" rel="noopener noreferrer">
+                {url}<Icons.icon name="external" class="dx-ico ml-1 inline size-3.5" /><span class="sr-only"> (opens in a new tab)</span>
+              </a>
+            </dd>
+          </div>
+        </dl>
         <p :if={@instance.limits == []} class="dx-muted col-span-3 text-[0.78125rem]">
           No reading yet. DeployEx reads the limits of a running instance every 5 seconds.
         </p>
@@ -574,13 +579,21 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             {limit.trend}
           </span>
         </div>
-        <.link
-          class="dx-btn"
-          navigate={~p"/embedded-observer"}
-          aria-label={"Open #{@instance.sname} in Observer Web"}
+        <span
+          id={"instance-#{@instance.sname}-observer-tip"}
+          class="flex self-stretch"
+          phx-hook="Tip"
         >
-          Observer Web
-        </.link>
+          <.link
+            id={"instance-#{@instance.sname}-observer"}
+            class="dx-ltile"
+            navigate={~p"/embedded-observer"}
+            aria-label={"Open #{@instance.sname} in Observer Web"}
+          >
+            <Icons.icon name="observer-web" class="size-6" gradient={"dx-ow-#{@instance.sname}"} />
+          </.link>
+          <span popover="manual" class="dx-tip" aria-hidden="true">Observer Web</span>
+        </span>
       </div>
     </div>
     """

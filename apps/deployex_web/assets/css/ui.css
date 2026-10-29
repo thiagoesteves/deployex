@@ -45,8 +45,8 @@
 
 .dx-lbl {
     font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--dx-muted);
+    font-weight: 700;
+    color: color-mix(in oklab, var(--dx-base-content) 82%, var(--dx-base-100));
     letter-spacing: 0.02em;
 }
 
@@ -881,7 +881,7 @@
 .dx-limits {
     display: grid;
     grid-template-columns: repeat(3,minmax(0,1fr)) auto;
-    gap: 14px 28px;
+    gap: 12px 14px;
     /* The labels and bars line up when a trend makes one limit taller */
     align-items: start;
     padding: 12px 16px 14px 38px;
@@ -894,20 +894,58 @@
     flex-direction: column;
     gap: 5px;
     min-width: 0;
+    align-self: stretch;
+    padding: 10px 12px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
 }
 
-.dx-limits > .dx-btn {
-    align-self: center;
+/* A link the size of a limit box, like Observer Web next to the limits */
+.dx-ltile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
 }
 
-/* The node, ports and served URLs of an instance, above its limits */
+.dx-ltile:hover {
+    background: var(--dx-base-300);
+}
+
+/* The node, ports and served URLs of an instance, in a box above its limits, each label over its value */
 .dx-idetail {
     grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 18px;
-    font-size: 0.78125rem;
+    row-gap: 8px;
+    margin: 0;
+    padding: 10px 0;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    font-size: 0.8125rem;
+}
+
+.dx-ditem {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 0 16px;
+}
+
+.dx-ditem + .dx-ditem {
+    border-left: 1px solid var(--dx-base-300);
+}
+
+.dx-ditem dd {
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 /* The point where the watchdog restarts the instance */

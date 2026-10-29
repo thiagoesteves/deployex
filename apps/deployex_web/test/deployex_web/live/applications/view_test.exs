@@ -257,7 +257,10 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert [
              %{
                logo: ^logo,
-               instances: [%{ports: ["PORT 4000"], urls: ["http://localhost:4000"]}, _]
+               instances: [
+                 %{ports: [%{key: "PORT", base: 4000}], urls: ["http://localhost:4000"]},
+                 _
+               ]
              }
            ] =
              View.apps([app(children)], @now)

@@ -88,6 +88,11 @@ defmodule DeployexWeb.UI.Icons do
   attr :class, :any, default: "dx-ico"
   attr :stroke, :string, default: "1.8"
   attr :label, :string, default: nil
+
+  attr :gradient, :string,
+    default: "dx-ow-logo-gradient",
+    doc: "the gradient id, unique on the page"
+
   attr :rest, :global
 
   # The Supervision Lens logo of the Observer Web project (Observer.Web.Components.Icons), kept in sync manually
@@ -107,7 +112,7 @@ defmodule DeployexWeb.UI.Icons do
       {@rest}
     >
       <defs>
-        <linearGradient id="dx-ow-logo-gradient" x1="0" y1="1" x2="1" y2="0">
+        <linearGradient id={@gradient} x1="0" y1="1" x2="1" y2="0">
           <stop offset="0" stop-color="#2563eb" />
           <stop offset="1" stop-color="#06b6d4" />
         </linearGradient>
@@ -116,7 +121,7 @@ defmodule DeployexWeb.UI.Icons do
       <line x1="16.2" y1="16.2" x2="21" y2="21" stroke-width="2.4" />
       <line x1="10.5" y1="8" x2="7.2" y2="13" />
       <line x1="10.5" y1="8" x2="13.8" y2="13" />
-      <circle cx="10.5" cy="7.6" r="1.7" fill="url(#dx-ow-logo-gradient)" stroke="none" />
+      <circle cx="10.5" cy="7.6" r="1.7" fill={"url(##{@gradient})"} stroke="none" />
       <circle cx="7.0" cy="13.4" r="1.4" fill="currentColor" stroke="none" />
       <circle cx="14.0" cy="13.4" r="1.4" fill="currentColor" stroke="none" />
     </svg>

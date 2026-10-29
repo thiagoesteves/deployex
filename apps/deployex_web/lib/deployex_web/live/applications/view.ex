@@ -93,7 +93,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
       cpu: if(resources && resources.cpu, do: "#{resources.cpu}%", else: "--"),
       memory: if(resources && resources.memory, do: bytes(resources.memory), else: "--"),
       restarts: restarts([child]),
-      ports: Enum.map(List.wrap(child.ports), &"#{&1.key} #{&1.base}"),
+      ports: Enum.map(List.wrap(child.ports), &Map.take(&1, [:key, :base])),
       urls: List.wrap(child.urls),
       deploy: child.last_deployment,
       up: up_text(child.uptime),
