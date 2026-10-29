@@ -1381,6 +1381,11 @@
     padding: 0;
 }
 
+.dx-iact-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
 .dx-iact-er {
     color: var(--dx-error-text);
     border-color: color-mix(in oklch,var(--dx-error) 40%,var(--dx-base-100));
