@@ -101,6 +101,9 @@ defmodule DeployexWeb.Applications.IndexTest do
     html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
     assert html =~ "212,377 of 262,144"
     assert html =~ "+15% in 1 hour"
+    assert html =~ "PORT 5678"
+    assert html =~ ~s(href="http://localhost:5678")
+    assert html =~ "No restarts"
 
     html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
     refute html =~ "212,377 of 262,144"

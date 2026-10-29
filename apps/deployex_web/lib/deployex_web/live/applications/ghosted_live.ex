@@ -31,6 +31,7 @@ defmodule DeployexWeb.GhostedLive do
           <Board.app_head
             name={@name}
             language={@language}
+            logo={@logo}
             subtitle={"Ghosted versions · #{@summary}"}
           >
             <span :if={@shown != []} class="dx-chip dx-s-ghost">
@@ -174,6 +175,7 @@ defmodule DeployexWeb.GhostedLive do
 
     socket
     |> assign(:language, language)
+    |> assign(:logo, Enum.find_value(children, & &1.logo))
     |> assign(:summary, summary(children, replicas))
     |> assign(:ghosted, if(connected?(socket), do: Status.ghosted_version_list(name), else: []))
     |> assign(:now, DateTime.utc_now())

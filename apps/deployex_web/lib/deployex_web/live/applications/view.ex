@@ -7,8 +7,13 @@ defmodule DeployexWeb.ApplicationsLive.View do
   alias Deployer.Resources
   alias Deployer.Resources.Limit
 
-  @limit_warn 80
-  @limit_alert 90
+  # The watchdog's values for a limit type the app's monitoring names without them. A type it does not
+  # name is not watched, and its level uses these values too
+  @watch_defaults %{
+    enable_restart: true,
+    warning_threshold_percent: 75,
+    restart_threshold_percent: 90
+  }
   # A count that grew this much, and by this share of its limit, over this many minutes is a trend worth a note
   @trend_percent 10
   @trend_share 0.5
@@ -55,20 +60,17 @@ defmodule DeployexWeb.ApplicationsLive.View do
 
     ghosted = ghosted(status, instances)
 
-    restarts =
-      Enum.reduce(status.children, 0, &(&1.crash_restart_count + &1.force_restart_count + &2))
-
     %{
       name: status.name,
       language: status.language,
       language_name: language_name(status.language),
+      logo: Enum.find_value(status.children, & &1.logo),
       sub: sub(status),
       status: app_status(running, total, status.children),
       problems: problems,
       cpu: sum_text(instances, :cpu_value, &"#{&1}%"),
       memory: sum_text(instances, :memory_value, &bytes/1),
-      restarts: restarts,
-      restarts_title: restarts_title(status.children),
+      restarts: restarts(status.children),
       deploy: deploy(status, ghosted, now),
       alert: alert(status, ghosted, running),
       notes: notes(status, instances),
@@ -78,7 +80,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
 
   defp instance(child, language, now) do
     resources = child.resources
-    limits = limits(resources)
+    limits = limits(resources, child.monitoring)
     warnings = Enum.flat_map(limits, & &1.warning)
 
     %{
@@ -90,8 +92,9 @@ defmodule DeployexWeb.ApplicationsLive.View do
       memory_value: resources && resources.memory,
       cpu: if(resources && resources.cpu, do: "#{resources.cpu}%", else: "--"),
       memory: if(resources && resources.memory, do: bytes(resources.memory), else: "--"),
-      restarts: child.crash_restart_count + child.force_restart_count,
-      restarts_title: "#{child.crash_restart_count} crash, #{child.force_restart_count} forced",
+      restarts: restarts([child]),
+      ports: Enum.map(List.wrap(child.ports), &"#{&1.key} #{&1.base}"),
+      urls: List.wrap(child.urls),
       deploy: child.last_deployment,
       up: up_text(child.uptime),
       shell: if(language == "elixir", do: "IEx shell", else: "Erlang shell"),
@@ -103,20 +106,37 @@ defmodule DeployexWeb.ApplicationsLive.View do
     }
   end
 
-  defp limits(%Resources{} = resources) do
-    for {name, %Limit{} = limit} <- [
-          {"Processes", resources.process},
-          {"Ports", resources.port},
-          {"Atoms", resources.atom}
+  defp limits(%Resources{} = resources, monitoring) do
+    for {name, type, %Limit{} = limit} <- [
+          {"Processes", :process, resources.process},
+          {"Ports", :port, resources.port},
+          {"Atoms", :atom, resources.atom}
         ] do
-      limit_row(name, limit)
+      limit_row(name, limit, watch(monitoring, type))
     end
   end
 
-  defp limits(_resources), do: []
+  defp limits(_resources, _monitoring), do: []
 
-  defp limit_row(name, limit) do
-    level = level(limit.percent)
+  # The app's monitoring settings for one limit type, from the YAML (a struct) or the config (a map)
+  defp watch(monitoring, type) do
+    case Enum.find_value(List.wrap(monitoring), fn {key, value} -> key == type && value end) do
+      %_{} = config -> watch_config(Map.from_struct(config))
+      %{} = config -> watch_config(config)
+      _ -> Map.put(@watch_defaults, :watched, false)
+    end
+  end
+
+  defp watch_config(config) do
+    @watch_defaults
+    |> Map.merge(Map.take(config, Map.keys(@watch_defaults)), fn _key, default, value ->
+      if is_nil(value), do: default, else: value
+    end)
+    |> Map.put(:watched, true)
+  end
+
+  defp limit_row(name, limit, watch) do
+    level = level(limit.percent, watch)
     trend = trend(limit)
 
     %{
@@ -128,13 +148,22 @@ defmodule DeployexWeb.ApplicationsLive.View do
         if(limit.count > 0 and limit.percent < 1, do: "<1%", else: "#{limit.percent}%"),
       level: level,
       trend: trend,
+      restart_at: watch.watched && watch.enable_restart && watch.restart_threshold_percent,
+      watch: watch_text(watch),
       warning: limit_warning(String.downcase(name), limit.percent, level, trend)
     }
   end
 
-  defp level(percent) when percent >= @limit_alert, do: 2
-  defp level(percent) when percent >= @limit_warn, do: 1
-  defp level(_percent), do: 0
+  defp level(percent, %{restart_threshold_percent: restart}) when percent >= restart, do: 2
+  defp level(percent, %{warning_threshold_percent: warning}) when percent >= warning, do: 1
+  defp level(_percent, _watch), do: 0
+
+  defp watch_text(%{watched: false}), do: nil
+
+  defp watch_text(%{enable_restart: true, restart_threshold_percent: restart}),
+    do: "restarts at #{restart}%"
+
+  defp watch_text(_watch), do: "restart off"
 
   defp limit_warning(name, percent, level, _trend) when level > 0,
     do: ["#{name} at #{percent}% of the limit"]
@@ -302,11 +331,39 @@ defmodule DeployexWeb.ApplicationsLive.View do
     end
   end
 
-  defp restarts_title(children) do
+  # One count for the board, amber only for crashes, with a tooltip that tells crashes from the restarts an
+  # operator or the watchdog asked for
+  defp restarts(children) do
     crash = Enum.reduce(children, 0, &(&1.crash_restart_count + &2))
     forced = Enum.reduce(children, 0, &(&1.force_restart_count + &2))
-    "#{crash} crash, #{forced} forced"
+
+    last_crash =
+      children
+      |> Enum.map(& &1.last_crash_at)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.max(DateTime, fn -> nil end)
+
+    lines =
+      [
+        crash > 0 && crash_text(crash, last_crash),
+        forced > 0 && "#{count(forced, "restart")} by an operator or the watchdog"
+      ]
+      |> Enum.filter(& &1)
+
+    %{
+      count: crash + forced,
+      crash: crash > 0,
+      lines: if(lines == [], do: ["No restarts"], else: lines)
+    }
   end
+
+  defp crash_text(crash, nil), do: count(crash, "crash restart")
+
+  defp crash_text(crash, at),
+    do: "#{count(crash, "crash restart")}, the last at #{Calendar.strftime(at, "%H:%M")}"
+
+  defp count(1, noun), do: "1 #{noun}"
+  defp count(n, noun), do: "#{n} #{noun}s"
 
   defp sum_text(instances, key, format) do
     case instances |> Enum.map(&Map.get(&1, key)) |> Enum.reject(&is_nil/1) do
@@ -314,6 +371,15 @@ defmodule DeployexWeb.ApplicationsLive.View do
       values -> format.(Enum.sum(values))
     end
   end
+
+  @doc """
+  A time in milliseconds in words, in the largest whole unit, like "5 seconds" or "10 minutes".
+  """
+  @spec duration(pos_integer()) :: String.t()
+  def duration(ms) when rem(ms, 3_600_000) == 0, do: count(div(ms, 3_600_000), "hour")
+  def duration(ms) when rem(ms, 60_000) == 0, do: count(div(ms, 60_000), "minute")
+  def duration(ms) when rem(ms, 1_000) == 0, do: count(div(ms, 1_000), "second")
+  def duration(ms), do: count(ms, "millisecond")
 
   @doc false
   def bytes(bytes) when bytes >= 1_073_741_824,

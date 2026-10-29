@@ -53,6 +53,16 @@ defmodule DeployexWeb.UI.Tags do
   attr :label, :string, default: nil
   attr :small, :boolean, default: false
 
+  attr :logo, :string,
+    default: nil,
+    doc: "the app's own logo as a data URI, shown instead of the language"
+
+  def lang(%{logo: logo} = assigns) when is_binary(logo) do
+    ~H"""
+    <img src={@logo} alt="" class={["dx-lang object-contain", @small && "dx-lang-sm"]} />
+    """
+  end
+
   def lang(assigns) do
     ~H"""
     <span

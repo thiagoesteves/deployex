@@ -26,6 +26,7 @@ defmodule DeployexWeb.VersionsLive do
         <Board.app_head
           name={@name}
           language={@language}
+          logo={@logo}
           subtitle={"Versions and mode · #{instances(@count)} · current #{@current || "none"}"}
         />
 
@@ -38,6 +39,7 @@ defmodule DeployexWeb.VersionsLive do
                 <span :if={is_nil(@pinned)} class="dx-chip dx-s-ok"><span class="dx-dot"></span>Automatic</span>
               </div>
               <p class="dx-muted text-[0.84375rem]">{mode_text(@pinned, @count)}</p>
+              <p :if={@timing} class="dx-muted text-[0.84375rem]">{@timing}</p>
             </div>
             <form id="mode-form" phx-change="pick" class="flex flex-wrap items-end gap-2.5">
               <div class="dx-seg-group" role="group" aria-label="Mode">
@@ -249,6 +251,8 @@ defmodule DeployexWeb.VersionsLive do
     socket =
       socket
       |> assign(:language, app.language)
+      |> assign(:logo, Enum.find_value(app.children, & &1.logo))
+      |> assign(:timing, timing(app))
       |> assign(:snames, Enum.map(children, & &1.sname))
       |> assign(:count, max(app.replicas, length(children)))
       |> assign(:currents, Map.new(children, &{&1.sname, &1.version}))
@@ -332,6 +336,15 @@ defmodule DeployexWeb.VersionsLive do
 
   defp ask_text(_segment, name, _pick, _current, _count),
     do: "Set #{name} to Automatic? DeployEx deploys the version in current.json, if it differs."
+
+  # How often DeployEx checks for a new version, and how long a new version has to reach running
+  defp timing(%{deploy_schedule_interval_ms: every, deploy_rollback_timeout_ms: within})
+       when is_integer(every) and every > 0 and is_integer(within) and within > 0,
+       do:
+         "DeployEx checks for a new version every #{View.duration(every)}. A new version that is not " <>
+           "running within #{View.duration(within)} is ghosted, and the instance goes back to the version before it."
+
+  defp timing(_app), do: nil
 
   defp every(0), do: "its instances"
   defp every(1), do: "the instance"

@@ -25,11 +25,12 @@ defmodule DeployexWeb.Applications.VersionsTest do
   defp stub_status(config, test_pid \\ self()) do
     Deployer.StatusMock
     |> stub(:monitoring, fn ->
-      {:ok,
-       [
-         FixtureStatus.deployex(),
-         FixtureStatus.application(%{name: @name, version: "1.4.2"}, config)
-       ]}
+      app =
+        %{name: @name, version: "1.4.2"}
+        |> FixtureStatus.application(config)
+        |> Map.merge(%{deploy_schedule_interval_ms: 5_000, deploy_rollback_timeout_ms: 600_000})
+
+      {:ok, [FixtureStatus.deployex(), app]}
     end)
     |> stub(:subscribe, fn -> :ok end)
     |> stub(:history_version_list, fn @name, [] ->
@@ -62,6 +63,10 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ "Versions and mode · 1 instance · current 1.4.2"
     assert html =~ "Automatic"
     assert html =~ "DeployEx deploys the version that current.json names in the release bucket."
+
+    assert html =~
+             "DeployEx checks for a new version every 5 seconds. A new version that is not running within 10 minutes is ghosted"
+
     assert html =~ "2026-10-28 12:14"
     assert html =~ "Hot upgrade"
     assert html =~ "2026-10-25 09:02"

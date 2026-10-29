@@ -183,6 +183,97 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              View.apps([app([child(%{resources: resources})])], @now)
   end
 
+  test "restarts count crashes apart from the restarts an operator or the watchdog asked for" do
+    children = [
+      child(%{
+        crash_restart_count: 2,
+        force_restart_count: 1,
+        last_crash_at: ~U[2026-10-28 14:31:00Z]
+      }),
+      child(%{sname: "myapp-def", force_restart_count: 1}),
+      child(%{sname: "myapp-ghi"})
+    ]
+
+    assert [%{restarts: app_restarts, instances: [crashed, forced, none]}] =
+             View.apps([app(children)], @now)
+
+    assert app_restarts == %{
+             count: 4,
+             crash: true,
+             lines: [
+               "2 crash restarts, the last at 14:31",
+               "2 restarts by an operator or the watchdog"
+             ]
+           }
+
+    assert %{count: 3, crash: true} = crashed.restarts
+
+    assert forced.restarts == %{
+             count: 1,
+             crash: false,
+             lines: ["1 restart by an operator or the watchdog"]
+           }
+
+    assert none.restarts == %{count: 0, crash: false, lines: ["No restarts"]}
+  end
+
+  test "the limits follow the app's monitoring settings, and a type it does not name is not watched" do
+    resources = %Resources{
+      process: %Limit{count: 600, limit: 1_000, percent: 60},
+      port: %Limit{count: 70, limit: 100, percent: 70},
+      atom: %Limit{count: 500, limit: 1_000, percent: 50}
+    }
+
+    monitoring = [
+      process: %{
+        enable_restart: true,
+        warning_threshold_percent: 50,
+        restart_threshold_percent: 65
+      },
+      port: %Foundation.Yaml.Monitoring{
+        enable_restart: false,
+        warning_threshold_percent: 60,
+        restart_threshold_percent: 80
+      }
+    ]
+
+    assert [%{instances: [%{limits: [process, port, atom], warnings: warnings}]}] =
+             View.apps([app([child(%{resources: resources, monitoring: monitoring})])], @now)
+
+    assert %{level: 1, restart_at: 65, watch: "restarts at 65%"} = process
+    assert %{level: 1, restart_at: false, watch: "restart off"} = port
+    assert %{level: 0, restart_at: false, watch: nil} = atom
+    assert warnings == ["processes at 60% of the limit", "ports at 70% of the limit"]
+  end
+
+  test "an instance lists its ports and served URLs, and the app shows its own logo" do
+    logo = "data:image/svg+xml;base64,PHN2Zy8+"
+
+    children = [
+      child(%{ports: [%{key: "PORT", base: 4000}], urls: ["http://localhost:4000"], logo: logo}),
+      child(%{sname: "myapp-def"})
+    ]
+
+    assert [
+             %{
+               logo: ^logo,
+               instances: [%{ports: ["PORT 4000"], urls: ["http://localhost:4000"]}, _]
+             }
+           ] =
+             View.apps([app(children)], @now)
+
+    assert [%{logo: nil}] = View.apps([app([child(%{})])], @now)
+  end
+
+  test "a duration reads in its largest whole unit" do
+    assert View.duration(5_000) == "5 seconds"
+    assert View.duration(1_000) == "1 second"
+    assert View.duration(600_000) == "10 minutes"
+    assert View.duration(3_600_000) == "1 hour"
+    assert View.duration(90_000) == "90 seconds"
+    assert View.duration(1_500) == "1500 milliseconds"
+  end
+
   test "an Erlang or Gleam instance gets the Erlang shell, and a status with no instance says so" do
     assert [%{language_name: "Erlang", instances: [%{shell: "Erlang shell"}]}] =
              View.apps([app([child(%{})], %{language: "erlang"})], @now)

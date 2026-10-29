@@ -35,6 +35,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   """
   attr :name, :string, required: true
   attr :language, :string, required: true
+  attr :logo, :string, default: nil, doc: "the app's own logo, shown instead of the language icon"
   attr :subtitle, :string, required: true
   slot :inner_block, doc: "on the right of the head, like a count chip"
 
@@ -46,7 +47,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       </.link>
       <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div class="flex items-center gap-3.5">
-          <Tags.lang name={@language} label={String.capitalize(@language)} />
+          <Tags.lang name={@language} label={String.capitalize(@language)} logo={@logo} />
           <div>
             <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">{@name}</h1>
             <p class="dx-muted dx-mono mt-1 text-[0.8125rem]">{@subtitle}</p>
@@ -210,7 +211,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
     <div id={"app-#{@app.name}"}>
       <div class="dx-arow">
         <div class="flex min-w-0 items-center gap-3.5">
-          <Tags.lang name={@app.language} label={@app.language_name} />
+          <Tags.lang name={@app.language} label={@app.language_name} logo={@app.logo} />
           <div class="min-w-0">
             <div class="text-lg font-bold tracking-[-0.01em]">{@app.name}</div>
             <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
@@ -242,13 +243,12 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         </div>
         <div class="dx-num text-[0.96875rem] font-semibold">{@app.cpu}</div>
         <div class="dx-num text-[0.96875rem] font-semibold">{@app.memory}</div>
-        <div
-          class="dx-num text-[0.96875rem] font-semibold"
-          style={"color: #{if @app.restarts > 0, do: Tags.tone(:warning), else: "inherit"}"}
-          title={@app.restarts_title}
-        >
-          {@app.restarts}
-        </div>
+        <.restarts
+          id={"app-#{@app.name}-restarts"}
+          restarts={@app.restarts}
+          class="text-[0.96875rem] font-semibold"
+          color="inherit"
+        />
         <div class="flex items-center gap-2 text-sm">
           <Tags.deploy_tag :if={@app.deploy} type={@app.deploy.type} label={@app.deploy.label} />
           <span :if={@app.deploy} class="dx-muted">{@app.deploy.when}</span>
@@ -421,7 +421,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             type="button"
             class="dx-iname"
             aria-expanded={to_string(@limits_open)}
-            aria-label={"#{if @limits_open, do: "Hide", else: "Show"} the process, port and atom limits of #{@instance.sname}"}
+            aria-label={"#{if @limits_open, do: "Hide", else: "Show"} the details and limits of #{@instance.sname}"}
             title={@instance.node}
             phx-click="toggle-limits"
             phx-value-sname={@instance.sname}
@@ -460,13 +460,12 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         />
         <div class="dx-num text-[0.78125rem]">{@instance.cpu}</div>
         <div class="dx-num text-[0.78125rem]">{@instance.memory}</div>
-        <div
-          class="dx-num text-[0.78125rem]"
-          style={"color: #{if @instance.restarts > 0, do: Tags.tone(:warning), else: Tags.tone(:muted)}"}
-          title={@instance.restarts_title}
-        >
-          {@instance.restarts}<span class="sr-only"> restarts</span>
-        </div>
+        <.restarts
+          id={"instance-#{@instance.sname}-restarts"}
+          restarts={@instance.restarts}
+          class="text-[0.78125rem]"
+          color={Tags.tone(:muted)}
+        />
         <div class="flex items-center gap-1.5">
           <Tags.deploy_tag type={if @instance.deploy == :hot_upgrade, do: :hot, else: :full} />
           <span :if={@instance.up} class="dx-mono dx-muted text-xs">up {@instance.up}</span>
@@ -524,8 +523,21 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         :if={@limits_open}
         class="dx-limits"
         role="group"
-        aria-label={"Limits of #{@instance.sname}"}
+        aria-label={"Details and limits of #{@instance.sname}"}
       >
+        <div class="dx-idetail">
+          <span :if={@instance.node} class="dx-mono dx-muted">{@instance.node}</span>
+          <span :for={port <- @instance.ports} class="dx-mono">{port}</span>
+          <a
+            :for={url <- @instance.urls}
+            class="dx-link dx-mono"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {url}<Icons.icon name="external" class="dx-ico ml-1 inline size-3.5" /><span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
         <p :if={@instance.limits == []} class="dx-muted col-span-3 text-[0.78125rem]">
           No reading yet. DeployEx reads the limits of a running instance every 5 seconds.
         </p>
@@ -548,17 +560,19 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             aria-valuenow={limit.percent}
           >
             <i style={"width: #{max(limit.percent, 1.5)}%; background: #{level_fill(limit.level)}"}></i>
+            <b :if={limit.restart_at} class="dx-lmark" style={"left: #{limit.restart_at}%"}></b>
           </span>
           <div class="flex flex-wrap justify-between gap-x-2 text-xs">
             <span class="dx-mono dx-muted whitespace-nowrap">{limit.count} of {limit.limit}</span>
-            <span
-              :if={limit.trend}
-              class="font-semibold whitespace-nowrap"
-              style={"color: #{Tags.tone(:warning)}"}
-            >
-              {limit.trend}
-            </span>
+            <span :if={limit.watch} class="dx-muted whitespace-nowrap">{limit.watch}</span>
           </div>
+          <span
+            :if={limit.trend}
+            class="text-xs font-semibold whitespace-nowrap"
+            style={"color: #{Tags.tone(:warning)}"}
+          >
+            {limit.trend}
+          </span>
         </div>
         <.link
           class="dx-btn"
@@ -594,6 +608,32 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       </button>
       <span popover="manual" class="dx-tip" aria-hidden="true">{@tip}</span>
     </span>
+    """
+  end
+
+  attr :id, :string, required: true
+
+  attr :restarts, :map,
+    required: true,
+    doc: "the count, whether a crash is among them, and the tooltip lines"
+
+  attr :class, :string, default: nil
+  attr :color, :string, required: true, doc: "the color with no crash"
+
+  # The restart count, amber for crashes, with the crash and the other restarts apart in a tooltip
+  defp restarts(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class={["dx-num", @class]}
+      style={"color: #{if @restarts.crash, do: Tags.tone(:warning), else: @color}"}
+      phx-hook="Tip"
+    >
+      {@restarts.count}<span class="sr-only">: {Enum.join(@restarts.lines, ", ")}</span>
+      <span popover="manual" class="dx-tip" aria-hidden="true">
+        <span :for={line <- @restarts.lines} class="block">{line}</span>
+      </span>
+    </div>
     """
   end
 
