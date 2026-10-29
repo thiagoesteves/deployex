@@ -304,7 +304,7 @@ const hooks = {
   },
 
   // The dock: passes the dx:dock-open window events to the dock LiveView, and keeps its height (resize by
-  // the grip, the arrow keys, or Taller and Shorter), minimized and full size in localStorage
+  // the grip, the arrow keys, or Taller and Shorter), minimized and full size in localStorage while it is open
   Dock: {
     mounted() {
       this.min = 160;
@@ -383,8 +383,12 @@ const hooks = {
     apply() {
       const panel = this.panel();
       const root = document.documentElement;
+      // A closed dock forgets its size, so the next one opens at the default height
       if (!panel) {
         root.style.removeProperty("--dx-dock-space");
+        try {
+          localStorage.removeItem("dx:dock");
+        } catch (_e) {}
         return;
       }
       const state = this.load().state || "normal";
