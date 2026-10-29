@@ -158,7 +158,9 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "1 app needs attention"
-    assert html =~ "4.6.0 failed and is ghosted. No earlier version runs on this host."
+    assert html =~ "4.6.0 failed and is ghosted"
+    assert html =~ "No earlier version runs on this host, so the app is down."
+    assert html =~ "dx-callout-error"
     assert html =~ "0/1 running"
     assert html =~ "dx-dtag-fail"
     assert html =~ "14:20"
@@ -287,7 +289,8 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
-    assert html =~ "myphoenixapp-abc123 runs its pre_commands for 4.7.0."
+    assert html =~ "Running pre_commands for 4.7.0"
+    assert html =~ "myphoenixapp-abc123 starts when they finish."
     html = view |> element("#app-myphoenixapp-toggle") |> render_click()
     assert html =~ "pre_commands 4.7.0"
 

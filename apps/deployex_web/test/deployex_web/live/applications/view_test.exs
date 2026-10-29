@@ -104,7 +104,8 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
            ] =
              View.apps([app(children, %{config: config})], @now)
 
-    assert text == "1.1.0 failed and is ghosted. 1.0.0 keeps running."
+    assert text == "1.1.0 failed and is ghosted. 1.0.0 keeps running, so the app is up."
+    assert %{tone: :warning, title: "1.1.0 failed and is ghosted"} = row.alert
     # It needs attention, and nothing is blocked
     assert View.attention([row]) == %{count: 1, blocking: false}
 
@@ -270,6 +271,11 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              View.apps([app(children)], @now)
 
     assert [%{logo: nil}] = View.apps([app([child(%{})])], @now)
+  end
+
+  test "a subtitle leaves out the version when nothing runs" do
+    children = [child(%{status: :idle, version: nil})]
+    assert [%{sub: "OTP 29 · Elixir 1.20.4"}] = View.apps([app(children)], @now)
   end
 
   test "apps sort by name, and a crash in the last hour is a problem" do

@@ -375,59 +375,62 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   defp alert(%{cleared: version} = assigns) when is_binary(version) do
     ~H"""
-    <div class="dx-alert" role="status">
-      <span class="inline-flex items-center gap-2 font-semibold" style={"color: #{Tags.tone(:muted)}"}>
-        <Icons.icon name="ghost" class="dx-gh size-[17px]" />
-        Cleared ghosted {@cleared}. This host can deploy it again.
-      </span>
-      <button
-        id={"app-#{@app.name}-undo-clear"}
-        type="button"
-        class="dx-btn"
-        phx-click="undo-clear"
-        phx-value-name={@app.name}
-      >
-        Undo
-      </button>
+    <div class="dx-callout dx-callout-muted" role="status">
+      <Icons.icon name="ghost" class="dx-gh dx-callout-ico" />
+      <div class="dx-callout-text">
+        <b>Cleared ghosted {@cleared}</b>
+        <span>This host can deploy it again.</span>
+      </div>
+      <div class="dx-callout-acts">
+        <button
+          id={"app-#{@app.name}-undo-clear"}
+          type="button"
+          class="dx-btn"
+          phx-click="undo-clear"
+          phx-value-name={@app.name}
+        >
+          Undo
+        </button>
+      </div>
     </div>
     """
   end
 
   defp alert(assigns) do
     ~H"""
-    <div class="dx-alert">
-      <span
-        class="inline-flex items-center gap-2 font-semibold"
-        style={"color: #{Tags.tone(if @app.alert.kind == :ghosted, do: :error, else: :warning)}"}
-      >
-        <Icons.icon :if={@app.alert.kind == :ghosted} name="ghost" class="dx-gh size-[17px]" />
-        <Icons.icon
-          :if={@app.alert.kind != :ghosted}
-          name="arrow-path"
-          stroke="2"
-          class="dx-ico size-4"
-        />
-        {@app.alert.text}
-      </span>
-      <button
-        :if={@app.alert.kind == :ghosted}
-        id={"app-#{@app.name}-clear-ghosted"}
-        type="button"
-        class="dx-btn dx-btn-er"
-        phx-click="clear-ghosted"
-        phx-value-name={@app.name}
-        phx-value-version={@app.alert.version}
-      >
-        Clear ghosted {@app.alert.version}
-      </button>
-      <button
-        type="button"
-        class="dx-btn"
-        aria-label={"Logs of #{@app.name}"}
-        phx-click={dock_open("logs", @app.name, @app.name)}
-      >
-        View logs
-      </button>
+    <div class={"dx-callout dx-callout-#{@app.alert.tone}"}>
+      <Icons.icon :if={@app.alert.kind == :ghosted} name="ghost" class="dx-gh dx-callout-ico" />
+      <Icons.icon
+        :if={@app.alert.kind != :ghosted}
+        name="arrow-path"
+        stroke="2"
+        class="dx-ico dx-callout-ico"
+      />
+      <div class="dx-callout-text">
+        <b>{@app.alert.title}</b>
+        <span>{@app.alert.detail}</span>
+      </div>
+      <div class="dx-callout-acts">
+        <button
+          :if={@app.alert.kind == :ghosted}
+          id={"app-#{@app.name}-clear-ghosted"}
+          type="button"
+          class="dx-btn"
+          phx-click="clear-ghosted"
+          phx-value-name={@app.name}
+          phx-value-version={@app.alert.version}
+        >
+          Clear ghosted {@app.alert.version}
+        </button>
+        <button
+          type="button"
+          class="dx-btn"
+          aria-label={"Logs of #{@app.name}"}
+          phx-click={dock_open("logs", @app.name, @app.name)}
+        >
+          View logs
+        </button>
+      </div>
     </div>
     """
   end

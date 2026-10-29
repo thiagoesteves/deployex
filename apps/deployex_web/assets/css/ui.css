@@ -294,13 +294,69 @@
     bottom: -8px;
 }
 
-.dx-alert {
+/* What happened to an app, under its row: a bold title, what it means, and the actions */
+.dx-callout {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 10px 14px;
-    margin: -10px 20px 18px 26px;
-    font-size: 0.875rem;
+    margin: -8px 20px 16px 26px;
+    padding: 10px 12px 10px 14px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 0.84375rem;
+}
+
+.dx-callout .dx-callout-ico {
+    flex: none;
+    width: 20px;
+    height: 20px;
+}
+
+.dx-callout-text {
+    flex: 1 1 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.dx-callout-text b {
+    font-weight: 700;
+}
+
+.dx-callout-text span {
+    color: var(--dx-base-content);
+}
+
+.dx-callout-acts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dx-callout-error {
+    color: var(--dx-error-text);
+    background: color-mix(in oklab, var(--dx-error) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-error) 45%, var(--dx-base-100));
+}
+
+.dx-callout-warning {
+    color: var(--dx-warning-text);
+    background: color-mix(in oklab, var(--dx-warning) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-warning) 45%, var(--dx-base-100));
+}
+
+.dx-callout-info {
+    color: var(--dx-info-text);
+    background: color-mix(in oklab, var(--dx-info) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-info) 45%, var(--dx-base-100));
+}
+
+.dx-callout-muted {
+    color: var(--dx-muted);
+    background: var(--dx-base-200);
+    border-color: var(--dx-base-300);
 }
 
 .dx-inset {

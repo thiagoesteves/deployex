@@ -243,17 +243,21 @@ defmodule DeployexWeb.ApplicationsLive.View do
     end
   end
 
+  # A title, a line on what it means for the app, and a tone: red when nothing runs, amber when it still runs
   defp alert(status, %{version: version}, running) do
-    tail =
+    detail =
       if running == 0,
-        do: "No earlier version runs on this host.",
-        else: "#{running_version(status)} keeps running."
+        do: "No earlier version runs on this host, so the app is down.",
+        else: "#{running_version(status)} keeps running, so the app is up."
 
     %{
       kind: :ghosted,
       blocking: running == 0,
+      tone: if(running == 0, do: :error, else: :warning),
       version: version,
-      text: "#{version} failed and is ghosted. #{tail}"
+      title: "#{version} failed and is ghosted",
+      detail: detail,
+      text: "#{version} failed and is ghosted. #{detail}"
     }
   end
 
@@ -266,7 +270,10 @@ defmodule DeployexWeb.ApplicationsLive.View do
         %{
           kind: :pre_commands,
           blocking: false,
+          tone: :info,
           version: child.version,
+          title: "Running pre_commands for #{child.version}",
+          detail: "#{child.sname} starts when they finish.",
           text: "#{child.sname} runs its pre_commands for #{child.version}."
         }
     end
@@ -340,16 +347,20 @@ defmodule DeployexWeb.ApplicationsLive.View do
         nil ->
           ["no version"]
 
+        # With nothing running there is no version, and the status already says so
         child ->
           [
-            child.version || "no version",
+            child.version,
             child.otp_version && "OTP #{child.otp_version}",
             status.language == "elixir" && child.elixir_version &&
               "Elixir #{child.elixir_version}"
           ]
       end
 
-    parts |> Enum.filter(&is_binary/1) |> Enum.join(" · ")
+    case Enum.filter(parts, &is_binary/1) do
+      [] -> "no version"
+      parts -> Enum.join(parts, " · ")
+    end
   end
 
   defp running_version(status) do
