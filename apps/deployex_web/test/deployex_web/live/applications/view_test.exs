@@ -105,7 +105,8 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              View.apps([app(children, %{config: config})], @now)
 
     assert text == "1.1.0 failed and is ghosted. 1.0.0 keeps running."
-    assert View.attention([row]) == 0
+    # It needs attention, and nothing is blocked
+    assert View.attention([row]) == %{count: 1, blocking: false}
 
     # A version ghosted before the last deploy is history, not an alert
     old = %{config | last_ghosted_at: ~U[2026-10-28 13:00:00Z]}
@@ -143,7 +144,10 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert %{tone: :warning, text: "myapp-abc atoms grew 20% in 20 minutes"} in notes
     assert %{tone: :warning, text: "myapp-abc crash restart at 14:31"} in notes
 
+    # The crash at 14:31 is more than an hour old, so it is a note and no problem
     assert problems == [
+             "TLS certificate expires in 5 days",
+             "TLS certificate expires in 20 days",
              "myapp-abc processes at 95% of the limit",
              "myapp-abc atoms grew 20% in 20 minutes"
            ]
@@ -266,6 +270,16 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              View.apps([app(children)], @now)
 
     assert [%{logo: nil}] = View.apps([app([child(%{})])], @now)
+  end
+
+  test "apps sort by name, and a crash in the last hour is a problem" do
+    children = [child(%{last_crash_at: ~U[2026-10-28 15:40:00Z]})]
+
+    assert [%{name: "alpha", problems: []}, %{name: "myapp", problems: problems} = crashed] =
+             View.apps([app(children), app([child(%{})], %{name: "alpha"})], @now)
+
+    assert problems == ["myapp-abc crashed at 15:40"]
+    assert View.attention?(crashed)
   end
 
   test "a duration reads in its largest whole unit" do

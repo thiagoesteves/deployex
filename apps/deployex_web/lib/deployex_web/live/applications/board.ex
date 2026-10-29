@@ -13,7 +13,12 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   @columns "minmax(200px,1.5fr) 176px 56px 84px 68px 140px 117px"
 
   attr :host_name, :string, required: true
-  attr :attention, :integer, required: true
+
+  attr :attention, :map,
+    required: true,
+    doc: "the count of apps that need attention, and if one is blocked"
+
+  attr :only_attention, :boolean, required: true, doc: "whether the list shows only those apps"
 
   def page_head(assigns) do
     ~H"""
@@ -22,10 +27,20 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <h1 class="text-[1.625rem] font-bold tracking-[-0.02em]">Applications</h1>
         <p class="dx-muted dx-mono mt-1.5 text-[0.8125rem]">{@host_name}</p>
       </div>
-      <span :if={@attention > 0} class="dx-chip dx-s-ghost">
-        <Icons.icon name="ghost" class="dx-gh" />
-        {if @attention == 1, do: "1 app needs attention", else: "#{@attention} apps need attention"}
-      </span>
+      <button
+        :if={@attention.count > 0}
+        id="apps-attention"
+        type="button"
+        class={["dx-chip dx-chip-btn", if(@attention.blocking, do: "dx-s-ghost", else: "dx-s-start")]}
+        aria-pressed={to_string(@only_attention)}
+        phx-click="toggle-attention"
+      >
+        <Icons.icon :if={@only_attention} name="check" stroke="2.4" class="dx-ico size-3.5" />
+        <Icons.icon :if={not @only_attention} name="warning" stroke="2" class="dx-ico size-3.5" />
+        {if @attention.count == 1,
+          do: "1 app needs attention",
+          else: "#{@attention.count} apps need attention"}
+      </button>
     </header>
     """
   end
@@ -135,6 +150,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :ask, :any, required: true
   attr :sent, :any, required: true, doc: "the snames with a restart sent"
+  attr :hidden, :integer, default: 0, doc: "the apps the attention filter hides"
 
   attr :cleared, :map,
     required: true,
@@ -194,6 +210,17 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             cleared={@cleared[app.name]}
           />
         </div>
+      </div>
+      <div
+        :if={@hidden > 0}
+        class="dx-muted flex flex-wrap items-center justify-between gap-2.5 border-t border-(--dx-base-300) px-5 py-3 text-[0.8125rem]"
+      >
+        <span>
+          {if @hidden == 1, do: "1 more app has", else: "#{@hidden} more apps have"} no problem.
+        </span>
+        <button id="apps-show-all" type="button" class="dx-btn" phx-click="toggle-attention">
+          Show all
+        </button>
       </div>
     </section>
     """

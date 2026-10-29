@@ -78,7 +78,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "810 MB"
     assert html =~ "2h ago"
     assert html =~ "dx-dtag-full"
-    refute html =~ "needs attention"
+    # An instance near its process limit is a problem, so the app needs attention
+    assert html =~ "1 app needs attention"
 
     # The problems of the instances show as a count on the row, which opens the instances
     assert html =~ "myphoenixapp-abc123 processes at 81% of the limit"
@@ -113,6 +114,27 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     view |> element("#app-myphoenixapp-toggle") |> render_click()
     refute has_element?(view, "#instance-myphoenixapp-abc123-limits")
+  end
+
+  @tag :capture_log
+  test "the attention chip shows only the apps that need attention, until Show all", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{name: "calmapp"}),
+      FixtureStatus.application(%{name: "myphoenixapp", resources: resources()})
+    ])
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+    assert html =~ "1 app needs attention"
+    assert has_element?(view, "#app-calmapp")
+
+    html = view |> element("#apps-attention") |> render_click()
+    assert html =~ ~r/id="apps-attention"[^>]*aria-pressed="true"/
+    refute has_element?(view, "#app-calmapp")
+    assert has_element?(view, "#app-myphoenixapp")
+    assert html =~ "1 more app has no problem."
+
+    view |> element("#apps-show-all") |> render_click()
+    assert has_element?(view, "#app-calmapp")
   end
 
   @tag :capture_log

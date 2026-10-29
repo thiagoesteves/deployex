@@ -18,6 +18,17 @@ defmodule DeployexWeb.ApplicationsLive do
 
   @impl true
   def render(assigns) do
+    attention = View.attention(assigns.apps)
+    # The filter turns itself off when no app needs attention
+    only = assigns.only_attention and attention.count > 0
+
+    assigns =
+      assign(assigns,
+        attention: attention,
+        only: only,
+        shown: if(only, do: Enum.filter(assigns.apps, &View.attention?/1), else: assigns.apps)
+      )
+
     ~H"""
     <Layouts.app
       flash={@flash}
@@ -28,14 +39,15 @@ defmodule DeployexWeb.ApplicationsLive do
       socket={@socket}
     >
       <div class="mx-auto flex max-w-[1140px] flex-col gap-5 px-8 pt-7 pb-14 max-md:px-4">
-        <Board.page_head host_name={@host_name} attention={View.attention(@apps)} />
+        <Board.page_head host_name={@host_name} attention={@attention} only_attention={@only} />
         <Board.host_card
           host={View.host(@deployex, @host_info)}
           pending_changes={pending_count(@yaml_config)}
           asking={@ask == :deployex}
         />
         <Board.app_table
-          apps={@apps}
+          apps={@shown}
+          hidden={length(@apps) - length(@shown)}
           open={@open}
           limits_open={@limits_open}
           ask={@ask}
@@ -82,6 +94,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign_statuses(statuses)
      |> assign(:open, MapSet.new())
      |> assign(:limits_open, %{})
+     |> assign(:only_attention, false)
      |> assign(:ask, nil)
      |> assign(:sent, MapSet.new())
      |> assign(:cleared, %{})
@@ -152,6 +165,9 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  def handle_event("toggle-attention", _params, socket),
+    do: {:noreply, update(socket, :only_attention, &(not &1))}
+
   def handle_event("toggle-app", %{"name" => name, "open" => "true"}, socket),
     do: {:noreply, update(socket, :open, &MapSet.put(&1, name))}
 

@@ -122,6 +122,18 @@
     white-space: nowrap;
 }
 
+/* A chip that is a toggle, like the apps that need attention */
+.dx-chip-btn {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.dx-chip-btn[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px currentColor;
+}
+
 .dx-s-start {
     color: var(--dx-warning-text);
     background: color-mix(in oklch,var(--dx-warning) 13%,var(--dx-base-100));
@@ -430,6 +442,12 @@
     background: var(--dx-base-200);
     color: var(--dx-base-content);
     font: 0.875rem var(--dx-font-sans);
+}
+
+/* The search has its own clear button */
+.dx-search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .dx-search input::placeholder {

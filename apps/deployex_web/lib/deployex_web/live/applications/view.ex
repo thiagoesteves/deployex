@@ -41,14 +41,24 @@ defmodule DeployexWeb.ApplicationsLive.View do
   def apps(statuses, now \\ DateTime.utc_now()) do
     statuses
     |> Enum.reject(&(&1.name == "deployex"))
+    |> Enum.sort_by(& &1.name)
     |> Enum.map(&app(&1, now))
   end
 
   @doc """
-  The number of applications with a problem that blocks them.
+  Whether an app needs attention: an alert, like a ghosted version, or a problem on its row.
   """
-  @spec attention([map()]) :: non_neg_integer()
-  def attention(apps), do: Enum.count(apps, &(&1.alert != nil and &1.alert.blocking))
+  @spec attention?(map()) :: boolean()
+  def attention?(app), do: app.alert != nil or app.problems != []
+
+  @doc """
+  The apps that need attention, and whether one of them is blocked, with nothing running.
+  """
+  @spec attention([map()]) :: %{count: non_neg_integer(), blocking: boolean()}
+  def attention(apps) do
+    apps = Enum.filter(apps, &attention?/1)
+    %{count: length(apps), blocking: Enum.any?(apps, &(&1.alert != nil and &1.alert.blocking))}
+  end
 
   defp app(status, now) do
     instances = Enum.map(status.children, &instance(&1, status.language, now))
@@ -56,7 +66,13 @@ defmodule DeployexWeb.ApplicationsLive.View do
     total = max(status.replicas, length(status.children))
 
     problems =
-      for instance <- instances, warning <- instance.warnings, do: "#{instance.sname} #{warning}"
+      Enum.map(tls(status, @tls_warn_days), & &1.text) ++
+        for(
+          instance <- instances,
+          warning <- instance.warnings,
+          do: "#{instance.sname} #{warning}"
+        ) ++
+        recent_crashes(instances, now)
 
     ghosted = ghosted(status, instances)
 
@@ -256,16 +272,28 @@ defmodule DeployexWeb.ApplicationsLive.View do
     end
   end
 
+  # The TLS certificates of the app that expire within the given days
+  defp tls(status, within) do
+    for %{expires_in_days: days} <-
+          status.children |> Enum.flat_map(&(&1.certificates || [])) |> Enum.uniq(),
+        is_integer(days) and days <= within do
+      %{
+        tone: if(days <= 7, do: :error, else: :warning),
+        text: "TLS certificate expires in #{days} days"
+      }
+    end
+  end
+
+  # A crash in the last hour is a problem. An older one stays in the notes and the restart count
+  defp recent_crashes(instances, now) do
+    for %{last_crash_at: %DateTime{} = at} = instance <- instances,
+        DateTime.diff(now, at) < 3_600 do
+      "#{instance.sname} crashed at #{Calendar.strftime(at, "%H:%M")}"
+    end
+  end
+
   defp notes(status, instances) do
-    tls =
-      for %{expires_in_days: days} <-
-            status.children |> Enum.flat_map(&(&1.certificates || [])) |> Enum.uniq(),
-          is_integer(days) and days <= @tls_warn_days do
-        %{
-          tone: if(days <= 7, do: :error, else: :warning),
-          text: "TLS certificate expires in #{days} days"
-        }
-      end
+    tls = tls(status, @tls_warn_days)
 
     near =
       for instance <- instances, warning <- instance.warnings do
