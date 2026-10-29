@@ -80,8 +80,16 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "dx-dtag-full"
     refute html =~ "needs attention"
 
-    # The problems of the instances show as a count on the row
-    assert html =~ "processes at 81% of the limit, atoms +15% in 1 hour"
+    # The problems of the instances show as a count on the row, which opens the instances
+    assert html =~ "myphoenixapp-abc123 processes at 81% of the limit"
+    assert html =~ "myphoenixapp-abc123 atoms grew 15% in 1 hour"
+    assert html =~ ~s(aria-label="2 problems: myphoenixapp-abc123 processes)
+
+    html = view |> element("#app-myphoenixapp-problems") |> render_click()
+    assert html =~ "212,377 of 262,144"
+    html = view |> element("#app-myphoenixapp-problems") |> render_click()
+    assert html =~ "212,377 of 262,144"
+    view |> element("#app-myphoenixapp-toggle") |> render_click()
 
     # The instances open with the chevron, and the limits open on their own near a limit
     html = view |> element("#app-myphoenixapp-toggle") |> render_click()
@@ -94,8 +102,8 @@ defmodule DeployexWeb.Applications.IndexTest do
     html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
     refute html =~ "212,377 of 262,144"
 
-    html = view |> element("#app-myphoenixapp-toggle") |> render_click()
-    refute html =~ "myphoenixapp-abc123 processes"
+    view |> element("#app-myphoenixapp-toggle") |> render_click()
+    refute has_element?(view, "#instance-myphoenixapp-abc123-limits")
   end
 
   @tag :capture_log

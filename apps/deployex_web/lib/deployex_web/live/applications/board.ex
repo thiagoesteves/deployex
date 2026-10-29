@@ -212,16 +212,28 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
           </div>
         </div>
-        <div>
+        <div class="flex items-center">
           <Tags.status text={@app.status.text} tone={@app.status.tone} />
           <span
             :if={@app.problems != []}
+            id={"app-#{@app.name}-problems-tip"}
             class="dx-badge"
-            style={"color: #{Tags.tone(:warning)}"}
-            title={Enum.join(@app.problems, ", ")}
+            phx-hook="Tip"
           >
-            <Icons.icon name="warning" stroke="2" class="dx-ico size-[13px]" />{length(@app.problems)}
-            <span class="sr-only">problems: {Enum.join(@app.problems, ", ")}</span>
+            <button
+              id={"app-#{@app.name}-problems"}
+              type="button"
+              style={"color: #{Tags.tone(:warning)}"}
+              aria-label={"#{problems(@app.problems)}: #{Enum.join(@app.problems, ", ")}. Show the instances"}
+              phx-click="toggle-app"
+              phx-value-name={@app.name}
+              phx-value-open="true"
+            >
+              <Icons.icon name="warning" stroke="2" class="dx-ico size-4" />{length(@app.problems)}
+            </button>
+            <span popover="manual" class="dx-tip" aria-hidden="true">
+              <span :for={problem <- @app.problems} class="block">{problem}</span>
+            </span>
           </span>
         </div>
         <div class="dx-num text-[0.96875rem] font-semibold">{@app.cpu}</div>
@@ -420,13 +432,21 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           </button>
           <span
             :if={@instance.warnings != []}
-            role="img"
-            aria-label={Enum.join(@instance.warnings, ", ")}
-            title={Enum.join(@instance.warnings, ", ")}
+            id={"instance-#{@instance.sname}-warnings"}
             class="inline-flex"
-            style={"color: #{Tags.tone(:warning)}"}
+            phx-hook="Tip"
           >
-            <Icons.icon name="warning" stroke="2" class="dx-ico size-[13px]" />
+            <span
+              role="img"
+              aria-label={Enum.join(@instance.warnings, ", ")}
+              class="inline-flex"
+              style={"color: #{Tags.tone(:warning)}"}
+            >
+              <Icons.icon name="warning" stroke="2" class="dx-ico size-4" />
+            </span>
+            <span popover="manual" class="dx-tip" aria-hidden="true">
+              <span :for={warning <- @instance.warnings} class="block">{warning}</span>
+            </span>
           </span>
         </div>
         <Tags.status
@@ -550,6 +570,9 @@ defmodule DeployexWeb.ApplicationsLive.Board do
     </div>
     """
   end
+
+  defp problems([_problem]), do: "1 problem"
+  defp problems(problems), do: "#{length(problems)} problems"
 
   @doc """
   The window event that opens a dock tab, or focuses it when it is open.

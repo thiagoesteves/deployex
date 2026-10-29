@@ -117,9 +117,9 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
       process: %Limit{count: 950, limit: 1_000, percent: 95},
       port: %Limit{count: 0, limit: 65_536, percent: 0},
       atom: %Limit{
-        count: 10,
+        count: 200_000,
         limit: 1_048_576,
-        percent: 0,
+        percent: 19,
         change_percent: 20,
         change_minutes: 20
       }
@@ -140,14 +140,18 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert %{tone: :error, text: "TLS certificate expires in 5 days"} in notes
     assert %{tone: :warning, text: "TLS certificate expires in 20 days"} in notes
     assert %{tone: :warning, text: "myapp-abc processes at 95% of the limit"} in notes
-    assert %{tone: :warning, text: "myapp-abc atoms +20% in 20 minutes"} in notes
+    assert %{tone: :warning, text: "myapp-abc atoms grew 20% in 20 minutes"} in notes
     assert %{tone: :warning, text: "myapp-abc crash restart at 14:31"} in notes
-    assert length(problems) == 2
+
+    assert problems == [
+             "myapp-abc processes at 95% of the limit",
+             "myapp-abc atoms grew 20% in 20 minutes"
+           ]
 
     assert [
              %{level: 2, percent_text: "95%"},
              %{percent_text: "0%"},
-             %{percent_text: "<1%", trend: "+20% in 20 minutes"}
+             %{percent_text: "19%", trend: "+20% in 20 minutes"}
            ] =
              first.limits
   end
@@ -161,7 +165,8 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
         change_percent: 5,
         change_minutes: 60
       },
-      port: %Limit{count: 1, limit: 100, percent: 1},
+      # One port more on a small count is no trend
+      port: %Limit{count: 8, limit: 65_536, percent: 0, change_percent: 14, change_minutes: 18},
       atom: %Limit{count: 900, limit: 1_000, percent: 85}
     }
 

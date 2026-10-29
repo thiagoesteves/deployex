@@ -225,8 +225,60 @@
     align-items: center;
     gap: 4px;
     margin-left: 12px;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
+}
+
+.dx-badge button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 4px;
+    border-radius: 6px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.dx-badge button:hover {
+    background: var(--dx-base-200);
+}
+
+/* A tooltip that lists problems, one per line, shown by the Tip hook */
+.dx-tip[popover] {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 16px));
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--dx-base-content);
+    color: var(--dx-base-100);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: left;
+    overflow: visible;
+}
+
+/* Covers the gap to the trigger, so the pointer can move onto the tooltip */
+.dx-tip[popover]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+}
+
+.dx-tip[data-side="below"]::before {
+    top: -8px;
+}
+
+.dx-tip[data-side="above"]::before {
+    bottom: -8px;
 }
 
 .dx-alert {

@@ -9,8 +9,9 @@ defmodule DeployexWeb.ApplicationsLive.View do
 
   @limit_warn 80
   @limit_alert 90
-  # A count that grew this much is a trend worth a note, when the series covers this many minutes
+  # A count that grew this much, and by this share of its limit, over this many minutes is a trend worth a note
   @trend_percent 10
+  @trend_share 0.5
   @trend_minutes 10
   @tls_warn_days 30
 
@@ -48,7 +49,10 @@ defmodule DeployexWeb.ApplicationsLive.View do
     instances = Enum.map(status.children, &instance(&1, status.language, now))
     running = Enum.count(status.children, &(&1.status == :running))
     total = max(status.replicas, length(status.children))
-    problems = Enum.flat_map(instances, & &1.warnings)
+
+    problems =
+      for instance <- instances, warning <- instance.warnings, do: "#{instance.sname} #{warning}"
+
     ghosted = ghosted(status, instances)
 
     restarts =
@@ -135,15 +139,20 @@ defmodule DeployexWeb.ApplicationsLive.View do
   defp limit_warning(name, percent, level, _trend) when level > 0,
     do: ["#{name} at #{percent}% of the limit"]
 
-  defp limit_warning(name, _percent, _level, trend) when is_binary(trend),
-    do: ["#{name} #{trend}"]
+  defp limit_warning(name, _percent, _level, "+" <> trend), do: ["#{name} grew #{trend}"]
 
   defp limit_warning(_name, _percent, _level, _trend), do: []
 
-  defp trend(%Limit{change_percent: change, change_minutes: minutes})
-       when is_integer(change) and change >= @trend_percent and minutes >= @trend_minutes do
-    over = if minutes >= 60, do: "1 hour", else: "#{minutes} minutes"
-    "+#{change}% in #{over}"
+  # The growth in the count, from its change in percent, so a few ports more on a small count is no trend
+  defp trend(%Limit{count: count, limit: limit, change_percent: change, change_minutes: minutes})
+       when is_integer(change) and change >= @trend_percent and minutes >= @trend_minutes and
+              is_integer(limit) and limit > 0 do
+    grown = count - count * 100 / (100 + change)
+
+    if grown * 100 / limit >= @trend_share do
+      over = if minutes >= 60, do: "1 hour", else: "#{minutes} minutes"
+      "+#{change}% in #{over}"
+    end
   end
 
   defp trend(_limit), do: nil

@@ -251,6 +251,56 @@ const hooks = {
     }
   },
 
+  // A tooltip in the top layer (its [popover] child), so no scroll box clips it. It shows on hover and on
+  // keyboard focus, stays while the pointer is on it, and Escape or a scroll hides it
+  Tip: {
+    mounted() {
+      this.show = () => {
+        this.open = true;
+        this.place();
+        document.addEventListener("keydown", this.onKey);
+        window.addEventListener("scroll", this.hide, { capture: true, passive: true });
+      };
+      this.hide = () => {
+        this.open = false;
+        const tip = this.tip();
+        if (tip && tip.matches(":popover-open")) tip.hidePopover();
+        document.removeEventListener("keydown", this.onKey);
+        window.removeEventListener("scroll", this.hide, { capture: true });
+      };
+      this.onKey = (e) => e.key === "Escape" && this.hide();
+      this.el.addEventListener("pointerenter", this.show);
+      this.el.addEventListener("pointerleave", this.hide);
+      this.el.addEventListener("focusin", (e) => e.target.matches(":focus-visible") && this.show());
+      this.el.addEventListener("focusout", this.hide);
+    },
+
+    updated() {
+      if (this.open) this.place();
+    },
+
+    destroyed() {
+      this.hide();
+    },
+
+    tip() {
+      return this.el.querySelector("[popover]");
+    },
+
+    // Below the trigger, or above it when the window has no room, and inside the window
+    place() {
+      const tip = this.tip();
+      if (!tip) return;
+      if (!tip.matches(":popover-open")) tip.showPopover();
+      const r = this.el.getBoundingClientRect();
+      const t = tip.getBoundingClientRect();
+      const below = r.bottom + 8 + t.height <= window.innerHeight;
+      tip.dataset.side = below ? "below" : "above";
+      tip.style.top = `${below ? r.bottom + 8 : r.top - 8 - t.height}px`;
+      tip.style.left = `${Math.max(8, Math.min(r.left + r.width / 2 - t.width / 2, window.innerWidth - t.width - 8))}px`;
+    }
+  },
+
   // The dock: passes the dx:dock-open window events to the dock LiveView, and keeps its height (resize by
   // the grip, the arrow keys, or Taller and Shorter), minimized and full size in localStorage
   Dock: {

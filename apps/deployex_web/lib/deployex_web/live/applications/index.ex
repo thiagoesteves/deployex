@@ -147,6 +147,9 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  def handle_event("toggle-app", %{"name" => name, "open" => "true"}, socket),
+    do: {:noreply, update(socket, :open, &MapSet.put(&1, name))}
+
   def handle_event("toggle-app", %{"name" => name}, socket) do
     {:noreply,
      update(socket, :open, fn open ->
