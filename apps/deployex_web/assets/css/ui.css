@@ -192,8 +192,8 @@
 
 .dx-arow {
     display: grid;
-    grid-template-columns: minmax(200px,1.5fr) 176px 64px 92px 84px 168px 44px;
-    gap: 18px;
+    grid-template-columns: minmax(200px,1.5fr) 176px 56px 84px 68px 140px 117px;
+    gap: 16px;
     align-items: center;
     padding: 0 20px 0 26px;
     min-height: 78px;
@@ -298,10 +298,12 @@
     overflow: hidden;
 }
 
+/* The app row's columns, so the values line up. The last one is 13px narrower for the inset's right
+   margin, border and padding */
 .dx-irow {
     display: grid;
-    grid-template-columns: minmax(160px,1.2fr) 112px 48px 70px 80px 136px auto;
-    gap: 12px;
+    grid-template-columns: minmax(0,1fr) 176px 56px 84px 68px 140px 104px;
+    gap: 16px;
     align-items: center;
     padding: 0 12px 0 16px;
     min-height: 42px;
@@ -1126,6 +1128,13 @@
     width: 16px;
     height: 16px;
     flex: none;
+}
+
+.dx-iact-icon {
+    justify-content: center;
+    width: 32px;
+    min-height: 32px;
+    padding: 0;
 }
 
 .dx-iact-er {

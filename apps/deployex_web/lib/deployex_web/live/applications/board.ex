@@ -10,7 +10,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Tags
 
-  @columns "minmax(200px,1.5fr) 176px 64px 92px 84px 168px 44px"
+  @columns "minmax(200px,1.5fr) 176px 56px 84px 68px 140px 117px"
 
   attr :host_name, :string, required: true
   attr :attention, :integer, required: true
@@ -141,9 +141,9 @@ defmodule DeployexWeb.ApplicationsLive.Board do
     ~H"""
     <section class="dx-card overflow-hidden" aria-label="Applications on this host">
       <div class="overflow-x-auto">
-        <div class="min-w-[1040px]">
+        <div class="min-w-[984px]">
           <div
-            class="grid min-h-10 items-center gap-[18px] pr-5 pl-[26px]"
+            class="grid min-h-10 items-center gap-4 pr-5 pl-[26px]"
             style={"grid-template-columns: #{@columns}"}
           >
             <div class="dx-lbl">Application</div>
@@ -252,7 +252,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         <button
           id={"app-#{@app.name}-toggle"}
           type="button"
-          class="dx-ghost size-10"
+          class="dx-ghost size-10 justify-self-end"
           aria-expanded={to_string(@open)}
           aria-label={
             if @open,
@@ -461,41 +461,38 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           style={"color: #{if @instance.restarts > 0, do: Tags.tone(:warning), else: Tags.tone(:muted)}"}
           title={@instance.restarts_title}
         >
-          {if @instance.restarts == 1, do: "1 restart", else: "#{@instance.restarts} restarts"}
+          {@instance.restarts}<span class="sr-only"> restarts</span>
         </div>
         <div class="flex items-center gap-1.5">
           <Tags.deploy_tag type={if @instance.deploy == :hot_upgrade, do: :hot, else: :full} />
           <span :if={@instance.up} class="dx-mono dx-muted text-xs">up {@instance.up}</span>
         </div>
-        <div class="flex justify-end gap-1.5">
-          <button
-            type="button"
-            class="dx-iact"
-            aria-label={"Logs of #{@instance.sname}"}
+        <div class="flex justify-end gap-1">
+          <.icon_action
+            id={"instance-#{@instance.sname}-logs"}
+            icon="lines"
+            tip="Logs"
+            label={"Logs of #{@instance.sname}"}
             phx-click={dock_open("logs", @instance.sname, @app)}
-          >
-            <Icons.icon name="lines" class={nil} /><span>Logs</span>
-          </button>
-          <button
-            type="button"
-            class="dx-iact"
-            aria-label={"#{@instance.shell} on #{@instance.sname}, opens in the dock"}
+          />
+          <.icon_action
+            id={"instance-#{@instance.sname}-shell"}
+            icon="command-line"
+            tip={@instance.shell}
+            label={"#{@instance.shell} on #{@instance.sname}, opens in the dock"}
             phx-click={dock_open("shell", @instance.sname, @app)}
-          >
-            <Icons.icon name="command-line" class={nil} /><span>{@instance.shell}</span>
-          </button>
-          <button
+          />
+          <.icon_action
             id={"instance-#{@instance.sname}-restart"}
-            type="button"
-            class="dx-iact dx-iact-er"
-            aria-label={"Restart #{@instance.sname}…"}
+            icon={if @sent, do: "check", else: "arrow-path"}
+            tip={if @sent, do: "Restart sent", else: "Restart…"}
+            label={
+              if @sent, do: "Restart sent to #{@instance.sname}", else: "Restart #{@instance.sname}…"
+            }
+            danger
             phx-click="ask"
             phx-value-target={@instance.sname}
-          >
-            <Icons.icon name="arrow-path" class={nil} /><span>{if @sent,
-              do: "Restart sent",
-              else: "Restart…"}</span>
-          </button>
+          />
         </div>
       </div>
       <div
@@ -568,6 +565,31 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         </.link>
       </div>
     </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :icon, :string, required: true
+  attr :tip, :string, required: true, doc: "the short name in the tooltip"
+  attr :label, :string, required: true, doc: "the accessible name"
+  attr :danger, :boolean, default: false
+  attr :rest, :global
+
+  # An icon button of an instance row, named by a tooltip on hover and keyboard focus
+  defp icon_action(assigns) do
+    ~H"""
+    <span id={"#{@id}-tip"} class="inline-flex" phx-hook="Tip">
+      <button
+        id={@id}
+        type="button"
+        class={["dx-iact dx-iact-icon", @danger && "dx-iact-er"]}
+        aria-label={@label}
+        {@rest}
+      >
+        <Icons.icon name={@icon} class={nil} />
+      </button>
+      <span popover="manual" class="dx-tip" aria-hidden="true">{@tip}</span>
+    </span>
     """
   end
 
