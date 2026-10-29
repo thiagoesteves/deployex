@@ -183,7 +183,7 @@ defmodule DeployexWeb.LogsLive do
         </section>
 
         <section class="dx-card overflow-hidden" aria-label="Log lines">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--dx-base-300) px-[18px] py-2.5 text-[0.78125rem]">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-(--dx-base-300) px-[18px] py-2.5 text-[0.8125rem]">
             <span class="dx-muted" id="logs-summary">{summary(
               @shown,
               @cap,

@@ -76,7 +76,7 @@
     border: 1px solid var(--dx-base-300);
     background: var(--dx-base-100);
     color: var(--dx-base-content);
-    font: 600 0.78125rem/1.2 var(--dx-font-sans);
+    font: 600 0.8125rem/1.2 var(--dx-font-sans);
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
@@ -175,7 +175,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--dx-muted);
-    font: 600 0.78125rem/1 var(--dx-font-sans);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
     cursor: pointer;
 }
 
@@ -204,8 +204,8 @@
 
 .dx-arow {
     display: grid;
-    grid-template-columns: minmax(200px,1.5fr) 176px 56px 84px 68px 140px 117px;
-    gap: 16px;
+    grid-template-columns: minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.75rem calc(6.5rem + 13px);
+    gap: 1rem;
     align-items: center;
     padding: 0 20px 0 26px;
     min-height: 78px;
@@ -256,7 +256,7 @@
 }
 
 .dx-arow .dx-status {
-    font-size: 0.90625rem;
+    font-size: 0.875rem;
     gap: 8px;
 }
 
@@ -338,7 +338,7 @@
     padding: 10px 12px 10px 14px;
     border: 1px solid;
     border-radius: 8px;
-    font-size: 0.84375rem;
+    font-size: 0.875rem;
 }
 
 .dx-callout .dx-callout-ico {
@@ -399,7 +399,7 @@
 .dx-app-open {
     position: relative;
     background: color-mix(in oklab, var(--dx-info) 5%, var(--dx-base-100));
-    outline: 2px solid color-mix(in oklab, var(--dx-info) 60%, var(--dx-base-100));
+    outline: 2px solid var(--dx-info);
     outline-offset: -2px;
 }
 
@@ -412,11 +412,11 @@
 }
 
 /* The app row's columns, so the values line up. The last one is 13px narrower for the inset's right
-   margin, border and padding */
+   margin, border and padding. In rem, so the columns grow with a larger font */
 .dx-irow {
     display: grid;
-    grid-template-columns: minmax(0,1fr) 176px 56px 84px 68px 140px 104px;
-    gap: 16px;
+    grid-template-columns: minmax(0,1fr) 11rem 3.5rem 5.25rem 4.25rem 8.75rem 6.5rem;
+    gap: 1rem;
     align-items: center;
     padding: 0 12px 0 16px;
     min-height: 42px;
@@ -518,7 +518,7 @@
     border-radius: 6px;
     background: var(--dx-base-100);
     color: var(--dx-base-content);
-    font: 600 0.78125rem/1 var(--dx-font-sans);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
@@ -579,8 +579,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border-radius: 4px;
     color: var(--dx-muted);
 }
@@ -682,7 +682,7 @@
 }
 
 .dx-hit span {
-    font-size: 0.78125rem;
+    font-size: 0.8125rem;
     color: var(--dx-muted);
     text-align: right;
 }
@@ -722,7 +722,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--dx-base-content);
-    font: 500 0.84375rem/1 var(--dx-font-sans);
+    font: 500 0.875rem/1 var(--dx-font-sans);
     text-decoration: none;
     cursor: pointer;
     text-align: left;
@@ -910,7 +910,7 @@
     border: 0;
     background: transparent;
     color: inherit;
-    font: 600 0.78125rem/1 var(--dx-font-mono);
+    font: 600 0.8125rem/1 var(--dx-font-mono);
     cursor: pointer;
     white-space: nowrap;
 }
@@ -972,7 +972,7 @@
     min-height: 0;
     overflow: auto;
     padding: 4px 0;
-    font: 0.78125rem/1.65 var(--dx-font-mono);
+    font: 0.8125rem/1.65 var(--dx-font-mono);
 }
 
 .dx-k-row {
@@ -1042,7 +1042,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--dx-base-content);
-    font: 0.78125rem/1.2 var(--dx-font-mono);
+    font: 0.8125rem/1.2 var(--dx-font-mono);
     cursor: pointer;
 }
 
@@ -1143,6 +1143,13 @@
     overflow-wrap: anywhere;
 }
 
+/* A link here stands alone, so it gets the 24px target */
+.dx-ditem dd a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+}
+
 /* The point where the watchdog restarts the instance */
 .dx-lmark {
     position: absolute;
@@ -1213,7 +1220,7 @@
 
 .dx-nd {
     display: block;
-    font-size: 0.78125rem;
+    font-size: 0.8125rem;
     color: var(--dx-muted);
 }
 
@@ -1222,7 +1229,7 @@
     background: transparent;
     padding: 6px;
     color: var(--dx-primary-text);
-    font: 600 0.78125rem/1 var(--dx-font-sans);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
     cursor: pointer;
 }
 
@@ -1279,7 +1286,7 @@
 .dx-meter b {
     min-width: 32px;
     text-align: right;
-    font: 600 0.78125rem/1 var(--dx-font-mono);
+    font: 600 0.8125rem/1 var(--dx-font-mono);
     font-variant-numeric: tabular-nums;
 }
 
@@ -1391,7 +1398,7 @@
     padding: 12px 16px 14px 38px;
     border-top: 1px dashed var(--dx-base-300);
     background: color-mix(in oklch,var(--dx-error) 6%,var(--dx-base-100));
-    font-size: 0.84375rem;
+    font-size: 0.875rem;
 }
 
 .dx-btn-danger, .dx-btn-danger:hover {
@@ -1467,7 +1474,7 @@
     border-radius: 999px;
     background: var(--dx-base-100);
     color: var(--dx-muted);
-    font: 500 0.78125rem/1 var(--dx-font-mono);
+    font: 500 0.8125rem/1 var(--dx-font-mono);
     cursor: pointer;
     white-space: nowrap;
 }
@@ -1511,7 +1518,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--dx-muted);
-    font: 600 0.78125rem/1 var(--dx-font-mono);
+    font: 600 0.8125rem/1 var(--dx-font-mono);
     cursor: pointer;
 }
 
@@ -1543,7 +1550,7 @@
 }
 
 .dx-logpane {
-    font: 0.78125rem/1.65 var(--dx-font-mono);
+    font: 0.8125rem/1.65 var(--dx-font-mono);
     height: 560px;
     overflow: auto;
 }
@@ -1616,7 +1623,7 @@
     border: 0;
     background: transparent;
     color: inherit;
-    font: 600 0.78125rem/1 var(--dx-font-mono);
+    font: 600 0.8125rem/1 var(--dx-font-mono);
     cursor: pointer;
 }
 
@@ -1714,12 +1721,12 @@
 }
 
 .dx-sc code {
-    font: 600 0.78125rem/1.4 var(--dx-font-mono);
+    font: 600 0.8125rem/1.4 var(--dx-font-mono);
     color: var(--dx-base-content);
 }
 
 .dx-sc span {
-    font-size: 0.78125rem;
+    font-size: 0.8125rem;
     color: var(--dx-muted);
 }
 
@@ -1838,7 +1845,7 @@
     border-radius: 6px;
     background: var(--dx-base-100);
     color: var(--dx-base-content);
-    font: 0.84375rem var(--dx-font-mono);
+    font: 0.875rem var(--dx-font-mono);
 }
 
 .dx-vrow {
@@ -1869,7 +1876,7 @@
     padding: 12px 20px;
     border-top: 1px solid var(--dx-base-300);
     background: color-mix(in oklch, var(--dx-success) 9%, var(--dx-base-100));
-    font-size: 0.84375rem;
+    font-size: 0.875rem;
 }
 
 .dx-empty {

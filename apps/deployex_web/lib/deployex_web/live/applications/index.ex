@@ -48,7 +48,6 @@ defmodule DeployexWeb.ApplicationsLive do
         <Board.page_head
           host_name={@host_name}
           attention={@attention}
-          attention_path={Filter.path(Filter.toggle(@tags, {"status", "attention"}))}
           only_attention={{"status", "attention"} in @tags}
         />
         <Board.host_card
@@ -190,6 +189,11 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
+  def handle_event("toggle-attention", _params, %{assigns: %{tags: tags}} = socket),
+    do:
+      {:noreply,
+       push_patch(socket, to: Filter.path(Filter.toggle(tags, {"status", "attention"})))}
+
   def handle_event("show-instance", %{"name" => name, "sname" => sname}, socket) do
     {:noreply,
      socket

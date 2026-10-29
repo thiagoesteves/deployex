@@ -41,7 +41,7 @@ defmodule DeployexWeb.GhostedLive do
                 else: "#{length(@shown)} ghosted versions"}
             </span>
           </Board.app_head>
-          <p class="dx-muted max-w-[720px] text-[0.84375rem]">
+          <p class="dx-muted max-w-[720px] text-[0.875rem]">
             A ghosted version failed on this host, and DeployEx does not deploy it here again. Clear it when the
             release is fixed, or to try it once more.
           </p>
@@ -76,7 +76,7 @@ defmodule DeployexWeb.GhostedLive do
                 <div class="dx-mono text-[0.8125rem]">{version.sname}</div>
                 <div class="flex items-baseline gap-2.5">
                   <span class="dx-mono text-[0.8125rem]">{at(version)}</span>
-                  <span class="dx-muted text-[0.78125rem]">{View.age(datetime(version), @now)}</span>
+                  <span class="dx-muted text-[0.8125rem]">{View.age(datetime(version), @now)}</span>
                 </div>
                 <div class="flex justify-end">
                   <button
@@ -95,7 +95,7 @@ defmodule DeployexWeb.GhostedLive do
           </div>
           <p
             :if={@shown == []}
-            class="dx-muted border-t border-(--dx-base-300) px-5 py-[18px] text-[0.84375rem]"
+            class="dx-muted border-t border-(--dx-base-300) px-5 py-[18px] text-[0.875rem]"
           >
             No ghosted versions. Any version can deploy on this host.
           </p>

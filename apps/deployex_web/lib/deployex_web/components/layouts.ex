@@ -107,7 +107,7 @@ defmodule DeployexWeb.Layouts do
         >
           <:button>{initials(@current_user)}</:button>
           <div class="mb-1.5 border-b border-(--dx-base-300) px-2.5 pt-2 pb-2.5">
-            <div class="truncate text-[0.84375rem] font-semibold">{display_name(@current_user)}</div>
+            <div class="truncate text-[0.875rem] font-semibold">{display_name(@current_user)}</div>
           </div>
           <Menu.item href={~p"/users/log_out"} method="delete">
             <Icons.icon name="logout" class="dx-ico size-4" /> Log out

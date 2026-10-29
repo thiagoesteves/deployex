@@ -38,8 +38,8 @@ defmodule DeployexWeb.VersionsLive do
                 <span :if={@pinned} class="dx-chip dx-s-info"><span class="dx-dot"></span>Pinned to {@pinned}</span>
                 <span :if={is_nil(@pinned)} class="dx-chip dx-s-ok"><span class="dx-dot"></span>Automatic</span>
               </div>
-              <p class="dx-muted text-[0.84375rem]">{mode_text(@pinned, @count)}</p>
-              <p :if={@timing} class="dx-muted text-[0.84375rem]">{@timing}</p>
+              <p class="dx-muted text-[0.875rem]">{mode_text(@pinned, @count)}</p>
+              <p :if={@timing} class="dx-muted text-[0.875rem]">{@timing}</p>
             </div>
             <form id="mode-form" phx-change="pick" class="flex flex-wrap items-end gap-2.5">
               <div class="dx-seg-group" role="group" aria-label="Mode">
@@ -159,18 +159,18 @@ defmodule DeployexWeb.VersionsLive do
                 </div>
                 <div class="flex items-baseline gap-2.5">
                   <span class="dx-mono text-[0.8125rem]">{row.at}</span>
-                  <span class="dx-muted text-[0.78125rem]">{row.age}</span>
+                  <span class="dx-muted text-[0.8125rem]">{row.age}</span>
                 </div>
               </div>
               <p
                 :if={@history == []}
-                class="dx-muted border-t border-(--dx-base-300) px-5 py-4 text-[0.84375rem]"
+                class="dx-muted border-t border-(--dx-base-300) px-5 py-4 text-[0.875rem]"
               >
                 No version has run on this host yet.
               </p>
             </div>
           </div>
-          <p class="dx-muted border-t border-(--dx-base-300) px-5 pt-3 pb-3.5 text-[0.78125rem]">
+          <p class="dx-muted border-t border-(--dx-base-300) px-5 pt-3 pb-3.5 text-[0.8125rem]">
             This host keeps the releases of the last {retention()} versions.
             <.link class="dx-link" navigate={~p"/applications/#{@name}/ghosted"}>Ghosted versions</.link>
           </p>

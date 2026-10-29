@@ -181,7 +181,7 @@ defmodule DeployexWeb.TerminalLive do
               <h2 class="text-sm font-bold">{help_title(@active_session.kind)}</h2>
               <p
                 :if={@active_session.kind == :host_shell}
-                class="text-[0.78125rem] font-semibold text-warning-text"
+                class="text-[0.8125rem] font-semibold text-warning-text"
               >
                 This shell runs as the deployex user. It can read the release and the logs of every app on this host.
               </p>
@@ -197,7 +197,7 @@ defmodule DeployexWeb.TerminalLive do
             :if={is_nil(@active_session)}
             class="flex flex-col items-center gap-2.5 px-6 py-12 text-center"
           >
-            <p class="text-[0.9375rem] font-semibold">No open session</p>
+            <p class="text-base font-semibold">No open session</p>
             <p class="dx-muted text-[0.8125rem]">
               Open an IEx shell on an instance, or a shell on this host, with New session.
             </p>
