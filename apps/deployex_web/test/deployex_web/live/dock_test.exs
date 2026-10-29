@@ -193,4 +193,53 @@ defmodule DeployexWeb.DockTest do
 
     refute html =~ "dx-dock-bar"
   end
+
+  @tag :capture_log
+  test "a shell and a logs tab show side by side, swap, and close back to one pane", %{
+    conn: conn,
+    user: user
+  } do
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn _sname, _type, _options ->
+      [message("a log line")]
+    end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "logs", "target" => "deployex", "app" => "deployex"})
+    render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
+    refute has_element?(dock, "#dock-unsplit")
+
+    # Two logs tabs cannot show together, a logs tab and a shell can
+    html = dock |> element("#dock-split-logs\\:deployex") |> render_click()
+    assert has_element?(dock, "#dock-unsplit")
+    assert html =~ "a log line"
+    assert html =~ ~s(phx-hook="XTerm")
+    assert {shell, _} = :binary.match(html, "dock-xterm-")
+    assert {logs, _} = :binary.match(html, ~s(id="dock-log"))
+    assert shell < logs
+
+    # The second pane's tab swaps the panes
+    html = dock |> element("#dock-tab-logs\\:deployex") |> render_click()
+    assert {shell, _} = :binary.match(html, "dock-xterm-")
+    assert {logs, _} = :binary.match(html, ~s(id="dock-log"))
+    assert logs < shell
+
+    # Closing the second pane keeps its tab, and the shell keeps running
+    html = dock |> element("#dock-unsplit") |> render_click()
+    refute html =~ ~s(phx-hook="XTerm")
+    assert html =~ "dock-tab-shell:deployex"
+    assert [%{target: "deployex"}] = Shell.list(user.username)
+
+    # Closing the first pane's tab while split leaves the second one alone
+    dock |> element("#dock-split-shell\\:deployex") |> render_click()
+    html = dock |> element("#dock-close-logs\\:deployex") |> render_click()
+    refute html =~ ~s(id="dock-log")
+    refute has_element?(dock, "#dock-unsplit")
+    assert html =~ ~s(phx-hook="XTerm")
+
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
+    ref = Process.monitor(pid)
+    dock |> element("#dock-close") |> render_click()
+    dock |> element("#dock-close-confirm") |> render_click()
+    assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+  end
 end

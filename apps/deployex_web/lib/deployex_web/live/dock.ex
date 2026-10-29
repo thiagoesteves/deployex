@@ -10,6 +10,7 @@ defmodule DeployexWeb.DockLive do
 
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
+  alias DeployexWeb.UI.Menu
   alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
@@ -21,7 +22,18 @@ defmodule DeployexWeb.DockLive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :active_tab, Enum.find(assigns.tabs, &(&1.id == assigns.active)))
+    active_tab = Enum.find(assigns.tabs, &(&1.id == assigns.active))
+    split_tab = Enum.find(assigns.tabs, &(&1.id == assigns.split))
+    visible = Enum.reject([active_tab, split_tab], &is_nil/1)
+
+    assigns =
+      assign(assigns,
+        active_tab: active_tab,
+        split_tab: split_tab,
+        visible: visible,
+        shell_tab: Enum.find(visible, &(&1.kind == :shell)),
+        splittable: Enum.filter(assigns.tabs, &splittable?(&1, active_tab))
+      )
 
     ~H"""
     <div id="dock" phx-hook="Dock">
@@ -40,7 +52,7 @@ defmodule DeployexWeb.DockLive do
               class={[
                 "dx-dtab",
                 tab.kind == :shell && "dx-dtab-term",
-                tab.id == @active && "dx-dtab-on"
+                tab.id in [@active, @split] && "dx-dtab-on"
               ]}
             >
               <button
@@ -67,8 +79,30 @@ defmodule DeployexWeb.DockLive do
             </div>
           </div>
           <div class="dx-dock-ctl">
+            <div :if={@active_tab && is_nil(@split_tab) && @splittable != []} class="mr-2">
+              <Menu.menu
+                id="dock-split"
+                label="Show a second tab beside this one"
+                button_class="dx-tog dx-tog-sm"
+                panel_class="dx-menu-up right-0 w-[280px]"
+              >
+                <:button><Icons.icon name="split" stroke="1.8" class="dx-ico size-3.5" /> Split</:button>
+                <Menu.item
+                  :for={tab <- @splittable}
+                  id={"dock-split-#{tab.id}"}
+                  class="justify-between"
+                  phx-click="split"
+                  phx-value-id={tab.id}
+                >
+                  <span class="inline-flex items-center gap-2">
+                    <Tags.lang name={tab.language} small /><span class="dx-mono text-[0.8125rem]">{tab.target}</span>
+                  </span>
+                  <span class="dx-muted text-xs">{tab.label}</span>
+                </Menu.item>
+              </Menu.menu>
+            </div>
             <button
-              :if={@active_tab && @active_tab.kind == :shell}
+              :if={@shell_tab}
               id="dock-shortcuts"
               type="button"
               class="dx-tog dx-tog-sm mr-2"
@@ -77,16 +111,13 @@ defmodule DeployexWeb.DockLive do
             >
               Shortcuts
             </button>
-            <span
-              :if={@active_tab && @active_tab.kind == :shell}
-              class="dx-muted mr-2 text-[0.8125rem] whitespace-nowrap"
-            >
+            <span :if={@shell_tab} class="dx-muted mr-2 text-[0.8125rem] whitespace-nowrap">
               Closes in
               <b
-                id={"dock-countdown-#{@active_tab.id}"}
+                id={"dock-countdown-#{@shell_tab.id}"}
                 class="dx-mono text-(--dx-base-content)"
                 phx-hook="Countdown"
-                data-expires={DateTime.to_iso8601(@active_tab.session.expires_at)}
+                data-expires={DateTime.to_iso8601(@shell_tab.session.expires_at)}
               ></b>
             </span>
             <button
@@ -153,104 +184,143 @@ defmodule DeployexWeb.DockLive do
           <button type="button" class="dx-btn" phx-click="cancel-close">Cancel</button>
         </div>
         <div class="dx-dock-body">
-          <%= if @active_tab && @active_tab.kind == :logs do %>
-            <div class="dx-k-head">
-              <span class="dx-muted dx-mono text-xs">{logs_subtitle(@active_tab)} · last 30 minutes, then live</span>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <form id="dock-filter" phx-change="filter-logs" phx-submit="filter-logs">
-                  <input
-                    class="dx-filter dx-filter-sm"
-                    type="search"
-                    name="filter"
-                    value={@active_tab.filter}
-                    placeholder="Filter these lines"
-                    aria-label={"Filter the logs of #{@active_tab.target}"}
-                    phx-debounce="200"
-                    autocomplete="off"
-                  />
-                </form>
-                <button
-                  :for={type <- ["stdout", "stderr"]}
-                  id={"dock-stream-#{type}"}
-                  type="button"
-                  class="dx-tog dx-tog-sm"
-                  aria-pressed={to_string(type in @active_tab.types)}
-                  phx-click="toggle-stream"
-                  phx-value-type={type}
-                >
-                  <Icons.icon
-                    :if={type in @active_tab.types}
-                    name="check"
-                    stroke="2.4"
-                    class="dx-ico dx-tog-check size-3"
-                  />
-                  <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
-                </button>
-                <button
-                  id="dock-open-logs"
-                  type="button"
-                  class="dx-btn"
-                  phx-click={
-                    JS.push("close-tab", value: %{id: @active_tab.id})
-                    |> JS.navigate(~p"/logs/live?#{logs_query(@active_tab)}")
-                  }
-                >
-                  Open in Logs
-                </button>
-              </div>
-            </div>
-            <div
-              id="dock-log"
-              class="dx-k-log"
-              role="log"
-              aria-live="off"
-              aria-label="Log lines"
-              tabindex="0"
-              phx-hook="ScrollBottom"
-            >
-              <div id="dock-lines" phx-update="stream">
-                <div
-                  :for={{dom_id, line} <- @streams.lines}
-                  id={dom_id}
-                  class="dx-k-row"
-                  style={"grid-template-columns: #{if line.many, do: "96px 160px 54px minmax(0, 1fr)", else: "96px 54px minmax(0, 1fr)"}"}
-                >
-                  <span class="dx-muted">{Calendar.strftime(line.at, "%H:%M:%S.%f")
-                  |> String.slice(0, 12)}</span>
-                  <span :if={line.many} class="truncate">{line.source}</span>
-                  <span style={"color: #{if line.type == "stderr", do: "var(--dx-error-text)", else: "var(--dx-muted)"}"}>
-                    {line.type}
-                  </span>
-                  <span class="dx-k-msg" style={"color: #{message_color(line)}"} phx-no-format>{line.text}</span>
-                </div>
-              </div>
-              <p :if={@active_tab.empty} class="dx-muted p-3.5 text-[0.8125rem]">
-                {if @active_tab.filter == "",
-                  do: "No lines for these streams.",
-                  else: "No line holds #{@active_tab.filter}. Open in Logs reads the history too."}
-              </p>
-            </div>
-          <% end %>
-          <div :if={@active_tab && @active_tab.kind == :shell} class="dx-k-term flex-row">
-            <div
-              id={"dock-xterm-#{@active_tab.session.id}"}
-              class="dx-xterm min-w-0 flex-1"
-              phx-hook="XTerm"
-              phx-update="ignore"
-              data-target={@active_tab.target}
-              data-focus
-              role="log"
-              aria-label={"Shell output of #{@active_tab.target}"}
-            >
-            </div>
-            <ShellHelp.help
-              :if={@help_open}
-              kind={@active_tab.session.kind}
-              class="dx-help-dock"
+          <div class="dx-panes dx-dpanes">
+            <.pane
+              :for={tab <- @visible}
+              tab={tab}
+              lines={@streams.lines}
+              split={@split_tab != nil}
+              second={tab.id == @split}
+              help={@help_open && @shell_tab != nil && tab.id == @shell_tab.id}
             />
           </div>
         </div>
       </section>
+    </div>
+    """
+  end
+
+  attr :tab, :map, required: true
+  attr :lines, :any, required: true, doc: "the log lines stream, for a logs tab"
+  attr :split, :boolean, required: true, doc: "whether two panes show, each with a head"
+  attr :second, :boolean, required: true, doc: "the pane on the right, which Close takes away"
+  attr :help, :boolean, required: true, doc: "whether this shell pane shows the shortcuts"
+
+  # One tab of the dock: its logs or its shell. With a split, each pane names its tab
+  defp pane(assigns) do
+    ~H"""
+    <div class="dx-pane">
+      <div :if={@split} class="dx-pane-head">
+        <span class="inline-flex min-w-0 items-center gap-2">
+          <Tags.lang name={@tab.language} small />
+          <span class="dx-mono truncate">{@tab.target}</span>
+          <span class="dx-muted">{@tab.label}</span>
+        </span>
+        <button
+          :if={@second}
+          id="dock-unsplit"
+          type="button"
+          class="dx-ghost size-7"
+          aria-label="Close the second pane. Its tab stays"
+          title="Close the pane"
+          phx-click="unsplit"
+        >
+          <Icons.icon name="x-mark" stroke="2.2" class="dx-ico size-[13px]" />
+        </button>
+      </div>
+      <%= if @tab.kind == :logs do %>
+        <div class="dx-k-head">
+          <span class="dx-muted dx-mono text-xs">{logs_subtitle(@tab)} · last 30 minutes, then live</span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <form id="dock-filter" phx-change="filter-logs" phx-submit="filter-logs">
+              <input
+                class="dx-filter dx-filter-sm"
+                type="search"
+                name="filter"
+                value={@tab.filter}
+                placeholder="Filter these lines"
+                aria-label={"Filter the logs of #{@tab.target}"}
+                phx-debounce="200"
+                autocomplete="off"
+              />
+            </form>
+            <button
+              :for={type <- ["stdout", "stderr"]}
+              id={"dock-stream-#{type}"}
+              type="button"
+              class="dx-tog dx-tog-sm"
+              aria-pressed={to_string(type in @tab.types)}
+              phx-click="toggle-stream"
+              phx-value-type={type}
+            >
+              <Icons.icon
+                :if={type in @tab.types}
+                name="check"
+                stroke="2.4"
+                class="dx-ico dx-tog-check size-3"
+              />
+              <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
+            </button>
+            <button
+              id="dock-open-logs"
+              type="button"
+              class="dx-btn"
+              phx-click={
+                JS.push("close-tab", value: %{id: @tab.id})
+                |> JS.navigate(~p"/logs/live?#{logs_query(@tab)}")
+              }
+            >
+              Open in Logs
+            </button>
+          </div>
+        </div>
+        <div
+          id="dock-log"
+          class="dx-k-log"
+          role="log"
+          aria-live="off"
+          aria-label="Log lines"
+          tabindex="0"
+          phx-hook="ScrollBottom"
+        >
+          <div id="dock-lines" phx-update="stream">
+            <div
+              :for={{dom_id, line} <- @lines}
+              id={dom_id}
+              class="dx-k-row"
+              style={"grid-template-columns: #{if line.many, do: "96px 160px 54px minmax(0, 1fr)", else: "96px 54px minmax(0, 1fr)"}"}
+            >
+              <span class="dx-muted">{Calendar.strftime(line.at, "%H:%M:%S.%f")
+              |> String.slice(0, 12)}</span>
+              <span :if={line.many} class="truncate">{line.source}</span>
+              <span style={"color: #{if line.type == "stderr", do: "var(--dx-error-text)", else: "var(--dx-muted)"}"}>
+                {line.type}
+              </span>
+              <span class="dx-k-msg" style={"color: #{message_color(line)}"} phx-no-format>{line.text}</span>
+            </div>
+          </div>
+          <p :if={@tab.empty} class="dx-muted p-3.5 text-[0.8125rem]">
+            {if @tab.filter == "",
+              do: "No lines for these streams.",
+              else: "No line holds #{@tab.filter}. Open in Logs reads the history too."}
+          </p>
+        </div>
+      <% else %>
+        <div class="dx-k-term flex-row">
+          <div
+            id={"dock-xterm-#{@tab.session.id}"}
+            class="dx-xterm min-w-0 flex-1"
+            phx-hook="XTerm"
+            phx-update="ignore"
+            data-target={@tab.target}
+            data-focus={!@second}
+            role="log"
+            aria-label={"Shell output of #{@tab.target}"}
+          >
+          </div>
+          <ShellHelp.help :if={@help} kind={@tab.session.kind} class="dx-help-dock" />
+        </div>
+      <% end %>
     </div>
     """
   end
@@ -262,7 +332,8 @@ defmodule DeployexWeb.DockLive do
      |> assign(:user, session["user"])
      |> assign(:tabs, [])
      |> assign(:active, nil)
-     |> assign(:attached, nil)
+     |> assign(:split, nil)
+     |> assign(:attached, %{})
      |> assign(:asking_close, false)
      |> assign(:help_open, false)
      |> stream(:lines, []), layout: false}
@@ -334,7 +405,18 @@ defmodule DeployexWeb.DockLive do
   def handle_event("toggle-help", _params, socket),
     do: {:noreply, update(socket, :help_open, &(!&1))}
 
-  def handle_event("select", %{"id" => id}, socket), do: {:noreply, activate(socket, id)}
+  # The second pane's tab swaps the panes. Another tab takes the first pane, and keeps the second
+  # when the two can show together
+  def handle_event("select", %{"id" => id}, %{assigns: %{active: active, split: split}} = socket) do
+    split = if id == split, do: active, else: split
+    {:noreply, socket |> assign(:split, split) |> activate(id)}
+  end
+
+  def handle_event("split", %{"id" => id}, socket),
+    do: {:noreply, socket |> assign(:split, id) |> activate(socket.assigns.active)}
+
+  def handle_event("unsplit", _params, socket),
+    do: {:noreply, socket |> assign(:split, nil) |> activate(socket.assigns.active)}
 
   def handle_event("close-tab", %{"id" => id}, socket), do: {:noreply, close_tab(socket, id)}
 
@@ -351,13 +433,12 @@ defmodule DeployexWeb.DockLive do
   def handle_event("cancel-close", _params, socket),
     do: {:noreply, assign(socket, :asking_close, false)}
 
-  def handle_event("filter-logs", %{"filter" => filter}, %{assigns: %{active: active}} = socket),
-    do: {:noreply, socket |> update_tab(active, &%{&1 | filter: filter}) |> show_logs()}
+  def handle_event("filter-logs", %{"filter" => filter}, socket),
+    do: {:noreply, socket |> update_tab(logs_id(socket), &%{&1 | filter: filter}) |> show_logs()}
 
-  def handle_event("toggle-stream", %{"type" => type}, %{assigns: %{active: active}} = socket)
-      when type in @types do
+  def handle_event("toggle-stream", %{"type" => type}, socket) when type in @types do
     socket =
-      update_tab(socket, active, fn tab ->
+      update_tab(socket, logs_id(socket), fn tab ->
         types = if type in tab.types, do: List.delete(tab.types, type), else: tab.types ++ [type]
         %{tab | types: types}
       end)
@@ -381,10 +462,9 @@ defmodule DeployexWeb.DockLive do
   end
 
   @impl true
-  def handle_info(
-        {:logs_new_data, sname, type, message},
-        %{assigns: %{tabs: tabs, active: active}} = socket
-      ) do
+  def handle_info({:logs_new_data, sname, type, message}, %{assigns: %{tabs: tabs}} = socket) do
+    shown_id = logs_id(socket)
+
     socket =
       Enum.reduce(tabs, socket, fn
         %{kind: :logs, snames: snames} = tab, socket ->
@@ -400,7 +480,7 @@ defmodule DeployexWeb.DockLive do
 
             shown = Enum.filter(lines, &holds?(&1, tab.filter))
 
-            if tab.id == active and type in tab.types and shown != [] do
+            if tab.id == shown_id and type in tab.types and shown != [] do
               socket
               |> stream(:lines, shown, limit: -@log_cap)
               |> update_tab(tab.id, &%{&1 | empty: false})
@@ -418,11 +498,15 @@ defmodule DeployexWeb.DockLive do
     {:noreply, socket}
   end
 
-  def handle_info(
-        {:shell_output, id, data},
-        %{assigns: %{attached: %{id: id, target: target}}} = socket
-      ),
-      do: {:noreply, push_event(socket, "shell-output-#{target}", %{data: data})}
+  def handle_info({:shell_output, id, data}, %{assigns: %{attached: attached}} = socket) do
+    case Enum.find(attached, fn {_target, session} -> session.id == id end) do
+      {target, _session} ->
+        {:noreply, push_event(socket, "shell-output-#{target}", %{data: data})}
+
+      nil ->
+        {:noreply, socket}
+    end
+  end
 
   def handle_info({:shell_closed, id}, %{assigns: %{tabs: tabs}} = socket) do
     case Enum.find(tabs, &(&1.kind == :shell and &1.session.id == id)) do
@@ -441,36 +525,58 @@ defmodule DeployexWeb.DockLive do
     |> show_logs()
   end
 
-  # Follows the active shell session, and stops following the one before. Both keep running
-  defp attach(%{assigns: %{tabs: tabs, active: active, attached: attached}} = socket) do
-    tab = Enum.find(tabs, &(&1.id == active))
-    shell_id = shell_session_id(tab)
-    if attached && attached.id != shell_id, do: Shell.detach(attached)
+  # Follows the shell sessions in the panes, and stops following the others. Every session keeps running
+  defp attach(%{assigns: %{attached: attached}} = socket) do
+    shells = for tab <- visible(socket.assigns), tab.kind == :shell, do: tab
+    wanted = Enum.map(shells, & &1.target)
 
-    cond do
-      is_nil(shell_id) -> assign(socket, :attached, nil)
-      attached && attached.id == shell_id -> socket
-      true -> attach_shell(socket, tab)
-    end
+    for {target, session} <- attached, target not in wanted, do: Shell.detach(session)
+    socket = assign(socket, :attached, Map.take(attached, wanted))
+
+    Enum.reduce(shells, socket, fn %{target: target} = tab, socket ->
+      if Map.has_key?(socket.assigns.attached, target),
+        do: socket,
+        else: attach_shell(socket, tab)
+    end)
   end
 
-  defp shell_session_id(%{kind: :shell, session: %{id: id}}), do: id
-  defp shell_session_id(_tab), do: nil
-
-  defp attach_shell(%{assigns: %{user: user, active: active}} = socket, %{target: target}) do
+  defp attach_shell(%{assigns: %{user: user}} = socket, %{id: id, target: target}) do
     case Shell.attach(user, target) do
       {:ok, session, scrollback} ->
         socket
-        |> assign(:attached, session)
+        |> update(:attached, &Map.put(&1, target, session))
         |> push_event("shell-reset-#{target}", %{data: scrollback})
 
       :error ->
-        socket |> assign(:attached, nil) |> close_tab(active, false)
+        close_tab(socket, id, false)
     end
   end
 
-  defp show_logs(%{assigns: %{tabs: tabs, active: active}} = socket) do
-    case Enum.find(tabs, &(&1.id == active)) do
+  # The tabs in the panes: the active one, and the split one beside it
+  defp visible(%{tabs: tabs, active: active, split: split}),
+    do:
+      Enum.filter([active, split], & &1)
+      |> Enum.map(fn id -> Enum.find(tabs, &(&1.id == id)) end)
+      |> Enum.reject(&is_nil/1)
+
+  # The logs tab in view, which the one stream of lines shows
+  defp logs_id(%{assigns: assigns}) do
+    case Enum.find(visible(assigns), &(&1.kind == :logs)) do
+      %{id: id} -> id
+      nil -> nil
+    end
+  end
+
+  # A tab can show beside the active one when it is another tab, and the two are not both logs
+  defp splittable?(_tab, nil), do: false
+  defp splittable?(%{id: id}, %{id: id}), do: false
+  defp splittable?(%{kind: :logs}, %{kind: :logs}), do: false
+  defp splittable?(_tab, _active), do: true
+
+  defp show_logs(%{assigns: %{tabs: tabs}} = socket) do
+    id = logs_id(socket)
+
+    case Enum.find(tabs, &(&1.id == id)) do
       %{kind: :logs} = tab ->
         lines =
           tab.buffer
@@ -498,11 +604,21 @@ defmodule DeployexWeb.DockLive do
       tab ->
         stop(tab, user, end_session)
         rest = Enum.reject(tabs, &(&1.id == id))
-        next = if active == id, do: rest |> List.last() |> then(&(&1 && &1.id)), else: active
+        split = socket.assigns.split
+
+        # The second pane takes the first one's place when the first one's tab closes
+        {next, split} =
+          cond do
+            active == id and split -> {split, nil}
+            active == id -> {rest |> List.last() |> then(&(&1 && &1.id)), nil}
+            split == id -> {active, nil}
+            true -> {active, split}
+          end
 
         socket
         |> assign(:tabs, rest)
-        |> assign(:attached, if(active == id, do: nil, else: socket.assigns.attached))
+        |> assign(:split, split)
+        |> update(:attached, &Map.delete(&1, tab.target))
         |> activate(next)
     end
   end
@@ -511,7 +627,7 @@ defmodule DeployexWeb.DockLive do
     Enum.each(tabs, &stop(&1, user, true))
 
     socket
-    |> assign(tabs: [], active: nil, attached: nil, asking_close: false)
+    |> assign(tabs: [], active: nil, split: nil, attached: %{}, asking_close: false)
     |> stream(:lines, [], reset: true)
   end
 

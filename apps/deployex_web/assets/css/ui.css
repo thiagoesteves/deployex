@@ -698,6 +698,12 @@
     cursor: pointer;
 }
 
+/* A menu at the bottom of the window, like in the dock, opens upward */
+.dx-menu.dx-menu-up {
+    top: auto;
+    bottom: calc(100% + 6px);
+}
+
 .dx-menu {
     position: absolute;
     right: 0;
