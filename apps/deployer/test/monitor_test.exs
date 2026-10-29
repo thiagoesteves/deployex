@@ -1126,7 +1126,9 @@ defmodule Deployer.MonitorTest do
 
     test "code_change adds the new fields to a state from an older version" do
       state = %Deployer.Monitor{sname: "myelixir-abc"}
-      old_state = Map.drop(state, [:pre_commands_run, :reported_pre_commands, :started_at])
+
+      old_state =
+        Map.drop(state, [:pre_commands_run, :reported_pre_commands, :started_at, :last_crash_at])
 
       assert {:ok, ^state} = MonitorApp.code_change("0.10.0", old_state, [])
 
@@ -1186,8 +1188,11 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_restart_event, ^test_event_ref}, 1_000
 
-      # Check restart was increased
-      assert %{status: :running, crash_restart_count: 1} = MonitorApp.state(sname)
+      # Check restart was increased, with the time of the crash
+      assert %{status: :running, crash_restart_count: 1, last_crash_at: %DateTime{} = crashed_at} =
+               MonitorApp.state(sname)
+
+      assert DateTime.diff(DateTime.utc_now(), crashed_at) in 0..2
 
       assert :ok = MonitorApp.stop_service(name, sname)
     end

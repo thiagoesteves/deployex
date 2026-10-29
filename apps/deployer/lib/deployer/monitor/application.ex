@@ -276,13 +276,20 @@ defmodule Deployer.Monitor.Application do
     backoff = min(2 * consecutive_crash_count * 1000, @max_backoff_ms)
     trigger_run_service(state.sname, backoff)
 
-    {:noreply,
-     update_non_blocking_state(%{
-       state
-       | current_pid: nil,
-         crash_restart_count: crash_restart_count,
-         consecutive_crash_count: consecutive_crash_count
-     })}
+    # Map.put, since a state that missed code_change on a relup has no last_crash_at key
+    state =
+      Map.put(
+        %{
+          state
+          | current_pid: nil,
+            crash_restart_count: crash_restart_count,
+            consecutive_crash_count: consecutive_crash_count
+        },
+        :last_crash_at,
+        DateTime.utc_now(:second)
+      )
+
+    {:noreply, update_non_blocking_state(state)}
   end
 
   def handle_info({:EXIT, pid, reason}, state) do
@@ -307,6 +314,7 @@ defmodule Deployer.Monitor.Application do
      state
      |> Map.put_new(:pre_commands_run, nil)
      |> Map.put_new(:reported_pre_commands, [])
+     |> Map.put_new(:last_crash_at, nil)
      |> Map.put_new_lazy(:started_at, fn -> Common.monotonic_to_utc(state.start_time) end)}
   end
 

@@ -98,10 +98,10 @@ defmodule Deployer.Status.Application do
 
         config = Catalog.config(name)
 
-        last_ghosted_version =
+        {last_ghosted_version, last_ghosted_at} =
           case ghosted_version_list(name) do
-            [] -> "-/-"
-            list -> Enum.at(list, 0).version
+            [] -> {"-/-", nil}
+            [latest | _] -> {latest.version, deployed_at(latest)}
           end
 
         versions =
@@ -113,6 +113,7 @@ defmodule Deployer.Status.Application do
 
         current_config = %{
           last_ghosted_version: last_ghosted_version,
+          last_ghosted_at: last_ghosted_at,
           mode: config.mode,
           manual_version: config.manual_version,
           versions: versions
@@ -366,6 +367,7 @@ defmodule Deployer.Status.Application do
     end
 
     otp = check_otp_monitored_app.(node, status)
+    version_map = current_version_map(sname)
 
     %Status{
       name: name,
@@ -376,13 +378,16 @@ defmodule Deployer.Status.Application do
       version: current_version(sname),
       otp: otp,
       tls: mtls_certificate(),
-      last_deployment: current_version_map(sname).deployment,
+      last_deployment: version_map.deployment,
       status: status,
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
       # A monitor state written before a relup has no started_at until its next update
       started_at: Map.get(monitor_state, :started_at),
+      deployed_at: deployed_at(version_map),
+      last_crash_at: Map.get(monitor_state, :last_crash_at),
+      resources: Deployer.Resources.get(sname),
       language: language,
       monitoring: monitoring,
       otp_version: node_otp_version(node),
@@ -391,6 +396,12 @@ defmodule Deployer.Status.Application do
       logo: node_logo(node, otp == :connected, name)
     }
   end
+
+  # The catalog writes inserted_at in UTC when the version becomes current or ghosted
+  defp deployed_at(%{inserted_at: %NaiveDateTime{} = inserted_at}),
+    do: DateTime.from_naive!(inserted_at, "Etc/UTC") |> DateTime.truncate(:second)
+
+  defp deployed_at(_version_map), do: nil
 
   defp mtls_certificate do
     case Process.get(:mtls_certificate, :not_fetched) do

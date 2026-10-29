@@ -46,7 +46,7 @@ defmodule Deployer.Application do
   if_not_test do
     alias Deployer.Engine
 
-    defp application_servers, do: [Deployer.Status.Application]
+    defp application_servers, do: [Deployer.Status.Application, Deployer.Resources.Server]
 
     defp init_all_workers, do: Engine.init_all_workers()
 

@@ -337,6 +337,40 @@ defmodule Deployer.Status.ApplicationTest do
              Enum.sort([{sname_1, started_at}, {sname_2, nil}, {sname_3, nil}])
   end
 
+  test "update monitoring apps reports the deploy time, the last crash and the resources", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    crashed_at = ~U[2026-10-28 09:30:00Z]
+
+    Deployer.MonitorMock
+    |> expect(:state, 3, fn
+      ^sname_1 -> %Deployer.Monitor{sname: sname_1, status: :running, last_crash_at: crashed_at}
+      # A monitor state written before a relup has no last_crash_at
+      sname -> Map.delete(%Deployer.Monitor{sname: sname, status: :running}, :last_crash_at)
+    end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
+
+    Deployer.HotUpgradeMock
+    |> stub(:connect, fn _node -> {:error, :not_connecting} end)
+
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
+
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    children = for app <- monitoring, child <- app.children, into: %{}, do: {child.sname, child}
+
+    assert %{deployed_at: %DateTime{} = deployed_at, last_crash_at: ^crashed_at, resources: nil} =
+             children[sname_1]
+
+    assert DateTime.diff(DateTime.utc_now(), deployed_at) in 0..5
+    assert %{last_crash_at: nil} = children[sname_2]
+    assert %{deployed_at: %DateTime{}} = children[sname_3]
+  end
+
   test "update monitoring apps with running state and otp connected", %{
     sname_1: sname_1,
     sname_2: sname_2,
@@ -496,6 +530,10 @@ defmodule Deployer.Status.ApplicationTest do
 
     parent_app = Enum.find(monitoring, &(&1.name == name_1))
     assert parent_app.config.last_ghosted_version == ghosted_version
+    assert %DateTime{} = parent_app.config.last_ghosted_at
+
+    assert %{last_ghosted_version: "-/-", last_ghosted_at: nil} =
+             Enum.find(monitoring, &(&1.name == "myerlang")).config
 
     assert Enum.find(
              monitoring,
