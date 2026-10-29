@@ -52,7 +52,6 @@ const hooks = {
         const html = document.documentElement;
         const states = {
           "theme-dark": html.dataset.theme === "dark",
-          "theme-system": html.dataset.themePref === "system",
           "sidebar-expanded": html.dataset.sidebar !== "collapsed",
         };
         this.el.setAttribute(this.el.dataset.stateAttr, String(states[this.el.dataset.state]));

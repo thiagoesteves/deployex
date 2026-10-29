@@ -109,22 +109,6 @@ defmodule DeployexWeb.Layouts do
           <div class="mb-1.5 border-b border-(--dx-base-300) px-2.5 pt-2 pb-2.5">
             <div class="truncate text-[0.84375rem] font-semibold">{display_name(@current_user)}</div>
           </div>
-          <Menu.item
-            id="theme-system"
-            class="group"
-            aria-pressed="false"
-            phx-hook="ShellState"
-            data-state="theme-system"
-            data-state-attr="aria-pressed"
-            phx-click={JS.dispatch("dx:toggle-system-theme")}
-          >
-            <Icons.icon name="computer-desktop" class="dx-ico size-4" /> Match system theme
-            <Icons.icon
-              name="check"
-              stroke="2"
-              class="dx-ico invisible ml-auto size-4 group-aria-pressed:visible"
-            />
-          </Menu.item>
           <Menu.item href={~p"/users/log_out"} method="delete">
             <Icons.icon name="logout" class="dx-ico size-4" /> Log out
           </Menu.item>

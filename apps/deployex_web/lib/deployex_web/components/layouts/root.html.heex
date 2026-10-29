@@ -18,11 +18,9 @@
         const html = document.documentElement;
         const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
-        // data-theme always holds the resolved theme. data-theme-pref is "system" or the saved choice.
+        // data-theme holds the theme: the one the user picked, or the system's until they pick one
         const applyTheme = () => {
-          const pref = localStorage.getItem("phx:theme") || "system";
-          html.dataset.themePref = pref;
-          html.dataset.theme = pref === "system" ? (systemDark.matches ? "dark" : "light") : pref;
+          html.dataset.theme = localStorage.getItem("phx:theme") || (systemDark.matches ? "dark" : "light");
         };
 
         const applySidebar = () => {
@@ -37,11 +35,7 @@
         const changed = () => window.dispatchEvent(new Event("dx:shell-state"));
 
         const saveTheme = (theme) => {
-          if (theme === "system") {
-            localStorage.removeItem("phx:theme");
-          } else {
-            localStorage.setItem("phx:theme", theme);
-          }
+          localStorage.setItem("phx:theme", theme);
           applyTheme();
           changed();
         };
@@ -51,11 +45,6 @@
 
         window.addEventListener("dx:toggle-theme", () => {
           saveTheme(html.dataset.theme === "dark" ? "light" : "dark");
-        });
-
-        // Following the system again, or keeping the current look as the saved choice
-        window.addEventListener("dx:toggle-system-theme", () => {
-          saveTheme(html.dataset.themePref === "system" ? html.dataset.theme : "system");
         });
 
         window.addEventListener("dx:toggle-sidebar", () => {

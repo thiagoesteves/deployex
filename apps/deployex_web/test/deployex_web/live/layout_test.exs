@@ -79,7 +79,7 @@ defmodule DeployexWeb.LayoutTest do
     assert html =~ "Agent Console"
     assert html =~ ~s(id="theme-switch")
     assert html =~ ~s(aria-label="Account menu for #{user.username}")
-    assert html =~ "Match system theme"
+    refute html =~ "Match system theme"
     assert html =~ ~r/href="\/users\/log_out"[^>]*data-method="delete"/
     refute html =~ "Settings"
   end
