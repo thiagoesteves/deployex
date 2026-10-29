@@ -180,6 +180,10 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     assert_receive :restarted
     assert html =~ "Restart sent"
+
+    # The note goes after a few seconds
+    send(view.pid, {:clear_sent, "myphoenixapp-abc123"})
+    refute render(view) =~ "Restart sent"
   end
 
   @tag :capture_log

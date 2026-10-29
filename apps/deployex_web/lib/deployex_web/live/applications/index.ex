@@ -13,6 +13,8 @@ defmodule DeployexWeb.ApplicationsLive do
   @deployex_terminate_delay 300
   # A cleared ghosted version is cleared for real when its Undo window ends
   @undo_window :timer.seconds(10)
+  # How long a restart button says Restart sent
+  @sent_window :timer.seconds(4)
 
   @impl true
   def render(assigns) do
@@ -121,6 +123,9 @@ defmodule DeployexWeb.ApplicationsLive do
   def handle_info({:monitoring_app_updated, _source_node, _statuses}, socket),
     do: {:noreply, socket}
 
+  def handle_info({:clear_sent, sname}, socket),
+    do: {:noreply, update(socket, :sent, &MapSet.delete(&1, sname))}
+
   def handle_info({:commit_clear, name}, %{assigns: %{cleared: cleared}} = socket) do
     case Map.pop(cleared, name) do
       {%{version: version}, cleared} ->
@@ -174,6 +179,7 @@ defmodule DeployexWeb.ApplicationsLive do
 
   def handle_event("restart-instance", %{"sname" => sname}, socket) do
     Monitor.restart(sname)
+    Process.send_after(self(), {:clear_sent, sname}, @sent_window)
     {:noreply, socket |> assign(:ask, nil) |> update(:sent, &MapSet.put(&1, sname))}
   end
 
