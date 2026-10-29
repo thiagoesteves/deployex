@@ -84,7 +84,7 @@ const hooks = {
   Bell: {
     mounted() {
       this.el.addEventListener("click", (e) => {
-        if (e.target.closest("[data-bell-mark-read]")) this.markRead();
+        if (e.target.closest("[data-bell-clear]")) this.clear();
       });
       this.sync();
     },
@@ -93,7 +93,7 @@ const hooks = {
       this.sync();
     },
 
-    lastRead() {
+    cleared() {
       try {
         return Number(localStorage.getItem("dx:bell-read")) || 0;
       } catch (_e) {
@@ -101,7 +101,8 @@ const hooks = {
       }
     },
 
-    markRead() {
+    // Hides every item there now. A newer event shows, and the footer link keeps them all
+    clear() {
       const ids = [...this.el.querySelectorAll("[data-bell-item]")].map((el) => Number(el.dataset.bellItem));
       try {
         if (ids.length) localStorage.setItem("dx:bell-read", String(Math.max(...ids)));
@@ -110,19 +111,19 @@ const hooks = {
     },
 
     sync() {
-      const last = this.lastRead();
-      let unread = 0;
+      const cleared = this.cleared();
+      let shown = 0;
       this.el.querySelectorAll("[data-bell-item]").forEach((el) => {
-        const isNew = Number(el.dataset.bellItem) > last;
-        if (isNew) unread++;
-        el.querySelector("[data-bell-title]").style.fontWeight = isNew ? "700" : "500";
+        el.hidden = Number(el.dataset.bellItem) <= cleared;
+        if (!el.hidden) shown++;
       });
       const badge = this.el.querySelector("[data-bell-badge]");
-      badge.textContent = unread;
-      badge.classList.toggle("hidden", unread === 0);
-      this.el.querySelector("[data-bell-mark-read]").classList.toggle("hidden", unread === 0);
+      badge.textContent = shown;
+      badge.classList.toggle("hidden", shown === 0);
+      this.el.querySelector("[data-bell-clear]").classList.toggle("hidden", shown === 0);
+      this.el.querySelector("[data-bell-empty]").classList.toggle("hidden", shown > 0);
       this.el.querySelector("button[aria-controls]")
-        .setAttribute("aria-label", unread ? `Notifications, ${unread} unread` : "Notifications");
+        .setAttribute("aria-label", shown ? `Notifications, ${shown} new` : "Notifications");
       this.el.querySelectorAll("time[datetime]").forEach((t) => {
         const at = new Date(t.getAttribute("datetime"));
         t.textContent = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });

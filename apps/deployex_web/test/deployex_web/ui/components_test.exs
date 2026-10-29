@@ -130,6 +130,9 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ ~s(datetime="2026-10-28T14:20:00Z")
       assert html =~ "var(--dx-warning)"
       assert html =~ "View logs"
+      # Clear all hides the items in the browser, which then says there is nothing new
+      assert html =~ "Clear all"
+      assert html =~ ~r/class="[^"]*hidden"[^>]*data-bell-empty/
 
       empty =
         render_component(&Bell.bell/1,

@@ -1,9 +1,10 @@
 defmodule DeployexWeb.UI.Bell do
   @moduledoc """
-  The notifications bell: a badge with the unread count, and a panel with the recent items.
+  The notifications bell: a badge with the count of new items, and a panel with them.
 
-  The read state is per browser. The `Bell` hook in `app.js` keeps the last read item in `localStorage`,
-  sets the badge and bolds the unread items, and shows each time in the browser's time zone.
+  Clear all is per browser. The `Bell` hook in `app.js` keeps the newest cleared item in `localStorage`,
+  hides the cleared items, sets the badge, and shows each time in the browser's time zone. The footer link
+  shows every event, cleared or not.
   """
   use Phoenix.Component
 
@@ -46,9 +47,11 @@ defmodule DeployexWeb.UI.Bell do
         </:button>
         <div class="mb-1 flex items-center justify-between gap-2 border-b border-(--dx-base-300) px-2 pt-1.5 pb-2">
           <b class="text-sm">Notifications</b>
-          <button type="button" class="dx-nlink hidden" data-bell-mark-read>Mark all as read</button>
+          <button type="button" class="dx-nlink hidden" data-bell-clear>Clear all</button>
         </div>
-        <p :if={@items == []} class="dx-muted px-2.5 py-3 text-[0.8125rem]">No events yet.</p>
+        <p class={["dx-muted px-2.5 py-3 text-[0.8125rem]", @items != [] && "hidden"]} data-bell-empty>
+          {if @items == [], do: "No events yet.", else: "No new notifications."}
+        </p>
         <.link :for={item <- @items} class="dx-nitem" navigate={item.href} data-bell-item={item.id}>
           <Icons.icon
             :if={item.tone == :ghost}
