@@ -127,7 +127,11 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :apps, :list, required: true
   attr :open, :any, required: true, doc: "the names of the expanded apps"
-  attr :limits_open, :map, required: true, doc: "sname => true or false, set by the user"
+
+  attr :limits_open, :map,
+    required: true,
+    doc: "sname => true when its limits are open, closed by default"
+
   attr :ask, :any, required: true
   attr :sent, :any, required: true, doc: "the snames with a restart sent"
 
@@ -289,7 +293,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           :for={instance <- @app.instances}
           app={@app.name}
           instance={instance}
-          limits_open={Map.get(@limits_open, instance.sname, instance.warnings != [])}
+          limits_open={Map.get(@limits_open, instance.sname, false)}
           asking={@ask == instance.sname}
           sent={MapSet.member?(@sent, instance.sname)}
         />

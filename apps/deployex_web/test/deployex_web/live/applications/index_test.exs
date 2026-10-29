@@ -85,19 +85,22 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "myphoenixapp-abc123 atoms grew 15% in 1 hour"
     assert html =~ ~s(aria-label="2 problems: myphoenixapp-abc123 processes)
 
-    html = view |> element("#app-myphoenixapp-problems") |> render_click()
-    assert html =~ "212,377 of 262,144"
-    html = view |> element("#app-myphoenixapp-problems") |> render_click()
-    assert html =~ "212,377 of 262,144"
+    view |> element("#app-myphoenixapp-problems") |> render_click()
+    assert has_element?(view, "#instance-myphoenixapp-abc123")
+    view |> element("#app-myphoenixapp-problems") |> render_click()
+    assert has_element?(view, "#instance-myphoenixapp-abc123")
     view |> element("#app-myphoenixapp-toggle") |> render_click()
 
-    # The instances open with the chevron, and the limits open on their own near a limit
+    # The instances open with the chevron, each with its limits closed, also near a limit
     html = view |> element("#app-myphoenixapp-toggle") |> render_click()
     assert html =~ "myphoenixapp-abc123"
     assert html =~ "IEx shell"
+    assert html =~ "myphoenixapp-abc123 processes at 81% of the limit"
+    refute html =~ "212,377 of 262,144"
+
+    html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
     assert html =~ "212,377 of 262,144"
     assert html =~ "+15% in 1 hour"
-    assert html =~ "myphoenixapp-abc123 processes at 81% of the limit"
 
     html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
     refute html =~ "212,377 of 262,144"
