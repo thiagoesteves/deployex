@@ -241,6 +241,17 @@ const hooks = {
     }
   },
 
+  // A click on an app row opens or closes the app, like its chevron, unless it selects text or hits a
+  // control in the row. The chevron stays the keyboard control
+  RowToggle: {
+    mounted() {
+      this.el.addEventListener("click", (e) => {
+        if (e.target.closest("button, a, [role=button]") || String(window.getSelection())) return;
+        this.pushEvent("toggle-app", { name: this.el.dataset.name });
+      });
+    }
+  },
+
   // The time left of a session, from data-expires (an ISO 8601 time)
   Countdown: {
     mounted() {

@@ -210,7 +210,12 @@
     padding: 0 20px 0 26px;
     min-height: 78px;
     border-top: 1px solid var(--dx-base-300);
-    cursor: default;
+    cursor: pointer;
+}
+
+/* The whole row opens and closes its app, so it shows where the pointer is */
+.dx-arow:hover {
+    background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
 }
 
 .dx-status {
