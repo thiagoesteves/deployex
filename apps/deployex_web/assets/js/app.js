@@ -344,7 +344,15 @@ const hooks = {
         e.preventDefault();
         const startY = e.clientY;
         const startHeight = this.panel() ? this.panel().getBoundingClientRect().height : this.height();
-        const move = (ev) => this.save({ height: this.clamp(startHeight + startY - ev.clientY), state: "normal" });
+        // Near the top bar the dock snaps to full size, like Expand. Restore then gives back the height it
+        // had before the drag
+        const bar = document.getElementById("shell-top-bar");
+        const snapAt = (bar ? bar.getBoundingClientRect().bottom : 56) + 40;
+        const before = this.load().state === "max" ? this.height() : this.clamp(startHeight);
+        const move = (ev) =>
+          ev.clientY <= snapAt
+            ? this.save({ height: before, state: "max" })
+            : this.save({ height: this.clamp(startHeight + startY - ev.clientY), state: "normal" });
         const up = () => {
           window.removeEventListener("mousemove", move);
           window.removeEventListener("mouseup", up);
@@ -387,6 +395,12 @@ const hooks = {
       return this.clamp(this.load().height || 320);
     },
 
+    // Full size reaches up to just below the top bar, so the grip stays clear of it
+    fullTop() {
+      const bar = document.getElementById("shell-top-bar");
+      return (bar ? bar.getBoundingClientRect().bottom : 56) + 8;
+    },
+
     clamp(height) {
       return Math.max(this.min, Math.min(window.innerHeight - 120, height));
     },
@@ -411,7 +425,7 @@ const hooks = {
         return;
       }
       const state = this.load().state || "normal";
-      const height = state === "min" ? 42 : state === "max" ? window.innerHeight - 57 : this.height();
+      const height = state === "min" ? 42 : state === "max" ? window.innerHeight - this.fullTop() : this.height();
       panel.style.height = `${height}px`;
       panel.classList.toggle("dx-dock-min", state === "min");
       panel.dataset.state = state;
