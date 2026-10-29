@@ -110,7 +110,7 @@ defmodule DeployexWeb.LayoutTest do
     assert html =~
              ~s(aria-label="Host memory" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75")
 
-    assert html =~ ~s(aria-valuetext="75% of 8.0 GB")
+    assert html =~ ~s(aria-valuetext="75% of 8 GB")
 
     # A connected DeployEx peer shares the PubSub, and its readings stay out of this top bar
     send(view.pid, {:update_system_info, %Host.Info{source_node: :peer@host, cpu: 10, cpus: 4}})

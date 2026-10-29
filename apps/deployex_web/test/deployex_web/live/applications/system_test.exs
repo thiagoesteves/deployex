@@ -17,7 +17,7 @@ defmodule DeployexWeb.Applications.SystemTest do
     test_pid_process = self()
     host = "macOS"
     description = "15.1.1"
-    total_memory = "64.0 GB"
+    total_memory = "64 GB"
 
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)

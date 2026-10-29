@@ -7,10 +7,11 @@ defmodule DeployexWeb.UI.Meter do
   @doc """
   Renders a percentage as a bar: blue below `warn_at`, amber from `warn_at`, red from `alert_at`.
   """
+  attr :id, :string, required: true
   attr :label, :string, required: true, doc: "the short visible label, like CPU"
   attr :name, :string, required: true, doc: "the accessible name, like Host CPU"
   attr :value, :integer, default: nil, doc: "the percentage, nil before the first reading"
-  attr :detail, :string, default: nil, doc: "the capacity, like 2 cores, for the tooltip"
+  attr :detail, :string, default: nil, doc: "the host's total, like 2 cores, for the tooltip"
   attr :warn_at, :integer, default: 75
   attr :alert_at, :integer, default: 90
   attr :rest, :global
@@ -22,7 +23,7 @@ defmodule DeployexWeb.UI.Meter do
       |> assign(:tone, tone(assigns.value, assigns.warn_at, assigns.alert_at))
 
     ~H"""
-    <div class="dx-meter" title={title(@name, @value, @detail)} {@rest}>
+    <div id={@id} class="dx-meter" phx-hook="Tip" {@rest}>
       <span class="dx-lbl">{@label}</span>
       <span
         class="dx-mbar"
@@ -36,6 +37,9 @@ defmodule DeployexWeb.UI.Meter do
         <i style={"width: #{@fill}%; background: #{@tone}"}></i>
       </span>
       <b>{if @value, do: "#{@value}%", else: "--"}</b>
+      <span popover="manual" class="dx-tip" aria-hidden="true">
+        {if @detail, do: "Total: #{@detail}", else: "No reading yet"}
+      </span>
     </div>
     """
   end
@@ -47,10 +51,6 @@ defmodule DeployexWeb.UI.Meter do
   defp tone(value, _warn_at, alert_at) when value >= alert_at, do: "var(--dx-error)"
   defp tone(value, warn_at, _alert_at) when value >= warn_at, do: "var(--dx-warning)"
   defp tone(_value, _warn_at, _alert_at), do: "var(--dx-info)"
-
-  defp title(name, nil, _detail), do: "#{name}, no reading yet"
-  defp title(name, value, nil), do: "#{name} #{value} percent"
-  defp title(name, value, detail), do: "#{name} #{value} percent of #{detail}"
 
   defp value_text(nil, _detail), do: "No reading yet"
   defp value_text(value, nil), do: "#{value}%"

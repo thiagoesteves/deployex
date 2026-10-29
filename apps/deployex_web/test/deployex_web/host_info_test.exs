@@ -42,8 +42,10 @@ defmodule DeployexWeb.HostInfoTest do
     test "describe the capacity" do
       assert HostInfo.cores(%Host.Info{cpus: 1}) == "1 core"
       assert HostInfo.cores(%Host.Info{cpus: 8}) == "8 cores"
-      assert HostInfo.memory_total(%Host.Info{memory_total: 8 * @gigabyte}) == "8.0 GB"
-      assert HostInfo.memory_total(%Host.Info{memory_total: 68_719_476_736}) == "64.0 GB"
+      assert HostInfo.memory_total(%Host.Info{memory_total: 8 * @gigabyte}) == "8 GB"
+      assert HostInfo.memory_total(%Host.Info{memory_total: 68_719_476_736}) == "64 GB"
+      # A host with 7.6 GB reads 8 GB
+      assert HostInfo.memory_total(%Host.Info{memory_total: round(7.6 * @gigabyte)}) == "8 GB"
     end
 
     test "return nil without a reading" do

@@ -14,6 +14,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
     test "is a meter with its value and capacity" do
       html =
         render_component(&Meter.meter/1,
+          id: "m",
           label: "CPU",
           name: "Host CPU",
           value: 23,
@@ -25,25 +26,25 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ ~s(aria-valuenow="23")
       assert html =~ ~s(aria-valuetext="23% of 2 cores")
       assert html =~ "23%"
-      assert html =~ "2 cores"
+      assert html =~ "Total: 2 cores"
     end
 
     test "is blue below 75, amber from 75 and red from 90" do
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 74) =~
+      assert render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 74) =~
                "var(--dx-info)"
 
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 75) =~
+      assert render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 75) =~
                "var(--dx-warning)"
 
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 89) =~
+      assert render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 89) =~
                "var(--dx-warning)"
 
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 90) =~
+      assert render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 90) =~
                "var(--dx-error)"
     end
 
     test "keeps the bar in range and shows the reading as it is" do
-      html = render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 151)
+      html = render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 151)
 
       assert html =~ ~s(aria-valuenow="100")
       assert html =~ "width: 100%"
@@ -51,15 +52,22 @@ defmodule DeployexWeb.UI.ComponentsTest do
     end
 
     test "shows no value before the first reading" do
-      html = render_component(&Meter.meter/1, label: "Memory", name: "Host memory", value: nil)
+      html =
+        render_component(&Meter.meter/1,
+          id: "m",
+          label: "Memory",
+          name: "Host memory",
+          value: nil
+        )
 
       assert html =~ ~s(aria-valuenow="0")
       assert html =~ ~s(aria-valuetext="No reading yet")
       assert html =~ "--"
+      assert html =~ "No reading yet"
     end
 
     test "names the value alone with no capacity" do
-      assert render_component(&Meter.meter/1, label: "CPU", name: "CPU", value: 5) =~
+      assert render_component(&Meter.meter/1, id: "m", label: "CPU", name: "CPU", value: 5) =~
                ~s(aria-valuetext="5%")
     end
   end

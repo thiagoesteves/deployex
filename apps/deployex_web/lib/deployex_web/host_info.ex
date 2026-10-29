@@ -66,11 +66,11 @@ defmodule DeployexWeb.HostInfo do
   def cores(_host_info), do: nil
 
   @doc """
-  Returns the total memory, like "7.6 GB", or nil without a reading.
+  Returns the total memory in whole gigabytes, rounded up, like "8 GB", or nil without a reading.
   """
   @spec memory_total(Host.Info.t() | nil) :: String.t() | nil
   def memory_total(%Host.Info{memory_total: total}) when is_integer(total) and total > 0,
-    do: "#{:erlang.float_to_binary(total / @one_gigabyte, decimals: 1)} GB"
+    do: "#{ceil(total / @one_gigabyte)} GB"
 
   def memory_total(_host_info), do: nil
 end
