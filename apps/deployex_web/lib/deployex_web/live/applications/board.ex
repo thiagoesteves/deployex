@@ -548,8 +548,8 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           >
             <i style={"width: #{max(limit.percent, 1.5)}%; background: #{level_fill(limit.level)}"}></i>
           </span>
-          <div class="flex justify-between gap-2 text-xs">
-            <span class="dx-mono dx-muted">{limit.count} of {limit.limit}</span>
+          <div class="flex flex-wrap justify-between gap-x-2 text-xs">
+            <span class="dx-mono dx-muted whitespace-nowrap">{limit.count} of {limit.limit}</span>
             <span
               :if={limit.trend}
               class="font-semibold whitespace-nowrap"

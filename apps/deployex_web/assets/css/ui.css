@@ -899,7 +899,8 @@
     display: grid;
     grid-template-columns: repeat(3,minmax(0,1fr)) auto;
     gap: 14px 28px;
-    align-items: end;
+    /* The labels and bars line up when a trend makes one limit taller */
+    align-items: start;
     padding: 12px 16px 14px 38px;
     border-top: 1px dashed var(--dx-base-300);
     background: var(--dx-base-100);
@@ -910,6 +911,10 @@
     flex-direction: column;
     gap: 5px;
     min-width: 0;
+}
+
+.dx-limits > .dx-btn {
+    align-self: center;
 }
 
 .dx-lbar {
