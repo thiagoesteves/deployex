@@ -210,12 +210,24 @@
     padding: 0 20px 0 26px;
     min-height: 78px;
     border-top: 1px solid var(--dx-base-300);
+}
+
+/* An app's row and its callouts: a click opens or closes the app, so it shows where the pointer is */
+.dx-ahead {
     cursor: pointer;
 }
 
-/* The whole row opens and closes its app, so it shows where the pointer is */
-.dx-arow:hover {
+.dx-ahead:hover {
     background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
+}
+
+/* The callouts keep the bottom margin inside the head, so the hover covers them */
+.dx-ahead > .dx-callout:last-child {
+    margin-bottom: 0;
+}
+
+.dx-ahead:has(> .dx-callout) {
+    padding-bottom: 16px;
 }
 
 .dx-status {

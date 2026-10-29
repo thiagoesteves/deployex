@@ -247,81 +247,83 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   defp app_row(assigns) do
     ~H"""
     <div id={"app-#{@app.name}"} class={@open && "dx-app-open"}>
-      <div id={"app-#{@app.name}-row"} class="dx-arow" phx-hook="RowToggle" data-name={@app.name}>
-        <div class="flex min-w-0 items-center gap-3.5">
-          <Tags.lang name={@app.language} label={@app.language_name} logo={@app.logo} />
-          <div class="min-w-0">
-            <div class="text-lg font-bold tracking-[-0.01em]">{@app.name}</div>
-            <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
+      <div id={"app-#{@app.name}-head"} class="dx-ahead" phx-hook="RowToggle" data-name={@app.name}>
+        <div class="dx-arow">
+          <div class="flex min-w-0 items-center gap-3.5">
+            <Tags.lang name={@app.language} label={@app.language_name} logo={@app.logo} />
+            <div class="min-w-0">
+              <div class="text-lg font-bold tracking-[-0.01em]">{@app.name}</div>
+              <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center">
-          <Tags.status text={@app.status.text} tone={@app.status.tone} />
-          <span
-            :if={@app.problems != []}
-            id={"app-#{@app.name}-problems-tip"}
-            class="dx-badge"
-            phx-hook="Tip"
-          >
-            <button
-              id={"app-#{@app.name}-problems"}
-              type="button"
-              style={"color: #{Tags.tone(:warning)}"}
-              aria-label={"#{problems(@app.problems)}: #{Enum.join(@app.problems, ", ")}. Show the instances"}
-              phx-click="toggle-app"
-              phx-value-name={@app.name}
-              phx-value-open="true"
+          <div class="flex items-center">
+            <Tags.status text={@app.status.text} tone={@app.status.tone} />
+            <span
+              :if={@app.problems != []}
+              id={"app-#{@app.name}-problems-tip"}
+              class="dx-badge"
+              phx-hook="Tip"
             >
-              <Icons.icon name="warning" stroke="2" class="dx-ico size-4" />{length(@app.problems)}
-            </button>
-            <span popover="manual" class="dx-tip" aria-hidden="true">
-              <span :for={problem <- @app.problems} class="block">{problem}</span>
+              <button
+                id={"app-#{@app.name}-problems"}
+                type="button"
+                style={"color: #{Tags.tone(:warning)}"}
+                aria-label={"#{problems(@app.problems)}: #{Enum.join(@app.problems, ", ")}. Show the instances"}
+                phx-click="toggle-app"
+                phx-value-name={@app.name}
+                phx-value-open="true"
+              >
+                <Icons.icon name="warning" stroke="2" class="dx-ico size-4" />{length(@app.problems)}
+              </button>
+              <span popover="manual" class="dx-tip" aria-hidden="true">
+                <span :for={problem <- @app.problems} class="block">{problem}</span>
+              </span>
             </span>
-          </span>
-        </div>
-        <div class="dx-num text-[0.96875rem] font-semibold">{@app.cpu}</div>
-        <div class="dx-num text-[0.96875rem] font-semibold">{@app.memory}</div>
-        <.restarts
-          id={"app-#{@app.name}-restarts"}
-          restarts={@app.restarts}
-          class="text-[0.96875rem] font-semibold"
-          color="inherit"
-        />
-        <div class="flex items-center gap-2 text-sm">
-          <Tags.deploy_tag :if={@app.deploy} type={@app.deploy.type} label={@app.deploy.label} />
-          <span :if={@app.deploy} class="dx-muted">{@app.deploy.when}</span>
-        </div>
-        <button
-          id={"app-#{@app.name}-toggle"}
-          type="button"
-          class="dx-ghost size-10 justify-self-end"
-          aria-expanded={to_string(@open)}
-          aria-label={
-            if @open,
-              do: "Hide the instances of #{@app.name}",
-              else: "Show the instances of #{@app.name}"
-          }
-          phx-click="toggle-app"
-          phx-value-name={@app.name}
-        >
-          <Icons.icon
-            name="chevron-down"
-            stroke="2"
-            class={[
-              "dx-ico transition-transform motion-reduce:transition-none",
-              @open && "rotate-180"
-            ]}
+          </div>
+          <div class="dx-num text-[0.96875rem] font-semibold">{@app.cpu}</div>
+          <div class="dx-num text-[0.96875rem] font-semibold">{@app.memory}</div>
+          <.restarts
+            id={"app-#{@app.name}-restarts"}
+            restarts={@app.restarts}
+            class="text-[0.96875rem] font-semibold"
+            color="inherit"
           />
-        </button>
-      </div>
+          <div class="flex items-center gap-2 text-sm">
+            <Tags.deploy_tag :if={@app.deploy} type={@app.deploy.type} label={@app.deploy.label} />
+            <span :if={@app.deploy} class="dx-muted">{@app.deploy.when}</span>
+          </div>
+          <button
+            id={"app-#{@app.name}-toggle"}
+            type="button"
+            class="dx-ghost size-10 justify-self-end"
+            aria-expanded={to_string(@open)}
+            aria-label={
+              if @open,
+                do: "Hide the instances of #{@app.name}",
+                else: "Show the instances of #{@app.name}"
+            }
+            phx-click="toggle-app"
+            phx-value-name={@app.name}
+          >
+            <Icons.icon
+              name="chevron-down"
+              stroke="2"
+              class={[
+                "dx-ico transition-transform motion-reduce:transition-none",
+                @open && "rotate-180"
+              ]}
+            />
+          </button>
+        </div>
 
-      <.alert :if={@app.alert || @cleared} app={@app} cleared={@cleared} />
-      <.urgent
-        :for={{item, index} <- Enum.with_index(@app.urgent)}
-        app={@app.name}
-        item={item}
-        index={index}
-      />
+        <.alert :if={@app.alert || @cleared} app={@app} cleared={@cleared} />
+        <.urgent
+          :for={{item, index} <- Enum.with_index(@app.urgent)}
+          app={@app.name}
+          item={item}
+          index={index}
+        />
+      </div>
 
       <div :if={@open} class="dx-inset">
         <div :if={@app.notes != []} class="flex flex-col gap-1 px-4 py-2.5 text-[0.78125rem]">
