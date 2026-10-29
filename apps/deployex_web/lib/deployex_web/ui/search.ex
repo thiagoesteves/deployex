@@ -30,7 +30,7 @@ defmodule DeployexWeb.UI.Search do
     ~H"""
     <div id={@id} class="dx-search" role="search" phx-hook="Search">
       <Icons.icon name="search" class="dx-ico dx-s-ico" />
-      <form phx-change="search" phx-submit="search" phx-target={@target}>
+      <form id={"#{@id}-form"} phx-change="search" phx-submit="search" phx-target={@target}>
         <input
           id={"#{@id}-input"}
           type="search"

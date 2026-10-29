@@ -50,7 +50,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-#{name}") |> render_click()
+    html = render_patch(index_live, ~p"/applications/#{name}/versions")
 
     assert html =~ "#{name} version history"
     assert html =~ "10.11.12"
@@ -67,7 +67,6 @@ defmodule DeployexWeb.Applications.VersionsTest do
   @tag :capture_log
   test "GET /versions list by sname", %{conn: conn} do
     name = "myelixir"
-    name_id = Helper.normalize_id(name)
     %{sname: sname, suffix: suffix} = name |> Catalog.create_sname() |> Catalog.node_info()
 
     sname_v1 =
@@ -99,7 +98,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    html = index_live |> element("#app-versions-#{name_id}-#{suffix}") |> render_click()
+    html = render_patch(index_live, ~p"/applications/#{name}/#{sname}/versions")
 
     assert html =~ "#{sname} version history"
     assert html =~ "10.11.16"
@@ -111,26 +110,5 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~ suffix
 
     refute html =~ "0.3456702894.2351693834"
-  end
-
-  @tag :capture_log
-  test "Deployex - Validate version and Github releases", %{conn: conn} do
-    Deployer.StatusMock
-    |> expect(:monitoring, fn ->
-      {:ok,
-       [
-         FixtureStatus.deployex(%{
-           version: "9.9.9",
-           latest_release: %Github.Release{tag_name: "10.0.0", new_release?: true}
-         })
-       ]}
-    end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, _index_live, html} = live(conn, ~p"/applications")
-
-    assert html =~ "9.9.9"
-    assert html =~ "New version available 10.0.0! \n Click to view releases"
   end
 end

@@ -23,13 +23,13 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     {:ok, liveview, _html} = live(conn, ~p"/applications")
 
-    refute liveview |> element("#deployex-config-changes") |> has_element?()
+    refute liveview |> element("#host-config-review") |> has_element?()
 
     send(liveview.pid, {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes()})
 
-    assert liveview |> element("#deployex-config-changes") |> has_element?()
+    assert liveview |> element("#host-config-review") |> has_element?()
     html = render(liveview)
-    assert html =~ "4 configuration change(s) pending"
+    assert html =~ "4 config changes · Review"
   end
 
   @tag :capture_log
@@ -43,16 +43,16 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     send(liveview.pid, {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes()})
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     assert has_element?(liveview, "#yaml-config-changes-cancel")
     assert has_element?(liveview, "#yaml-config-changes-apply")
 
     assert liveview |> element("#yaml-config-changes-cancel") |> render_click()
 
-    assert liveview |> element("#deployex-config-changes") |> has_element?()
+    assert liveview |> element("#host-config-review") |> has_element?()
     html = render(liveview)
-    assert html =~ "4 configuration change(s) pending"
+    assert html =~ "4 config changes · Review"
   end
 
   @tag :capture_log
@@ -66,16 +66,16 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     send(liveview.pid, {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes()})
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     assert has_element?(liveview, "#yaml-config-changes-escape")
     assert has_element?(liveview, "#yaml-config-changes-apply")
 
     assert liveview |> element("#yaml-config-changes-escape") |> render_click()
 
-    assert liveview |> element("#deployex-config-changes") |> has_element?()
+    assert liveview |> element("#host-config-review") |> has_element?()
     html = render(liveview)
-    assert html =~ "4 configuration change(s) pending"
+    assert html =~ "4 config changes · Review"
   end
 
   @tag :capture_log
@@ -89,7 +89,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     send(liveview.pid, {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes()})
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     assert has_element?(liveview, "#yaml-config-changes-escape")
     assert has_element?(liveview, "#yaml-config-changes-apply")
@@ -98,7 +98,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
 
     send(liveview.pid, {:watcher_config_new, Node.self(), nil})
 
-    refute liveview |> element("#deployex-config-changes") |> has_element?()
+    refute liveview |> element("#host-config-review") |> has_element?()
   end
 
   @tag :capture_log
@@ -117,7 +117,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
        FixtureWatcher.build_pending_changes_with_notifications()}
     )
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     html = render(liveview)
     assert html =~ "Notifications"
@@ -140,7 +140,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
       {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_certificates()}
     )
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     html = render(liveview)
     assert html =~ "myphoenixapp"
@@ -163,7 +163,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
       {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_auth()}
     )
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     html = render(liveview)
     assert html =~ "Authentication"
@@ -195,7 +195,7 @@ defmodule DeployexWeb.Applications.WatcherTest do
       {:watcher_config_new, Node.self(), FixtureWatcher.build_pending_changes_with_auth(old_auth)}
     )
 
-    assert liveview |> element("#deployex-config-changes") |> render_click()
+    assert liveview |> element("#host-config-review") |> render_click()
 
     html = render(liveview)
     refute html =~ "SSO disabled"
@@ -221,6 +221,6 @@ defmodule DeployexWeb.Applications.WatcherTest do
       {:watcher_config_new, :"another@node.host", FixtureWatcher.build_pending_changes()}
     )
 
-    refute liveview |> element("#deployex-config-changes") |> has_element?()
+    refute liveview |> element("#host-config-review") |> has_element?()
   end
 end

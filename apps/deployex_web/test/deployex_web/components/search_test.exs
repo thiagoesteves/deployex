@@ -70,11 +70,11 @@ defmodule DeployexWeb.Components.SearchTest do
     assert html =~ "Try"
     assert html =~ ~s(class="dx-ctx")
 
-    html = view |> element("#search form") |> render_change(%{"q" => "terminal"})
+    html = view |> element("#search-form") |> render_change(%{"q" => "terminal"})
     assert html =~ ~s(role="option")
     assert html =~ "IEx on an instance, or a shell on this host"
 
-    html = view |> element("#search form") |> render_change(%{"q" => "zzz"})
+    html = view |> element("#search-form") |> render_change(%{"q" => "zzz"})
     assert html =~ "No match for zzz."
 
     # A second focus keeps the hints it has

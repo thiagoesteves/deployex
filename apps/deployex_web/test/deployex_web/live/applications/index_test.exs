@@ -4,8 +4,9 @@ defmodule DeployexWeb.Applications.IndexTest do
   import Phoenix.LiveViewTest
   import Mox
 
+  alias Deployer.Resources
+  alias Deployer.Resources.Limit
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias Host.Info
 
   setup [
     :set_mox_global,
@@ -13,643 +14,239 @@ defmodule DeployexWeb.Applications.IndexTest do
     :log_in_default_user
   ]
 
-  @tag :capture_log
-  test "GET /applications", %{conn: conn} do
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, _lv, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "1.2.3"
-    assert html =~ "4.5.6"
-    assert html =~ "Connected"
-    assert html =~ "Supported"
-    assert html =~ "Full Deployment"
-    assert html =~ "short time"
-    assert html =~ "long time"
-    assert html =~ "Running"
-  end
-
-  @tag :capture_log
-  test "GET /applications deployment: hot-upgrade", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Full Deployment"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{last_deployment: "hot_upgrade"})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    assert render(view) =~ "Hot Upgrade"
-  end
-
-  @tag :capture_log
-  test "GET /applications restarts (crash and force)", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-
-    assert html =~
-             "Crash Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-neutral rounded-full\"></div><span class=\"text-sm font-medium text-neutral\">0"
-
-    assert html =~
-             "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-neutral rounded-full\"></div><span class=\"text-sm font-medium text-neutral\">0"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{crash_restart_count: 1, force_restart_count: 1})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    assert render(view) =~
-             "Crash Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-error rounded-full animate-pulse\"></div><span class=\"text-sm font-semibold text-error\">1"
-
-    assert render(view) =~
-             "Force Restarts</div></div><div class=\"flex items-center gap-1\"><div class=\"w-2 h-2 bg-error rounded-full animate-pulse\"></div><span class=\"text-sm font-semibold text-error\">1"
-  end
-
-  @tag :capture_log
-  test "GET /applications OTP not connected", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Connected"
-    refute html =~ "Disconnected"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{otp: :not_connected})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    assert render(view) =~ "Disconnected"
-  end
-
-  @tag :capture_log
-  test "GET /applications TLS not supported", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Supported"
-    refute html =~ "Not Supported"
-
-    new_state = [
-      %{tls: nil} |> FixtureStatus.config_by_app() |> FixtureStatus.deployex(),
-      FixtureStatus.application()
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    assert render(view) =~ "Not Supported"
-  end
-
-  @tag :capture_log
-  test "GET /applications application states", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn ->
-      {:ok,
-       [
-         FixtureStatus.deployex(),
-         FixtureStatus.application(%{status: :idle, version: nil})
-       ]}
-    end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Version not set"
-    assert html =~ "bg-neutral-200/50 border-b border-neutral-200"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{status: :starting, version: "1.0.0"})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    html = render(view)
-    assert html =~ "Starting"
-    assert html =~ "bg-warning/10 border-b border-warning/20"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{status: :pre_commands, version: "1.0.0"})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    html = render(view)
-    assert html =~ "Pre-commands"
-    assert html =~ "bg-info/10 border-b border-info/20"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{status: :running, version: "1.0.0"})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    html = render(view)
-    assert html =~ "Running"
-    assert html =~ "bg-success/10 border-b border-success/20"
-  end
-
-  @tag :capture_log
-  test "GET /applications with no updates when receiving from other nodes", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn ->
-      {:ok,
-       [
-         FixtureStatus.deployex(),
-         FixtureStatus.application(%{status: :idle, version: nil})
-       ]}
-    end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Version not set"
-    assert html =~ "bg-neutral-200/50 border-b border-neutral-200"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{status: :starting, version: "1.0.0"})
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, :invalid@nohost, new_state}
-    )
-
-    html = render(view)
-    refute html =~ "Starting"
-  end
-
-  @tag :capture_log
-  test "GET /applications with monitoring enabled", %{conn: conn} do
-    topic = "test-topic"
-
-    Deployer.StatusMock
-    |> expect(:monitoring, fn ->
-      {:ok,
-       [
-         FixtureStatus.deployex(),
-         FixtureStatus.application(%{
-           monitoring: add_metrics([:port, :process, :atom, :memory, :new])
-         })
-       ]}
-    end)
-    |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    assert html =~ "Auto-restart enabled"
-
-    new_state = [
-      FixtureStatus.deployex(),
-      FixtureStatus.application(%{
-        monitoring: add_metrics([:port, :process, :atom, :memory, :new], false)
-      })
-    ]
-
-    Phoenix.PubSub.broadcast(
-      Deployer.PubSub,
-      topic,
-      {:monitoring_app_updated, Node.self(), new_state}
-    )
-
-    html = render(view)
-    assert html =~ "Auto-restart disabled"
-  end
-
-  @tag :capture_log
-  test "GET /applications renders the served urls as links", %{conn: conn} do
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, _view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "URLs"
-    assert html =~ ~s(href="http://localhost:8765")
-    assert html =~ ~s(href="http://localhost:5678")
-    assert html =~ ~s(rel="noopener noreferrer")
-  end
-
-  @tag :capture_log
-  test "GET /applications omits the urls block when nothing is served", %{conn: conn} do
-    Deployer.StatusMock
-    |> expect(:monitoring, fn ->
-      {:ok, [FixtureStatus.deployex(%{urls: []}), FixtureStatus.application(%{urls: []})]}
-    end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-    {:ok, _view, html} = live(conn, ~p"/applications")
-
-    assert html =~ "Listing Applications"
-    refute html =~ "URLs"
-  end
-
-  %{
-    1 => %{metric: :port},
-    2 => %{metric: :process},
-    3 => %{metric: :atom},
-    4 => %{metric: :memory}
+  @ghosted_config %{
+    last_ghosted_version: "4.6.0",
+    last_ghosted_at: ~U[2026-10-28 14:20:00Z],
+    mode: :automatic,
+    manual_version: nil,
+    versions: []
   }
-  |> Enum.each(fn {element, %{metric: metric}} ->
-    @tag :capture_log
-    test "#{element} - GET /applications with monitoring enabled and validating thresholds for metric: #{metric}",
-         %{
-           conn: conn
-         } do
-      topic = "test-topic"
-      metric = unquote(metric)
 
-      %{children: [application]} =
-        status_app = FixtureStatus.application(%{monitoring: add_metrics([metric])})
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [FixtureStatus.deployex(), status_app]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, html} = live(conn, ~p"/applications")
-
-      assert html =~ "Listing Applications"
-      assert html =~ "Warning: 10%"
-      assert html =~ "Restart: 20%"
-
-      # Normal
-      value = build_telemetry_data(8)
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
-      )
-
-      html = render(view)
-      assert html =~ "text-success\">\n          8%"
-
-      # Warning
-      value = build_telemetry_data(11)
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
-      )
-
-      html = render(view)
-      assert html =~ "text-warning\">\n          11%"
-
-      # Restart
-      value = build_telemetry_data(21)
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
-      )
-
-      html = render(view)
-      assert html =~ "text-error\">\n          21%"
-
-      # Send invalid node, state doesn't change
-      value = build_telemetry_data(8)
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, :invalid@host, "vm.#{metric}.total", value}
-      )
-
-      html = render(view)
-      assert html =~ "text-error\">\n          21%"
-
-      # Send invalid data, state doesn't change
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, :invalid@host, "vm.#{metric}.total", %{}}
-      )
-
-      html = render(view)
-      assert html =~ "text-error\">\n          21%"
-
-      # Normalize threshold
-      value = build_telemetry_data(8)
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, application.node, "vm.#{metric}.total", value}
-      )
-
-      html = render(view)
-      assert html =~ "text-success\">\n          8%"
-    end
-  end)
-
-  %{
-    1 => %{metric: :port},
-    2 => %{metric: :process},
-    3 => %{metric: :atom}
-  }
-  |> Enum.each(fn {element, %{metric: metric}} ->
-    @tag :capture_log
-    test "#{element} - GET /applications with deployex monitoring enabled for metric: #{metric}",
-         %{
-           conn: conn
-         } do
-      topic = "test-topic"
-      metric = unquote(metric)
-
-      deployex =
-        FixtureStatus.deployex(%{
-          node: Node.self(),
-          monitoring: add_metrics([:memory, metric])
-        })
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, html} = live(conn, ~p"/applications")
-
-      assert html =~ "Listing Applications"
-      assert html =~ "Resource Monitoring"
-
-      # Normal
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(8)}
-      )
-
-      html = render(view)
-      assert html =~ "text-success\">\n          8%"
-
-      # Warning
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(11)}
-      )
-
-      html = render(view)
-      assert html =~ "text-warning\">\n          11%"
-
-      # Restart
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, Node.self(), "vm.#{metric}.total", build_telemetry_data(21)}
-      )
-
-      html = render(view)
-      assert html =~ "text-error\">\n          21%"
-    end
-  end)
-
-  describe "deployex memory from the host reading" do
-    @tag :capture_log
-    test "GET /applications shows this host's memory and drops another host's", %{conn: conn} do
-      topic = "test-topic"
-
-      deployex =
-        FixtureStatus.deployex(%{
-          node: Node.self(),
-          monitoring: add_metrics([:memory])
-        })
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, _html} = live(conn, ~p"/applications")
-
-      send(
-        view.pid,
-        {:update_system_info, %Info{source_node: Node.self(), memory_total: 100, memory_free: 85}}
-      )
-
-      assert render(view) =~ "text-warning\">\n          15%"
-
-      send(
-        view.pid,
-        {:update_system_info, %Info{source_node: :other@host, memory_total: 100, memory_free: 75}}
-      )
-
-      html = render(view)
-      assert html =~ "text-warning\">\n          15%"
-      refute html =~ "25%"
-    end
-  end
-
-  describe "division by zero guards" do
-    @tag :capture_log
-    test "GET /applications handles vm metric with limit 0 without crashing", %{conn: conn} do
-      topic = "test-topic"
-
-      deployex =
-        FixtureStatus.deployex(%{
-          node: Node.self(),
-          monitoring: add_metrics([:memory, :port])
-        })
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, _html} = live(conn, ~p"/applications")
-
-      # Send a metric with limit 0 - should not crash the LiveView
-      zero_limit_data = %ObserverWeb.Telemetry.Data{
-        timestamp: :rand.uniform(2_000_000_000_000),
-        value: 0,
-        unit: " kilobyte",
-        tags: %{},
-        measurements: %{
-          limit: 0,
-          total: 0
+  defp resources(attrs \\ %{}) do
+    Map.merge(
+      %Resources{
+        sname: "myphoenixapp-abc123",
+        cpu: 12,
+        memory: 849_346_560,
+        process: %Limit{count: 212_377, limit: 262_144, percent: 81},
+        port: %Limit{count: 40, limit: 65_536, percent: 0},
+        atom: %Limit{
+          count: 61_204,
+          limit: 1_048_576,
+          percent: 5,
+          change_percent: 15,
+          change_minutes: 60
         }
-      }
-
-      Phoenix.PubSub.broadcast(
-        Deployer.PubSub,
-        topic,
-        {:metrics_new_data, Node.self(), "vm.port.total", zero_limit_data}
-      )
-
-      # The LiveView should still be alive and renderable
-      assert Process.alive?(view.pid)
-      assert render(view) =~ "Resource Monitoring"
-    end
-
-    @tag :capture_log
-    test "GET /applications handles nil memory_total without crashing", %{conn: conn} do
-      topic = "test-topic"
-
-      deployex =
-        FixtureStatus.deployex(%{
-          node: Node.self(),
-          monitoring: add_metrics([:memory])
-        })
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, _html} = live(conn, ~p"/applications")
-
-      # Send system info with nil memory_total - should not crash the LiveView
-      send(
-        view.pid,
-        {:update_system_info,
-         %Info{source_node: Node.self(), memory_total: nil, memory_free: nil}}
-      )
-
-      # The LiveView should still be alive and renderable
-      assert Process.alive?(view.pid)
-      assert render(view) =~ "Resource Monitoring"
-    end
-
-    @tag :capture_log
-    test "GET /applications handles zero memory_total without crashing", %{conn: conn} do
-      topic = "test-topic"
-
-      deployex =
-        FixtureStatus.deployex(%{
-          node: Node.self(),
-          monitoring: add_metrics([:memory])
-        })
-
-      Deployer.StatusMock
-      |> expect(:monitoring, fn -> {:ok, [deployex, FixtureStatus.application()]} end)
-      |> expect(:subscribe, fn -> Phoenix.PubSub.subscribe(Deployer.PubSub, topic) end)
-      |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
-
-      {:ok, view, _html} = live(conn, ~p"/applications")
-
-      # Send system info with 0 memory_total - should not crash the LiveView
-      send(
-        view.pid,
-        {:update_system_info, %Info{source_node: Node.self(), memory_total: 0, memory_free: 0}}
-      )
-
-      # The LiveView should still be alive and renderable
-      assert Process.alive?(view.pid)
-      assert render(view) =~ "Resource Monitoring"
-    end
+      },
+      attrs
+    )
   end
 
-  defp add_metrics(metrics, enabled \\ true) do
-    Enum.map(metrics, fn metric ->
-      {metric,
-       %{
-         enable_restart: enabled,
-         warning_threshold_percent: 10,
-         restart_threshold_percent: 20
-       }}
+  defp stub_monitoring(apps) do
+    test_pid = self()
+
+    Deployer.StatusMock
+    |> expect(:monitoring, fn -> {:ok, [FixtureStatus.deployex() | apps]} end)
+    |> expect(:subscribe, fn ->
+      send(test_pid, {:liveview_pid, self()})
+      :ok
     end)
+    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
   end
 
-  def build_telemetry_data(percentage, timestamp \\ :rand.uniform(2_000_000_000_000)) do
-    limit = 80_000
-    value = trunc(percentage / 100 * limit)
+  @tag :capture_log
+  test "GET /applications shows the host card and one row per app", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{
+        name: "myphoenixapp",
+        deployed_at: DateTime.add(DateTime.utc_now(), -2, :hour),
+        resources: resources()
+      })
+    ])
 
-    %ObserverWeb.Telemetry.Data{
-      timestamp: timestamp,
-      value: value / 1000,
-      unit: " kilobyte",
-      tags: %{},
-      measurements: %{
-        limit: limit,
-        total: value
-      }
-    }
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "<h1"
+    assert html =~ "Applications"
+    assert html =~ "DeployEx"
+    assert html =~ "1.2.3"
+    assert html =~ "on OTP #{System.otp_release()}"
+    assert html =~ "myphoenixapp"
+    assert html =~ "4.5.6 · OTP 27 · Elixir 1.20"
+    assert html =~ "1/1 running"
+    assert html =~ "12%"
+    assert html =~ "810 MB"
+    assert html =~ "2h ago"
+    assert html =~ "dx-dtag-full"
+    refute html =~ "needs attention"
+
+    # The problems of the instances show as a count on the row
+    assert html =~ "processes at 81% of the limit, atoms +15% in 1 hour"
+
+    # The instances open with the chevron, and the limits open on their own near a limit
+    html = view |> element("#app-myphoenixapp-toggle") |> render_click()
+    assert html =~ "myphoenixapp-abc123"
+    assert html =~ "IEx shell"
+    assert html =~ "212,377 of 262,144"
+    assert html =~ "+15% in 1 hour"
+    assert html =~ "myphoenixapp-abc123 processes at 81% of the limit"
+
+    html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
+    refute html =~ "212,377 of 262,144"
+
+    html = view |> element("#app-myphoenixapp-toggle") |> render_click()
+    refute html =~ "myphoenixapp-abc123 processes"
+  end
+
+  @tag :capture_log
+  test "GET /applications shows a ghosted version under its app, and clears it after the Undo window",
+       %{conn: conn} do
+    test_pid = self()
+
+    stub_monitoring([
+      FixtureStatus.application(
+        %{name: "myerlangapp", language: "erlang", status: :idle},
+        @ghosted_config
+      )
+    ])
+
+    Deployer.StatusMock
+    |> stub(:remove_ghosted_version, fn "myerlangapp", "4.6.0" ->
+      send(test_pid, :removed)
+      {:ok, []}
+    end)
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "1 app needs attention"
+    assert html =~ "4.6.0 failed and is ghosted. No earlier version runs on this host."
+    assert html =~ "0/1 running"
+    assert html =~ "dx-dtag-fail"
+    assert html =~ "14:20"
+
+    # Undo puts it back before anything is cleared
+    html = view |> element("#app-myerlangapp-clear-ghosted") |> render_click()
+    assert html =~ "Cleared ghosted 4.6.0"
+    html = view |> element("#app-myerlangapp-undo-clear") |> render_click()
+    assert html =~ "4.6.0 failed and is ghosted"
+    refute_received :removed
+
+    # Without Undo, the clear happens when the window ends
+    view |> element("#app-myerlangapp-clear-ghosted") |> render_click()
+    send(view.pid, {:commit_clear, "myerlangapp"})
+    assert_receive :removed
+
+    # A second commit for the same app does nothing
+    send(view.pid, {:commit_clear, "myerlangapp"})
+    assert render(view) =~ "myerlangapp"
+  end
+
+  @tag :capture_log
+  test "GET /applications restarts an instance after an inline confirmation", %{conn: conn} do
+    test_pid = self()
+    stub_monitoring([FixtureStatus.application(%{name: "myphoenixapp"})])
+
+    Deployer.MonitorMock
+    |> expect(:restart, fn "myphoenixapp-abc123" ->
+      send(test_pid, :restarted)
+      :ok
+    end)
+
+    {:ok, view, _html} = live(conn, ~p"/applications")
+    view |> element("#app-myphoenixapp-toggle") |> render_click()
+
+    html = view |> element("#instance-myphoenixapp-abc123-restart") |> render_click()
+    assert html =~ "Restart myphoenixapp-abc123?"
+
+    html = view |> element("button", "Cancel") |> render_click()
+    refute html =~ "Restart myphoenixapp-abc123?"
+
+    view |> element("#instance-myphoenixapp-abc123-restart") |> render_click()
+    html = view |> element("#instance-myphoenixapp-abc123-restart-confirm") |> render_click()
+
+    assert_receive :restarted
+    assert html =~ "Restart sent"
+  end
+
+  @tag :capture_log
+  test "GET /applications restarts every instance of an app after an inline confirmation", %{
+    conn: conn
+  } do
+    stub_monitoring([FixtureStatus.application(%{name: "myphoenixapp"})])
+
+    {:ok, view, _html} = live(conn, ~p"/applications")
+    view |> element("#app-myphoenixapp-toggle") |> render_click()
+
+    html = view |> element("#app-myphoenixapp-restart-all") |> render_click()
+    assert html =~ "Restart every instance of myphoenixapp?"
+
+    html = view |> element("#app-myphoenixapp-restart-all-confirm") |> render_click()
+    assert html =~ "Restarting every instance of myphoenixapp"
+  end
+
+  @tag :capture_log
+  test "GET /applications restarts DeployEx after an inline confirmation", %{conn: conn} do
+    stub_monitoring([])
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+    assert html =~ "No applications on this host."
+
+    html = view |> element("#host-restart") |> render_click()
+    assert html =~ "Restart DeployEx?"
+
+    # The DeployEx process this test runs in is not the one the kill looks for
+    stub(Host.CommanderMock, :run, fn _command, _options -> {:ok, []} end)
+
+    assert ExUnit.CaptureLog.capture_log(fn ->
+             view |> element("#host-restart-confirm") |> render_click()
+           end) =~ "Deployex was requested to terminate"
+
+    refute render(view) =~ "Restart DeployEx?"
+  end
+
+  @tag :capture_log
+  test "GET /applications follows this host's status updates only", %{conn: conn} do
+    stub_monitoring([FixtureStatus.application(%{name: "myphoenixapp"})])
+
+    {:ok, view, _html} = live(conn, ~p"/applications")
+    assert_receive {:liveview_pid, pid}
+
+    send(pid, {:monitoring_app_updated, :other@host, []})
+    assert render(view) =~ "myphoenixapp"
+
+    send(pid, {:monitoring_app_updated, Node.self(), [FixtureStatus.deployex()]})
+    refute render(view) =~ "myphoenixapp"
+  end
+
+  @tag :capture_log
+  test "GET /applications?app opens the app, and the instance's limits", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{
+        name: "myphoenixapp",
+        resources: resources(%{process: nil, atom: nil})
+      })
+    ])
+
+    {:ok, _view, html} =
+      live(conn, ~p"/applications?app=myphoenixapp&instance=myphoenixapp-abc123")
+
+    assert html =~ "myphoenixapp-abc123"
+    assert html =~ "40 of 65,536"
+  end
+
+  @tag :capture_log
+  test "GET /applications shows the starting and pre_commands states", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{name: "myphoenixapp", status: :pre_commands, version: "4.7.0"})
+    ])
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "myphoenixapp-abc123 runs its pre_commands for 4.7.0."
+    html = view |> element("#app-myphoenixapp-toggle") |> render_click()
+    assert html =~ "pre_commands 4.7.0"
+
+    html = view |> element("#instance-myphoenixapp-abc123-limits") |> render_click()
+    assert html =~ "No reading yet."
   end
 end

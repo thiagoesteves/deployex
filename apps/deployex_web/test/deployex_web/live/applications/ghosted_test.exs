@@ -57,7 +57,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
     assert html =~ "2.0.0"
     refute html =~ "1.5.0"
 
-    html = index_live |> element("#app-ghosted-#{name}") |> render_click()
+    html = render_patch(index_live, ~p"/applications/#{name}/ghosted")
 
     assert html =~ "#{name} ghosted versions"
     assert html =~ "2 ghosted versions"
@@ -92,7 +92,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    index_live |> element("#app-ghosted-#{name}") |> render_click()
+    render_patch(index_live, ~p"/applications/#{name}/ghosted")
 
     html = index_live |> element("#ghosted-remove-2-0-0") |> render_click()
 
@@ -123,7 +123,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    index_live |> element("#app-ghosted-#{name}") |> render_click()
+    render_patch(index_live, ~p"/applications/#{name}/ghosted")
     index_live |> element("#ghosted-remove-2-0-0") |> render_click()
 
     html = index_live |> element("#cancel-button-ghosted") |> render_click()
@@ -155,7 +155,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     {:ok, index_live, _html} = live(conn, ~p"/applications")
 
-    index_live |> element("#app-ghosted-#{name}") |> render_click()
+    render_patch(index_live, ~p"/applications/#{name}/ghosted")
 
     html = index_live |> element("#ghosted-clear-all") |> render_click()
 
@@ -184,8 +184,8 @@ defmodule DeployexWeb.Applications.GhostedTest do
 
     {:ok, index_live, html} = live(conn, ~p"/applications")
 
-    # with no ghosted version the card has nothing to open
-    assert html =~ "No ghosted versions"
-    refute has_element?(index_live, "#app-ghosted-#{name}")
+    # with no ghosted version the row has no alert and nothing to clear
+    refute html =~ "failed and is ghosted"
+    refute has_element?(index_live, "#app-#{name}-clear-ghosted")
   end
 end
