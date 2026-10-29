@@ -353,3 +353,10 @@
     z-index: 2;
     position: relative;
 }
+
+/* Flash messages sit below the sticky top bar and above it, so the bar never covers them. Unlayered, so
+   daisyUI's toast position does not win */
+.toast.dx-toast {
+  top: 68px;
+  z-index: 70;
+}
