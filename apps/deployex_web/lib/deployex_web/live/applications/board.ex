@@ -682,7 +682,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             navigate={~p"/embedded-observer"}
             aria-label={"Open #{@instance.sname} in Observer Web"}
           >
-            <Icons.icon name="observer-web" class="size-6" gradient={"dx-ow-#{@instance.sname}"} />
+            <Icons.icon name="observer-web" class="size-8" gradient={"dx-ow-#{@instance.sname}"} />
           </.link>
           <span popover="manual" class="dx-tip" aria-hidden="true">Observer Web</span>
         </span>
