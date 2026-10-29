@@ -4,6 +4,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
   import Phoenix.Component
   import Phoenix.LiveViewTest
 
+  alias DeployexWeb.UI.Bell
   alias DeployexWeb.UI.Menu
   alias DeployexWeb.UI.Meter
   alias DeployexWeb.UI.Shell
@@ -110,7 +111,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
       ]
 
       html =
-        render_component(&DeployexWeb.UI.Bell.bell/1,
+        render_component(&Bell.bell/1,
           items: items,
           all_href: "/logs/live",
           all_text: "View logs"
@@ -123,7 +124,7 @@ defmodule DeployexWeb.UI.ComponentsTest do
       assert html =~ "View logs"
 
       empty =
-        render_component(&DeployexWeb.UI.Bell.bell/1,
+        render_component(&Bell.bell/1,
           items: [],
           all_href: "/logs/live",
           all_text: "View logs"

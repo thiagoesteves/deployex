@@ -6,11 +6,8 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Deployer.Monitor
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Board
-  alias DeployexWeb.ApplicationsLive.Ghosted
-  alias DeployexWeb.ApplicationsLive.Versions
   alias DeployexWeb.ApplicationsLive.View
   alias DeployexWeb.Components.ConfigChangesModal
-  alias DeployexWeb.Components.Confirm
   alias Sentinel.Config.Watcher
 
   @deployex_terminate_delay 300
@@ -46,38 +43,6 @@ defmodule DeployexWeb.ApplicationsLive do
       </div>
     </Layouts.app>
 
-    <.modal
-      :if={@live_action in [:versions]}
-      id="app-versions-modal"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Versions}
-        id={"version-#{@selected_name}-#{@selected_sname}"}
-        name={@selected_name}
-        sname={@selected_sname}
-        title={@page_title}
-        action={@live_action}
-        patch={~p"/applications"}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action in [:ghosted]}
-      id="app-ghosted-modal"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Ghosted}
-        id={"ghosted-#{@selected_name}"}
-        name={@selected_name}
-        title={@page_title}
-        patch={~p"/applications"}
-      />
-    </.modal>
-
     <%= if @yaml_config.show_modal do %>
       <ConfigChangesModal.modal
         id="yaml"
@@ -85,58 +50,6 @@ defmodule DeployexWeb.ApplicationsLive do
         on_cancel="confirm-close-modal"
         on_apply="config-changes-apply"
       />
-    <% end %>
-
-    <%= if @ghosted_confirmation do %>
-      <Confirm.content id="app-ghosted-confirm-modal">
-        <:header :if={@ghosted_confirmation.version}>Remove Ghosted Version</:header>
-        <:header :if={is_nil(@ghosted_confirmation.version)}>Clear Ghosted Versions</:header>
-
-        <div class="space-y-6">
-          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-            <p class="text-sm text-base-content/60">Application</p>
-            <p class="font-semibold text-base-content">{@ghosted_confirmation.name}</p>
-          </div>
-
-          <p :if={@ghosted_confirmation.version} class="text-base-content/90 leading-relaxed">
-            Remove version
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-mono font-semibold bg-warning/20 text-warning-content">
-              {@ghosted_confirmation.version}
-            </span>
-            from the ghosted list?
-          </p>
-
-          <p :if={is_nil(@ghosted_confirmation.version)} class="text-base-content/90 leading-relaxed">
-            Remove all <span class="font-semibold">{@ghosted_confirmation.count}</span>
-            ghosted versions?
-          </p>
-
-          <div class="text-base-content/60 leading-relaxed">
-            A ghosted version is skipped by every deployment. The engine offers it again on its
-            next check, which deploys it if it is still the version to deploy.
-          </div>
-        </div>
-
-        <:footer>
-          <Confirm.cancel_button id="ghosted">Cancel</Confirm.cancel_button>
-          <Confirm.danger_button
-            :if={is_nil(@ghosted_confirmation.version)}
-            event="ghosted-confirm"
-            id="ghosted"
-            value={@ghosted_confirmation.name}
-          >
-            Yes, Clear All
-          </Confirm.danger_button>
-          <Confirm.confirm_button
-            :if={@ghosted_confirmation.version}
-            event="ghosted-confirm"
-            id="ghosted"
-            value={@ghosted_confirmation.version}
-          >
-            Remove Version
-          </Confirm.confirm_button>
-        </:footer>
-      </Confirm.content>
     <% end %>
     """
   end
@@ -170,9 +83,6 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:ask, nil)
      |> assign(:sent, MapSet.new())
      |> assign(:cleared, %{})
-     |> assign(:selected_name, nil)
-     |> assign(:selected_sname, nil)
-     |> assign(:ghosted_confirmation, nil)
      |> assign(:yaml_config, yaml_config)
      |> assign(:current_path, "/applications")}
   end
@@ -183,27 +93,6 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   defp apply_action(socket, :index, _params), do: assign(socket, :page_title, "Applications")
-
-  defp apply_action(socket, :versions, %{"sname" => sname, "name" => name}) do
-    socket
-    |> assign(:page_title, "#{sname} version history")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, sname)
-  end
-
-  defp apply_action(socket, :versions, %{"name" => name}) do
-    socket
-    |> assign(:page_title, "#{name} version history")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, nil)
-  end
-
-  defp apply_action(socket, :ghosted, %{"name" => name}) do
-    socket
-    |> assign(:page_title, "#{name} ghosted versions")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, nil)
-  end
 
   # A search result opens its app, and its instance's limits
   defp focus(socket, %{"app" => name} = params) do
@@ -219,12 +108,6 @@ defmodule DeployexWeb.ApplicationsLive do
 
   defp focus(socket, %{"review" => "config"}), do: open_config_changes(socket)
   defp focus(socket, _params), do: socket
-
-  # The list the component is showing came from a read of its own. Nothing in the assigns it
-  # is given changed, so it has to be told to read again, otherwise it keeps the stale list
-  defp refresh_ghosted_list(name) do
-    send_update(Ghosted, id: "ghosted-#{name}", name: name)
-  end
 
   @impl true
   def handle_info(
@@ -323,50 +206,6 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   def handle_event(
-        "ghosted-remove-request",
-        %{"version" => version},
-        %{assigns: %{selected_name: name}} = socket
-      ) do
-    {:noreply, assign(socket, :ghosted_confirmation, %{name: name, version: version, count: 1})}
-  end
-
-  def handle_event("ghosted-clear-request", _params, %{assigns: %{selected_name: name}} = socket) do
-    count = name |> Status.ghosted_version_list() |> length()
-
-    {:noreply, assign(socket, :ghosted_confirmation, %{name: name, version: nil, count: count})}
-  end
-
-  def handle_event(
-        "ghosted-confirm",
-        _params,
-        %{assigns: %{ghosted_confirmation: %{name: name, version: nil}}} = socket
-      ) do
-    {:ok, _list} = Status.clear_ghosted_versions(name)
-
-    refresh_ghosted_list(name)
-
-    {:noreply,
-     socket
-     |> assign(:ghosted_confirmation, nil)
-     |> put_flash(:info, "All ghosted versions removed for #{name}")}
-  end
-
-  def handle_event(
-        "ghosted-confirm",
-        _params,
-        %{assigns: %{ghosted_confirmation: %{name: name, version: version}}} = socket
-      ) do
-    {:ok, _list} = Status.remove_ghosted_version(name, version)
-
-    refresh_ghosted_list(name)
-
-    {:noreply,
-     socket
-     |> assign(:ghosted_confirmation, nil)
-     |> put_flash(:info, "Version #{version} removed from the ghosted list")}
-  end
-
-  def handle_event(
         "show-config-changes",
         _any,
         %{assigns: %{yaml_config: yaml_config}} = socket
@@ -385,18 +224,6 @@ defmodule DeployexWeb.ApplicationsLive do
      |> assign(:yaml_config, default_yaml_config())
      |> put_flash(:info, "New config changes applied with success!")
      |> push_patch(to: ~p"/applications")}
-  end
-
-  # Cancelling this confirmation goes back to the list it was opened from, not out of it
-  def handle_event(
-        "confirm-close-modal",
-        _,
-        %{assigns: %{ghosted_confirmation: %{name: name}}} = socket
-      ) do
-    {:noreply,
-     socket
-     |> assign(:ghosted_confirmation, nil)
-     |> push_patch(to: ~p"/applications/#{name}/ghosted")}
   end
 
   def handle_event("confirm-close-modal", _, %{assigns: %{yaml_config: yaml_config}} = socket) do

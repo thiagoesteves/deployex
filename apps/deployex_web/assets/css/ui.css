@@ -1440,3 +1440,111 @@
     padding: 6px 0 0 12px;
     background: #0d1117;
 }
+
+/* Pages about one app: Versions and mode, Ghosted */
+.dx-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--dx-muted);
+}
+
+.dx-back:hover {
+    color: var(--dx-base-content);
+}
+
+.dx-btn-primary, .dx-btn-primary:hover {
+    background: var(--dx-nav-active);
+    border-color: var(--dx-nav-active);
+    color: var(--dx-primary-content);
+}
+
+.dx-s-info {
+    color: var(--dx-info-text);
+    background: color-mix(in oklch, var(--dx-info) 12%, var(--dx-base-100));
+    border-color: color-mix(in oklch, var(--dx-info) 40%, var(--dx-base-100));
+}
+
+.dx-s-ok {
+    color: var(--dx-success-text);
+    background: color-mix(in oklch, var(--dx-success) 12%, var(--dx-base-100));
+    border-color: color-mix(in oklch, var(--dx-success) 40%, var(--dx-base-100));
+}
+
+.dx-seg-group {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    border: 1px solid var(--dx-base-300);
+}
+
+.dx-seg[aria-pressed="true"] {
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.dx-ask-warn {
+    background: color-mix(in oklch, var(--dx-warning) 7%, var(--dx-base-100));
+    padding: 14px 18px;
+}
+
+.dx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dx-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dx-muted);
+}
+
+.dx-field select {
+    height: 40px;
+    min-width: 200px;
+    padding: 0 10px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font: 13.5px var(--dx-font-mono);
+}
+
+.dx-vrow {
+    display: grid;
+    grid-template-columns: 110px minmax(180px, 1fr) 150px 210px;
+    gap: 18px;
+    align-items: center;
+    padding: 0 20px;
+    min-height: 52px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-grow {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) minmax(200px, 1fr) 240px 96px;
+    gap: 18px;
+    align-items: center;
+    padding: 0 20px;
+    min-height: 56px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-done {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--dx-base-300);
+    background: color-mix(in oklch, var(--dx-success) 9%, var(--dx-base-100));
+    font-size: 13.5px;
+}

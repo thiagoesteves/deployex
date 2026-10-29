@@ -30,6 +30,34 @@ defmodule DeployexWeb.ApplicationsLive.Board do
     """
   end
 
+  @doc """
+  The head of a page about one app: a link back to Applications, the language icon, the name and a line.
+  """
+  attr :name, :string, required: true
+  attr :language, :string, required: true
+  attr :subtitle, :string, required: true
+  slot :inner_block, doc: "on the right of the head, like a count chip"
+
+  def app_head(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-2.5">
+      <.link class="dx-back" navigate={~p"/applications"}>
+        <Icons.icon name="arrow-left" stroke="2" class="dx-ico size-[15px]" />Applications
+      </.link>
+      <header class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div class="flex items-center gap-3.5">
+          <Tags.lang name={@language} label={String.capitalize(@language)} />
+          <div>
+            <h1 class="text-[26px] font-bold tracking-[-0.02em]">{@name}</h1>
+            <p class="dx-muted dx-mono mt-1 text-[13px]">{@subtitle}</p>
+          </div>
+        </div>
+        {render_slot(@inner_block)}
+      </header>
+    </div>
+    """
+  end
+
   attr :host, :map, required: true
   attr :pending_changes, :integer, required: true
   attr :asking, :boolean, required: true
@@ -262,7 +290,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           >
             Logs
           </button>
-          <.link class="dx-btn" patch={~p"/applications/#{@app.name}/versions"}>Versions and mode</.link>
+          <.link class="dx-btn" navigate={~p"/applications/#{@app.name}/versions"}>Versions and mode</.link>
           <button
             id={"app-#{@app.name}-restart-all"}
             type="button"
