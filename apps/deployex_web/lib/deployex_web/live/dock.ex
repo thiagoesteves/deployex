@@ -574,30 +574,13 @@ defmodule DeployexWeb.DockLive do
   # What the split picker offers beside a tab: its own logs or shell first, then the app's other
   # instances, then the logs of every instance, then the tabs open already
   defp split_options(tabs, %{} = active) do
-    siblings = Enum.reject(instances(active.app), &(&1 == active.target))
-
-    own =
-      case active do
-        %{kind: :shell, target: target} -> [{"logs", target, "this instance"}]
-        %{kind: :logs, whole_app: false, target: target} -> [{"shell", target, "this instance"}]
-        _whole_app_logs -> []
-      end
-
-    siblings =
-      Enum.flat_map(siblings, fn sname ->
-        [{"shell", sname, "another instance"}, {"logs", sname, "another instance"}]
-      end)
-
-    app_logs =
-      if active.app != "deployex" and length(instances(active.app)) > 1,
-        do: [{"logs", active.app, "every instance"}],
-        else: []
-
     open = for tab <- tabs, do: {Atom.to_string(tab.kind), tab.target, "open"}
 
-    (own ++ siblings ++ app_logs ++ open)
+    (own_options(active) ++ sibling_options(active) ++ app_logs_option(active) ++ open)
     |> Enum.uniq_by(fn {kind, target, _note} -> {kind, target} end)
-    |> Enum.reject(fn {kind, target, _note} -> "#{kind}:#{target}" == active.id end)
+    |> Enum.reject(fn {kind, target, _note} ->
+      "#{kind}:#{target}" == active.id or logs_overlap?(active, kind, target)
+    end)
     |> Enum.map(fn {kind, target, note} ->
       %{
         kind: kind,
@@ -611,6 +594,36 @@ defmodule DeployexWeb.DockLive do
   end
 
   defp split_options(_tabs, nil), do: []
+
+  defp own_options(%{kind: :shell, target: target}), do: [{"logs", target, "this instance"}]
+
+  defp own_options(%{kind: :logs, whole_app: false, target: target}),
+    do: [{"shell", target, "this instance"}]
+
+  defp own_options(_whole_app_logs), do: []
+
+  # The app's other instances. Beside the logs of every instance, their logs add nothing
+  defp sibling_options(active) do
+    whole_app = match?(%{kind: :logs, whole_app: true}, active)
+
+    for sname <- instances(active.app),
+        sname != active.target,
+        option <- [{"shell", sname, "another instance"}, {"logs", sname, "another instance"}],
+        not (whole_app and elem(option, 0) == "logs"),
+        do: option
+  end
+
+  # The logs of every instance already hold an instance's lines, so they only go beside a shell
+  defp app_logs_option(%{kind: :shell, app: app}) when app != "deployex" do
+    if length(instances(app)) > 1, do: [{"logs", app, "every instance"}], else: []
+  end
+
+  defp app_logs_option(_active), do: []
+
+  # Beside a logs tab, no logs that hold its lines or that it holds: the app's, or one of its instances
+  defp logs_overlap?(%{kind: :logs, app: app}, "logs", app), do: true
+  defp logs_overlap?(%{kind: :logs, whole_app: true}, "logs", _target), do: true
+  defp logs_overlap?(_active, _kind, _target), do: false
 
   defp option_label("logs", _app), do: "Logs"
 

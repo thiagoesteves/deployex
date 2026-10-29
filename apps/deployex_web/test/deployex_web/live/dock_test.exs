@@ -272,6 +272,9 @@ defmodule DeployexWeb.DockTest do
 
     dock |> element("#dock-split") |> render_click()
     assert has_element?(dock, "#dock-pick-logs-#{sibling}", "another instance")
+    assert has_element?(dock, "#dock-pick-shell-#{sname}", "this instance")
+    # The logs of every instance hold this instance's lines too, so they are no pick beside it
+    refute has_element?(dock, "#dock-pick-logs-myelixir")
 
     html = dock |> element("#dock-pick-logs-#{sibling}") |> render_click()
     assert html =~ "from the first"
