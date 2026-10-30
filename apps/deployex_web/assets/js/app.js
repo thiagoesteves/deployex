@@ -124,10 +124,6 @@ const hooks = {
       this.el.querySelector("[data-bell-empty]").classList.toggle("hidden", shown > 0);
       this.el.querySelector("button[aria-controls]")
         .setAttribute("aria-label", shown ? `Notifications, ${shown} new` : "Notifications");
-      this.el.querySelectorAll("time[datetime]").forEach((t) => {
-        const at = new Date(t.getAttribute("datetime"));
-        t.textContent = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
-      });
     }
   },
 

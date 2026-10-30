@@ -493,13 +493,19 @@ defmodule DeployexWeb.LogsLive do
 
   def handle_info({:recent_notification, _recent}, socket), do: {:noreply, socket}
 
-  def handle_info({:logs_new_data, sname, type, message}, socket) do
-    lines = lines(sname, type, [message], color(socket.assigns.sources, sname))
+  def handle_info({:logs_new_data, sname, type, message}, %{assigns: assigns} = socket) do
+    lines = lines(sname, type, [message], color(assigns.sources, sname))
 
-    if socket.assigns.paused do
-      {:noreply, update(socket, :pending, &Enum.take(Enum.reverse(lines) ++ &1, @cap))}
-    else
-      {:noreply, queue(socket, lines)}
+    cond do
+      # A line already in the mailbox when Live changed to History, or its source turned off
+      assigns.mode != :live or {sname, type} not in assigns.subscribed ->
+        {:noreply, socket}
+
+      assigns.paused ->
+        {:noreply, update(socket, :pending, &Enum.take(Enum.reverse(lines) ++ &1, @cap))}
+
+      true ->
+        {:noreply, queue(socket, lines)}
     end
   end
 

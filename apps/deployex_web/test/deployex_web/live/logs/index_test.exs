@@ -126,7 +126,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     stub(Deployer.MonitorMock, :list, fn -> [sname] end)
     stub_logs(self(), %{{sname, "stdout"} => [message("stored line")]})
 
-    {:ok, view, _html} = live(conn, ~p"/logs/live")
+    {:ok, view, _html} = live(conn, ~p"/logs/live?source=#{sname}")
 
     html = view |> element("#logs-pause") |> render_click()
     assert html =~ "Paused"
@@ -175,6 +175,11 @@ defmodule DeployexWeb.Logs.IndexTest do
     refute html =~ "deployex line"
     assert html =~ "app line"
     assert_received {:unsubscribed, "deployex", "stdout"}
+
+    # A line that was already on its way from the source turned off does not show
+    send(view.pid, {:logs_new_data, "deployex", "stdout", message("late line", 0)})
+    send(view.pid, :flush_lines)
+    refute render(view) =~ "late line"
 
     html = view |> element("#pick-deployex") |> render_click()
     assert html =~ "deployex line"

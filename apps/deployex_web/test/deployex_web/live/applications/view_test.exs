@@ -145,7 +145,8 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert %{tone: :warning, text: "TLS certificate expires in 20 days"} in notes
     assert %{tone: :warning, text: "myapp-abc processes at 95% of the limit"} in notes
     assert %{tone: :warning, text: "myapp-abc atoms grew 20% in 20 minutes"} in notes
-    assert %{tone: :warning, text: "myapp-abc crash restart at 14:31"} in notes
+    crashed = HostTime.format(~U[2026-10-28 14:31:00Z], "%H:%M")
+    assert %{tone: :warning, text: "myapp-abc crash restart at #{crashed}"} in notes
 
     # The crash at 14:31 is more than an hour old, so it is a note and no problem
     assert problems == [
@@ -208,7 +209,7 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              count: 4,
              crash: true,
              lines: [
-               "2 crash restarts, the last at 14:31",
+               "2 crash restarts, the last at #{HostTime.format(~U[2026-10-28 14:31:00Z], "%H:%M")}",
                "2 restarts by an operator or the watchdog"
              ]
            }
@@ -286,7 +287,10 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert [%{name: "alpha", problems: []}, %{name: "myapp", problems: problems} = crashed] =
              View.apps([app(children), app([child(%{})], %{name: "alpha"})], @now)
 
-    assert problems == ["myapp-abc crashed at 15:40"]
+    assert problems == [
+             "myapp-abc crashed at #{HostTime.format(~U[2026-10-28 15:40:00Z], "%H:%M")}"
+           ]
+
     assert View.attention?(crashed)
   end
 

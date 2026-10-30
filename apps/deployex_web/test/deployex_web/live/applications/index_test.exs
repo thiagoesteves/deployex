@@ -364,7 +364,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     {:ok, view, html} = live(conn, ~p"/applications")
 
     assert html =~ "Running pre_commands for 4.7.0"
-    assert html =~ "myphoenixapp-abc123 starts when they finish."
+    assert html =~ "myphoenixapp-abc123 keeps running until they finish."
     html = view |> element("#app-myphoenixapp-toggle") |> render_click()
     assert html =~ "pre_commands 4.7.0"
 

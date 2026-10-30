@@ -385,7 +385,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
   defp recent_crashes(instances, now) do
     for %{last_crash_at: %DateTime{} = at} = instance <- instances,
         DateTime.diff(now, at) < 3_600 do
-      "#{instance.sname} crashed at #{Calendar.strftime(at, "%H:%M")}"
+      "#{instance.sname} crashed at #{HostTime.format(at, "%H:%M")}"
     end
   end
 
@@ -401,7 +401,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
       for %{last_crash_at: %DateTime{} = at} = instance <- instances do
         %{
           tone: :warning,
-          text: "#{instance.sname} crash restart at #{Calendar.strftime(at, "%H:%M")}"
+          text: "#{instance.sname} crash restart at #{HostTime.format(at, "%H:%M")}"
         }
       end
 
@@ -492,7 +492,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
   defp crash_text(crash, nil), do: count(crash, "crash restart")
 
   defp crash_text(crash, at),
-    do: "#{count(crash, "crash restart")}, the last at #{Calendar.strftime(at, "%H:%M")}"
+    do: "#{count(crash, "crash restart")}, the last at #{HostTime.format(at, "%H:%M")}"
 
   defp count(1, noun), do: "1 #{noun}"
   defp count(n, noun), do: "#{n} #{noun}s"
