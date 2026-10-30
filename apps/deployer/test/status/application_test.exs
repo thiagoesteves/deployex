@@ -382,6 +382,35 @@ defmodule Deployer.Status.ApplicationTest do
     assert %{deployed_at: %DateTime{}, failed_pre_commands: []} = children[sname_3]
   end
 
+  test "an instance in a hot upgrade's pre_commands stays connected, a starting one does not", %{
+    sname_1: sname_1,
+    sname_2: sname_2,
+    sname_3: sname_3
+  } do
+    Deployer.MonitorMock
+    |> expect(:state, 3, fn
+      # A hot upgrade's pre_commands run while the instance runs
+      ^sname_1 -> %Deployer.Monitor{sname: sname_1, status: :pre_commands, current_pid: self()}
+      # Start up pre_commands run before the instance has a pid
+      sname -> %Deployer.Monitor{sname: sname, status: :pre_commands, current_pid: nil}
+    end)
+    |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
+
+    Deployer.HotUpgradeMock
+    |> stub(:connect, fn _node -> {:ok, :connected} end)
+
+    Foundation.RpcMock
+    |> stub(:call, fn _node, _module, _functions, _args, _timeout -> nil end)
+
+    assert {:noreply, %{monitoring: monitoring}} =
+             StatusApp.handle_info(:update_apps, %{monitoring: []})
+
+    children = for app <- monitoring, child <- app.children, into: %{}, do: {child.sname, child}
+
+    assert %{status: :pre_commands, otp: :connected} = children[sname_1]
+    assert %{status: :pre_commands, otp: :not_connected} = children[sname_2]
+  end
+
   test "update monitoring apps with running state and otp connected", %{
     sname_1: sname_1,
     sname_2: sname_2,
