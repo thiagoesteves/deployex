@@ -96,7 +96,13 @@ defmodule Deployer.Resources.Server do
       end)
 
     memory = read_memory(instances)
-    cores = :erlang.system_info(:logical_processors_online)
+    # The runtime can report :unknown, and the CPU share then counts one core
+    cores =
+      case :erlang.system_info(:logical_processors_online) do
+        cores when is_integer(cores) and cores > 0 -> cores
+        _unknown -> 1
+      end
+
     sampled_at = DateTime.utc_now(:second)
 
     Enum.each(instances, fn {sname, instance} ->
