@@ -2,6 +2,7 @@ defmodule DeployexWeb.LogsExport do
   @moduledoc """
   The log lines of an export: what the Logs page or a dock logs tab selects (sources, streams, the last
   minutes and the text filter), read in full from the log server and this host's events, oldest first.
+  The lines come one minute at a time, so an export of many sources does not sit in memory at once.
   A line is written as plain text (`.log`) or as one JSON object (`.jsonl`).
   """
 
@@ -12,6 +13,7 @@ defmodule DeployexWeb.LogsExport do
   @types ["stdout", "stderr"]
   # The longest History range, a week
   @max_minutes 10_080
+  @minute_ms 60_000
 
   @type line :: %{at: DateTime.t(), source: String.t(), stream: String.t(), text: String.t()}
 
@@ -34,20 +36,37 @@ defmodule DeployexWeb.LogsExport do
   end
 
   @doc """
-  Reads the lines of the export the query params ask for. Only the sources this host has are read, and
-  the time window stays within a week.
+  Reads the lines of the export the query params ask for, as one list of lines per minute, oldest first.
+  Only the sources this host has are read, and the time window stays within a week.
   """
-  @spec lines(map()) :: [line()]
-  def lines(params) do
+  @spec chunks(map()) :: Enumerable.t()
+  def chunks(params) do
     sources = known_sources(list(params["source"]))
     types = Enum.filter(list(params["stream"]), &(&1 in @types))
     types = if types == [], do: @types, else: types
-    minutes = minutes(params)
     filter = String.downcase(params["filter"] || "")
+    to = System.os_time(:millisecond) + 1
+    from = to - minutes(params) * @minute_ms
 
-    (log_lines(sources -- ["events"], types, minutes) ++ event_lines(sources, minutes))
-    |> Enum.filter(&holds?(&1, filter))
-    |> Enum.sort_by(&DateTime.to_unix(&1.at, :microsecond))
+    pairs =
+      for sname <- sources -- ["events"],
+          type <- Enum.map(Logs.get_types_by_sname(sname), &to_string/1),
+          type in types,
+          do: {sname, type}
+
+    events = if "events" in sources, do: Recent.list(), else: []
+
+    from
+    |> Stream.iterate(&(&1 + @minute_ms))
+    |> Stream.take_while(&(&1 < to))
+    |> Stream.map(fn start ->
+      window = {start, min(start + @minute_ms, to)}
+
+      (log_lines(pairs, window) ++ event_lines(events, window))
+      |> Enum.filter(&holds?(&1, filter))
+      |> Enum.sort_by(&DateTime.to_unix(&1.at, :microsecond))
+    end)
+    |> Stream.reject(&(&1 == []))
   end
 
   @doc """
@@ -120,27 +139,20 @@ defmodule DeployexWeb.LogsExport do
 
   defp clamp(minutes), do: minutes |> max(1) |> min(@max_minutes)
 
-  defp log_lines(snames, types, minutes) do
-    for sname <- snames,
-        type <- Enum.map(Logs.get_types_by_sname(sname), &to_string/1),
-        type in types,
+  defp log_lines(pairs, window) do
+    for {sname, type} <- pairs,
         %{timestamp: timestamp, log: log} <-
-          Logs.list_data_by_sname_log_type(sname, type, from: minutes, order: :asc),
+          Logs.list_data_by_sname_log_type(sname, type, between: window, order: :asc),
         text <- String.split(log || "", ["\n", "\r"], trim: true) do
       %{at: DateTime.from_unix!(timestamp, :millisecond), source: sname, stream: type, text: text}
     end
   end
 
-  defp event_lines(sources, minutes) do
-    if "events" in sources do
-      since = DateTime.add(DateTime.utc_now(), -minutes * 60)
-
-      for %Recent{at: at} = recent <- Recent.list(), DateTime.compare(at, since) != :lt do
-        {_tone, text} = RecentEvents.line(recent)
-        %{at: at, source: "events", stream: "event", text: text}
-      end
-    else
-      []
+  defp event_lines(events, {from, to}) do
+    for %Recent{at: at} = recent <- events,
+        DateTime.to_unix(at, :millisecond) in from..(to - 1)//1 do
+      {_tone, text} = RecentEvents.line(recent)
+      %{at: at, source: "events", stream: "event", text: text}
     end
   end
 

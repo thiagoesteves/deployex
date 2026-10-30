@@ -10,13 +10,17 @@ defmodule DeployexWeb.LogsExportControllerTest do
 
   setup do
     sname = Catalog.create_sname("myelixir")
+    booted_at = System.os_time(:millisecond) - 90_000
     stub(Deployer.MonitorMock, :list, fn -> [sname] end)
 
     Sentinel.LogsMock
     |> stub(:list_active_snames, fn -> [] end)
     |> stub(:get_types_by_sname, fn _sname -> [:stdout] end)
-    |> stub(:list_data_by_sname_log_type, fn _sname, _type, _options ->
-      [%Message{timestamp: System.os_time(:millisecond), log: "booted"}]
+    |> stub(:list_data_by_sname_log_type, fn _sname, _type, between: {from, to}, order: :asc ->
+      Enum.filter(
+        [%Message{timestamp: booted_at, log: "booted"}],
+        &(&1.timestamp in from..(to - 1)//1)
+      )
     end)
 
     %{sname: sname}

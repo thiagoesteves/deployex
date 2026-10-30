@@ -51,7 +51,7 @@ defmodule DeployexWeb.DockTest do
     sname: sname
   } do
     stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn
-      ^sname, "stdout", [from: 30, order: :asc] -> [message("booted")]
+      ^sname, "stdout", [from: 30, order: :asc, limit: 500] -> [message("booted")]
       ^sname, "stderr", _options -> [message("[error] failed once")]
     end)
 
@@ -67,6 +67,7 @@ defmodule DeployexWeb.DockTest do
     assert_received {:subscribed, ^sname, "stdout"}
 
     send(dock.pid, {:logs_new_data, sname, "stdout", message("a new line")})
+    send(dock.pid, :flush_lines)
     assert render(dock) =~ "a new line"
 
     # The filter keeps the lines that hold its text, also as they come
@@ -75,6 +76,7 @@ defmodule DeployexWeb.DockTest do
     refute html =~ "failed once"
 
     send(dock.pid, {:logs_new_data, sname, "stdout", message("another one")})
+    send(dock.pid, :flush_lines)
     refute render(dock) =~ "another one"
 
     html = dock |> element("#dock-filter") |> render_change(%{"filter" => "zzz"})
@@ -125,6 +127,7 @@ defmodule DeployexWeb.DockTest do
     assert html =~ "No lines for these streams."
 
     send(dock.pid, {:logs_new_data, sname, "stderr", message("from the app")})
+    send(dock.pid, :flush_lines)
     assert render(dock) =~ "from the app"
     assert render(dock) =~ sname
   end
@@ -292,6 +295,7 @@ defmodule DeployexWeb.DockTest do
 
     # A new line goes to its instance's pane only
     send(dock.pid, {:logs_new_data, sibling, "stdout", message("sibling again")})
+    send(dock.pid, :flush_lines)
     html = render(dock)
     [first, second] = String.split(html, ~s(id="dock-lines-2"))
     refute first =~ "sibling again"
@@ -318,6 +322,7 @@ defmodule DeployexWeb.DockTest do
     render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
 
     send(dock.pid, {:logs_new_data, sname, "stdout", message("while hidden")})
+    send(dock.pid, :flush_lines)
     [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
     send(:sys.get_state(pid).terminal, {:stdout, @os_pid, "iex> "})
 

@@ -19,6 +19,8 @@ defmodule DeployexWeb.DockLive do
 
   @log_minutes 30
   @log_cap 500
+  # New lines wait this long, so a busy app updates the dock a few times a second, not once a line
+  @flush_ms 250
   @types ["stdout", "stderr"]
 
   @impl true
@@ -374,6 +376,8 @@ defmodule DeployexWeb.DockLive do
      |> assign(:attached, %{})
      |> assign(:asking_close, false)
      |> assign(:help_open, false)
+     |> assign(:queued, [])
+     |> assign(:flushing, false)
      |> stream(:lines, [])
      |> stream(:lines_b, []), layout: false}
   end
@@ -460,41 +464,22 @@ defmodule DeployexWeb.DockLive do
   end
 
   @impl true
-  def handle_info({:logs_new_data, sname, type, message}, %{assigns: %{tabs: tabs}} = socket) do
-    socket =
-      Enum.reduce(tabs, socket, fn
-        %{kind: :logs, snames: snames} = tab, socket ->
-          if sname in snames do
-            lines = lines(sname, type, [message], tab.whole_app)
+  def handle_info({:logs_new_data, sname, type, message}, socket) do
+    socket = update(socket, :queued, &[{sname, type, message} | &1])
 
-            socket =
-              update_tab(
-                socket,
-                tab.id,
-                &%{&1 | buffer: Enum.take(Enum.reverse(lines) ++ &1.buffer, @log_cap)}
-              )
+    if socket.assigns.flushing do
+      {:noreply, socket}
+    else
+      Process.send_after(self(), :flush_lines, @flush_ms)
+      {:noreply, assign(socket, :flushing, true)}
+    end
+  end
 
-            shown = Enum.filter(lines, &holds?(&1, tab.filter))
-
-            pane = pane_stream(socket.assigns, tab.id)
-
-            # A hidden logs tab has no pane, and only keeps the lines in its buffer
-            if pane != nil and type in tab.types and shown != [] do
-              socket
-              |> stream(pane, shown, limit: -@log_cap)
-              |> update_tab(tab.id, &%{&1 | empty: false})
-            else
-              socket
-            end
-          else
-            socket
-          end
-
-        _tab, socket ->
-          socket
-      end)
-
-    {:noreply, socket}
+  # The lines that came since the last flush reach each logs tab in one update
+  def handle_info(:flush_lines, %{assigns: %{queued: queued, tabs: tabs}} = socket) do
+    arrived = Enum.reverse(queued)
+    socket = assign(socket, queued: [], flushing: false)
+    {:noreply, Enum.reduce(tabs, socket, &add_lines(&2, &1, arrived))}
   end
 
   def handle_info({:shell_output, id, data}, %{assigns: %{attached: attached}} = socket) do
@@ -786,6 +771,38 @@ defmodule DeployexWeb.DockLive do
 
   defp log_snames(target, _app), do: [target]
 
+  defp add_lines(socket, %{kind: :logs} = tab, arrived) do
+    lines =
+      for {sname, type, message} <- arrived,
+          sname in tab.snames,
+          line <- lines(sname, type, [message], tab.whole_app),
+          do: line
+
+    shown = Enum.filter(lines, &(&1.type in tab.types and holds?(&1, tab.filter)))
+    pane = pane_stream(socket.assigns, tab.id)
+
+    socket =
+      if lines == [],
+        do: socket,
+        else:
+          update_tab(
+            socket,
+            tab.id,
+            &%{&1 | buffer: Enum.take(Enum.reverse(lines) ++ &1.buffer, @log_cap)}
+          )
+
+    # A hidden logs tab has no pane, and only keeps the lines in its buffer
+    if pane != nil and shown != [] do
+      socket
+      |> stream(pane, shown, limit: -@log_cap)
+      |> update_tab(tab.id, &%{&1 | empty: false})
+    else
+      socket
+    end
+  end
+
+  defp add_lines(socket, _shell_tab, _arrived), do: socket
+
   # A tab for every instance of an app shows the source of each line
   defp read_logs(snames, types, many) do
     # Only the streams the log server has for each instance
@@ -799,7 +816,11 @@ defmodule DeployexWeb.DockLive do
       lines(
         sname,
         type,
-        Logs.list_data_by_sname_log_type(sname, type, from: @log_minutes, order: :asc),
+        Logs.list_data_by_sname_log_type(sname, type,
+          from: @log_minutes,
+          order: :asc,
+          limit: @log_cap
+        ),
         many
       )
     end)

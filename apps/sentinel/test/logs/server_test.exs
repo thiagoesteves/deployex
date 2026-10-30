@@ -120,6 +120,49 @@ defmodule Sentinel.Logs.ServerTest do
            ] = Server.list_data_by_sname_log_type(sname, log_type)
   end
 
+  test "list_data_by_sname_log_type/3 keeps the newest messages up to a limit, or a time range",
+       %{
+         sname: sname,
+         pid: pid
+       } do
+    log_type = "new-log-type"
+    Server.subscribe_for_new_logs(sname, log_type)
+    now = System.os_time(:millisecond)
+
+    # Two messages three minutes ago, then three now
+    for {index, at} <- [{1, now - 180_000}, {2, now - 180_000}, {3, now}, {4, now}, {5, now}] do
+      with_mock System, os_time: fn _ -> at end do
+        send(
+          pid,
+          {:terminal_update,
+           %{
+             metadata: %{context: :terminal_logs, sname: sname, type: log_type},
+             source_pid: self(),
+             message: "[info] log #{index}"
+           }}
+        )
+
+        assert_receive {:logs_new_data, ^sname, ^log_type, %Message{}}, 1_000
+      end
+    end
+
+    assert [%Message{log: "[info] log 2"}, %Message{log: "[info] log 3"} | _] =
+             Server.list_data_by_sname_log_type(sname, log_type, limit: 4)
+
+    assert [%Message{log: "[info] log 5"}, %Message{log: "[info] log 4"}] =
+             Server.list_data_by_sname_log_type(sname, log_type, limit: 2, order: :desc)
+
+    assert [%Message{log: "[info] log 1"}, %Message{log: "[info] log 2"}] =
+             Server.list_data_by_sname_log_type(sname, log_type,
+               between: {now - 180_000, now - 179_999}
+             )
+
+    assert [%Message{log: "[info] log 3"}, _, %Message{log: "[info] log 5"}] =
+             Server.list_data_by_sname_log_type(sname, log_type, between: {now - 1, now + 1})
+
+    assert [] = Server.list_data_by_sname_log_type(sname, log_type, between: {now + 1, now + 1})
+  end
+
   test "Pruning expiring entries", %{sname: sname, pid: pid} do
     log_type = "new-log-type"
     Server.subscribe_for_new_logs(sname, log_type)

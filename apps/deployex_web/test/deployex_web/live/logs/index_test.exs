@@ -38,7 +38,7 @@ defmodule DeployexWeb.Logs.IndexTest do
   end
 
   @tag :capture_log
-  test "Live opens with the recent lines of every source, then follows new ones", %{
+  test "Live opens on DeployEx and its events, and an app shows once it is selected", %{
     conn: conn,
     sname: sname
   } do
@@ -51,18 +51,69 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     {:ok, view, html} = live(conn, ~p"/logs/live")
 
-    assert html =~ "Logs"
-    assert html =~ ~s(aria-pressed="true")
     assert html =~ "Streaming"
+    assert html =~ "[error] boom"
+    refute html =~ "GET / [info] Sent 200"
+    assert html =~ "2 of 3 sources"
+    assert has_element?(view, "#chip-events")
+    assert has_element?(view, "#chip-deployex")
+    refute_received {:read, ^sname, _type, _minutes}
+
+    html = view |> element("#pick-app-myelixir") |> render_click()
     assert html =~ "GET / [info] Sent 200"
     assert html =~ "second line"
-    assert html =~ "[error] boom"
-    assert html =~ " of 3 sources"
+    assert has_element?(view, "#chip-#{sname}")
     assert_received {:read, ^sname, "stdout", 5}
     assert_received {:subscribed, ^sname, "stderr"}
 
+    # New lines wait for the next flush, then show together
     send(view.pid, {:logs_new_data, sname, "stdout", message("a new line", 0)})
-    assert render(view) =~ "a new line"
+    send(view.pid, {:logs_new_data, sname, "stderr", message("and another", 0)})
+    refute render(view) =~ "a new line"
+    send(view.pid, :flush_lines)
+    html = render(view)
+    assert html =~ "a new line"
+    assert html =~ "and another"
+
+    html = view |> element("#chip-#{sname} button") |> render_click()
+    refute html =~ "GET / [info] Sent 200"
+    assert_received {:unsubscribed, ^sname, "stdout"}
+  end
+
+  @tag :capture_log
+  test "an app of several instances is picked whole or by instance, and every app at once", %{
+    conn: conn,
+    sname: sname
+  } do
+    second = Catalog.create_sname("myelixir")
+    other = Catalog.create_sname("myerlang")
+    stub(Deployer.MonitorMock, :list, fn -> [sname, second, other] end)
+    stub_logs(self(), %{})
+
+    {:ok, view, _html} = live(conn, ~p"/logs/live")
+
+    view |> element("#pick-#{sname}") |> render_click()
+    assert has_element?(view, ~s(#pick-app-myelixir[aria-pressed="mixed"]))
+    assert has_element?(view, "#chip-#{sname}")
+
+    html = view |> element("#pick-app-myelixir") |> render_click()
+    assert has_element?(view, ~s(#pick-app-myelixir[aria-pressed="true"]))
+    assert html =~ "myelixir · 2 instances"
+    refute has_element?(view, "#chip-#{sname}")
+
+    html = view |> element("#pick-every-app") |> render_click()
+    assert html =~ "Remove every app"
+    assert has_element?(view, "#chip-#{other}")
+    assert_received {:subscribed, ^other, "stdout"}
+
+    html = view |> element("#pick-every-app") |> render_click()
+    assert html =~ "Add every app (3 instances)"
+    refute has_element?(view, "#chip-app-myelixir")
+    assert has_element?(view, "#chip-deployex")
+
+    view |> element("#pick-app-myelixir") |> render_click()
+    view |> element("#chip-app-myelixir button") |> render_click()
+    assert has_element?(view, ~s(#pick-app-myelixir[aria-pressed="false"]))
   end
 
   @tag :capture_log
@@ -79,6 +130,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     assert html =~ "Paused"
 
     send(view.pid, {:logs_new_data, sname, "stdout", message("during the pause", 0)})
+    send(view.pid, :flush_lines)
     refute render(view) =~ "during the pause"
 
     html = view |> element("#logs-pause") |> render_click()
@@ -95,7 +147,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     stub(Deployer.MonitorMock, :list, fn -> [sname] end)
     stub_logs(self(), %{{sname, "stdout"} => [message("first <b>Error</b> here\nall good")]})
 
-    {:ok, view, _html} = live(conn, ~p"/logs/live")
+    {:ok, view, _html} = live(conn, ~p"/logs/live?source=#{sname}")
 
     html = view |> element("#logs-filter") |> render_change(%{"filter" => "error"})
     assert html =~ ~s(<mark class="dx-mark">Error</mark>)
@@ -115,12 +167,15 @@ defmodule DeployexWeb.Logs.IndexTest do
       {"deployex", "stdout"} => [message("deployex line")]
     })
 
-    {:ok, view, _html} = live(conn, ~p"/logs/live")
+    {:ok, view, _html} = live(conn, ~p"/logs/live?#{%{source: "#{sname},deployex"}}")
 
-    html = view |> element("#source-deployex") |> render_click()
+    html = view |> element("#chip-deployex button") |> render_click()
     refute html =~ "deployex line"
     assert html =~ "app line"
     assert_received {:unsubscribed, "deployex", "stdout"}
+
+    html = view |> element("#pick-deployex") |> render_click()
+    assert html =~ "deployex line"
 
     html = view |> element("#stream-stdout") |> render_click()
     refute html =~ "app line"
@@ -153,11 +208,11 @@ defmodule DeployexWeb.Logs.IndexTest do
     stub(Deployer.MonitorMock, :list, fn -> [sname] end)
     stub_logs(self(), %{{sname, "stdout"} => [message("app line")]}, ["deployex"])
 
-    {:ok, _view, html} = live(conn, ~p"/logs/live")
+    {:ok, _view, html} = live(conn, ~p"/logs/live?#{%{source: "#{sname},deployex"}}")
 
     assert html =~ "app line"
     assert html =~ " of 2 sources"
-    refute html =~ ~s(id="source-deployex")
+    refute html =~ ~s(id="pick-deployex")
     refute_received {:read, "deployex", _type, _minutes}
     refute_received {:subscribed, "deployex", _type}
   end
@@ -191,17 +246,20 @@ defmodule DeployexWeb.Logs.IndexTest do
     }
 
     send(view.pid, {:recent_notification, recent})
+    send(view.pid, :flush_lines)
     assert render(view) =~ "deployment_started events-test-def 1.2.3"
 
     # Paused, the event waits for Resume
     view |> element("#logs-pause") |> render_click()
     send(view.pid, {:recent_notification, %{recent | payload: %{sname: "events-test-ghi"}}})
+    send(view.pid, :flush_lines)
     refute render(view) =~ "events-test-ghi"
     assert view |> element("#logs-pause") |> render_click() =~ "events-test-ghi"
 
     # With the source off, a new event does not show
-    view |> element("#source-events") |> render_click()
+    view |> element("#chip-events button") |> render_click()
     send(view.pid, {:recent_notification, %{recent | payload: %{sname: "events-test-jkl"}}})
+    send(view.pid, :flush_lines)
     refute render(view) =~ "events-test-jkl"
   end
 
@@ -210,7 +268,7 @@ defmodule DeployexWeb.Logs.IndexTest do
     stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname, "deployex"] end)
     stub_logs(self(), %{{sname, "stdout"} => [message("old line", 3_000)]})
 
-    {:ok, view, html} = live(conn, ~p"/logs/history")
+    {:ok, view, html} = live(conn, ~p"/logs/history?source=#{sname}")
 
     assert html =~ "old line"
     assert_received {:read, ^sname, "stdout", 30}
@@ -257,9 +315,9 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     {:ok, view, _html} = live(conn, ~p"/logs/history?#{%{source: "events,#{sname},unknown"}}")
 
-    assert has_element?(view, ~s(#source-events[aria-pressed="true"]))
-    assert has_element?(view, ~s(#source-#{sname}[aria-pressed="true"]))
-    assert has_element?(view, ~s(#source-deployex[aria-pressed="false"]))
+    assert has_element?(view, ~s(#pick-events[aria-pressed="true"]))
+    assert has_element?(view, ~s(#pick-app-myelixir[aria-pressed="true"]))
+    assert has_element?(view, ~s(#pick-deployex[aria-pressed="false"]))
     assert_received {:read, ^sname, "stdout", 30}
     refute_received {:read, "deployex", _type, _range}
   end

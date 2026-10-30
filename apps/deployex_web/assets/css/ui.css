@@ -1532,6 +1532,59 @@
     color: var(--dx-info-text);
 }
 
+/* An app with some of its instances on */
+.dx-tog[aria-pressed="mixed"] {
+    color: var(--dx-base-content);
+    background: color-mix(in oklab,var(--dx-info) 7%,var(--dx-base-100));
+    border-color: color-mix(in oklab,var(--dx-info) 45%,var(--dx-base-100));
+}
+
+/* A selected log source, with its remove button */
+.dx-src {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 3px 0 11px;
+    border: 1px solid color-mix(in oklab,var(--dx-info) 65%,var(--dx-base-100));
+    border-radius: 999px;
+    background: color-mix(in oklab,var(--dx-info) 14%,var(--dx-base-100));
+    color: var(--dx-base-content);
+    font: 500 0.8125rem/1 var(--dx-font-mono);
+    white-space: nowrap;
+}
+
+.dx-src .dx-s-untag {
+    border-radius: 999px;
+}
+
+/* The source picker: a row for DeployEx, then one for each app */
+.dx-menu.dx-picker {
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: min(60vh, 32rem);
+    overflow: auto;
+    padding: 6px 0;
+}
+
+.dx-picker-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px;
+}
+
+.dx-picker-row + .dx-picker-row {
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-picker-foot {
+    position: sticky;
+    bottom: -6px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--dx-base-300);
+    background: var(--dx-base-100);
+}
+
 .dx-rng {
     min-height: 30px;
     padding: 0 10px;

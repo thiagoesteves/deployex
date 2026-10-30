@@ -2,8 +2,10 @@ defmodule DeployexWeb.LogsLive do
   @moduledoc """
   The Logs page: the stdout and stderr of DeployEx and every instance, live or from the stored history.
 
-  `/logs/live` opens with the last 5 minutes and then follows new lines. `/logs/history` reads a time
-  range. `source` (one or a comma list) and `stream` in the query select the sources and the stream.
+  The page opens on DeployEx and its events. An app is shown only when it is selected, so the page reads
+  what was asked for, not every source of the host. `/logs/live` opens with the last 5 minutes and then
+  follows new lines, sent to the browser in batches. `/logs/history` reads a time range. `source` (one or
+  a comma list) and `stream` in the query select the sources and the stream.
   `since` (unix seconds) picks the shortest range that covers it, and `filter` sets the text filter. The page keeps at most #{2_000} lines,
   newest at the bottom.
   """
@@ -13,6 +15,7 @@ defmodule DeployexWeb.LogsLive do
   alias DeployexWeb.RecentEvents
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.LogActions
+  alias DeployexWeb.UI.Menu
   alias Foundation.Notifications.Recent
 
   # The events source follows this host's notifications, which the bell's hook passes on
@@ -24,6 +27,9 @@ defmodule DeployexWeb.LogsLive do
   alias Sentinel.Logs
 
   @cap 2_000
+  # New lines wait this long, so a busy source updates the page a few times a second, not once a line
+  @flush_ms 250
+  @default_sources ["events", "deployex"]
   @live_minutes 5
   @default_range 30
   @types ["stdout", "stderr"]
@@ -93,26 +99,24 @@ defmodule DeployexWeb.LogsLive do
         <section class="dx-card flex flex-col gap-3 px-4 py-3.5" aria-label="Log filters">
           <div class="flex flex-wrap items-center gap-2">
             <span class="dx-lbl w-16">Sources</span>
-            <button
-              :for={source <- @sources}
-              id={"source-#{source.sname}"}
-              type="button"
-              class="dx-tog"
-              aria-pressed={to_string(MapSet.member?(@selected, source.sname))}
-              phx-click="toggle-source"
-              phx-value-sname={source.sname}
-            >
-              <Icons.icon
-                :if={MapSet.member?(@selected, source.sname)}
-                name="check"
-                stroke="2.4"
-                class="dx-ico dx-tog-check size-3.5"
-              />
-              <span class="dx-dot" style={"color: var(#{source.color})"}></span>
-              <Icons.icon :if={source.sname == "events"} name="bell" class="dx-ico size-4" />
-              <Tags.lang :if={source.sname != "events"} name={source.lang} small />{source.sname}
-            </button>
-            <span :if={@sources == []} class="dx-muted text-[0.8125rem]">No source has logs yet.</span>
+            <ul class="contents" aria-label="Selected sources">
+              <li :for={chip <- chips(@groups, @selected)} id={chip.id} class="dx-src">
+                <span class="dx-dot" style={"color: var(#{chip.color})"}></span>
+                <Icons.icon :if={chip.icon == :bell} name="bell" class="dx-ico size-4" />
+                <Tags.lang :if={chip.icon != :bell} name={chip.icon} small />{chip.label}
+                <button
+                  type="button"
+                  class="dx-s-untag"
+                  aria-label={"Remove #{chip.label}"}
+                  phx-click={chip.event}
+                  phx-value-name={chip.name}
+                >
+                  <Icons.icon name="x-mark" stroke="2.2" class="dx-ico size-3.5" />
+                </button>
+              </li>
+            </ul>
+            <span :if={MapSet.size(@selected) == 0} class="dx-muted text-[0.8125rem]">None selected.</span>
+            <.source_picker groups={@groups} selected={@selected} />
           </div>
           <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
             <div class="flex min-w-0 max-w-full flex-wrap items-center gap-2">
@@ -235,6 +239,128 @@ defmodule DeployexWeb.LogsLive do
     """
   end
 
+  attr :groups, :list, required: true
+  attr :selected, :any, required: true
+
+  # Every source by app: an app button takes all its instances, an instance button one
+  defp source_picker(assigns) do
+    apps = Enum.reject(assigns.groups, &is_nil(&1.app))
+    instances = Enum.flat_map(apps, & &1.sources)
+
+    assigns =
+      assign(assigns,
+        apps: apps,
+        count: length(instances),
+        every: all?(instances, assigns.selected)
+      )
+
+    ~H"""
+    <Menu.menu
+      id="logs-sources"
+      label="Select the sources"
+      button_class="dx-btn"
+      panel_class="dx-menu-below dx-picker left-0 right-auto"
+      panel_label="Sources"
+    >
+      <:button>
+        <Icons.icon name="plus" stroke="2" class="dx-ico size-3.5" /> Select
+        <Icons.icon name="chevron-down" stroke="2" class="dx-ico size-3" />
+      </:button>
+      <div :for={group <- @groups} class="dx-picker-row">
+        <%= if group.app do %>
+          <.pick
+            id={"pick-app-#{group.app}"}
+            pressed={pressed(group.sources, @selected)}
+            color={group.color}
+            label={group.app}
+            event="toggle-app"
+            name={group.app}
+          >
+            <Tags.lang name={group.lang} small />{group.app}
+            <span :if={length(group.sources) > 1} class="dx-muted">{length(group.sources)}</span>
+          </.pick>
+          <.pick
+            :for={source <- group.sources}
+            :if={length(group.sources) > 1}
+            id={"pick-#{source.sname}"}
+            pressed={pressed([source], @selected)}
+            color={source.color}
+            label={source.sname}
+            event="toggle-source"
+            name={source.sname}
+          >
+            {source.sname |> String.split("-") |> List.last()}
+          </.pick>
+        <% else %>
+          <.pick
+            :for={source <- group.sources}
+            id={"pick-#{source.sname}"}
+            pressed={pressed([source], @selected)}
+            color={source.color}
+            label={source.sname}
+            event="toggle-source"
+            name={source.sname}
+          >
+            <Icons.icon :if={source.sname == "events"} name="bell" class="dx-ico size-4" />
+            <Tags.lang :if={source.sname != "events"} name={source.lang} small />{source.sname}
+          </.pick>
+        <% end %>
+      </div>
+      <div :if={@apps != []} class="dx-picker-foot">
+        <button id="pick-every-app" type="button" class="dx-btn" phx-click="every-app">
+          {if @every,
+            do: "Remove every app",
+            else: "Add every app (#{@count} #{if @count == 1, do: "instance", else: "instances"})"}
+        </button>
+      </div>
+      <p :if={@apps == []} class="dx-muted px-2.5 py-2 text-[0.8125rem]">
+        No app on this host has logs yet.
+      </p>
+    </Menu.menu>
+    """
+  end
+
+  attr :id, :string, required: true
+
+  attr :pressed, :string,
+    required: true,
+    doc: "true, false, or mixed for an app with some instances on"
+
+  attr :color, :string, required: true
+  attr :label, :string, required: true, doc: "the accessible name, the full source or app name"
+  attr :event, :string, required: true
+  attr :name, :string, required: true
+  slot :inner_block, required: true
+
+  defp pick(assigns) do
+    ~H"""
+    <button
+      id={@id}
+      type="button"
+      class="dx-tog dx-tog-sm"
+      aria-pressed={@pressed}
+      aria-label={@label}
+      phx-click={@event}
+      phx-value-name={@name}
+    >
+      <Icons.icon
+        :if={@pressed == "true"}
+        name="check"
+        stroke="2.4"
+        class="dx-ico dx-tog-check size-3"
+      />
+      <Icons.icon
+        :if={@pressed == "mixed"}
+        name="minus"
+        stroke="2.4"
+        class="dx-ico dx-tog-check size-3"
+      />
+      <span class="dx-dot" style={"color: var(#{@color})"}></span>
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -243,6 +369,8 @@ defmodule DeployexWeb.LogsLive do
      |> assign(:filter, "")
      |> assign(:paused, false)
      |> assign(:pending, [])
+     |> assign(:queued, [])
+     |> assign(:flushing, false)
      |> assign(:buffer, [])
      |> assign(:shown, 0)
      |> assign(:range, @default_range)
@@ -257,7 +385,7 @@ defmodule DeployexWeb.LogsLive do
     sources = sources(mode)
     snames = MapSet.new(sources, & &1.sname)
 
-    # A comma list of sources selects the known ones, and all when none is known
+    # A comma list of sources selects the known ones, and DeployEx and its events when none is known
     picked =
       case params["source"] do
         list when is_binary(list) ->
@@ -267,7 +395,10 @@ defmodule DeployexWeb.LogsLive do
           MapSet.new()
       end
 
-    selected = if Enum.empty?(picked), do: snames, else: picked
+    selected =
+      if Enum.empty?(picked),
+        do: MapSet.intersection(MapSet.new(@default_sources), snames),
+        else: picked
 
     types =
       if params["stream"] in @types, do: MapSet.new([params["stream"]]), else: MapSet.new(@types)
@@ -283,6 +414,7 @@ defmodule DeployexWeb.LogsLive do
      |> assign(:page_title, if(mode == :live, do: "Live Logs", else: "History Logs"))
      |> assign(:current_path, if(mode == :live, do: "/logs/live", else: "/logs/history"))
      |> assign(:sources, sources)
+     |> assign(:groups, groups(sources))
      |> assign(:selected, selected)
      |> assign(:types, types)
      |> subscribe()
@@ -296,8 +428,18 @@ defmodule DeployexWeb.LogsLive do
   def handle_event("mode", %{"mode" => "history"}, socket),
     do: {:noreply, push_patch(socket, to: ~p"/logs/history")}
 
-  def handle_event("toggle-source", %{"sname" => sname}, socket) do
+  def handle_event("toggle-source", %{"name" => sname}, socket) do
     {:noreply, socket |> update(:selected, &toggle(&1, sname)) |> subscribe() |> reload()}
+  end
+
+  def handle_event("toggle-app", %{"name" => app}, socket) do
+    snames = for %{app: ^app, sname: sname} <- socket.assigns.sources, do: sname
+    {:noreply, socket |> update(:selected, &toggle_all(&1, snames)) |> subscribe() |> reload()}
+  end
+
+  def handle_event("every-app", _params, socket) do
+    snames = for %{app: app, sname: sname} <- socket.assigns.sources, app != nil, do: sname
+    {:noreply, socket |> update(:selected, &toggle_all(&1, snames)) |> subscribe() |> reload()}
   end
 
   def handle_event("toggle-stream", %{"type" => type}, socket) when type in @types do
@@ -319,7 +461,13 @@ defmodule DeployexWeb.LogsLive do
   def handle_event("clear", _params, socket) do
     {:noreply,
      socket
-     |> assign(cleared_at: System.os_time(:millisecond), buffer: [], pending: [], shown: 0)
+     |> assign(
+       cleared_at: System.os_time(:millisecond),
+       buffer: [],
+       pending: [],
+       queued: [],
+       shown: 0
+     )
      |> stream(:lines, [], reset: true)}
   end
 
@@ -337,7 +485,7 @@ defmodule DeployexWeb.LogsLive do
         {:noreply, update(socket, :pending, &Enum.take([event_line(recent) | &1], @cap))}
 
       true ->
-        {:noreply, append(socket, [event_line(recent)])}
+        {:noreply, queue(socket, [event_line(recent)])}
     end
   end
 
@@ -349,7 +497,18 @@ defmodule DeployexWeb.LogsLive do
     if socket.assigns.paused do
       {:noreply, update(socket, :pending, &Enum.take(Enum.reverse(lines) ++ &1, @cap))}
     else
-      {:noreply, append(socket, lines)}
+      {:noreply, queue(socket, lines)}
+    end
+  end
+
+  # The queued lines show at once. A pause that came after they arrived keeps them for Resume
+  def handle_info(:flush_lines, %{assigns: %{queued: queued}} = socket) do
+    socket = assign(socket, queued: [], flushing: false)
+
+    if socket.assigns.paused do
+      {:noreply, update(socket, :pending, &Enum.take(queued ++ &1, @cap))}
+    else
+      {:noreply, append(socket, Enum.reverse(queued))}
     end
   end
 
@@ -384,7 +543,9 @@ defmodule DeployexWeb.LogsLive do
         assigns
         |> pairs()
         |> Enum.flat_map(fn {sname, type} ->
-          messages = Logs.list_data_by_sname_log_type(sname, type, from: minutes, order: :asc)
+          messages =
+            Logs.list_data_by_sname_log_type(sname, type, from: minutes, order: :asc, limit: @cap)
+
           lines(sname, type, messages, color(assigns.sources, sname))
         end)
         |> Kernel.++(event_lines(assigns, minutes))
@@ -395,7 +556,22 @@ defmodule DeployexWeb.LogsLive do
         []
       end
 
-    socket |> assign(:buffer, Enum.reverse(lines)) |> show_lines(Enum.reverse(lines))
+    # The read holds the queued lines too
+    socket
+    |> assign(buffer: Enum.reverse(lines), queued: [])
+    |> show_lines(Enum.reverse(lines))
+  end
+
+  # New lines wait in a queue for one flush, so they reach the page in one update
+  defp queue(socket, lines) do
+    socket = update(socket, :queued, &Enum.take(Enum.reverse(lines) ++ &1, @cap))
+
+    if socket.assigns.flushing do
+      socket
+    else
+      Process.send_after(self(), :flush_lines, @flush_ms)
+      assign(socket, :flushing, true)
+    end
   end
 
   # The buffer keeps the newest lines first, so the cap drops the oldest
@@ -445,21 +621,99 @@ defmodule DeployexWeb.LogsLive do
       end
 
     # The events, then only the sources the log server tails, with the streams it has for each
-    events = %{sname: "events", types: ["event"], lang: nil, color: "--dx-warning-text"}
+    events = %{sname: "events", app: nil, types: ["event"], lang: nil, color: "--dx-warning-text"}
 
-    (["deployex"] ++ Enum.sort(snames -- ["deployex"]))
-    |> Enum.map(&{&1, Enum.map(Logs.get_types_by_sname(&1), fn type -> to_string(type) end)})
-    |> Enum.reject(fn {_sname, types} -> types == [] end)
-    |> Enum.with_index()
-    |> Enum.map(fn {{sname, types}, index} ->
-      %{
-        sname: sname,
-        types: types,
-        lang: language(sname),
-        color: Enum.at(@colors, rem(index, length(@colors)))
-      }
+    tailed =
+      (["deployex"] ++ Enum.sort(snames -- ["deployex"]))
+      |> Enum.map(&{&1, Enum.map(Logs.get_types_by_sname(&1), fn type -> to_string(type) end)})
+      |> Enum.reject(fn {_sname, types} -> types == [] end)
+      |> Enum.map(fn {sname, types} ->
+        %{sname: sname, app: app_of(sname), types: types, lang: language(sname)}
+      end)
+
+    # One color for each app, so the instances of an app share it
+    colors =
+      tailed
+      |> Enum.map(& &1.app)
+      |> Enum.uniq()
+      |> Enum.with_index(fn app, index ->
+        {app, Enum.at(@colors, rem(index, length(@colors)))}
+      end)
+      |> Map.new()
+
+    [events | Enum.map(tailed, &Map.put(&1, :color, colors[&1.app]))]
+  end
+
+  # DeployEx and its events first, then each app with its instances
+  defp groups(sources) do
+    {own, instances} = Enum.split_with(sources, &is_nil(&1.app))
+
+    apps =
+      instances
+      |> Enum.group_by(& &1.app)
+      |> Enum.sort_by(fn {app, _sources} -> app end)
+      |> Enum.map(fn {app, [first | _] = sources} ->
+        %{app: app, sources: sources, lang: first.lang, color: first.color}
+      end)
+
+    [%{app: nil, sources: own} | apps]
+  end
+
+  # The selected sources, with one chip for an app of several instances when all of them are on
+  defp chips(groups, selected) do
+    Enum.flat_map(groups, fn group ->
+      on = Enum.filter(group.sources, &MapSet.member?(selected, &1.sname))
+
+      if group.app && length(on) > 1 && length(on) == length(group.sources) do
+        [
+          %{
+            id: "chip-app-#{group.app}",
+            label: "#{group.app} · #{length(on)} instances",
+            color: group.color,
+            icon: group.lang,
+            event: "toggle-app",
+            name: group.app
+          }
+        ]
+      else
+        Enum.map(on, fn source ->
+          %{
+            id: "chip-#{source.sname}",
+            label: source.sname,
+            color: source.color,
+            icon: if(source.sname == "events", do: :bell, else: source.lang),
+            event: "toggle-source",
+            name: source.sname
+          }
+        end)
+      end
     end)
-    |> then(&[events | &1])
+  end
+
+  defp pressed(sources, selected) do
+    case Enum.count(sources, &MapSet.member?(selected, &1.sname)) do
+      0 -> "false"
+      count when count == length(sources) -> "true"
+      _some -> "mixed"
+    end
+  end
+
+  defp all?(sources, selected), do: sources != [] and pressed(sources, selected) == "true"
+
+  # An app's instances are added or removed together: all of them off when all are on, else all on
+  defp toggle_all(selected, snames) do
+    if Enum.all?(snames, &MapSet.member?(selected, &1)),
+      do: MapSet.difference(selected, MapSet.new(snames)),
+      else: MapSet.union(selected, MapSet.new(snames))
+  end
+
+  defp app_of("deployex"), do: nil
+
+  defp app_of(sname) do
+    case Catalog.node_info(sname) do
+      %{name: name} when is_binary(name) and name != "" -> name
+      _ -> sname
+    end
   end
 
   # since (unix seconds) picks the shortest range that still covers that time, like a bell item's

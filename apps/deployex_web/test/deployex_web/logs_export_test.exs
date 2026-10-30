@@ -19,13 +19,15 @@ defmodule DeployexWeb.LogsExportTest do
     |> stub(:list_active_snames, fn -> [] end)
     |> stub(:get_types_by_sname, fn _sname -> [:stdout, :stderr] end)
     |> stub(:list_data_by_sname_log_type, fn asked, type, options ->
-      send(test_pid, {:read, asked, type, options[:from]})
+      {from, to} = options[:between]
+      send(test_pid, {:read, asked, type, from, to})
 
       case {asked, type} do
-        {^sname, "stdout"} -> [message("second\nthird", 20), message("first", 40)]
+        {^sname, "stdout"} -> [message("first", 40), message("second\nthird", 20)]
         {"deployex", "stderr"} -> [message("[error] boom", 30)]
         _other -> []
       end
+      |> Enum.filter(&(&1.timestamp >= from and &1.timestamp < to))
     end)
 
     %{sname: sname}
@@ -33,6 +35,17 @@ defmodule DeployexWeb.LogsExportTest do
 
   defp message(log, seconds_ago),
     do: %Message{timestamp: System.os_time(:millisecond) - seconds_ago * 1_000, log: log}
+
+  defp lines(params), do: params |> LogsExport.chunks() |> Enum.concat()
+
+  # The time windows read for a source and stream, oldest first
+  defp windows(sname, type, acc \\ []) do
+    receive do
+      {:read, ^sname, ^type, from, to} -> windows(sname, type, [{from, to} | acc])
+    after
+      0 -> Enum.reverse(acc)
+    end
+  end
 
   test "params keeps what is set, for an export link" do
     assert LogsExport.params(%{sources: ["a", "b"], types: ["stdout"], minutes: 60, filter: ""}) ==
@@ -45,7 +58,7 @@ defmodule DeployexWeb.LogsExportTest do
   test "lines reads every source and stream asked, oldest first, split on new lines", %{
     sname: sname
   } do
-    lines = LogsExport.lines(%{"source" => "#{sname},deployex", "minutes" => "15"})
+    lines = lines(%{"source" => "#{sname},deployex", "minutes" => "15"})
 
     assert Enum.map(lines, &{&1.source, &1.stream, &1.text}) == [
              {sname, "stdout", "first"},
@@ -54,43 +67,45 @@ defmodule DeployexWeb.LogsExportTest do
              {sname, "stdout", "third"}
            ]
 
-    assert_received {:read, ^sname, "stdout", 15}
-    assert_received {:read, "deployex", "stderr", 15}
+    # One read a minute, from 15 minutes ago until now
+    windows = windows(sname, "stdout")
+    assert length(windows) in 15..16
+    assert_in_delta elem(hd(windows), 0), System.os_time(:millisecond) - 15 * 60_000, 1_000
+
+    assert Enum.all?(Enum.zip(windows, tl(windows)), fn {{_from, to}, {next, _to}} ->
+             to == next
+           end)
   end
 
   test "lines keeps the streams and the filter asked", %{sname: sname} do
     assert [%{text: "[error] boom"}] =
-             LogsExport.lines(%{"source" => "#{sname},deployex", "stream" => "stderr"})
+             lines(%{"source" => "#{sname},deployex", "stream" => "stderr"})
 
     assert [%{text: "third"}] =
-             LogsExport.lines(%{"source" => "#{sname},deployex", "filter" => "THIRD"})
+             lines(%{"source" => "#{sname},deployex", "filter" => "THIRD"})
 
     # The filter also matches the source
     assert [%{source: "deployex"}] =
-             LogsExport.lines(%{"source" => "#{sname},deployex", "filter" => "deployex"})
+             lines(%{"source" => "#{sname},deployex", "filter" => "deployex"})
   end
 
   test "lines reads no source this host does not have" do
-    assert LogsExport.lines(%{"source" => "other-abc123,../etc"}) == []
-    refute_received {:read, _sname, _type, _minutes}
+    assert lines(%{"source" => "other-abc123,../etc"}) == []
+    refute_received {:read, _sname, _type, _from, _to}
   end
 
   test "lines reads the minutes since a time, within a week", %{sname: sname} do
+    read = fn params ->
+      lines(Map.merge(%{"source" => sname, "stream" => "stdout"}, params))
+      length(windows(sname, "stdout"))
+    end
+
     since = System.os_time(:second) - 10 * 60
-    LogsExport.lines(%{"source" => sname, "since" => to_string(since), "stream" => "stdout"})
-    assert_received {:read, ^sname, "stdout", 11}
-
-    LogsExport.lines(%{"source" => sname, "since" => "0", "stream" => "stdout"})
-    assert_received {:read, ^sname, "stdout", 10_080}
-
-    LogsExport.lines(%{"source" => sname, "minutes" => "99999", "stream" => "stdout"})
-    assert_received {:read, ^sname, "stdout", 10_080}
-
-    LogsExport.lines(%{"source" => sname, "minutes" => "soon", "stream" => "stdout"})
-    assert_received {:read, ^sname, "stdout", 60}
-
-    LogsExport.lines(%{"source" => sname, "since" => "soon", "stream" => "stdout"})
-    assert_received {:read, ^sname, "stdout", 60}
+    assert read.(%{"since" => to_string(since)}) in 11..12
+    assert read.(%{"since" => "0"}) in 10_080..10_081
+    assert read.(%{"minutes" => "99999"}) in 10_080..10_081
+    assert read.(%{"minutes" => "soon"}) in 60..61
+    assert read.(%{"since" => "soon"}) in 60..61
   end
 
   test "lines holds this host's events when the events source is asked" do
@@ -101,7 +116,7 @@ defmodule DeployexWeb.LogsExportTest do
 
     Process.sleep(50)
 
-    lines = LogsExport.lines(%{"source" => "events", "filter" => "export-test-abc"})
+    lines = lines(%{"source" => "events", "filter" => "export-test-abc"})
 
     assert [%{source: "events", stream: "event", text: "export-test-abc crash restart" <> _}] =
              lines

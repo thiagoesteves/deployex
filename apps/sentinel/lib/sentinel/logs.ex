@@ -25,7 +25,12 @@ defmodule Sentinel.Logs do
     do: default().unsubscribe_for_new_logs(sname, log_type)
 
   @doc """
-  Fetch data by sname and log_type
+  Fetch data by sname and log_type. Options:
+
+    * `:from` - the last minutes to read, 15 by default
+    * `:between` - `{from_ms, to_ms}`, a time range in unix milliseconds that replaces `:from`
+    * `:limit` - keep only the newest messages, at most this many
+    * `:order` - `:asc` (default) or `:desc`
   """
   @spec list_data_by_sname_log_type(
           sname :: String.t(),
