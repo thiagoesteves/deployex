@@ -366,7 +366,13 @@ defmodule Deployer.Status.Application do
         :not_connected
     end
 
-    otp = check_otp_monitored_app.(node, status)
+    # A hot upgrade's pre_commands run while the instance runs, so it stays connected
+    otp =
+      check_otp_monitored_app.(
+        node,
+        if(Monitor.serving?(monitor_state), do: :running, else: status)
+      )
+
     version_map = current_version_map(sname)
 
     %Status{

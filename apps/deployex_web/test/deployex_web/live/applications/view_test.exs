@@ -351,11 +351,15 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
                alert: %{
                  tone: :info,
                  blocking: false,
-                 detail: "myapp-abc continues when they finish."
+                 detail: "myapp-abc starts when they finish."
                }
              }
            ] =
              View.apps([app([child(%{status: :pre_commands, otp: :not_connected})])], @now)
+
+    # A hot upgrade's pre_commands run while the instance runs, so it counts as running
+    assert [%{running: 1, alert: %{title: "Running the hot upgrade's pre_commands"}}] =
+             View.apps([app([child(%{status: :pre_commands, otp: :connected})])], @now)
   end
 
   test "a TLS certificate within 7 days and an instance at its restart threshold are urgent" do

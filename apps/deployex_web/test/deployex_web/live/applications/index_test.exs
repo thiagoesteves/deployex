@@ -363,8 +363,10 @@ defmodule DeployexWeb.Applications.IndexTest do
 
     {:ok, view, html} = live(conn, ~p"/applications")
 
-    assert html =~ "Running pre_commands for 4.7.0"
-    assert html =~ "myphoenixapp-abc123 continues when they finish."
+    # A connected instance runs a hot upgrade's pre_commands, and still counts as running
+    assert html =~ "Running the hot upgrade&#39;s pre_commands"
+    assert html =~ "myphoenixapp-abc123 keeps running 4.7.0 until the upgrade installs."
+    assert html =~ "1/1 running"
     html = view |> element("#app-myphoenixapp-toggle") |> render_click()
     assert html =~ "pre_commands 4.7.0"
 

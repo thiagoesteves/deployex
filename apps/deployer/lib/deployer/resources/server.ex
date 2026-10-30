@@ -124,7 +124,7 @@ defmodule Deployer.Resources.Server do
 
   defp running_instances do
     Enum.reduce(Monitor.list(), [], fn sname, acc ->
-      with %{status: :running} <- Monitor.state(sname),
+      with true <- sname |> Monitor.state() |> Monitor.serving?(),
            %{node: node} <- Catalog.node_info(sname) do
         [{sname, node} | acc]
       else

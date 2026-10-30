@@ -130,6 +130,15 @@ defmodule Deployer.Monitor do
   @spec list() :: list()
   def list, do: default().list()
 
+  @doc """
+  Whether the instance runs: running, or running a hot upgrade's pre_commands. Start up pre_commands have
+  no pid yet.
+  """
+  @spec serving?(map()) :: boolean()
+  def serving?(%{status: :running}), do: true
+  def serving?(%{status: :pre_commands, current_pid: pid}) when is_pid(pid), do: true
+  def serving?(_state), do: false
+
   @impl true
   @spec list(options :: Keyword.t()) :: list()
   def list(options), do: default().list(options)

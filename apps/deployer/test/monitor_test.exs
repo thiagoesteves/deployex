@@ -42,6 +42,19 @@ defmodule Deployer.MonitorTest do
     }
   end
 
+  test "serving? counts a running instance and one in a hot upgrade's pre_commands" do
+    assert Deployer.Monitor.serving?(%Deployer.Monitor{status: :running})
+
+    assert Deployer.Monitor.serving?(%Deployer.Monitor{
+             status: :pre_commands,
+             current_pid: self()
+           })
+
+    refute Deployer.Monitor.serving?(%Deployer.Monitor{status: :pre_commands})
+    refute Deployer.Monitor.serving?(%Deployer.Monitor{status: :starting, current_pid: self()})
+    refute Deployer.Monitor.serving?(nil)
+  end
+
   describe "Initialization tests" do
     @tag :capture_log
     test "init/1", %{elixir_name: name, elixir_sname: sname, ports: ports} do
