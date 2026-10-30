@@ -209,8 +209,8 @@
 
 .dx-arow {
     display: grid;
-    grid-template-columns: minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem calc(6.875rem + 13px);
-    gap: 1rem;
+    grid-template-columns: minmax(12.5rem,1.5fr) 10.5rem 3.5rem 5.25rem 4.25rem 8rem calc(9.25rem + 13px);
+    gap: 0.75rem;
     align-items: center;
     padding: 0 20px 0 26px;
     min-height: 78px;
@@ -439,8 +439,8 @@
    margin, border and padding. In rem, so the columns grow with a larger font */
 .dx-irow {
     display: grid;
-    grid-template-columns: minmax(0,1fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem 6.875rem;
-    gap: 1rem;
+    grid-template-columns: minmax(0,1fr) 10.5rem 3.5rem 5.25rem 4.25rem 8rem 9.25rem;
+    gap: 0.75rem;
     align-items: center;
     padding: 0 12px 0 16px;
     min-height: 42px;
@@ -1093,7 +1093,7 @@
 
 .dx-limits {
     display: grid;
-    grid-template-columns: repeat(3,minmax(0,1fr)) auto;
+    grid-template-columns: repeat(3,minmax(0,1fr));
     gap: 12px 14px;
     /* The labels and bars line up when a trend makes one limit taller */
     align-items: start;
@@ -1115,21 +1115,6 @@
 }
 
 /* A link the size of a limit box, like Observer Web next to the limits */
-.dx-ltile {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 64px;
-    border: 1px solid var(--dx-base-300);
-    border-radius: 8px;
-    background: var(--dx-base-200);
-    color: var(--dx-base-content);
-}
-
-.dx-ltile:hover {
-    background: var(--dx-base-300);
-}
-
 /* The node, ports and served URLs of an instance, in a box above its limits, each label over its value */
 .dx-idetail {
     grid-column: 1 / -1;

@@ -10,7 +10,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Tags
 
-  @columns "minmax(12.5rem,1.5fr) 11rem 3.5rem 5.25rem 4.25rem 8.375rem calc(6.875rem + 13px)"
+  @columns "minmax(12.5rem,1.5fr) 10.5rem 3.5rem 5.25rem 4.25rem 8rem calc(9.25rem + 13px)"
 
   attr :host_name, :string, required: true
 
@@ -165,7 +165,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       <div class="overflow-x-auto">
         <div class="min-w-[61.5rem]">
           <div
-            class="grid min-h-10 items-center gap-4 pr-5 pl-[26px]"
+            class="grid min-h-10 items-center gap-3 pr-5 pl-[26px]"
             style={"grid-template-columns: #{@columns}"}
           >
             <div class="dx-lbl">Application</div>
@@ -246,7 +246,9 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <Tags.lang name={@app.language} label={@app.language_name} logo={@app.logo} />
             <div class="min-w-0">
               <div class="text-lg font-bold tracking-[-0.01em]">{@app.name}</div>
-              <div class="dx-muted dx-mono mt-0.5 text-[0.8125rem]">{@app.sub}</div>
+              <div class="dx-muted dx-mono mt-0.5 truncate text-[0.8125rem]" title={@app.sub}>
+                {@app.sub}
+              </div>
             </div>
           </div>
           <div class="flex items-center">
@@ -588,6 +590,17 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             label={"#{@instance.shell} on #{@instance.sname}, opens in the dock"}
             phx-click={dock_open("shell", @instance.sname, @app)}
           />
+          <span id={"instance-#{@instance.sname}-observer-tip"} class="inline-flex" phx-hook="Tip">
+            <.link
+              id={"instance-#{@instance.sname}-observer"}
+              class="dx-iact dx-iact-icon"
+              navigate={~p"/embedded-observer"}
+              aria-label={"Open #{@instance.sname} in Observer Web"}
+            >
+              <Icons.icon name="observer-web" class={nil} gradient={"dx-ow-#{@instance.sname}"} />
+            </.link>
+            <span popover="manual" class="dx-tip" aria-hidden="true">Observer Web</span>
+          </span>
           <.icon_action
             id={"instance-#{@instance.sname}-restart"}
             icon={if @sent, do: "check", else: "arrow-path"}
@@ -692,21 +705,6 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             {limit.trend}
           </span>
         </div>
-        <span
-          id={"instance-#{@instance.sname}-observer-tip"}
-          class="flex self-stretch"
-          phx-hook="Tip"
-        >
-          <.link
-            id={"instance-#{@instance.sname}-observer"}
-            class="dx-ltile"
-            navigate={~p"/embedded-observer"}
-            aria-label={"Open #{@instance.sname} in Observer Web"}
-          >
-            <Icons.icon name="observer-web" class="size-8" gradient={"dx-ow-#{@instance.sname}"} />
-          </.link>
-          <span popover="manual" class="dx-tip" aria-hidden="true">Observer Web</span>
-        </span>
       </div>
     </div>
     """
