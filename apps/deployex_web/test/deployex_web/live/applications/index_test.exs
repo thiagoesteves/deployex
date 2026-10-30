@@ -212,7 +212,7 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
-  test "GET /applications shows a ghosted version under its app, and clears it after the Undo window",
+  test "GET /applications shows a ghosted version under its app, and clears it after a confirmation",
        %{conn: conn} do
     test_pid = self()
 
@@ -239,21 +239,21 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "dx-dtag-fail"
     assert html =~ HostTime.format(~U[2026-10-28 14:20:00Z], "%H:%M")
 
-    # Undo puts it back before anything is cleared
+    # It asks first, and Cancel clears nothing
     html = view |> element("#app-myerlangapp-clear-ghosted") |> render_click()
-    assert html =~ "Cleared ghosted 4.6.0"
-    html = view |> element("#app-myerlangapp-undo-clear") |> render_click()
-    assert html =~ "4.6.0 failed and is ghosted"
+    assert html =~ "Clear ghosted 4.6.0?"
+    view |> element("#app-myerlangapp-clear-ghosted-cancel") |> render_click()
     refute_received :removed
+    assert render(view) =~ "4.6.0 failed and is ghosted"
 
-    # Without Undo, the clear happens when the window ends
+    # The confirmation clears it at once, so a page that closes next does not lose it
     view |> element("#app-myerlangapp-clear-ghosted") |> render_click()
-    send(view.pid, {:commit_clear, "myerlangapp"})
-    assert_receive :removed
+    html = view |> element("#app-myerlangapp-clear-ghosted-confirm") |> render_click()
+    assert_received :removed
+    assert html =~ "Cleared ghosted 4.6.0"
 
-    # A second commit for the same app does nothing
-    send(view.pid, {:commit_clear, "myerlangapp"})
-    assert render(view) =~ "myerlangapp"
+    send(view.pid, {:clear_shown, "myerlangapp"})
+    assert render(view) =~ "4.6.0 failed and is ghosted"
   end
 
   @tag :capture_log

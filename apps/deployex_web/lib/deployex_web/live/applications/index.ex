@@ -12,8 +12,6 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Sentinel.Config.Watcher
 
   @deployex_terminate_delay 300
-  # A cleared ghosted version is cleared for real when its Undo window ends
-  @undo_window :timer.seconds(10)
   # How long a restart button says Restart sent
   @sent_window :timer.seconds(4)
 
@@ -63,7 +61,7 @@ defmodule DeployexWeb.ApplicationsLive do
           limits_open={@limits_open}
           ask={@ask}
           sent={@sent}
-          cleared={Map.new(@cleared, fn {name, %{version: version}} -> {name, version} end)}
+          cleared={@cleared}
         />
       </div>
     </Layouts.app>
@@ -163,16 +161,8 @@ defmodule DeployexWeb.ApplicationsLive do
   def handle_info({:clear_sent, sname}, socket),
     do: {:noreply, update(socket, :sent, &MapSet.delete(&1, sname))}
 
-  def handle_info({:commit_clear, name}, %{assigns: %{cleared: cleared}} = socket) do
-    case Map.pop(cleared, name) do
-      {%{version: version}, cleared} ->
-        {:ok, _list} = Status.remove_ghosted_version(name, version)
-        {:noreply, assign(socket, :cleared, cleared)}
-
-      {nil, _cleared} ->
-        {:noreply, socket}
-    end
-  end
+  def handle_info({:clear_shown, name}, socket),
+    do: {:noreply, update(socket, :cleared, &Map.delete(&1, name))}
 
   def handle_info(
         {:watcher_config_new, source_node, pending_changes},
@@ -221,6 +211,9 @@ defmodule DeployexWeb.ApplicationsLive do
   def handle_event("ask", %{"target" => "app:" <> name}, socket),
     do: {:noreply, assign(socket, :ask, {:app, name})}
 
+  def handle_event("ask", %{"target" => "ghosted:" <> name}, socket),
+    do: {:noreply, assign(socket, :ask, {:ghosted, name})}
+
   def handle_event("ask", %{"target" => sname}, socket),
     do: {:noreply, assign(socket, :ask, sname)}
 
@@ -247,20 +240,12 @@ defmodule DeployexWeb.ApplicationsLive do
     {:noreply, assign(socket, :ask, nil)}
   end
 
+  # The clear happens at once. The row says it was cleared until the next status shows it gone
   def handle_event("clear-ghosted", %{"name" => name, "version" => version}, socket) do
-    timer = Process.send_after(self(), {:commit_clear, name}, @undo_window)
-    {:noreply, update(socket, :cleared, &Map.put(&1, name, %{version: version, timer: timer}))}
-  end
+    {:ok, _list} = Status.remove_ghosted_version(name, version)
+    Process.send_after(self(), {:clear_shown, name}, @sent_window)
 
-  def handle_event("undo-clear", %{"name" => name}, %{assigns: %{cleared: cleared}} = socket) do
-    case Map.pop(cleared, name) do
-      {%{timer: timer}, cleared} ->
-        Process.cancel_timer(timer)
-        {:noreply, assign(socket, :cleared, cleared)}
-
-      {nil, _cleared} ->
-        {:noreply, socket}
-    end
+    {:noreply, socket |> assign(:ask, nil) |> update(:cleared, &Map.put(&1, name, version))}
   end
 
   def handle_event(
@@ -291,7 +276,7 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  # The clear is held back for its Undo window, so the row shows it gone at once
+  # A version cleared a moment ago shows as cleared, not ghosted, until the status catches up
   defp assign_statuses(%{assigns: assigns} = socket, statuses) do
     cleared = Map.get(assigns, :cleared, %{})
 

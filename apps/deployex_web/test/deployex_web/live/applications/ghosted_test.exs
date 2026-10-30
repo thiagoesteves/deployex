@@ -54,27 +54,29 @@ defmodule DeployexWeb.Applications.GhostedTest do
   end
 
   @tag :capture_log
-  test "a cleared version can be undone, and is cleared when the window ends", %{conn: conn} do
+  test "Clear asks first, then clears at once", %{conn: conn} do
     stub_status([ghosted("0.8.2"), ghosted("0.8.1")])
 
     {:ok, view, _html} = live(conn, ~p"/applications/#{@name}/ghosted")
 
     html = view |> element("#ghosted-clear-0\\.8\\.2") |> render_click()
-    assert html =~ "Cleared 0.8.2. It can deploy on this host again."
-    refute has_element?(view, "#ghosted-0\\.8\\.2")
-
-    html = view |> element("#ghosted-undo") |> render_click()
-    assert has_element?(view, "#ghosted-0\\.8\\.2")
-    refute html =~ "Cleared 0.8.2"
+    assert html =~ "Clear ghosted 0.8.2?"
+    view |> element("button", "Cancel") |> render_click()
+    refute has_element?(view, "#ghosted-clear-confirm")
     refute_received {:removed, _}
 
-    html = view |> element("#ghosted-clear-all") |> render_click()
-    assert html =~ "Cleared 2 ghosted versions. They can deploy on this host again."
-    assert html =~ "No ghosted versions. Any version can deploy on this host."
+    view |> element("#ghosted-clear-0\\.8\\.2") |> render_click()
+    html = view |> element("#ghosted-clear-confirm") |> render_click()
+    assert_received {:removed, "0.8.2"}
+    refute_received {:removed, "0.8.1"}
+    assert html =~ "Cleared 0.8.2. It can deploy on this host again."
 
-    send(view.pid, :commit_clear)
-    assert_receive {:removed, "0.8.2"}
-    assert_receive {:removed, "0.8.1"}
+    html = view |> element("#ghosted-clear-all") |> render_click()
+    assert html =~ "Clear all 2 ghosted versions?"
+    html = view |> element("#ghosted-clear-confirm") |> render_click()
+    assert_received {:removed, "0.8.2"}
+    assert_received {:removed, "0.8.1"}
+    assert html =~ "Cleared 2 ghosted versions. They can deploy on this host again."
   end
 
   @tag :capture_log

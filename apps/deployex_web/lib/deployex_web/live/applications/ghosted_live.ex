@@ -1,7 +1,7 @@
 defmodule DeployexWeb.GhostedLive do
   @moduledoc """
-  The ghosted versions of one application. A cleared version leaves the list at once, and is cleared
-  for real when its Undo window ends, so this host does not deploy it before Undo.
+  The ghosted versions of one application. Clear asks first, then clears at once, so a page that closes
+  right after the click does not lose it.
   """
   use DeployexWeb, :live_view
 
@@ -11,12 +11,9 @@ defmodule DeployexWeb.GhostedLive do
   alias DeployexWeb.HostTime
   alias DeployexWeb.UI.Icons
 
-  @undo_window :timer.seconds(10)
-
   @impl true
   def render(assigns) do
-    assigns =
-      assign(assigns, :shown, Enum.reject(assigns.ghosted, &(&1.version in assigns.cleared)))
+    assigns = assign(assigns, :shown, assigns.ghosted)
 
     ~H"""
     <Layouts.app
@@ -60,6 +57,25 @@ defmodule DeployexWeb.GhostedLive do
             >
               Clear all
             </button>
+          </div>
+          <div :if={@asking} class="dx-ask" role="group" aria-label="Confirm the clear">
+            <span class="flex-[1_1_320px]">
+              <b>
+                {if @asking == :all,
+                  do: "Clear all #{length(@shown)} ghosted versions?",
+                  else: "Clear ghosted #{@asking}?"}
+              </b>
+              This host can deploy {if @asking == :all, do: "them", else: "it"} again on its next check.
+            </span>
+            <button
+              id="ghosted-clear-confirm"
+              type="button"
+              class="dx-btn dx-btn-danger"
+              phx-click="confirm-clear"
+            >
+              {if @asking == :all, do: "Clear all", else: "Clear #{@asking}"}
+            </button>
+            <button type="button" class="dx-btn" phx-click="cancel-clear">Cancel</button>
           </div>
           <div :if={@shown != []} class="overflow-x-auto">
             <div class="min-w-[700px]">
@@ -107,7 +123,6 @@ defmodule DeployexWeb.GhostedLive do
                 else:
                   "Cleared #{length(@cleared)} ghosted versions. They can deploy on this host again."}
             </span>
-            <button id="ghosted-undo" type="button" class="dx-btn" phx-click="undo">Undo</button>
           </div>
         </section>
       </div>
@@ -121,42 +136,33 @@ defmodule DeployexWeb.GhostedLive do
 
     {:ok,
      socket
-     |> assign(name: name, cleared: [], timer: nil, current_path: "/applications")
+     |> assign(name: name, asking: nil, cleared: [], current_path: "/applications")
      |> assign(:page_title, "#{name} ghosted versions")
      |> load()}
   end
 
   @impl true
   def handle_event("clear", %{"version" => version}, socket),
-    do: {:noreply, clear(socket, [version])}
+    do: {:noreply, assign(socket, asking: version, cleared: [])}
 
-  def handle_event("clear-all", _params, %{assigns: %{ghosted: ghosted}} = socket),
-    do: {:noreply, clear(socket, Enum.map(ghosted, & &1.version))}
+  def handle_event("clear-all", _params, socket),
+    do: {:noreply, assign(socket, asking: :all, cleared: [])}
 
-  def handle_event("undo", _params, %{assigns: %{timer: timer}} = socket) do
-    if timer, do: Process.cancel_timer(timer)
-    {:noreply, assign(socket, cleared: [], timer: nil)}
+  def handle_event("cancel-clear", _params, socket), do: {:noreply, assign(socket, :asking, nil)}
+
+  def handle_event("confirm-clear", _params, %{assigns: %{asking: asking, name: name}} = socket) do
+    versions =
+      if asking == :all, do: Enum.map(socket.assigns.ghosted, & &1.version), else: [asking]
+
+    Enum.each(versions, &Status.remove_ghosted_version(name, &1))
+    {:noreply, socket |> assign(asking: nil, cleared: versions) |> load()}
   end
 
   @impl true
-  def handle_info(:commit_clear, %{assigns: %{name: name, cleared: cleared}} = socket) do
-    Enum.each(cleared, &Status.remove_ghosted_version(name, &1))
-    {:noreply, socket |> assign(cleared: [], timer: nil) |> load()}
-  end
-
   def handle_info({:ghosted_versions_updated, _node, _name, _list}, socket),
     do: {:noreply, load(socket)}
 
   def handle_info(_message, socket), do: {:noreply, socket}
-
-  # A new clear joins the open Undo window, and the window starts again
-  defp clear(%{assigns: %{cleared: cleared, timer: timer}} = socket, versions) do
-    if timer, do: Process.cancel_timer(timer)
-
-    socket
-    |> assign(:cleared, Enum.uniq(cleared ++ versions))
-    |> assign(:timer, Process.send_after(self(), :commit_clear, @undo_window))
-  end
 
   defp load(%{assigns: %{name: name}} = socket) do
     {known, language, children, replicas} =

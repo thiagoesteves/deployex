@@ -155,7 +155,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :cleared, :map,
     required: true,
-    doc: "name => version, for a ghosted version in its Undo window"
+    doc: "name => version, for a ghosted version cleared a moment ago"
 
   def app_table(assigns) do
     assigns = assign(assigns, :columns, @columns)
@@ -309,7 +309,12 @@ defmodule DeployexWeb.ApplicationsLive.Board do
           </button>
         </div>
 
-        <.alert :if={@app.alert || @cleared} app={@app} cleared={@cleared} />
+        <.alert
+          :if={@app.alert || @cleared}
+          app={@app}
+          cleared={@cleared}
+          asking={@ask == {:ghosted, @app.name}}
+        />
         <.urgent
           :for={{item, index} <- Enum.with_index(@app.urgent)}
           app={@app.name}
@@ -384,6 +389,7 @@ defmodule DeployexWeb.ApplicationsLive.Board do
 
   attr :app, :map, required: true
   attr :cleared, :any, required: true
+  attr :asking, :boolean, required: true, doc: "whether Clear ghosted waits for its confirmation"
 
   defp alert(%{cleared: version} = assigns) when is_binary(version) do
     ~H"""
@@ -392,17 +398,6 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       <div class="dx-callout-text">
         <b>Cleared ghosted {@cleared}</b>
         <span>This host can deploy it again.</span>
-      </div>
-      <div class="dx-callout-acts">
-        <button
-          id={"app-#{@app.name}-undo-clear"}
-          type="button"
-          class="dx-btn"
-          phx-click="undo-clear"
-          phx-value-name={@app.name}
-        >
-          Undo
-        </button>
       </div>
     </div>
     """
@@ -418,21 +413,44 @@ defmodule DeployexWeb.ApplicationsLive.Board do
         stroke="2"
         class="dx-ico dx-callout-ico"
       />
-      <div class="dx-callout-text">
-        <b>{@app.alert.title}</b>
-        <span>{@app.alert.detail}</span>
+      <div :if={@asking} class="dx-callout-text">
+        <b>Clear ghosted {@app.alert.version}?</b>
+        <span>This host can deploy it again on its next check.</span>
       </div>
-      <div class="dx-callout-acts">
+      <div :if={@asking} class="dx-callout-acts">
         <button
-          :if={@app.alert.kind == :ghosted}
-          id={"app-#{@app.name}-clear-ghosted"}
+          id={"app-#{@app.name}-clear-ghosted-confirm"}
           type="button"
-          class="dx-btn"
+          class="dx-btn dx-btn-danger"
           phx-click="clear-ghosted"
           phx-value-name={@app.name}
           phx-value-version={@app.alert.version}
         >
           Clear ghosted {@app.alert.version}
+        </button>
+        <button
+          id={"app-#{@app.name}-clear-ghosted-cancel"}
+          type="button"
+          class="dx-btn"
+          phx-click="cancel-ask"
+        >
+          Cancel
+        </button>
+      </div>
+      <div :if={!@asking} class="dx-callout-text">
+        <b>{@app.alert.title}</b>
+        <span>{@app.alert.detail}</span>
+      </div>
+      <div :if={!@asking} class="dx-callout-acts">
+        <button
+          :if={@app.alert.kind == :ghosted}
+          id={"app-#{@app.name}-clear-ghosted"}
+          type="button"
+          class="dx-btn"
+          phx-click="ask"
+          phx-value-target={"ghosted:#{@app.name}"}
+        >
+          Clear ghosted {@app.alert.version}…
         </button>
         <button
           type="button"
