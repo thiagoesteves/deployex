@@ -21,6 +21,7 @@ defmodule DeployexWeb.DockTest do
       _commands, _options -> {:ok, self(), @os_pid}
     end)
     |> stub(:stop, fn @os_pid -> :ok end)
+    |> stub(:winsz, fn @os_pid, _rows, _cols -> :ok end)
 
     Sentinel.LogsMock
     |> stub(:get_types_by_sname, fn _sname -> ["stdout", "stderr"] end)

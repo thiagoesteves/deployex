@@ -61,6 +61,8 @@ defmodule DeployexWeb.Shell do
   def list(user) do
     @registry
     |> Registry.select([{{{:"$1", :_}, :_, :"$2"}, [{:==, :"$1", user}], [:"$2"]}])
+    # A session that is still starting has no value in the registry yet
+    |> Enum.filter(&match?(%Session{}, &1))
     |> Enum.sort_by(& &1.started_at, DateTime)
   end
 
