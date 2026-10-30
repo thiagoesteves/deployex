@@ -108,11 +108,11 @@ defmodule DeployexWeb.Terminal.IndexTest do
     wait_running(user.username, "host")
 
     {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
-    assert_push_event(view, "shell-reset-host", %{data: ""})
+    assert_push_event(view, "shell-reset-page-host", %{data: ""})
 
     [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "host"})
     send(:sys.get_state(pid).terminal, {:stdout, @os_pid, "$ "})
-    assert_push_event(view, "shell-output-host", %{data: "$ "})
+    assert_push_event(view, "shell-output-page-host", %{data: "$ "})
 
     xterm = element(view, "[phx-hook=XTerm]")
     render_hook(xterm, "shell-keys", %{"target" => "host", "keys" => "ls\r"})
@@ -157,7 +157,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
     wait_running(user.username, "host")
 
     {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
-    assert_push_event(view, "shell-reset-host", %{data: ""})
+    assert_push_event(view, "shell-reset-page-host", %{data: ""})
     refute has_element?(view, "#terminal-unsplit")
 
     # Split opens a picker at once, and a pick opens its session there, with nothing open before
@@ -168,7 +168,7 @@ defmodule DeployexWeb.Terminal.IndexTest do
 
     view |> element("#pick-deployex") |> render_click()
     assert_patch(view, "/terminal?split=deployex&target=host")
-    assert_push_event(view, "shell-reset-deployex", %{data: ""})
+    assert_push_event(view, "shell-reset-page-deployex", %{data: ""})
     wait_running(user.username, "deployex")
     assert has_element?(view, "#terminal-unsplit")
     assert [_host, _deployex] = view |> render() |> then(&Regex.scan(~r/phx-hook="XTerm"/, &1))
@@ -179,8 +179,8 @@ defmodule DeployexWeb.Terminal.IndexTest do
       send(:sys.get_state(pid).terminal, {:stdout, @os_pid, data})
     end
 
-    assert_push_event(view, "shell-output-host", %{data: "$ "})
-    assert_push_event(view, "shell-output-deployex", %{data: "iex> "})
+    assert_push_event(view, "shell-output-page-host", %{data: "$ "})
+    assert_push_event(view, "shell-output-page-deployex", %{data: "iex> "})
 
     # The second session's tab swaps the panes
     view |> element("button[phx-value-target=deployex].dx-tab-sel") |> render_click()

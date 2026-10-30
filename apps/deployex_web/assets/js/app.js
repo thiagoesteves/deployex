@@ -197,10 +197,12 @@ const hooks = {
   },
 
   // A shell session in xterm.js, sized to its panel. Keys and the size go to the LiveView, the output
-  // comes back as shell-output events for this target, and shell-reset replays what the session printed
+  // comes back as shell-output events for this target, and shell-reset replays what the session printed.
+  // Pushed events reach every hook on the page, so the dock and the Terminal page each use their scope
   XTerm: {
     mounted() {
       const target = this.el.dataset.target;
+      const scope = this.el.dataset.scope;
       this.term = new Terminal({
         // 13 px at the browser's default font size, larger when the user sets a larger one
         fontSize: Math.round(13 * parseFloat(getComputedStyle(document.documentElement).fontSize) / 16),
@@ -210,8 +212,8 @@ const hooks = {
       });
       this.term.open(this.el);
       this.term.onData((keys) => this.pushEventTo(this.el, "shell-keys", { target, keys }));
-      this.handleEvent(`shell-output-${target}`, ({ data }) => this.term.write(data));
-      this.handleEvent(`shell-reset-${target}`, ({ data }) => {
+      this.handleEvent(`shell-output-${scope}-${target}`, ({ data }) => this.term.write(data));
+      this.handleEvent(`shell-reset-${scope}-${target}`, ({ data }) => {
         this.term.reset();
         this.term.write(data);
       });

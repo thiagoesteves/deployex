@@ -231,6 +231,7 @@ defmodule DeployexWeb.TerminalLive do
           class="dx-xterm flex-1"
           phx-hook="XTerm"
           phx-update="ignore"
+          data-scope="page"
           data-target={@session.target}
           data-focus={!@second}
           role="log"
@@ -347,7 +348,7 @@ defmodule DeployexWeb.TerminalLive do
   def handle_info({:shell_output, id, data}, %{assigns: %{attached: attached}} = socket) do
     case Enum.find(attached, fn {_target, session} -> session.id == id end) do
       {target, _session} ->
-        {:noreply, push_event(socket, "shell-output-#{target}", %{data: data})}
+        {:noreply, push_event(socket, "shell-output-page-#{target}", %{data: data})}
 
       nil ->
         {:noreply, socket}
@@ -404,7 +405,7 @@ defmodule DeployexWeb.TerminalLive do
       {:ok, session, scrollback} ->
         socket
         |> update(:attached, &Map.put(&1, target, session))
-        |> push_event("shell-reset-#{target}", %{data: scrollback})
+        |> push_event("shell-reset-page-#{target}", %{data: scrollback})
 
       :error ->
         socket

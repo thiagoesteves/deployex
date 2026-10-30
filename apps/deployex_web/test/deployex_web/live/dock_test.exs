@@ -176,7 +176,7 @@ defmodule DeployexWeb.DockTest do
     assert html =~ "Closes in"
     assert html =~ "dx-dtab-term"
     assert [%{target: "deployex"}] = Shell.list(user.username)
-    assert_push_event(dock, "shell-reset-deployex", %{data: ""})
+    assert_push_event(dock, "shell-reset-dock-deployex", %{data: ""})
 
     # The shortcuts of the remote IEx shell open next to it, and close again
     refute html =~ "IEx shortcuts"
