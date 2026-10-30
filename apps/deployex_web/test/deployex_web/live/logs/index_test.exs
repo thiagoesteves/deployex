@@ -2,6 +2,7 @@ defmodule DeployexWeb.Logs.IndexTest do
   use DeployexWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
+  import Mock
   import Mox
 
   alias Foundation.Catalog
@@ -261,6 +262,28 @@ defmodule DeployexWeb.Logs.IndexTest do
     send(view.pid, {:recent_notification, %{recent | payload: %{sname: "events-test-jkl"}}})
     send(view.pid, :flush_lines)
     refute render(view) =~ "events-test-jkl"
+  end
+
+  @tag :capture_log
+  test "an event older than the read window shows in History, not in Live", %{conn: conn} do
+    stub(Deployer.MonitorMock, :list, fn -> [] end)
+    stub(Sentinel.LogsMock, :list_active_snames, fn -> [] end)
+    stub_logs(self(), %{})
+    two_hours_ago = DateTime.add(DateTime.utc_now(:second), -2 * 3_600)
+
+    with_mock DateTime, [:passthrough], utc_now: fn :second -> two_hours_ago end do
+      Foundation.Notifications.notify("crash_restart", %{sname: "events-test-old"})
+      Process.sleep(50)
+    end
+
+    # The bell lists it too, so only the log lines are read
+    {:ok, view, _html} = live(conn, ~p"/logs/live?source=events")
+    refute has_element?(view, "#logs-lines", "events-test-old")
+
+    {:ok, view, _html} = live(conn, ~p"/logs/history?source=events")
+    refute has_element?(view, "#logs-lines", "events-test-old")
+    view |> element("#range-6h") |> render_click()
+    assert has_element?(view, "#logs-lines", "events-test-old")
   end
 
   @tag :capture_log

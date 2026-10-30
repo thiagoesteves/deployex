@@ -730,14 +730,13 @@ defmodule DeployexWeb.LogsLive do
     end
   end
 
-  # The events of this host in the read window. The store keeps the last ones since DeployEx started
-  # Live shows every kept event, as the store holds only the last ones. History keeps its range
-  defp event_lines(%{selected: selected, mode: mode}, minutes) do
+  # The events of this host in the read window, like the log lines. The store keeps the last ones
+  defp event_lines(%{selected: selected}, minutes) do
     if MapSet.member?(selected, "events") do
       since = DateTime.add(DateTime.utc_now(), -minutes * 60)
 
       Recent.list()
-      |> Enum.filter(&(mode == :live or DateTime.compare(&1.at, since) != :lt))
+      |> Enum.filter(&(DateTime.compare(&1.at, since) != :lt))
       |> Enum.map(&event_line/1)
     else
       []
