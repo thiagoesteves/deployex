@@ -271,20 +271,21 @@ defmodule DeployexWeb.ApplicationsLive.View do
     }
   end
 
-  defp alert(status, nil, _running) do
+  defp alert(status, nil, running) do
     case Enum.find(status.children, &(&1.status == :pre_commands)) do
       nil -> nil
-      child -> pre_commands_alert(child)
+      child -> pre_commands_alert(child, running)
     end
   end
 
-  # A failed pre_command keeps the instance from starting, and the monitor retries it until it passes
-  defp pre_commands_alert(%{failed_pre_commands: [_ | _] = failed} = child) do
+  # A failed pre_command keeps the instance from starting, and the monitor retries it until it passes.
+  # The app is down only when no other instance runs, like a previous version kept for its rollback
+  defp pre_commands_alert(%{failed_pre_commands: [_ | _] = failed} = child, running) do
     commands = Enum.join(failed, ", ")
 
     %{
       kind: :pre_commands,
-      blocking: child.otp != :connected,
+      blocking: running == 0,
       tone: :error,
       version: child.version,
       title: "pre_commands for #{child.version} failed",
@@ -293,18 +294,14 @@ defmodule DeployexWeb.ApplicationsLive.View do
     }
   end
 
-  defp pre_commands_alert(child) do
+  defp pre_commands_alert(child, _running) do
     %{
       kind: :pre_commands,
       blocking: false,
       tone: :info,
       version: child.version,
       title: "Running pre_commands for #{child.version}",
-      detail:
-        if(child.otp == :connected,
-          do: "#{child.sname} keeps running until they finish.",
-          else: "#{child.sname} starts when they finish."
-        ),
+      detail: "#{child.sname} continues when they finish.",
       text: "#{child.sname} runs its pre_commands for #{child.version}."
     }
   end

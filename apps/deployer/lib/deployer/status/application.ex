@@ -435,13 +435,13 @@ defmodule Deployer.Status.Application do
     end
   end
 
-  # Converted once, since the offset between monotonic and wall clock time can move
   # The monitor keeps the failed pre_commands while it retries them, and drops them once they pass
   defp failed_pre_commands(%{status: :pre_commands} = monitor_state),
     do: Map.get(monitor_state, :reported_pre_commands, [])
 
   defp failed_pre_commands(_monitor_state), do: []
 
+  # Converted once, since the offset between monotonic and wall clock time can move
   defp deployex_started_at do
     case Process.get(:deployex_started_at) do
       nil ->
