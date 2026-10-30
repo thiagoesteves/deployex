@@ -343,7 +343,8 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
              View.apps([app([failed])], @now)
 
     assert alert.title == "pre_commands for 1.0.0 failed"
-    assert alert.detail =~ "Failed: eval Migrator.run()."
+    assert alert.commands == ["eval Migrator.run()"]
+    refute alert.detail =~ "Migrator"
 
     # While they run, it is a note
     assert [

@@ -440,6 +440,9 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       <div :if={!@asking} class="dx-callout-text">
         <b>{@app.alert.title}</b>
         <span>{@app.alert.detail}</span>
+        <span :if={@app.alert[:commands]} class="dx-callout-cmds">
+          Failed: <code :for={command <- @app.alert.commands} class="dx-cmd">{command}</code>
+        </span>
       </div>
       <div :if={!@asking} class="dx-callout-acts">
         <button

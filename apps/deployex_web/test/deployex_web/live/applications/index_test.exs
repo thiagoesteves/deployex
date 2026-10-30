@@ -356,6 +356,25 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
+  test "GET /applications shows each failed pre_command as code", %{conn: conn} do
+    stub_monitoring([
+      FixtureStatus.application(%{
+        name: "myphoenixapp",
+        status: :pre_commands,
+        otp: :not_connected,
+        version: "4.7.0",
+        failed_pre_commands: ["eval Migrate.run()", "eval Seed.run()"]
+      })
+    ])
+
+    {:ok, view, html} = live(conn, ~p"/applications")
+
+    assert html =~ "pre_commands for 4.7.0 failed"
+    assert has_element?(view, ".dx-callout-cmds code.dx-cmd", "eval Migrate.run()")
+    assert has_element?(view, ".dx-callout-cmds code.dx-cmd", "eval Seed.run()")
+  end
+
+  @tag :capture_log
   test "GET /applications shows the starting and pre_commands states", %{conn: conn} do
     stub_monitoring([
       FixtureStatus.application(%{name: "myphoenixapp", status: :pre_commands, version: "4.7.0"})

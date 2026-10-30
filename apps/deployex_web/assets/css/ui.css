@@ -368,6 +368,25 @@
     color: var(--dx-base-content);
 }
 
+/* A command in a callout, like a failed pre_command, set apart from the sentence */
+.dx-callout-cmds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.dx-cmd {
+    padding: 1px 7px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 5px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font: 600 0.8125rem/1.5 var(--dx-font-mono);
+    overflow-wrap: anywhere;
+}
+
 .dx-callout-acts {
     display: flex;
     flex-wrap: wrap;

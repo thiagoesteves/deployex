@@ -289,7 +289,8 @@ defmodule DeployexWeb.ApplicationsLive.View do
       tone: :error,
       version: child.version,
       title: "pre_commands for #{child.version} failed",
-      detail: "#{child.sname} waits while DeployEx runs them again. Failed: #{commands}.",
+      detail: "#{child.sname} waits while DeployEx runs them again.",
+      commands: failed,
       text: "#{child.sname} failed its pre_commands for #{child.version}: #{commands}."
     }
   end
