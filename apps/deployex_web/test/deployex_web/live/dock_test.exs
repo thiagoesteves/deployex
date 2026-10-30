@@ -33,7 +33,9 @@ defmodule DeployexWeb.DockTest do
       :ok
     end)
 
-    stub(Deployer.MonitorMock, :list, fn -> [] end)
+    Deployer.MonitorMock
+    |> stub(:list, fn -> [] end)
+    |> stub(:subscribe_new_deploy, fn -> :ok end)
 
     %{sname: Catalog.create_sname("myelixir")}
   end
@@ -132,6 +134,21 @@ defmodule DeployexWeb.DockTest do
     send(dock.pid, :flush_lines)
     assert render(dock) =~ "from the app"
     assert render(dock) =~ sname
+
+    # A full deploy starts a new instance, and the tab follows it
+    new_sname = Catalog.create_sname("myelixir")
+    stub(Deployer.MonitorMock, :list, fn -> [new_sname] end)
+    send(dock.pid, {:new_deploy, node(), new_sname})
+    send(dock.pid, {:logs_new_data, new_sname, "stdout", message("from the new instance")})
+    send(dock.pid, :flush_lines)
+    assert render(dock) =~ "from the new instance"
+    assert_received {:subscribed, ^new_sname, "stdout"}
+    assert_received {:unsubscribed, ^sname, "stdout"}
+
+    # A deploy of another app, or on a peer, changes nothing
+    send(dock.pid, {:new_deploy, node(), "other-abc"})
+    send(dock.pid, {:new_deploy, :peer@host, Catalog.create_sname("myelixir")})
+    refute_received {:subscribed, "other-abc", _type}
   end
 
   @tag :capture_log

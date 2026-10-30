@@ -377,6 +377,7 @@ defmodule DeployexWeb.DockLive do
      |> assign(:user, session["user"])
      |> assign(:tabs, [])
      |> assign(:subscribed, MapSet.new())
+     |> assign(:deploys_followed, false)
      |> assign(:active, nil)
      |> assign(:split, nil)
      |> assign(:attached, %{})
@@ -513,7 +514,30 @@ defmodule DeployexWeb.DockLive do
     end
   end
 
+  # A full deploy starts an app's instances under new names, and the app's logs tabs follow them
+  def handle_info({:new_deploy, source_node, sname}, %{assigns: %{tabs: tabs}} = socket)
+      when source_node == node() do
+    socket =
+      tabs
+      |> Enum.filter(
+        &(&1.kind == :logs and &1.whole_app and String.starts_with?(sname, "#{&1.target}-"))
+      )
+      |> Enum.reduce(socket, fn tab, socket ->
+        snames = Enum.uniq(log_snames(tab.target, tab.app) ++ [sname])
+        update_tab(socket, tab.id, &%{&1 | snames: snames})
+      end)
+
+    {:noreply, follow(socket)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp follow_deploys(%{assigns: %{deploys_followed: true}} = socket), do: socket
+
+  defp follow_deploys(socket) do
+    Deployer.Monitor.subscribe_new_deploy()
+    assign(socket, :deploys_followed, true)
+  end
 
   # Opens a logs or shell tab, or finds it open, and returns its id, or nil when the shell does not start
   defp open_tab(socket, kind, target, app) do
@@ -528,7 +552,9 @@ defmodule DeployexWeb.DockLive do
         {socket, id}
 
       kind == "logs" ->
-        {socket |> update(:tabs, &(&1 ++ [logs_tab(id, target, app)])) |> follow(), id}
+        tab = logs_tab(id, target, app)
+        socket = socket |> update(:tabs, &(&1 ++ [tab])) |> follow()
+        {if(tab.whole_app, do: follow_deploys(socket), else: socket), id}
 
       kind == "shell" ->
         open_shell(socket, id, target, app)
