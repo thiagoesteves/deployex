@@ -43,6 +43,7 @@ defmodule DeployexWeb.DockLive do
 
     ~H"""
     <div id="dock" phx-hook="Dock">
+      <.flash kind={:error} flash={@flash} id="dock-flash-error" />
       <section :if={@tabs != []} class="dx-dock" aria-label="Dock" data-dock-panel>
         <button
           type="button"
@@ -391,8 +392,15 @@ defmodule DeployexWeb.DockLive do
   @impl true
   def handle_event("open", %{"kind" => kind, "target" => target} = params, socket) do
     case open_tab(socket, kind, target, params["app"]) do
-      {socket, nil} -> {:noreply, socket}
-      {socket, id} -> {:noreply, activate(socket, id)}
+      {socket, nil} ->
+        {:noreply, socket}
+
+      # A tab in the second pane moves to the first, and the first one takes its place, as with select
+      {%{assigns: %{split: id, active: active}} = socket, id} ->
+        {:noreply, socket |> assign(:split, active) |> activate(id)}
+
+      {socket, id} ->
+        {:noreply, activate(socket, id)}
     end
   end
 
@@ -510,9 +518,13 @@ defmodule DeployexWeb.DockLive do
   # Opens a logs or shell tab, or finds it open, and returns its id, or nil when the shell does not start
   defp open_tab(socket, kind, target, app) do
     id = "#{kind}:#{target}"
+    open = Enum.find(socket.assigns.tabs, &(&1.id == id))
 
     cond do
-      Enum.any?(socket.assigns.tabs, &(&1.id == id)) ->
+      match?(%{kind: :shell}, open) ->
+        reopen_shell(socket, open)
+
+      open ->
         {socket, id}
 
       kind == "logs" ->
@@ -563,10 +575,31 @@ defmodule DeployexWeb.DockLive do
         {update(socket, :tabs, &(&1 ++ [tab])), id}
 
       {:error, reason} ->
-        {put_flash(socket, :error, "Could not open a shell on #{target}: #{inspect(reason)}"),
-         nil}
+        {put_flash(socket, :error, shell_error(target, reason)), nil}
     end
   end
+
+  # A shell tab whose session ended elsewhere, like at its time limit, gets a new session
+  defp reopen_shell(%{assigns: %{user: user}} = socket, %{id: id, target: target} = tab) do
+    case Shell.open(user, target) do
+      {:ok, %{id: session_id}} when session_id == tab.session.id ->
+        {socket, id}
+
+      {:ok, session} ->
+        socket =
+          socket
+          |> update_tab(id, &%{&1 | session: session})
+          |> update(:attached, &Map.delete(&1, target))
+
+        {socket, id}
+
+      {:error, reason} ->
+        socket = socket |> close_tab(id, false) |> put_flash(:error, shell_error(target, reason))
+        {socket, nil}
+    end
+  end
+
+  defp shell_error(target, reason), do: "Could not open a shell on #{target}: #{inspect(reason)}"
 
   defp app_of("deployex"), do: "deployex"
 

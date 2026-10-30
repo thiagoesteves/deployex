@@ -234,6 +234,51 @@ defmodule DeployexWeb.DockTest do
       })
 
     refute html =~ "dx-dock-bar"
+    assert html =~ "Could not open a shell on myelixir-nobinary"
+  end
+
+  @tag :capture_log
+  test "opening the tab in the second pane swaps the panes, and an ended shell gets a new session",
+       %{
+         conn: conn,
+         user: user
+       } do
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn _sname, _type, _options -> [] end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
+    dock |> element("#dock-split") |> render_click()
+    dock |> element("#dock-pick-logs-deployex") |> render_click()
+
+    # Opening the logs again puts them in the first pane, with the shell beside them
+    html =
+      render_hook(dock, "open", %{"kind" => "logs", "target" => "deployex", "app" => "deployex"})
+
+    assert {logs, _} = :binary.match(html, ~s(id="dock-log"))
+    assert {shell, _} = :binary.match(html, "dock-xterm-")
+    assert logs < shell
+    refute html =~ ~s(id="dock-log-2")
+
+    # The session ends elsewhere while its tab is hidden, and opening the tab starts a new one
+    dock |> element("#dock-unsplit") |> render_click()
+    [%{id: first}] = Shell.list(user.username)
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
+    ref = Process.monitor(pid)
+    Shell.close(user.username, "deployex")
+    assert_receive {:DOWN, ^ref, :process, _pid, _reason}
+
+    html =
+      render_hook(dock, "open", %{"kind" => "shell", "target" => "deployex", "app" => "deployex"})
+
+    assert html =~ ~s(phx-hook="XTerm")
+    assert [%{id: second}] = Shell.list(user.username)
+    assert second != first
+
+    # Sessions outlive the test, so it ends this one before the next test lists sessions
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "deployex"})
+    ref = Process.monitor(pid)
+    Shell.close(user.username, "deployex")
+    assert_receive {:DOWN, ^ref, :process, _pid, _reason}
   end
 
   @tag :capture_log
