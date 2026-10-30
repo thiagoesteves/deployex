@@ -559,7 +559,7 @@ defmodule DeployexWeb.DockLive do
           socket
           |> update(:tabs, &(&1 ++ [tab]))
           |> follow()
-          |> update_tab(id, &%{&1 | buffer: read_logs(tab.snames, @types, tab.whole_app)})
+          |> update_tab(id, &read_buffer/1)
 
         {if(tab.whole_app, do: follow_deploys(socket), else: socket), id}
 
@@ -586,6 +586,7 @@ defmodule DeployexWeb.DockLive do
       whole_app: whole_app,
       types: @types,
       buffer: [],
+      read_marks: %{},
       opened_at: System.os_time(:second),
       filter: "",
       empty: false
@@ -868,10 +869,57 @@ defmodule DeployexWeb.DockLive do
 
   defp log_snames(target, _app), do: [target]
 
+  # The read can hold lines that also wait in the queue. For each instance and stream, the tab keeps the
+  # time of the newest message it read and the messages at that time, and skips them when they come again
+  defp read_buffer(tab) do
+    reads =
+      for sname <- tab.snames,
+          type <- Logs.get_types_by_sname(sname),
+          (type = to_string(type)) in @types do
+        {{sname, type},
+         Logs.list_data_by_sname_log_type(sname, type,
+           from: @log_minutes,
+           order: :asc,
+           limit: @log_cap
+         )}
+      end
+
+    buffer =
+      reads
+      |> Enum.flat_map(fn {{sname, type}, messages} ->
+        lines(sname, type, messages, tab.whole_app)
+      end)
+      |> Enum.sort_by(& &1.timestamp)
+      |> Enum.take(-@log_cap)
+      |> Enum.reverse()
+
+    %{
+      tab
+      | buffer: buffer,
+        read_marks: Map.new(reads, fn {pair, messages} -> {pair, mark(messages)} end)
+    }
+  end
+
+  defp mark([]), do: {0, []}
+
+  defp mark(messages) do
+    newest = messages |> Enum.map(& &1.timestamp) |> Enum.max()
+    {newest, for(%{timestamp: ^newest, log: log} <- messages, do: log)}
+  end
+
+  defp read?(marks, sname, type, %{timestamp: timestamp, log: log}) do
+    case Map.get(marks, {sname, type}, {0, []}) do
+      {newest, _logs} when timestamp < newest -> true
+      {newest, logs} when timestamp == newest -> log in logs
+      _later -> false
+    end
+  end
+
   defp add_lines(socket, %{kind: :logs} = tab, arrived) do
     lines =
       for {sname, type, message} <- arrived,
           sname in tab.snames,
+          not read?(tab.read_marks, sname, type, message),
           line <- lines(sname, type, [message], tab.whole_app),
           do: line
 
@@ -901,31 +949,6 @@ defmodule DeployexWeb.DockLive do
   defp add_lines(socket, _shell_tab, _arrived), do: socket
 
   # A tab for every instance of an app shows the source of each line
-  defp read_logs(snames, types, many) do
-    # Only the streams the log server has for each instance
-    for(
-      sname <- snames,
-      type <- Logs.get_types_by_sname(sname),
-      (type = to_string(type)) in types,
-      do: {sname, type}
-    )
-    |> Enum.flat_map(fn {sname, type} ->
-      lines(
-        sname,
-        type,
-        Logs.list_data_by_sname_log_type(sname, type,
-          from: @log_minutes,
-          order: :asc,
-          limit: @log_cap
-        ),
-        many
-      )
-    end)
-    |> Enum.sort_by(& &1.timestamp)
-    |> Enum.take(-@log_cap)
-    |> Enum.reverse()
-  end
-
   defp lines(sname, type, messages, many) do
     Enum.flat_map(messages, fn %{timestamp: timestamp, log: log} ->
       (log || "")

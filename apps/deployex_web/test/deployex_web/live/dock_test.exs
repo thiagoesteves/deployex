@@ -153,6 +153,33 @@ defmodule DeployexWeb.DockTest do
   end
 
   @tag :capture_log
+  test "a new logs tab skips the queued lines its read already holds", %{conn: conn, sname: sname} do
+    stored = message("stored once")
+
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn
+      _sname, "stdout", _options -> [stored]
+      _sname, _type, _options -> []
+    end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "logs", "target" => sname, "app" => "myelixir"})
+
+    # The same line arrives after the read, as when it waited in the queue
+    send(dock.pid, {:logs_new_data, sname, "stdout", stored})
+
+    send(
+      dock.pid,
+      {:logs_new_data, sname, "stdout", %{stored | timestamp: stored.timestamp + 1, log: "newer"}}
+    )
+
+    send(dock.pid, :flush_lines)
+
+    html = render(dock)
+    assert [_once] = Regex.scan(~r/stored once/, html)
+    assert html =~ "newer"
+  end
+
+  @tag :capture_log
   test "logs tabs that share an instance follow it once, until the last of them closes", %{
     conn: conn,
     sname: sname
