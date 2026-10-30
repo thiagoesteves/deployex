@@ -54,6 +54,7 @@ defmodule DeployexWeb.Logs.IndexTest do
 
     assert html =~ "Streaming"
     assert html =~ "[error] boom"
+    assert html =~ "Host time #{DeployexWeb.HostTime.zone()}"
     refute html =~ "GET / [info] Sent 200"
     assert html =~ "2 of 3 sources"
     assert has_element?(view, "#chip-events")

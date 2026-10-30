@@ -7,6 +7,7 @@ defmodule DeployexWeb.Applications.IndexTest do
   alias Deployer.Resources
   alias Deployer.Resources.Limit
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias DeployexWeb.HostTime
 
   setup [
     :set_mox_global,
@@ -236,7 +237,7 @@ defmodule DeployexWeb.Applications.IndexTest do
     assert html =~ "dx-callout-error"
     assert html =~ "0/1 running"
     assert html =~ "dx-dtag-fail"
-    assert html =~ "14:20"
+    assert html =~ HostTime.format(~U[2026-10-28 14:20:00Z], "%H:%M")
 
     # Undo puts it back before anything is cleared
     html = view |> element("#app-myerlangapp-clear-ghosted") |> render_click()

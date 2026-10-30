@@ -5,6 +5,7 @@ defmodule DeployexWeb.Applications.VersionsTest do
   import Mox
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias DeployexWeb.HostTime
   alias Foundation.Catalog
 
   setup [:set_mox_global, :verify_on_exit!, :log_in_default_user]
@@ -67,9 +68,10 @@ defmodule DeployexWeb.Applications.VersionsTest do
     assert html =~
              "DeployEx checks for a new version every 5 seconds. A new version that is not running within 10 minutes is ghosted"
 
-    assert html =~ "2026-10-28 12:14"
+    assert html =~ HostTime.format(~U[2026-10-28 12:14:00Z], "%Y-%m-%d %H:%M")
+    assert html =~ "Deployed, host time #{HostTime.zone()}"
     assert html =~ "Hot upgrade"
-    assert html =~ "2026-10-25 09:02"
+    assert html =~ HostTime.format(~U[2026-10-25 09:02:00Z], "%Y-%m-%d %H:%M")
     assert [_current] = Regex.scan(~r/>current</, html)
     assert html =~ "This host keeps the releases of the last 2 versions."
     assert html =~ ~s(href="/applications/#{@name}/ghosted")

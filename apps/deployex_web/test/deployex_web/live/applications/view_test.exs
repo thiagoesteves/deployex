@@ -7,6 +7,7 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
   alias Deployer.Resources.Limit
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.View
+  alias DeployexWeb.HostTime
   alias DeployexWeb.UI.Tags
   alias Foundation.Certificates.PublicKey
 
@@ -94,12 +95,13 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
 
   test "a version ghosted after the last deploy is the alert, and the rest keeps running" do
     config = %{last_ghosted_version: "1.1.0", last_ghosted_at: ~U[2026-10-28 15:00:00Z]}
+    ghosted_at = HostTime.format(~U[2026-10-28 15:00:00Z], "%H:%M")
     children = [child(%{deployed_at: ~U[2026-10-28 14:00:00Z]})]
 
     assert [
              %{
                alert: %{kind: :ghosted, blocking: false, text: text},
-               deploy: %{type: :ghosted, when: "15:00"}
+               deploy: %{type: :ghosted, when: ^ghosted_at}
              } = row
            ] =
              View.apps([app(children, %{config: config})], @now)

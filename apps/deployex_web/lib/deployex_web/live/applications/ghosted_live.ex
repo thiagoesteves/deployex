@@ -8,6 +8,7 @@ defmodule DeployexWeb.GhostedLive do
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Board
   alias DeployexWeb.ApplicationsLive.View
+  alias DeployexWeb.HostTime
   alias DeployexWeb.UI.Icons
 
   @undo_window :timer.seconds(10)
@@ -65,7 +66,7 @@ defmodule DeployexWeb.GhostedLive do
               <div class="dx-grow min-h-[38px]">
                 <div class="dx-lbl">Version</div>
                 <div class="dx-lbl">Instance</div>
-                <div class="dx-lbl">Ghosted</div>
+                <div class="dx-lbl">Ghosted, host time {HostTime.zone()}</div>
                 <div></div>
               </div>
               <div :for={version <- @shown} id={"ghosted-#{version.version}"} class="dx-grow">
@@ -195,7 +196,7 @@ defmodule DeployexWeb.GhostedLive do
   defp at(version) do
     case datetime(version) do
       nil -> "--"
-      at -> Calendar.strftime(at, "%Y-%m-%d %H:%M")
+      at -> HostTime.format(at, "%Y-%m-%d %H:%M")
     end
   end
 end

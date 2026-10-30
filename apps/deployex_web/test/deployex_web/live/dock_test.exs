@@ -60,7 +60,9 @@ defmodule DeployexWeb.DockTest do
 
     html = render_hook(dock, "open", %{"kind" => "logs", "target" => sname, "app" => "myelixir"})
 
-    assert html =~ "#{sname} · last 30 minutes, then live"
+    assert html =~
+             "#{sname} · last 30 minutes, then live · host time #{DeployexWeb.HostTime.zone()}"
+
     assert html =~ "booted"
     assert html =~ "[error] failed once"
     assert html =~ "Open in Logs"

@@ -5,6 +5,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
   import Mox
 
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
+  alias DeployexWeb.HostTime
   alias Foundation.Catalog
 
   setup [:set_mox_global, :verify_on_exit!, :log_in_default_user]
@@ -48,7 +49,7 @@ defmodule DeployexWeb.Applications.GhostedTest do
     assert html =~ "2 ghosted versions"
     assert html =~ "0.8.2"
     assert html =~ "0.8.1"
-    assert html =~ "2026-10-28 14:20"
+    assert html =~ HostTime.format(~U[2026-10-28 14:20:00Z], "%Y-%m-%d %H:%M")
     assert html =~ "Clear all"
   end
 

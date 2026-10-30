@@ -8,6 +8,7 @@ defmodule DeployexWeb.VersionsLive do
   alias Deployer.Status
   alias DeployexWeb.ApplicationsLive.Board
   alias DeployexWeb.ApplicationsLive.View
+  alias DeployexWeb.HostTime
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Tags
 
@@ -143,7 +144,7 @@ defmodule DeployexWeb.VersionsLive do
                 <div class="dx-lbl">Version</div>
                 <div class="dx-lbl">Instance</div>
                 <div class="dx-lbl">Deploy</div>
-                <div class="dx-lbl">Deployed</div>
+                <div class="dx-lbl">Deployed, host time {HostTime.zone()}</div>
               </div>
               <div :for={row <- rows(@history, @filter, @currents, @now)} class="dx-vrow">
                 <div class="flex items-center gap-2">
@@ -317,7 +318,7 @@ defmodule DeployexWeb.VersionsLive do
           sname: version.sname,
           deployment: version.deployment,
           current: current,
-          at: at && Calendar.strftime(at, "%Y-%m-%d %H:%M"),
+          at: at && HostTime.format(at, "%Y-%m-%d %H:%M"),
           age: View.age(at, now)
         }
 

@@ -8,6 +8,7 @@ defmodule DeployexWeb.DockLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.HostTime
   alias DeployexWeb.LogsExport
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
@@ -185,6 +186,7 @@ defmodule DeployexWeb.DockLive do
               split={@split_tab != nil or @picking}
               second={tab.id == @split}
               help={@help_open && @shell_tab != nil && tab.id == @shell_tab.id}
+              zone={@zone}
             />
             <div :if={@picking} class="dx-pane" role="group" aria-label="Show beside">
               <div class="dx-pane-head">
@@ -233,6 +235,7 @@ defmodule DeployexWeb.DockLive do
   attr :split, :boolean, required: true, doc: "whether two panes show, each with a head"
   attr :second, :boolean, required: true, doc: "the pane on the right, which Close takes away"
   attr :help, :boolean, required: true, doc: "whether this shell pane shows the shortcuts"
+  attr :zone, :string, required: true, doc: "the host's offset from UTC, for the log times"
 
   # One tab of the dock: its logs or its shell. With a split, each pane names its tab
   defp pane(assigns) do
@@ -258,7 +261,7 @@ defmodule DeployexWeb.DockLive do
       </div>
       <%= if @tab.kind == :logs do %>
         <div class="dx-k-head">
-          <span class="dx-muted dx-mono text-xs">{logs_subtitle(@tab)} · last 30 minutes, then live</span>
+          <span class="dx-muted dx-mono text-xs">{logs_subtitle(@tab)} · last 30 minutes, then live · host time {@zone}</span>
           <div class="flex flex-wrap items-center gap-1.5">
             <form
               id={"dock-filter#{pane_suffix(@second)}"}
@@ -330,7 +333,7 @@ defmodule DeployexWeb.DockLive do
               class="dx-k-row"
               style={"grid-template-columns: #{if line.many, do: "96px 160px 54px minmax(0, 1fr)", else: "96px 54px minmax(0, 1fr)"}"}
             >
-              <span class="dx-muted">{Calendar.strftime(line.at, "%H:%M:%S.%f")
+              <span class="dx-muted">{HostTime.format(line.at, "%H:%M:%S.%f")
               |> String.slice(0, 12)}</span>
               <span :if={line.many} class="truncate">{line.source}</span>
               <span style={"color: #{if line.type == "stderr", do: "var(--dx-error-text)", else: "var(--dx-muted)"}"}>
@@ -376,6 +379,7 @@ defmodule DeployexWeb.DockLive do
      |> assign(:attached, %{})
      |> assign(:asking_close, false)
      |> assign(:help_open, false)
+     |> assign(:zone, HostTime.zone())
      |> assign(:queued, [])
      |> assign(:flushing, false)
      |> stream(:lines, [])

@@ -8,6 +8,7 @@ defmodule DeployexWeb.UI.Bell do
   """
   use Phoenix.Component
 
+  alias DeployexWeb.HostTime
   alias DeployexWeb.UI.Icons
   alias DeployexWeb.UI.Menu
 
@@ -29,7 +30,7 @@ defmodule DeployexWeb.UI.Bell do
   attr :all_text, :string, required: true
 
   def bell(assigns) do
-    assigns = assign(assigns, :tones, @tones)
+    assigns = assign(assigns, tones: @tones, zone: HostTime.zone())
 
     ~H"""
     <div id={"#{@id}-state"} phx-hook="Bell" data-bell={@id}>
@@ -67,8 +68,9 @@ defmodule DeployexWeb.UI.Bell do
           <time
             class="dx-mono dx-muted whitespace-nowrap text-xs"
             datetime={DateTime.to_iso8601(item.at)}
+            title={"#{HostTime.format(item.at, "%Y-%m-%d %H:%M")} host time, #{@zone}"}
           >
-            {Calendar.strftime(item.at, "%H:%M")}
+            {HostTime.format(item.at, "%H:%M")}
           </time>
         </.link>
         <.link

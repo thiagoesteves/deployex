@@ -6,6 +6,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
 
   alias Deployer.Resources
   alias Deployer.Resources.Limit
+  alias DeployexWeb.HostTime
 
   # The watchdog's values for a limit type the app's monitoring names without them. A type it does not
   # name is not watched, and its level uses these values too
@@ -231,7 +232,7 @@ defmodule DeployexWeb.ApplicationsLive.View do
   defp ghosted(_status, _instances), do: nil
 
   defp deploy(_status, %{at: at}, _now) do
-    %{type: :ghosted, label: "ghosted", when: at && Calendar.strftime(at, "%H:%M")}
+    %{type: :ghosted, label: "ghosted", when: at && HostTime.format(at, "%H:%M")}
   end
 
   defp deploy(status, nil, now) do

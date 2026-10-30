@@ -11,6 +11,7 @@ defmodule DeployexWeb.LogsLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.HostTime
   alias DeployexWeb.LogsExport
   alias DeployexWeb.RecentEvents
   alias DeployexWeb.UI.Icons
@@ -198,7 +199,7 @@ defmodule DeployexWeb.LogsLive do
               @types
             )}</span>
             <div class="flex items-center gap-3">
-              <span class="dx-muted">Newest at the bottom</span>
+              <span class="dx-muted">Host time {@zone} · newest at the bottom</span>
               <LogActions.actions
                 id="logs"
                 rows="logs-lines"
@@ -218,7 +219,7 @@ defmodule DeployexWeb.LogsLive do
           >
             <div id="logs-lines" phx-update="stream">
               <div :for={{dom_id, line} <- @streams.lines} id={dom_id} class="dx-lrow">
-                <span class="dx-muted">{Calendar.strftime(line.at, "%H:%M:%S.%f")
+                <span class="dx-muted">{HostTime.format(line.at, "%H:%M:%S.%f")
                 |> String.slice(0, 12)}</span>
                 <span class="truncate" style={"color: var(#{line.color})"} title={line.source}>{line.source}</span>
                 <span style={"color: #{if line.type == "stderr", do: "var(--dx-error-text)", else: "var(--dx-muted)"}"}>
@@ -366,6 +367,7 @@ defmodule DeployexWeb.LogsLive do
     {:ok,
      socket
      |> assign(:host_name, host_name())
+     |> assign(:zone, HostTime.zone())
      |> assign(:filter, "")
      |> assign(:paused, false)
      |> assign(:pending, [])
