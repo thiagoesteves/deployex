@@ -2,7 +2,7 @@
 
 # Default values
 DEFAULT_CONFIG_FILE="deployex.yaml"
-DEFAULT_DIST_URL="https://github.com/thiagoesteves/deployex/releases/download"
+DEFAULT_DIST_URL="https://github.com/deployex/deployex/releases/download"
 DEFAULT_DEPLOYEX_OPT_DIR="/opt/deployex"
 DEFAULT_DEPLOYEX_VAR_LIB="/var/lib/deployex"
 DEFAULT_DEPLOYEX_LOG_PATH="/var/log/deployex"

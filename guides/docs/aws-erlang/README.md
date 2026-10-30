@@ -129,7 +129,7 @@ If you are updating DeployEx, you may need to update the `deployex.sh` script. T
 ```bash
 version=0.3.0
 rm deployex.sh
-wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/root
+wget https://github.com/deployex/deployex/releases/download/${version}/deployex.sh -P /home/root
 chmod a+x deployex.sh
 ```
 
@@ -223,6 +223,6 @@ That means the template stays the source of truth. Anything certbot wrote into t
 > [!NOTE]
 > `setup-tls.sh` runs on every boot and is safe to re-run. `--keep-until-expiring` leaves a still valid certificate alone, which matters because Let's Encrypt allows only 5 identical certificates per week and instance replacement is routine. The certificate does not survive a replacement, so it is reissued on the next boot.
 
-[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
-[main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-erlang/terraform/environments/prod/main_example.tf_
-[var]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-erlang/terraform/modules/standard-account/variables.tf
+[tls]: https://github.com/deployex/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
+[main]: https://github.com/deployex/deployex/blob/main/guides/docs/aws-erlang/terraform/environments/prod/main_example.tf_
+[var]: https://github.com/deployex/deployex/blob/main/guides/docs/aws-erlang/terraform/modules/standard-account/variables.tf

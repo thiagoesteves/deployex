@@ -26,10 +26,10 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
-          {:ok, %{body: Jason.encode!(mock_response)}}
+          {:ok, %{status: 200, headers: [], body: Jason.encode!(mock_response)}}
         end do
         assert {:ok, pid} = Release.start_link(name: custom_name)
 
@@ -61,10 +61,10 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
-          {:ok, %{body: Jason.encode!(mock_response)}}
+          {:ok, %{status: 200, headers: [], body: Jason.encode!(mock_response)}}
         end do
         assert {:ok, state} = Release.init([])
         assert %Release{} = state
@@ -76,7 +76,7 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
           {:error, %{reason: :timeout}}
@@ -127,10 +127,10 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
-          {:ok, %{body: Jason.encode!(mock_response)}}
+          {:ok, %{status: 200, headers: [], body: Jason.encode!(mock_response)}}
         end do
         assert {:noreply, new_state} = Release.handle_info(:updated_github_info, initial_state)
         assert new_state.tag_name == "2.0.0"
@@ -145,10 +145,10 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
-          {:ok, %{body: Jason.encode!(mock_response)}}
+          {:ok, %{status: 200, headers: [], body: Jason.encode!(mock_response)}}
         end do
         assert {:noreply, new_state} = Release.handle_info(:updated_github_info, initial_state)
         refute new_state.new_release?
@@ -161,7 +161,7 @@ defmodule Deployer.GithubTest do
       with_mock Finch, [:passthrough],
         request: fn %Finch.Request{
                       host: "api.github.com",
-                      path: "/repos/thiagoesteves/deployex/releases/latest"
+                      path: "/repos/deployex/deployex/releases/latest"
                     },
                     _module ->
           {:error, %{reason: :timeout}}
@@ -184,13 +184,66 @@ defmodule Deployer.GithubTest do
     with_mock Finch, [:passthrough],
       request: fn %Finch.Request{
                     host: "api.github.com",
-                    path: "/repos/thiagoesteves/deployex/releases/latest"
+                    path: "/repos/deployex/deployex/releases/latest"
                   },
                   _module ->
         {:error, %{reason: :timeout}}
       end do
       new_state = Release.update_github_info(previous_state)
       assert new_state == previous_state
+    end
+  end
+
+  test "follows a redirect when the repository has moved" do
+    moved_path = "/repositories/796812023/releases/latest"
+    mock_response = build_mock_response(%{"tag_name" => "2.0.0"})
+
+    with_mock Finch, [:passthrough],
+      request: fn
+        %Finch.Request{path: "/repos/deployex/deployex/releases/latest"}, _module ->
+          {:ok,
+           %{
+             status: 301,
+             headers: [{"location", "https://api.github.com" <> moved_path}],
+             body: ~s({"message":"Moved Permanently"})
+           }}
+
+        %Finch.Request{host: "api.github.com", path: ^moved_path}, _module ->
+          {:ok, %{status: 200, headers: [], body: Jason.encode!(mock_response)}}
+      end do
+      new_state = Release.update_github_info(%Release{})
+      assert new_state.tag_name == "2.0.0"
+      assert new_state.new_release?
+    end
+  end
+
+  test "keeps previous state when redirects never end" do
+    previous_state = %Release{tag_name: "v0.9.0"}
+
+    with_mock Finch, [:passthrough],
+      request: fn %Finch.Request{}, _module ->
+        {:ok,
+         %{
+           status: 301,
+           headers: [
+             {"location", "https://api.github.com/repos/deployex/deployex/releases/latest"}
+           ],
+           body: ~s({"message":"Moved Permanently"})
+         }}
+      end do
+      assert Release.update_github_info(previous_state) == previous_state
+      assert_called_exactly(Finch.request(:_, :_), 4)
+    end
+  end
+
+  test "keeps previous state on a non-200 response" do
+    previous_state = %Release{tag_name: "v0.9.0"}
+
+    with_mock Finch, [:passthrough],
+      request: fn %Finch.Request{}, _module ->
+        {:ok, %{status: 403, headers: [], body: ~s({"message":"API rate limit exceeded"})}}
+      end do
+      assert Release.update_github_info(previous_state) == previous_state
     end
   end
 

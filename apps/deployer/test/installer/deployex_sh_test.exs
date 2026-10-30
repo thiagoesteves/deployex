@@ -71,7 +71,7 @@ defmodule Deployer.Installer.DeployexShTest do
   end
 
   test "an https URL is read with wget, not the AWS CLI", context do
-    url = "https://github.com/thiagoesteves/deployex/releases/download/0.10.1/checksum.txt"
+    url = "https://github.com/deployex/deployex/releases/download/0.10.1/checksum.txt"
 
     result = fetch_release_file(context, url, [])
 

@@ -150,7 +150,7 @@ If you are updating DeployEx, you may need to update the `deployex.sh` script. T
 ```bash
 version=0.3.0
 rm deployex.sh
-wget https://github.com/thiagoesteves/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
+wget https://github.com/deployex/deployex/releases/download/${version}/deployex.sh -P /home/ubuntu
 chmod a+x deployex.sh
 ```
 
@@ -222,6 +222,6 @@ Here are some useful resources with suggestions on how to automate the upload of
  * [Guthub Actions - S3 Downloader/Uploader](https://github.com/marketplace/actions/s3-cp)
  * [Calori Webserver Example with AWS](https://github.com/thiagoesteves/calori/tree/main/devops/aws/terraform)
 
-[tls]: https://github.com/thiagoesteves/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
-[main]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/main.tf
-[var]: https://github.com/thiagoesteves/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/variables.tf
+[tls]: https://github.com/deployex/deployex/blob/main/devops/scripts/certificates/otp-28/tls-distribution-certs
+[main]: https://github.com/deployex/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/main.tf
+[var]: https://github.com/deployex/deployex/blob/main/guides/docs/aws-elixir-db-certificate/terraform/environments/prod/variables.tf
