@@ -22,7 +22,9 @@ defmodule Deployer.Status do
           otp: :connected | :not_connected,
           tls: %PublicKey{} | nil,
           last_deployment: :full_deployment | :hot_upgrade,
-          status: :idle | :running | :starting,
+          status: :idle | :running | :starting | :pre_commands,
+          # The pre_commands that failed in the current run of retries, none while they pass
+          failed_pre_commands: [String.t()],
           crash_restart_count: non_neg_integer(),
           force_restart_count: non_neg_integer(),
           uptime: String.t() | nil,
@@ -58,6 +60,7 @@ defmodule Deployer.Status do
             tls: nil,
             last_deployment: :full_deployment,
             status: :idle,
+            failed_pre_commands: [],
             crash_restart_count: 0,
             force_restart_count: 0,
             uptime: nil,

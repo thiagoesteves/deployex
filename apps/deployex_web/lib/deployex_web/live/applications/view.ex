@@ -273,20 +273,40 @@ defmodule DeployexWeb.ApplicationsLive.View do
 
   defp alert(status, nil, _running) do
     case Enum.find(status.children, &(&1.status == :pre_commands)) do
-      nil ->
-        nil
-
-      child ->
-        %{
-          kind: :pre_commands,
-          blocking: false,
-          tone: :info,
-          version: child.version,
-          title: "Running pre_commands for #{child.version}",
-          detail: "#{child.sname} starts when they finish.",
-          text: "#{child.sname} runs its pre_commands for #{child.version}."
-        }
+      nil -> nil
+      child -> pre_commands_alert(child)
     end
+  end
+
+  # A failed pre_command keeps the instance from starting, and the monitor retries it until it passes
+  defp pre_commands_alert(%{failed_pre_commands: [_ | _] = failed} = child) do
+    commands = Enum.join(failed, ", ")
+
+    %{
+      kind: :pre_commands,
+      blocking: child.otp != :connected,
+      tone: :error,
+      version: child.version,
+      title: "pre_commands for #{child.version} failed",
+      detail: "#{child.sname} waits while DeployEx runs them again. Failed: #{commands}.",
+      text: "#{child.sname} failed its pre_commands for #{child.version}: #{commands}."
+    }
+  end
+
+  defp pre_commands_alert(child) do
+    %{
+      kind: :pre_commands,
+      blocking: false,
+      tone: :info,
+      version: child.version,
+      title: "Running pre_commands for #{child.version}",
+      detail:
+        if(child.otp == :connected,
+          do: "#{child.sname} keeps running until they finish.",
+          else: "#{child.sname} starts when they finish."
+        ),
+      text: "#{child.sname} runs its pre_commands for #{child.version}."
+    }
   end
 
   # The problems at severity 3 show under the row, so they need no open app: a TLS certificate within 7 days
@@ -342,7 +362,9 @@ defmodule DeployexWeb.ApplicationsLive.View do
   defp near_restart?(levels, tls), do: 2 in levels or Enum.any?(tls, &(&1.tone == :error))
 
   defp failing?(alert, crashes, levels),
-    do: match?(%{kind: :ghosted}, alert) or crashes != [] or 1 in levels
+    do:
+      match?(%{tone: :error}, alert) or match?(%{kind: :ghosted}, alert) or crashes != [] or
+        1 in levels
 
   defp any_problem?(nil, [], instances), do: Enum.any?(instances, &(&1.warnings != []))
   defp any_problem?(_alert, _tls, _instances), do: true

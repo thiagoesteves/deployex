@@ -27,7 +27,7 @@ defmodule DevFakeApps.Fakes do
     {"reporting", "elixir", "3.2.0", 1, ghosted: {"3.3.0", :down}, age: 2 * 86_400},
     {"media_encoder", "erlang", "7.0.4", 2, atom_trend: true, age: 4 * 3600},
     {"chat", "elixir", "1.30.2", 3, tls_days: 5, age: 6 * 3600},
-    {"pricing", "elixir", "2.0.0", 1, pre_commands: true, age: 60},
+    {"pricing", "elixir", "2.0.0", 1, pre_commands: :failed, age: 60},
     {"recommendations", "elixir", "1.7.4", 2, ghosted: {"1.8.0", :up}, age: 20 * 3600},
     {"audit_log", "erlang", "2.2.0", 1, forced: 2, age: 7 * 86_400},
     {"webhooks", "elixir", "0.9.8", 2, age: 30 * 3600},
@@ -164,6 +164,11 @@ defmodule DevFakeApps.Fakes do
       language: runtime,
       version: if(status == :idle, do: nil, else: version),
       status: status,
+      failed_pre_commands:
+        if(status == :pre_commands and opts[:pre_commands] == :failed,
+          do: ["eval Pricing.Release.migrate()"],
+          else: []
+        ),
       last_deployment: opts[:deploy] || :full_deployment,
       deployed_at: deployed_at,
       uptime: uptime(opts[:age]),

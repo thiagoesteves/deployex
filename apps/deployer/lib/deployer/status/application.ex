@@ -380,6 +380,7 @@ defmodule Deployer.Status.Application do
       tls: mtls_certificate(),
       last_deployment: version_map.deployment,
       status: status,
+      failed_pre_commands: failed_pre_commands(monitor_state),
       crash_restart_count: crash_restart_count,
       force_restart_count: force_restart_count,
       uptime: Common.uptime_to_string(start_time),
@@ -435,6 +436,12 @@ defmodule Deployer.Status.Application do
   end
 
   # Converted once, since the offset between monotonic and wall clock time can move
+  # The monitor keeps the failed pre_commands while it retries them, and drops them once they pass
+  defp failed_pre_commands(%{status: :pre_commands} = monitor_state),
+    do: Map.get(monitor_state, :reported_pre_commands, [])
+
+  defp failed_pre_commands(_monitor_state), do: []
+
   defp deployex_started_at do
     case Process.get(:deployex_started_at) do
       nil ->

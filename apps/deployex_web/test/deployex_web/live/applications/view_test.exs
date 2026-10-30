@@ -314,6 +314,30 @@ defmodule DeployexWeb.ApplicationsLive.ViewTest do
     assert severity.(app([child(%{certificates: [%PublicKey{expires_in_days: 20}]})])) == 1
     assert severity.(app([child(%{status: :pre_commands})])) == 1
     assert severity.(app([child(%{})])) == 0
+
+    # A failed pre_command is down while the instance waits, and failing while it still runs
+    failed = %{status: :pre_commands, failed_pre_commands: ["eval Migrator.run()"]}
+    assert severity.(app([child(Map.put(failed, :otp, :not_connected))])) == 4
+    assert severity.(app([child(Map.put(failed, :otp, :connected))])) == 2
+  end
+
+  test "a failed pre_command is an error callout that names the command" do
+    failed =
+      child(%{
+        status: :pre_commands,
+        otp: :not_connected,
+        failed_pre_commands: ["eval Migrator.run()"]
+      })
+
+    assert [%{alert: %{kind: :pre_commands, tone: :error, blocking: true} = alert}] =
+             View.apps([app([failed])], @now)
+
+    assert alert.title == "pre_commands for 1.0.0 failed"
+    assert alert.detail =~ "Failed: eval Migrator.run()."
+
+    # While they run, an instance that still runs keeps running
+    assert [%{alert: %{tone: :info, detail: "myapp-abc keeps running until they finish."}}] =
+             View.apps([app([child(%{status: :pre_commands, otp: :connected})])], @now)
   end
 
   test "a TLS certificate within 7 days and an instance at its restart threshold are urgent" do

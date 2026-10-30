@@ -346,9 +346,20 @@ defmodule Deployer.Status.ApplicationTest do
 
     Deployer.MonitorMock
     |> expect(:state, 3, fn
-      ^sname_1 -> %Deployer.Monitor{sname: sname_1, status: :running, last_crash_at: crashed_at}
+      ^sname_1 ->
+        %Deployer.Monitor{sname: sname_1, status: :running, last_crash_at: crashed_at}
+
+      # A failed pre_command is kept while the monitor retries it
+      ^sname_2 ->
+        %Deployer.Monitor{
+          sname: sname_2,
+          status: :pre_commands,
+          reported_pre_commands: ["eval 1"]
+        }
+
       # A monitor state written before a relup has no last_crash_at
-      sname -> Map.delete(%Deployer.Monitor{sname: sname, status: :running}, :last_crash_at)
+      sname ->
+        Map.delete(%Deployer.Monitor{sname: sname, status: :running}, :last_crash_at)
     end)
     |> expect(:list, 1, fn -> [sname_1, sname_2, sname_3] end)
 
@@ -367,8 +378,8 @@ defmodule Deployer.Status.ApplicationTest do
              children[sname_1]
 
     assert DateTime.diff(DateTime.utc_now(), deployed_at) in 0..5
-    assert %{last_crash_at: nil} = children[sname_2]
-    assert %{deployed_at: %DateTime{}} = children[sname_3]
+    assert %{last_crash_at: nil, failed_pre_commands: ["eval 1"]} = children[sname_2]
+    assert %{deployed_at: %DateTime{}, failed_pre_commands: []} = children[sname_3]
   end
 
   test "update monitoring apps with running state and otp connected", %{
