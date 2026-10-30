@@ -14,8 +14,7 @@ defmodule DeployexWeb.LayoutTest do
 
   @nav_items [
     {"/applications", "Applications"},
-    {"/logs/live", "Live Logs"},
-    {"/logs/history", "History Logs"},
+    {"/logs/live", "Logs"},
     {"/embedded-observer", "Observer Web"},
     {"/terminal", "Terminal"},
     {"/hotupgrade", "Hot Upgrade"},
@@ -35,6 +34,24 @@ defmodule DeployexWeb.LayoutTest do
 
     # Observer Web keeps its own logo
     assert html =~ "dx-ow-logo-gradient"
+    refute html =~ "History Logs"
+  end
+
+  @tag :capture_log
+  test "one Logs item stays active on Live and on History", %{conn: conn} do
+    Sentinel.LogsMock
+    |> stub(:list_active_snames, fn -> [] end)
+    |> stub(:get_types_by_sname, fn _sname -> [] end)
+    |> stub(:list_data_by_sname_log_type, fn _sname, _type, _options -> [] end)
+    |> stub(:subscribe_for_new_logs, fn _sname, _type -> :ok end)
+    |> stub(:unsubscribe_for_new_logs, fn _sname, _type -> :ok end)
+
+    stub(Deployer.MonitorMock, :list, fn -> [] end)
+
+    for path <- [~p"/logs/live", ~p"/logs/history"] do
+      {:ok, _view, html} = live(conn, path)
+      assert html =~ ~r/href="\/logs\/live"[^>]*aria-current="page"/
+    end
   end
 
   @tag :capture_log

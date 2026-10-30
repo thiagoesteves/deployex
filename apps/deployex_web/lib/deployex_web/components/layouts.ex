@@ -22,8 +22,8 @@ defmodule DeployexWeb.Layouts do
 
   @nav_items [
     %{path: "/applications", label: "Applications", icon: "home"},
-    %{path: "/logs/live", label: "Live Logs", icon: "signal"},
-    %{path: "/logs/history", label: "History Logs", icon: "clock"},
+    # One item for the Logs page, which switches between Live and History itself
+    %{path: "/logs/live", label: "Logs", icon: "lines", section: "/logs/"},
     %{path: "/embedded-observer", label: "Observer Web", icon: "observer-web"},
     %{path: "/terminal", label: "Terminal", icon: "command-line"},
     %{path: "/hotupgrade", label: "Hot Upgrade", icon: "arrow-up-circle"},
@@ -119,7 +119,7 @@ defmodule DeployexWeb.Layouts do
           :for={item <- @nav_items}
           navigate={item.path}
           label={item.label}
-          active={active_route?(item.path, @current_path)}
+          active={active_route?(item, @current_path)}
         >
           <:icon><Icons.icon name={item.icon} stroke="1.6" /></:icon>
         </Shell.nav_item>
@@ -203,7 +203,9 @@ defmodule DeployexWeb.Layouts do
   end
 
   # Only exact matches are active, so a parent route is not highlighted for its child routes
-  defp active_route?(item_path, current_path) do
-    String.trim_trailing(item_path, "/") == String.trim_trailing(current_path || "/", "/")
-  end
+  defp active_route?(%{section: section}, current_path),
+    do: String.starts_with?(current_path || "/", section)
+
+  defp active_route?(%{path: path}, current_path),
+    do: String.trim_trailing(path, "/") == String.trim_trailing(current_path || "/", "/")
 end
