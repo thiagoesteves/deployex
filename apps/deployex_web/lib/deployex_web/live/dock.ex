@@ -553,7 +553,14 @@ defmodule DeployexWeb.DockLive do
 
       kind == "logs" ->
         tab = logs_tab(id, target, app)
-        socket = socket |> update(:tabs, &(&1 ++ [tab])) |> follow()
+
+        # It follows the instances before it reads them, so no line falls between the two
+        socket =
+          socket
+          |> update(:tabs, &(&1 ++ [tab]))
+          |> follow()
+          |> update_tab(id, &%{&1 | buffer: read_logs(tab.snames, @types, tab.whole_app)})
+
         {if(tab.whole_app, do: follow_deploys(socket), else: socket), id}
 
       kind == "shell" ->
@@ -578,7 +585,7 @@ defmodule DeployexWeb.DockLive do
       snames: snames,
       whole_app: whole_app,
       types: @types,
-      buffer: read_logs(snames, @types, whole_app),
+      buffer: [],
       opened_at: System.os_time(:second),
       filter: "",
       empty: false

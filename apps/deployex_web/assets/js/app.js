@@ -222,9 +222,13 @@ const hooks = {
         const rows = Math.max(5, Math.floor(this.el.clientHeight / cell.height));
         if (cols !== this.term.cols || rows !== this.term.rows) {
           this.term.resize(cols, rows);
-          this.pushEventTo(this.el, "shell-resize", { target, rows, cols });
+          this.sendSize();
         }
       };
+      this.sendSize = () =>
+        this.pushEventTo(this.el, "shell-resize", { target, rows: this.term.rows, cols: this.term.cols });
+      // A session open in the dock and on the Terminal page takes the size of the view that has the focus
+      this.term.textarea.addEventListener("focus", () => this.sendSize());
       this.observer = new ResizeObserver(() => this.fit());
       this.observer.observe(this.el);
       requestAnimationFrame(() => {
