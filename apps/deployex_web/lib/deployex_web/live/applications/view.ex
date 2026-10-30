@@ -319,10 +319,14 @@ defmodule DeployexWeb.ApplicationsLive.View do
     }
   end
 
-  # A hot upgrade's pre_commands run while the instance runs, and the status keeps it connected
-  defp running?(%{status: :running}), do: true
-  defp running?(%{status: :pre_commands, otp: :connected}), do: true
-  defp running?(_child), do: false
+  @doc """
+  Whether an instance runs. A hot upgrade's pre_commands run while it runs, and the status keeps it
+  connected.
+  """
+  @spec running?(map()) :: boolean()
+  def running?(%{status: :running}), do: true
+  def running?(%{status: :pre_commands, otp: :connected}), do: true
+  def running?(_child), do: false
 
   # The problems at severity 3 show under the row, so they need no open app: a TLS certificate within 7 days
   # and an instance at its restart threshold
