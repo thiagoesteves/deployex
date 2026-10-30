@@ -280,7 +280,7 @@ runcmd:
   # Install OTP certificates from Google Secret Manager
   - /home/root/install-otp-certificates.sh
   # Download and install Deployex
-  - wget https://github.com/thiagoesteves/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
+  - wget https://github.com/deployex/deployex/releases/download/${deployex_version}/deployex.sh -P /home/root
   - chmod a+x /home/root/deployex.sh
   - /home/root/deployex.sh --install /home/root/deployex.yaml
   # Enable Nginx

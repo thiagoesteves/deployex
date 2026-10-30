@@ -4,7 +4,7 @@ Code.require_file("mix/shared.exs")
 defmodule Deployex.MixProject do
   use Mix.Project
 
-  @source_url "https://github.com/thiagoesteves/deployex"
+  @source_url "https://github.com/deployex/deployex"
 
   def project do
     [

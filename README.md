@@ -2,7 +2,7 @@
 
 > Who supervises the supervisor (of your application)?
 
-![Development](https://img.shields.io/badge/STATUS-Development%20v0.9.x-blue) [![Build Status](https://github.com/thiagoesteves/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/thiagoesteves/deployex/actions/workflows/pr-ci.yml)
+![Development](https://img.shields.io/badge/STATUS-Development%20v0.9.x-blue) [![Build Status](https://github.com/deployex/deployex/workflows/Deployex%20CI/badge.svg)](https://github.com/deployex/deployex/actions/workflows/pr-ci.yml)
 
 DeployEx is a lightweight tool designed for managing deployments for Beam applications (Elixir, Gleam and Erlang) without relying on additional deployment tools like Docker or Kubernetes. Its primary goal is to utilize the release package for executing full deployments or hot-upgrades, depending on the package's content, while leveraging OTP distribution for monitoring and data extraction.
 
@@ -83,7 +83,7 @@ Since OTP distribution is heavily used between the DeployEx and Monitored Applic
 
 | DeployEx version                                                          | <img src="https://img.shields.io/badge/OTP-28-green.svg"/> | <img src="https://img.shields.io/badge/OTP-29-green.svg"/> |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| [**0.10.0**](https://github.com/thiagoesteves/deployex/releases/tag/0.10.0) | **28.5.0.6**                                               | **29.0.6**                                                 |
+| [**0.10.0**](https://github.com/deployex/deployex/releases/tag/0.10.0) | **28.5.0.6**                                               | **29.0.6**                                                 |
 
 ### Running the application
 
@@ -119,7 +119,7 @@ Now you can visit [`localhost:5001`](http://localhost:5001) from your browser an
 ![Empty Dashboard](guides/static/deployex_no_monitoring_app.png)
 
 > [!NOTE]
-> The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running DeployEx and Monitored app locally](https://github.com/thiagoesteves/deployex/tree/thi/add-erlang-hot-upgrade-support?tab=readme-ov-file#-running-deployex-locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command
+> The error message in the CLI is due to no monitored app is available to be deployed. If you want to proceed for a local test, follow the steps at [Running DeployEx and Monitored app locally](https://github.com/deployex/deployex/tree/thi/add-erlang-hot-upgrade-support?tab=readme-ov-file#-running-deployex-locally). Also, it is important to note that the distribution will be required so this is the reason to add `-sname deployex` in the command
 
 ### How DeployEx handles monitored application Version/Release
 
@@ -367,5 +367,5 @@ Copyright (c) 2024-2026, Thiago Esteves.
 
 DeployEx source code is licensed under the [MIT License](LICENSE.md).
 
-[jyf]: https://github.com/thiagoesteves/jellyfish
-[owb]: https://github.com/thiagoesteves/observer_web
+[jyf]: https://github.com/deployex/jellyfish
+[owb]: https://github.com/deployex/observer_web

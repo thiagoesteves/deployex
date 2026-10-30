@@ -26,7 +26,8 @@ defmodule Deployer.Github.Release do
             published_at: nil
 
   @update_github_interval :timer.hours(1)
-  @deployex_latest_tag "https://api.github.com/repos/thiagoesteves/deployex/releases/latest"
+  @deployex_latest_tag "https://api.github.com/repos/deployex/deployex/releases/latest"
+  @max_redirects 3
 
   ### ==========================================================================
   ### Callback GenServer functions
@@ -62,12 +63,7 @@ defmodule Deployer.Github.Release do
   end
 
   def update_github_info(state \\ %__MODULE__{}) do
-    response =
-      :get
-      |> Finch.build(@deployex_latest_tag, [], [])
-      |> Finch.request(Deployer.Finch)
-
-    with {:ok, %{body: body}} <- response,
+    with {:ok, %{status: 200, body: body}} <- get(@deployex_latest_tag, @max_redirects),
          {:ok, info} <- Jason.decode(body) do
       tag_name = info["tag_name"]
       prerelease = info["prerelease"]
@@ -110,6 +106,27 @@ defmodule Deployer.Github.Release do
   ### ==========================================================================
   ### Private functions
   ### ==========================================================================
+  # NOTE: GitHub answers with a redirect when the repository is moved or renamed,
+  #       and Finch does not follow redirects by itself.
+  defp get(url, redirects_left) do
+    response =
+      :get
+      |> Finch.build(url, [], [])
+      |> Finch.request(Deployer.Finch)
+
+    case response do
+      {:ok, %{status: status, headers: headers}}
+      when status in [301, 302, 307, 308] and redirects_left > 0 ->
+        case List.keyfind(headers, "location", 0) do
+          {_key, location} -> get(location, redirects_left - 1)
+          nil -> response
+        end
+
+      response ->
+        response
+    end
+  end
+
   defp enabled?, do: Application.get_env(:deployer, __MODULE__, [])[:enabled] != false
 
   defp new_release?(current_version, tag_version) do

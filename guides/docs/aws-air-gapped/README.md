@@ -39,7 +39,7 @@ A pipeline step that downloads, scans and uploads a version:
 set -euo pipefail
 VERSION=0.10.1
 mkdir -p "release/${VERSION}" && cd "release/${VERSION}"
-gh release download "${VERSION}" -R thiagoesteves/deployex \
+gh release download "${VERSION}" -R deployex/deployex \
   -p checksum.txt -p deployex.sh -p "deployex-ubuntu-24.04*-otp-28.tar.gz"
 sha256sum --check --ignore-missing checksum.txt
 # Scan the files here, and stop if the scan fails.

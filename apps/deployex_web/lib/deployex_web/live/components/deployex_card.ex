@@ -458,7 +458,7 @@ defmodule DeployexWeb.Components.DeployexCard do
         data-tip={"New version available #{@latest_release.tag_name}! \n Click to view releases"}
       >
         <a
-          href="https://github.com/thiagoesteves/deployex/releases"
+          href="https://github.com/deployex/deployex/releases"
           target="_blank"
           rel="noopener noreferrer"
           class="flex items-center justify-center w-5 h-5 bg-info/20 border border-info/40 rounded-full hover:bg-info/30 hover:scale-110 transition-all duration-200 cursor-pointer"

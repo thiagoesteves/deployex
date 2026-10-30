@@ -6,7 +6,7 @@ defmodule Deployer.HotUpgrade.Application do
   1. Ensure that .appup files are available. These files are generated during the release process
      when updating from an older version. Deployer was designed to consume appup files generated
      by these libraries:
-       a. [Jellyfish](https://github.com/thiagoesteves/jellyfish) (For Elixir apps)
+       a. [Jellyfish](https://github.com/deployex/jellyfish) (For Elixir apps)
        a. [Rebar3 appup plugin](https://github.com/lrascao/rebar3_appup_plugin) (For Erlang apps)
 
   2. During deployment, the release app-new-version.tar.gz is copied to a directory named

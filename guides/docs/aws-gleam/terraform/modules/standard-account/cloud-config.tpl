@@ -349,7 +349,7 @@ runcmd:
     done
     [ -n "$DX_VERSION" ] || { echo "deployex_version tag unavailable through IMDS, DeployEx not installed" >&2; exit 1; }
     sed -i "s|__DEPLOYEX_VERSION__|$DX_VERSION|g" /home/root/deployex.yaml
-    wget https://github.com/thiagoesteves/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root ||
+    wget https://github.com/deployex/deployex/releases/download/$DX_VERSION/deployex.sh -P /home/root ||
       { echo "cannot download deployex.sh $DX_VERSION, DeployEx not installed" >&2; exit 1; }
     chmod a+x /home/root/deployex.sh
     /home/root/deployex.sh --install /home/root/deployex.yaml

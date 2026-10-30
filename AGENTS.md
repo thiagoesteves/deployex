@@ -274,7 +274,7 @@ Rules:
 
 - Place the entry under the matching category: `### Bug fixes`, `### Enhancements`, or `### Backwards incompatible changes`
 - Entry format (one line, PR title as the description):
-  `* [`PULL-NNN`](https://github.com/thiagoesteves/deployex/pull/NNN) <PR title>`
+  `* [`PULL-NNN`](https://github.com/deployex/deployex/pull/NNN) <PR title>`
 - For issues, use `ISSUE-NNN` with the `/issues/NNN` URL instead
 - Keep entries sorted by ascending PR number within each category
 - Replace the `* None` placeholder when adding the first entry to a category; keep `* None` in empty categories

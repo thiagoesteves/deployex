@@ -577,4 +577,4 @@ The more of your release that is state living inside processes, the more that as
 - [Erlang Compilation and Code Loading](https://www.erlang.org/doc/system/code_loading.html) - current and old code, purging, fully qualified calls
 - [Calori Project](https://github.com/thiagoesteves/calori) - Real-world implementation examples
 
-[jyf]: https://github.com/thiagoesteves/jellyfish
+[jyf]: https://github.com/deployex/jellyfish

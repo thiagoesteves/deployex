@@ -13,7 +13,7 @@ It is important to note that for local deployments, DeployEx will use the path `
 
 ## 2. Creating an Elixir phoenix umbrella app (default name is `myumbrella`)
 
-In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/thiagoesteves/jellyfish) for testing hotupgrades.
+In this example, we create a brand new application using `mix phx.new` and added the library [Jellyfish](https://github.com/deployex/jellyfish) for testing hotupgrades.
 
 > [!NOTE]
 > A project [myumbrella](https://github.com/thiagoesteves/myumbrella) is also available for consulting
@@ -44,9 +44,9 @@ export RELEASE_DISTRIBUTION=sname
 ```
 
 ## 4. Configuring your app to allow Hot upgrades (optional)
-Add the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library __ONLY__
+Add the [Jellyfish](https://github.com/deployex/jellyfish) library __ONLY__
 if your application will need hot upgrades. The dependency should be added at the 
-root path (not in specific apps). For umbrella applications, check the [Umbrella Support](https://github.com/thiagoesteves/jellyfish?tab=readme-ov-file#elixir-umbrella-applications)
+root path (not in specific apps). For umbrella applications, check the [Umbrella Support](https://github.com/deployex/jellyfish?tab=readme-ov-file#elixir-umbrella-applications)
 documentation to learn how to share the same version between apps and properly
 enable hot upgrades across the entire umbrella.
 
@@ -96,7 +96,7 @@ Open the `config/prod.exs` and comment out the static manifest
 ```
 
 ## 5. Configuring your app as broadcast mode publishing metrics to DeployEx (optional)
-Add [Observer Web](https://github.com/thiagoesteves/observer_web) to one of your applications, 
+Add [Observer Web](https://github.com/deployex/observer_web) to one of your applications, 
 preferably the Phoenix application. This allows your application to broadcast metrics that 
 can be collected and visualized by DeployEx.
 
@@ -202,7 +202,7 @@ You should then visit the application and check it is running [localhost:5001](h
 
 ### Full deployment
 
-In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myumbrella` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/thiagoesteves/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
+In this scenario, the existing application will undergo termination, paving the way for the deployment of the new one. It's crucial to maintain the continuous operation of DeployEx throughout this process. Navigate to the `myumbrella` project and increment the version in the `mix.exs` file. Typically, during release execution, the CI/CD pipeline either generates the package from scratch or relies on the precompiled version, particularly for hot-upgrades. If you've incorporated the [Jellyfish](https://github.com/deployex/jellyfish) library and wish to exclusively create the full deployment package, for this test you must follow the steps: 
 
 1. Remove any previously generated files and generate a new release
 ```bash
