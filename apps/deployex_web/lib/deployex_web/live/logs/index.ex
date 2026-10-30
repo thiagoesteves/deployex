@@ -9,8 +9,10 @@ defmodule DeployexWeb.LogsLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.LogsExport
   alias DeployexWeb.RecentEvents
   alias DeployexWeb.UI.Icons
+  alias DeployexWeb.UI.LogActions
   alias Foundation.Notifications.Recent
 
   # The events source follows this host's notifications, which the bell's hook passes on
@@ -191,7 +193,15 @@ defmodule DeployexWeb.LogsLive do
               @sources,
               @types
             )}</span>
-            <span class="dx-muted">Newest at the bottom</span>
+            <div class="flex items-center gap-3">
+              <span class="dx-muted">Newest at the bottom</span>
+              <LogActions.actions
+                id="logs"
+                rows="logs-lines"
+                empty={@shown == 0}
+                export={export_params(assigns)}
+              />
+            </div>
           </div>
           <div
             id="logs-pane"
@@ -584,6 +594,23 @@ defmodule DeployexWeb.LogsLive do
       end
 
     "#{lines} · #{MapSet.size(selected)} of #{length(sources)} sources · #{streams}"
+  end
+
+  # Export what the page selects. Live reads from 5 minutes before the page opened, or from Clear
+  defp export_params(assigns) do
+    window =
+      cond do
+        assigns.mode == :history -> %{minutes: assigns.range}
+        assigns.cleared_at > 0 -> %{since: div(assigns.cleared_at, 1000)}
+        true -> %{since: div(assigns.opened_at, 1000) - @live_minutes * 60}
+      end
+
+    Map.merge(window, %{
+      sources: Enum.sort(assigns.selected),
+      types: Enum.filter(@types, &MapSet.member?(assigns.types, &1)),
+      filter: assigns.filter
+    })
+    |> LogsExport.params()
   end
 
   defp host_name do

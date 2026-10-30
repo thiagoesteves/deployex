@@ -8,8 +8,10 @@ defmodule DeployexWeb.DockLive do
   """
   use DeployexWeb, :live_view
 
+  alias DeployexWeb.LogsExport
   alias DeployexWeb.Shell
   alias DeployexWeb.UI.Icons
+  alias DeployexWeb.UI.LogActions
   alias DeployexWeb.UI.ShellHelp
   alias DeployexWeb.UI.Tags
   alias Foundation.Catalog
@@ -291,6 +293,12 @@ defmodule DeployexWeb.DockLive do
               />
               <span style={type == "stderr" && "color: var(--dx-error-text)"}>{type}</span>
             </button>
+            <LogActions.actions
+              id={"dock-logs#{pane_suffix(@second)}"}
+              rows={"dock-lines#{pane_suffix(@second)}"}
+              empty={@tab.empty}
+              export={export_params(@tab)}
+            />
             <button
               id={"dock-open-logs#{pane_suffix(@second)}"}
               type="button"
@@ -536,6 +544,7 @@ defmodule DeployexWeb.DockLive do
       whole_app: whole_app,
       types: @types,
       buffer: read_logs(snames, @types, whole_app),
+      opened_at: System.os_time(:second),
       filter: "",
       empty: false
     }
@@ -841,6 +850,16 @@ defmodule DeployexWeb.DockLive do
 
     %{source: Enum.join(tab.snames, ","), stream: is_binary(stream) && stream, filter: tab.filter}
     |> Enum.reject(fn {_key, value} -> value in [false, nil, ""] end)
+  end
+
+  # Export the tab's lines: the minutes it read when it opened, and every line since
+  defp export_params(tab) do
+    LogsExport.params(%{
+      sources: tab.snames,
+      types: tab.types,
+      since: tab.opened_at - @log_minutes * 60,
+      filter: tab.filter
+    })
   end
 
   # A line holds the filter text in its message or its source, in any case

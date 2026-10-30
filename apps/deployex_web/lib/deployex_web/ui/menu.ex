@@ -53,7 +53,7 @@ defmodule DeployexWeb.UI.Menu do
   @doc """
   A full-width row in a menu panel. Pass `href` or `navigate` for a link, nothing for a button.
   """
-  attr :rest, :global, include: ~w(href navigate method)
+  attr :rest, :global, include: ~w(href navigate method download)
   slot :inner_block, required: true
 
   def item(%{rest: rest} = assigns) when is_map_key(rest, :href) or is_map_key(rest, :navigate) do

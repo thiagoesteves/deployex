@@ -763,7 +763,6 @@ defmodule DeployexWeb.ApplicationsLive.Board do
       <span popover="manual" class="dx-tip" aria-hidden="true" data-text={"Copy the #{@label}"}>
         Copy the {@label}
       </span>
-      <span class="sr-only" aria-live="polite"></span>
     </span>
     """
   end

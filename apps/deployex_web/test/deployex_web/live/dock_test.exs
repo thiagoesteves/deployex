@@ -83,6 +83,16 @@ defmodule DeployexWeb.DockTest do
     # Open in Logs closes the tab, then opens Live Logs with its instance and filter
     assert html =~ "/logs/live?filter=zzz&amp;source=#{sname}"
 
+    # Copy has no line to take, and Export reads from 30 minutes before the tab opened
+    assert has_element?(dock, "#dock-logs-copy[disabled]")
+    link = dock |> element("#dock-logs-export-log") |> render()
+
+    assert link =~
+             ~r/export\?source=#{sname}&amp;stream=stdout%2Cstderr&amp;since=\d+&amp;filter=zzz&amp;format=log"/
+
+    [_all, since] = Regex.run(~r/since=(\d+)/, link)
+    assert_in_delta String.to_integer(since), System.os_time(:second) - 30 * 60, 5
+
     html = dock |> element("#dock-filter") |> render_change(%{"filter" => ""})
     assert html =~ "failed once"
 

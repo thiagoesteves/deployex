@@ -495,11 +495,9 @@ window.addEventListener("phx:copy_to_clipboard", event => {
   }, 1000);
 });
 
-// Copies the data-copy text of the clicked button. The clipboard API needs a secure page, so a plain HTTP
-// host falls back to a hidden text area. The button's tooltip says Copied for a moment
-window.addEventListener("dx:copy", (e) => {
-  const button = e.target;
-  const text = button.dataset.copy;
+// Puts text on the clipboard. The clipboard API needs a secure page, so a plain HTTP host falls back to a
+// hidden text area
+const copyText = (text) => {
   const fallback = () => {
     const area = document.createElement("textarea");
     area.value = text;
@@ -510,17 +508,51 @@ window.addEventListener("dx:copy", (e) => {
     document.execCommand("copy");
     area.remove();
   };
-  const copied = navigator.clipboard ? navigator.clipboard.writeText(text).catch(fallback) : Promise.resolve(fallback());
-  copied.then(() => {
+  return navigator.clipboard ? navigator.clipboard.writeText(text).catch(fallback) : Promise.resolve(fallback());
+};
+
+// Says a short message to screen readers, from a live region outside the LiveViews
+const announce = (message) => {
+  let live = document.getElementById("dx-announce");
+  if (!live) {
+    live = document.createElement("div");
+    live.id = "dx-announce";
+    live.className = "sr-only";
+    live.setAttribute("aria-live", "polite");
+    document.body.appendChild(live);
+  }
+  live.textContent = message;
+};
+
+// Copies the data-copy text of the clicked button. Its tooltip says Copied for a moment
+window.addEventListener("dx:copy", (e) => {
+  const button = e.target;
+  copyText(button.dataset.copy).then(() => {
     const wrap = button.closest("[phx-hook=Tip]");
     const tip = wrap && wrap.querySelector("[popover]");
-    const live = wrap && wrap.querySelector("[aria-live]");
     if (tip) tip.textContent = "Copied";
-    if (live) live.textContent = "Copied";
+    announce("Copied");
     setTimeout(() => {
       if (tip) tip.textContent = tip.dataset.text;
-      if (live) live.textContent = "";
     }, 1500);
+  });
+});
+
+// Copies the log rows shown in detail.from, one row a line, and the button says how many it copied. The
+// label sits in a phx-update="ignore" element, so a page update does not reset it early
+window.addEventListener("dx:copy-lines", (e) => {
+  const button = e.target;
+  const rows = [...document.querySelectorAll(`${e.detail.from} > *`)];
+  const text = rows
+    .map((row) => [...row.children].map((cell) => cell.textContent.trim()).filter(Boolean).join(" "))
+    .join("\n");
+  copyText(text).then(() => {
+    const label = button.querySelector("[data-label]") || button;
+    const done = rows.length === 1 ? "Copied 1 line" : `Copied ${rows.length} lines`;
+    label.textContent = done;
+    announce(done);
+    clearTimeout(button.copyTimer);
+    button.copyTimer = setTimeout(() => (label.textContent = label.dataset.label), 2000);
   });
 });
 

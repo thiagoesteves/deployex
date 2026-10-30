@@ -280,4 +280,45 @@ defmodule DeployexWeb.Logs.IndexTest do
     view |> element("#logs-live") |> render_click()
     assert_patch(view, ~p"/logs/live")
   end
+
+  # The href of an export link, as the query params it holds
+  defp export_query(view, id) do
+    [_all, query] = Regex.run(~r/href="[^"?]+\?([^"]+)"/, view |> element(id) |> render())
+    query |> String.replace("&amp;", "&") |> URI.decode_query()
+  end
+
+  @tag :capture_log
+  test "Copy takes the lines shown and Export the selection", %{conn: conn, sname: sname} do
+    stub(Deployer.MonitorMock, :list, fn -> [sname] end)
+    stub(Sentinel.LogsMock, :list_active_snames, fn -> [sname] end)
+    stub_logs(self(), %{{sname, "stdout"} => [message("stored line")]})
+
+    {:ok, view, _html} = live(conn, ~p"/logs/live?#{%{source: sname, stream: "stdout"}}")
+
+    assert view |> element("#logs-copy") |> render() =~ "logs-lines"
+    refute has_element?(view, "#logs-copy[disabled]")
+
+    # Live exports from 5 minutes before the page opened
+    query = export_query(view, "#logs-export-jsonl")
+    assert %{"source" => ^sname, "stream" => "stdout", "format" => "jsonl"} = query
+    assert_in_delta String.to_integer(query["since"]), System.os_time(:second) - 300, 5
+    assert export_query(view, "#logs-export-log")["format"] == "log"
+
+    view |> element("#logs-filter") |> render_change(%{"filter" => "zzz"})
+    assert has_element?(view, "#logs-copy[disabled]")
+    assert export_query(view, "#logs-export-log")["filter"] == "zzz"
+
+    # After Clear it exports from the time of Clear
+    view |> element("#logs-clear") |> render_click()
+
+    assert_in_delta String.to_integer(export_query(view, "#logs-export-log")["since"]),
+                    System.os_time(:second),
+                    5
+
+    {:ok, view, _html} = live(conn, ~p"/logs/history?#{%{source: sname}}")
+    view |> element("#range-6h") |> render_click()
+    query = export_query(view, "#logs-export-log")
+    assert %{"minutes" => "360", "stream" => "stdout,stderr"} = query
+    refute Map.has_key?(query, "since")
+  end
 end

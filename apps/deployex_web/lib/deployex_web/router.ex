@@ -84,6 +84,8 @@ defmodule DeployexWeb.Router do
       live "/hotupgrade/apply", HotUpgradeLive, :apply
     end
 
+    get "/logs/export", LogsExportController, :export
+
     observer_dashboard("/observer")
   end
 
