@@ -40,6 +40,17 @@ defmodule DevFakeApps.Fakes do
 
   def put_count(count), do: :persistent_term.put(__MODULE__, count)
 
+  # A cleared ghost stays cleared, so the app runs its version as if it deployed again
+  def clear(name, versions) do
+    cleared = :persistent_term.get({__MODULE__, :cleared}, MapSet.new())
+    :persistent_term.put({__MODULE__, :cleared}, Enum.into(versions, cleared, &{name, &1}))
+  end
+
+  defp cleared?(name, {ghost, _impact}),
+    do: MapSet.member?(:persistent_term.get({__MODULE__, :cleared}, MapSet.new()), {name, ghost})
+
+  defp cleared?(_name, nil), do: false
+
   def find(name), do: Enum.find(apps(), &(&1.name == name))
 
   # The versions page of a fake app: its current version, and an earlier full deployment
@@ -119,6 +130,7 @@ defmodule DevFakeApps.Fakes do
 
   defp app({name, runtime, version, replicas, opts}, index, now) do
     deployed_at = DateTime.add(now, -opts[:age], :second)
+    opts = if cleared?(name, opts[:ghosted]), do: Keyword.delete(opts, :ghosted), else: opts
 
     {ghost, ghost_at} =
       case opts[:ghosted] do
@@ -284,12 +296,22 @@ defmodule DevFakeApps.Status do
 
   @impl true
   def remove_ghosted_version(name, version) do
-    if fake?(name), do: {:ok, []}, else: @real.remove_ghosted_version(name, version)
+    if fake?(name) do
+      DevFakeApps.Fakes.clear(name, [version])
+      {:ok, []}
+    else
+      @real.remove_ghosted_version(name, version)
+    end
   end
 
   @impl true
   def clear_ghosted_versions(name) do
-    if fake?(name), do: {:ok, []}, else: @real.clear_ghosted_versions(name)
+    if fake?(name) do
+      DevFakeApps.Fakes.clear(name, Enum.map(DevFakeApps.Fakes.ghosted(name), & &1.version))
+      {:ok, []}
+    else
+      @real.clear_ghosted_versions(name)
+    end
   end
 
   @impl true

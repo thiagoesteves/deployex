@@ -3,6 +3,8 @@
 Application.put_env(:deployer, Deployer.Status, adapter: Deployer.Status.Application)
 if pid = Process.whereis(DevFakeApps.Relay), do: GenServer.stop(pid)
 
+:persistent_term.erase({DevFakeApps.Fakes, :cleared})
+
 for module <- [DevFakeApps.Relay, DevFakeApps.Status, DevFakeApps.Fakes] do
   :code.purge(module)
   :code.delete(module)
