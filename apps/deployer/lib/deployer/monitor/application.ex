@@ -441,12 +441,11 @@ defmodule Deployer.Monitor.Application do
 
       Process.send_after(self(), {:check_running, pid, sname}, timeout_app_ready)
 
-      # Map.put, since a state that missed code_change on a relup has no started_at key
-      Map.put(
-        %{state | current_pid: pid, status: :starting, start_time: now()},
-        :started_at,
-        DateTime.utc_now(:second)
-      )
+      # Map.put, since a state that missed code_change on a relup has no started_at key. The pre_commands
+      # passed, so a later failure starts a new run of reports
+      %{state | current_pid: pid, status: :starting, start_time: now()}
+      |> Map.put(:started_at, DateTime.utc_now(:second))
+      |> Map.put(:reported_pre_commands, [])
     else
       false ->
         trigger_run_service(sname, retry_delay_pre_commands)
