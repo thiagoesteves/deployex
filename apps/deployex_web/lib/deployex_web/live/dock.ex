@@ -374,6 +374,7 @@ defmodule DeployexWeb.DockLive do
      socket
      |> assign(:user, session["user"])
      |> assign(:tabs, [])
+     |> assign(:subscribed, MapSet.new())
      |> assign(:active, nil)
      |> assign(:split, nil)
      |> assign(:attached, %{})
@@ -510,17 +511,23 @@ defmodule DeployexWeb.DockLive do
     id = "#{kind}:#{target}"
 
     cond do
-      Enum.any?(socket.assigns.tabs, &(&1.id == id)) -> {socket, id}
-      kind == "logs" -> {update(socket, :tabs, &(&1 ++ [logs_tab(id, target, app)])), id}
-      kind == "shell" -> open_shell(socket, id, target, app)
-      true -> {socket, nil}
+      Enum.any?(socket.assigns.tabs, &(&1.id == id)) ->
+        {socket, id}
+
+      kind == "logs" ->
+        {socket |> update(:tabs, &(&1 ++ [logs_tab(id, target, app)])) |> follow(), id}
+
+      kind == "shell" ->
+        open_shell(socket, id, target, app)
+
+      true ->
+        {socket, nil}
     end
   end
 
   defp logs_tab(id, target, app) do
     snames = log_snames(target, app)
     whole_app = target == app and target != "deployex"
-    for sname <- snames, type <- @types, do: Logs.subscribe_for_new_logs(sname, type)
 
     %{
       id: id,
@@ -726,6 +733,7 @@ defmodule DeployexWeb.DockLive do
 
         socket
         |> assign(:tabs, rest)
+        |> follow()
         |> assign(:split, split)
         |> update(:attached, &Map.delete(&1, tab.target))
         |> activate(next)
@@ -740,18 +748,36 @@ defmodule DeployexWeb.DockLive do
   defp after_close(active, id, id, _rest), do: {active, nil}
   defp after_close(active, split, _id, _rest), do: {active, split}
 
+  # One subscription for each instance and stream that any logs tab shows, since tabs can share an
+  # instance and a second subscription would bring each line twice
+  defp follow(%{assigns: %{tabs: tabs, subscribed: subscribed}} = socket) do
+    wanted =
+      for %{kind: :logs, snames: snames} <- tabs,
+          sname <- snames,
+          type <- @types,
+          into: MapSet.new(),
+          do: {sname, type}
+
+    for {sname, type} <- MapSet.difference(wanted, subscribed),
+        do: Logs.subscribe_for_new_logs(sname, type)
+
+    for {sname, type} <- MapSet.difference(subscribed, wanted),
+        do: Logs.unsubscribe_for_new_logs(sname, type)
+
+    assign(socket, :subscribed, wanted)
+  end
+
   defp close_all(%{assigns: %{tabs: tabs, user: user}} = socket) do
     Enum.each(tabs, &stop(&1, user, true))
 
     socket
     |> assign(tabs: [], active: nil, split: nil, attached: %{}, asking_close: false)
+    |> follow()
     |> stream(:lines, [], reset: true)
     |> stream(:lines_b, [], reset: true)
   end
 
-  defp stop(%{kind: :logs, snames: snames}, _user, _end_session) do
-    for sname <- snames, type <- @types, do: Logs.unsubscribe_for_new_logs(sname, type)
-  end
+  defp stop(%{kind: :logs}, _user, _end_session), do: :ok
 
   defp stop(%{kind: :shell, target: target, session: session}, user, end_session) do
     Shell.detach(session)

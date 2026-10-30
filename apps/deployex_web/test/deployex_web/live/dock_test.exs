@@ -135,6 +135,33 @@ defmodule DeployexWeb.DockTest do
   end
 
   @tag :capture_log
+  test "logs tabs that share an instance follow it once, until the last of them closes", %{
+    conn: conn,
+    sname: sname
+  } do
+    stub(Deployer.MonitorMock, :list, fn -> [sname] end)
+    stub(Sentinel.LogsMock, :list_data_by_sname_log_type, fn _sname, _type, _options -> [] end)
+
+    {_view, dock} = dock(conn)
+    render_hook(dock, "open", %{"kind" => "logs", "target" => "myelixir", "app" => "myelixir"})
+    render_hook(dock, "open", %{"kind" => "logs", "target" => sname, "app" => "myelixir"})
+
+    assert_received {:subscribed, ^sname, "stdout"}
+    refute_received {:subscribed, ^sname, "stdout"}
+
+    dock |> element("#dock-close-logs\\:#{sname}") |> render_click()
+    refute_received {:unsubscribed, ^sname, _type}
+
+    # The app's tab still gets the instance's lines
+    send(dock.pid, {:logs_new_data, sname, "stdout", message("still here")})
+    send(dock.pid, :flush_lines)
+    assert render(dock) =~ "still here"
+
+    dock |> element("#dock-close-logs\\:myelixir") |> render_click()
+    assert_received {:unsubscribed, ^sname, "stdout"}
+  end
+
+  @tag :capture_log
   test "a shell tab opens the user's session and asks before the dock closes it", %{
     conn: conn,
     user: user
