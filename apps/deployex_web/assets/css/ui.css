@@ -1771,6 +1771,12 @@
     background: var(--dx-base-300);
 }
 
+/* In the dock the panes take the dock's height, so a logs pane and xterm scroll inside it */
+.dx-dpanes {
+    flex: 1;
+    min-height: 0;
+}
+
 .dx-pane {
     flex: 1 1 0;
     min-width: 0;

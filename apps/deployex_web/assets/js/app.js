@@ -29,18 +29,31 @@ import { Terminal } from "./xterm/xterm"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 const hooks = {
+  // Follows the newest line while the reader is at the bottom, also when the pane changes size, like a
+  // dock that takes its height after it opens. Scrolling up stops it until the reader scrolls back down
   ScrollBottom: {
     mounted() {
-      this.el.scrollTo(0, this.el.scrollHeight);
+      this.stick = true;
+      this.toBottom = () => this.el.scrollTo(0, this.el.scrollHeight);
+      this.el.addEventListener(
+        "scroll",
+        () => {
+          const below = this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop;
+          this.stick = below < this.el.clientHeight * 0.3;
+        },
+        { passive: true }
+      );
+      this.observer = new ResizeObserver(() => this.stick && this.toBottom());
+      this.observer.observe(this.el);
+      requestAnimationFrame(this.toBottom);
     },
 
     updated() {
-      const pixelsBelowBottom =
-        this.el.scrollHeight - this.el.clientHeight - this.el.scrollTop;
+      if (this.stick) this.toBottom();
+    },
 
-      if (pixelsBelowBottom < this.el.clientHeight * 0.3) {
-        this.el.scrollTo(0, this.el.scrollHeight);
-      }
+    destroyed() {
+      this.observer && this.observer.disconnect();
     },
   },
 
