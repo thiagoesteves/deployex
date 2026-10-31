@@ -26,6 +26,11 @@ defmodule DeployexWeb.Terminal.IndexTest do
 
     stub(Deployer.MonitorMock, :list, fn -> [] end)
 
+    # A DeployEx shell needs its release binary, which a fresh machine does not have
+    bin_path = Foundation.Catalog.bin_path("deployex", :current)
+    File.mkdir_p!(Path.dirname(bin_path))
+    File.touch!(bin_path)
+
     :ok
   end
 

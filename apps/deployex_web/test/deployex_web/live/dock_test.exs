@@ -38,6 +38,11 @@ defmodule DeployexWeb.DockTest do
     |> stub(:list, fn -> [] end)
     |> stub(:subscribe_new_deploy, fn -> :ok end)
 
+    # A DeployEx shell needs its release binary, which a fresh machine does not have
+    bin_path = Catalog.bin_path("deployex", :current)
+    File.mkdir_p!(Path.dirname(bin_path))
+    File.touch!(bin_path)
+
     %{sname: Catalog.create_sname("myelixir")}
   end
 
