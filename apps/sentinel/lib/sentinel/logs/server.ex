@@ -249,27 +249,44 @@ defmodule Sentinel.Logs.Server do
   def list_data_by_sname_log_type(sname, type, options \\ [])
 
   def list_data_by_sname_log_type(sname, type, options) do
-    from = Keyword.get(options, :from, 15)
     order = Keyword.get(options, :order, :asc)
+    {first, last, keep?} = read_window(options)
 
-    now_minutes = unix_to_minutes()
-    from_minutes = now_minutes - from
+    # An sname this server does not tail has no table, and has no lines
+    case :ets.whereis(sname_log_table(sname)) do
+      :undefined ->
+        []
 
-    sname_table = sname_log_table(sname)
-
-    result =
-      Enum.reduce(from_minutes..now_minutes, [], fn minute, acc ->
-        case :ets.lookup(sname_table, log_type_key(type, minute)) do
-          [{_, value}] ->
-            value ++ acc
-
-          _ ->
-            acc
-        end
-      end)
-
-    if order == :asc, do: Enum.reverse(result), else: result
+      sname_table ->
+        # Newest minute first, and each minute keeps its newest message first, so a limit stops early
+        last..first//-1
+        |> Stream.flat_map(fn minute ->
+          case :ets.lookup(sname_table, log_type_key(type, minute)) do
+            [{_, value}] -> value
+            _ -> []
+          end
+        end)
+        |> Stream.filter(keep?)
+        |> take(Keyword.get(options, :limit))
+        |> then(&if order == :asc, do: Enum.reverse(&1), else: &1)
+    end
   end
+
+  # `between` is a time range in unix milliseconds, start included. `from` is the last minutes
+  defp read_window(options) do
+    case Keyword.get(options, :between) do
+      {from_ms, to_ms} ->
+        {unix_to_minutes(from_ms), unix_to_minutes(to_ms - 1),
+         &(&1.timestamp >= from_ms and &1.timestamp < to_ms)}
+
+      nil ->
+        now_minutes = unix_to_minutes()
+        {now_minutes - Keyword.get(options, :from, 15), now_minutes, fn _message -> true end}
+    end
+  end
+
+  defp take(messages, nil), do: Enum.to_list(messages)
+  defp take(messages, limit), do: Enum.take(messages, limit)
 
   @impl true
   def get_types_by_sname(nil), do: []

@@ -1,0 +1,2117 @@
+/* DeployEx dashboard components, ported from the design canvas onto the tokens in tokens.css.
+   Class names start with dx- so they do not meet daisyUI's. */
+
+.dx-app {
+    font-family: var(--dx-font-sans);
+    font-size: var(--dx-text-base);
+    line-height: var(--dx-leading);
+    color: var(--dx-base-content);
+    background: var(--dx-base-200);
+}
+
+.dx-app :focus-visible {
+    outline: 2px solid var(--dx-info);
+    outline-offset: 2px;
+}
+
+.dx-app a.dx-link {
+    color: var(--dx-primary-text);
+}
+
+.dx-app a.dx-link:hover {
+    color: var(--dx-base-content);
+}
+
+.dx-card {
+    background: var(--dx-base-100);
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.dx-muted {
+    color: var(--dx-muted);
+}
+
+.dx-mono {
+    font-family: var(--dx-font-mono);
+}
+
+.dx-num {
+    font-family: var(--dx-font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.dx-lbl {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: color-mix(in oklab, var(--dx-base-content) 82%, var(--dx-base-100));
+    letter-spacing: 0.02em;
+}
+
+.dx-ico {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.dx-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+}
+
+.dx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 11px;
+    border-radius: 6px;
+    border: 1px solid var(--dx-base-300);
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font: 600 0.8125rem/1.2 var(--dx-font-sans);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dx-btn:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.dx-btn-er {
+    color: var(--dx-error-text);
+    border-color: color-mix(in oklch,var(--dx-error) 45%,var(--dx-base-100));
+}
+
+.dx-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-muted);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.dx-ghost:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid;
+    font: 600 0.75rem/1.5 var(--dx-font-sans);
+    white-space: nowrap;
+}
+
+/* A chip that is a toggle, like the apps that need attention */
+.dx-chip-btn {
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
+.dx-chip-btn[aria-pressed="true"] {
+    box-shadow: 0 0 0 2px currentColor;
+}
+
+.dx-s-start {
+    color: var(--dx-warning-text);
+    background: color-mix(in oklch,var(--dx-warning) 13%,var(--dx-base-100));
+    border-color: color-mix(in oklch,var(--dx-warning) 40%,var(--dx-base-100));
+}
+
+.dx-s-ghost {
+    color: var(--dx-error-text);
+    background: color-mix(in oklch,var(--dx-error) 10%,var(--dx-base-100));
+    border-color: color-mix(in oklch,var(--dx-error) 36%,var(--dx-base-100));
+}
+
+.dx-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 8px;
+    color: color-mix(in oklch,var(--dx-base-content) 82%,var(--dx-base-100));
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.dx-nav:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-nav-on, .dx-nav-on:hover {
+    background: var(--dx-nav-active);
+    color: var(--dx-primary-content);
+}
+
+.dx-seg {
+    min-height: 36px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-muted);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+}
+
+.dx-seg-on {
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.dx-ctlbar a {
+    color: var(--dx-base-content);
+    text-decoration: none;
+}
+
+.dx-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.8125rem;
+}
+
+.dx-stat b {
+    font-family: var(--dx-font-mono);
+    font-size: 0.875rem;
+}
+
+.dx-arow {
+    display: grid;
+    grid-template-columns: minmax(12.5rem,1.5fr) 10.5rem 3.5rem 5.25rem 4.25rem 8rem calc(9.25rem + 13px);
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0 20px 0 26px;
+    min-height: 78px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+/* An app's row and its callouts: a click opens or closes the app, so it shows where the pointer is */
+.dx-ahead {
+    cursor: pointer;
+}
+
+.dx-ahead:hover {
+    background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
+}
+
+/* On an open app, the head's click closes the instances too, so its hover tints the whole block */
+.dx-app-open > .dx-ahead:hover {
+    background: transparent;
+}
+
+.dx-app-open::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.dx-app-open:has(> .dx-ahead:hover)::after {
+    background: color-mix(in oklab, var(--dx-base-content) 5%, transparent);
+}
+
+/* The callouts keep the bottom margin inside the head, so the hover covers them */
+.dx-ahead > .dx-callout:last-child {
+    margin-bottom: 0;
+}
+
+.dx-ahead:has(> .dx-callout) {
+    padding-bottom: 16px;
+}
+
+.dx-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.dx-arow .dx-status {
+    font-size: 0.875rem;
+    gap: 8px;
+}
+
+.dx-arow .dx-status .dx-dot {
+    width: 9px;
+    height: 9px;
+}
+
+.dx-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.dx-badge button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 0 4px;
+    border-radius: 6px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.dx-badge button:hover {
+    background: var(--dx-base-200);
+}
+
+/* A tooltip that lists problems, one per line, shown by the Tip hook */
+.dx-tip[popover] {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 16px));
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--dx-base-content);
+    color: var(--dx-base-100);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
+    font-family: var(--dx-font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: left;
+    overflow: visible;
+}
+
+/* Covers the gap to the trigger, so the pointer can move onto the tooltip */
+.dx-tip[popover]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+}
+
+.dx-tip[data-side="below"]::before {
+    top: -8px;
+}
+
+.dx-tip[data-side="above"]::before {
+    bottom: -8px;
+}
+
+/* What happened to an app, under its row: a bold title, what it means, and the actions */
+/* The icon, the title over the detail, and the actions on their own line under the text */
+/* Placeholder rows in the first render, before the page reads the apps, so no empty state flashes */
+.dx-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    min-height: 64px;
+    padding: 0 20px 0 26px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-skel {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--dx-base-300);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .dx-skel {
+        animation: dx-pulse 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes dx-pulse {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.dx-callout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px 14px;
+    margin: -8px 20px 16px 26px;
+    padding: 10px 12px 10px 14px;
+    border: 1px solid;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.dx-callout .dx-callout-ico {
+    flex: none;
+    width: 20px;
+    height: 20px;
+}
+
+.dx-callout-text {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.dx-callout-text b {
+    font-weight: 700;
+}
+
+.dx-callout-text span {
+    color: var(--dx-base-content);
+}
+
+/* A command in a callout, like a failed pre_command, set apart from the sentence */
+.dx-callout-cmds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.dx-cmd {
+    padding: 1px 7px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 5px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font: 600 0.8125rem/1.5 var(--dx-font-mono);
+    overflow-wrap: anywhere;
+}
+
+.dx-callout-acts {
+    display: flex;
+    flex-wrap: wrap;
+    flex-basis: 100%;
+    gap: 8px;
+    padding-left: 34px;
+}
+
+.dx-callout-error {
+    color: var(--dx-error-text);
+    background: color-mix(in oklab, var(--dx-error) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-error) 45%, var(--dx-base-100));
+}
+
+.dx-callout-warning {
+    color: var(--dx-warning-text);
+    background: color-mix(in oklab, var(--dx-warning) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-warning) 45%, var(--dx-base-100));
+}
+
+.dx-callout-info {
+    color: var(--dx-info-text);
+    background: color-mix(in oklab, var(--dx-info) 9%, var(--dx-base-100));
+    border-color: color-mix(in oklab, var(--dx-info) 45%, var(--dx-base-100));
+}
+
+.dx-callout-muted {
+    color: var(--dx-muted);
+    background: var(--dx-base-200);
+    border-color: var(--dx-base-300);
+}
+
+/* The open app: a tint and an outline over its row, callouts and instances, so the eye knows where it is */
+.dx-app-open {
+    position: relative;
+    background: color-mix(in oklab, var(--dx-info) 5%, var(--dx-base-100));
+    outline: 2px solid var(--dx-info);
+    outline-offset: -2px;
+}
+
+.dx-inset {
+    margin: 0 20px 18px 26px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    overflow: hidden;
+}
+
+/* The app row's columns, so the values line up. The last one is 13px narrower for the inset's right
+   margin, border and padding. In rem, so the columns grow with a larger font */
+.dx-irow {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 10.5rem 3.5rem 5.25rem 4.25rem 8rem 9.25rem;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0 12px 0 16px;
+    min-height: 42px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-topbar {
+    position: relative;
+    z-index: 60;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    min-height: 56px;
+    padding: 8px 14px;
+    background: var(--dx-base-100);
+    border-bottom: 1px solid var(--dx-base-300);
+}
+
+.dx-tb-left, .dx-tb-right {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: max-content;
+}
+
+.dx-tb-right {
+    justify-content: flex-end;
+}
+
+/* The search shrinks before the top bar wraps, so a laptop width keeps one row */
+.dx-tb-mid {
+    flex: 1 1 240px;
+    max-width: 560px;
+    min-width: 240px;
+}
+
+.dx-tb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--dx-muted);
+    cursor: pointer;
+}
+
+.dx-tb-btn:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--dx-base-content);
+    text-decoration: none;
+}
+
+.dx-brand:hover {
+    color: var(--dx-base-content);
+}
+
+.dx-brand-mark {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dx-brand b {
+    display: block;
+    font-size: 0.9375rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.dx-brand small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--dx-muted);
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.dx-ctx {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.dx-ctx:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-search {
+    position: relative;
+}
+
+/* The field holds the filter tags and the text, and grows to a second line when the tags need it */
+.dx-s-field {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-height: 38px;
+    padding: 3px 36px 3px 36px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+}
+
+.dx-s-field:focus-within {
+    outline: 2px solid var(--dx-info);
+    background: var(--dx-base-100);
+}
+
+.dx-s-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dx-s-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 26px;
+    padding: 0 2px 0 8px;
+    border: 1px solid color-mix(in oklab, var(--dx-info) 55%, var(--dx-base-100));
+    border-radius: 6px;
+    background: color-mix(in oklab, var(--dx-info) 14%, var(--dx-base-100));
+    color: var(--dx-base-content);
+    font: 600 0.75rem/1 var(--dx-font-mono);
+    white-space: nowrap;
+}
+
+.dx-s-untag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    color: var(--dx-muted);
+}
+
+.dx-s-untag:hover {
+    background: var(--dx-base-300);
+    color: var(--dx-base-content);
+}
+
+.dx-s-form {
+    flex: 1 1 120px;
+    min-width: 120px;
+}
+
+.dx-search input {
+    width: 100%;
+    height: 30px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    color: var(--dx-base-content);
+    font: 0.875rem var(--dx-font-sans);
+}
+
+/* The search has its own clear button */
+.dx-search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.dx-search input::placeholder {
+    color: var(--dx-muted);
+}
+
+.dx-search input:focus {
+    outline: none;
+}
+
+.dx-search .dx-s-ico {
+    position: absolute;
+    left: 11px;
+    top: 10px;
+    color: var(--dx-muted);
+    pointer-events: none;
+}
+
+.dx-search .dx-s-clear {
+    position: absolute;
+    right: 3px;
+    top: 2px;
+    width: 32px;
+    height: 32px;
+}
+
+.dx-drop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 40;
+    background: var(--dx-base-100);
+    border: 1px solid var(--dx-base-300);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    padding: 6px;
+    max-height: 420px;
+    overflow: auto;
+}
+
+.dx-drop-h {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--dx-muted);
+    padding: 8px 10px 4px;
+}
+
+.dx-hit {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: var(--dx-base-content);
+    text-decoration: none;
+}
+
+.dx-hit:hover, .dx-hit:focus-visible {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-hit b {
+    font-family: var(--dx-font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.dx-hit span {
+    font-size: 0.8125rem;
+    color: var(--dx-muted);
+    text-align: right;
+}
+
+.dx-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 0;
+    background: color-mix(in oklch,var(--dx-primary) 20%,var(--dx-base-100));
+    color: var(--dx-primary-text);
+    font: 700 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+}
+
+/* A menu at the bottom of the window, like in the dock, opens upward */
+.dx-menu.dx-menu-up {
+    top: auto;
+    bottom: calc(100% + 6px);
+}
+
+/* A menu under a button in a card or a pane head, not in the top bar */
+.dx-menu.dx-menu-below {
+    top: calc(100% + 6px);
+}
+
+.dx-menu {
+    position: absolute;
+    right: 0;
+    top: 46px;
+    z-index: 40;
+    width: 250px;
+    background: var(--dx-base-100);
+    border: 1px solid var(--dx-base-300);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    padding: 6px;
+}
+
+.dx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-base-content);
+    font: 500 0.875rem/1 var(--dx-font-sans);
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.dx-menu-item:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-switch {
+    position: relative;
+    flex: none;
+    width: 56px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 999px;
+    background: var(--dx-base-300);
+    cursor: pointer;
+    transition: background .18s ease;
+}
+
+.dx-switch::after {
+    content: "";
+    position: absolute;
+    inset: -8px -2px;
+}
+
+[data-theme=dark] .dx-switch {
+    background: color-mix(in oklch,var(--dx-info) 38%,var(--dx-base-200));
+}
+
+.dx-sw-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--dx-base-100);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .18s ease;
+}
+
+[data-theme=dark] .dx-switch .dx-sw-knob {
+    transform: translateX(26px);
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-switch, .dx-sw-knob {
+        transition: none;
+    }
+}
+
+.dx-dtag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px 2px 6px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 999px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font: 700 0.75rem/1.4 var(--dx-font-sans);
+    white-space: nowrap;
+}
+
+.dx-dtag svg {
+    width: 13px;
+    height: 13px;
+    flex: none;
+}
+
+.dx-dtag-full {
+    color: var(--dx-info-text);
+    background: color-mix(in oklch,var(--dx-info) 16%,var(--dx-base-100));
+    border-color: color-mix(in oklch,var(--dx-info) 50%,var(--dx-base-100));
+}
+
+.dx-dtag-hot {
+    color: var(--dx-hot-text);
+    background: color-mix(in oklch,var(--dx-hot) 16%,var(--dx-base-100));
+    border-color: color-mix(in oklch,var(--dx-hot) 50%,var(--dx-base-100));
+}
+
+.dx-dtag-fail {
+    color: var(--dx-error-text);
+    background: color-mix(in oklch,var(--dx-error) 15%,var(--dx-base-100));
+    border-color: color-mix(in oklch,var(--dx-error) 50%,var(--dx-base-100));
+}
+
+.dx-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    background: var(--dx-base-100);
+    border-top: 1px solid var(--dx-base-300);
+    box-shadow: 0 -10px 28px rgb(0 0 0 / 0.2);
+}
+
+.dx-dock-grip {
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    transform: translateX(-50%);
+    width: 72px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dx-dock-grip::before {
+    content: "";
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in oklch,var(--dx-base-content) 25%,var(--dx-base-100));
+}
+
+.dx-dock-grip:hover::before, .dx-dock-grip:focus-visible::before {
+    background: var(--dx-info);
+}
+
+.dx-dock-bar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px 0 10px;
+    background: var(--dx-base-200);
+    border-bottom: 1px solid var(--dx-base-300);
+}
+
+.dx-dock-tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+}
+
+.dx-dtab {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    border: 1px solid var(--dx-base-300);
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    background: var(--dx-base-100);
+    color: var(--dx-muted);
+}
+
+.dx-dtab-on {
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    box-shadow: inset 0 2px 0 var(--dx-info);
+}
+
+.dx-dtab-term.dx-dtab-on {
+    background: #0d1117;
+    color: #e6edf3;
+    border-color: #0d1117;
+}
+
+.dx-dtab-sel {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 0 4px 0 10px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: 600 0.8125rem/1 var(--dx-font-mono);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dx-dtab-kind {
+    font: 600 0.75rem/1 var(--dx-font-sans);
+}
+
+.dx-dtab-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 3px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.dx-dtab-x:hover {
+    opacity: 1;
+    background: rgb(127 127 127 / 0.2);
+}
+
+.dx-dock-ctl {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-bottom: 4px;
+    flex: none;
+}
+
+.dx-dock-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dx-dock-min .dx-dock-body {
+    display: none;
+}
+
+.dx-k-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--dx-base-300);
+}
+
+.dx-k-log {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 4px 0;
+    font: 0.8125rem/1.65 var(--dx-font-mono);
+}
+
+.dx-k-row {
+    display: grid;
+    gap: 12px;
+    padding: 1px 14px;
+}
+
+.dx-k-row:nth-child(even) {
+    background: color-mix(in oklch,var(--dx-base-200) 55%,var(--dx-base-100));
+}
+
+.dx-k-msg {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dx-k-term {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0d1117;
+    color: #c9d1d9;
+    font: 0.8125rem/1.6 var(--dx-font-mono);
+}
+
+.dx-k-out {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px 16px 2px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dx-k-in {
+    display: flex;
+    align-items: center;
+    padding: 2px 16px 12px;
+}
+
+.dx-k-in input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    color: #e6edf3;
+    font: inherit;
+    caret-color: #7ee787;
+    outline: none;
+}
+
+.dx-k-in:focus-within {
+    box-shadow: inset 2px 0 0 #388bfd;
+}
+
+.dx-iname {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0 6px 0 2px;
+    margin-left: -6px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-base-content);
+    font: 0.8125rem/1.2 var(--dx-font-mono);
+    cursor: pointer;
+}
+
+.dx-iname:hover {
+    background: var(--dx-base-100);
+}
+
+.dx-iname span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dx-limits {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 12px 14px;
+    /* The labels and bars line up when a trend makes one limit taller */
+    align-items: start;
+    padding: 12px 16px 14px 38px;
+    border-top: 1px dashed var(--dx-base-300);
+    background: var(--dx-base-100);
+}
+
+.dx-lim {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    align-self: stretch;
+    padding: 10px 12px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+}
+
+/* A link the size of a limit box, like Observer Web next to the limits */
+/* The node, ports and served URLs of an instance, in a box above its limits, each label over its value */
+.dx-idetail {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    margin: 0;
+    padding: 10px 0;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    font-size: 0.8125rem;
+}
+
+.dx-ditem {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 0 16px;
+}
+
+.dx-ditem + .dx-ditem {
+    border-left: 1px solid var(--dx-base-300);
+}
+
+.dx-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin-left: 4px;
+    border-radius: 5px;
+    color: var(--dx-muted);
+    cursor: pointer;
+}
+
+.dx-copy:hover {
+    background: var(--dx-base-300);
+    color: var(--dx-base-content);
+}
+
+.dx-ditem dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* A link here stands alone, so it gets the 24px target */
+.dx-ditem dd a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+}
+
+/* The point where the watchdog restarts the instance */
+.dx-lmark {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    margin-left: -1px;
+    border-radius: 1px;
+    background: var(--dx-base-content);
+    opacity: 0.55;
+}
+
+.dx-lbar {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--dx-track);
+    overflow: hidden;
+}
+
+.dx-lbar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.dx-nbadge {
+    position: absolute;
+    top: 3px;
+    right: 2px;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: oklch(52% 0.21 25);
+    color: #fff;
+    font: 700 0.75rem/1.125rem var(--dx-font-sans);
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--dx-base-100);
+}
+
+.dx-notif {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+}
+
+.dx-nitem {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    color: var(--dx-base-content);
+    text-decoration: none;
+}
+
+.dx-nitem:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-nt {
+    display: block;
+    font-size: 0.8125rem;
+}
+
+.dx-nd {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--dx-muted);
+}
+
+.dx-nlink {
+    border: 0;
+    background: transparent;
+    padding: 6px;
+    color: var(--dx-primary-text);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+}
+
+.dx-lang {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.dx-lang-sm {
+    width: 16px;
+    height: 16px;
+}
+
+.dx-meters {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-right: 6px;
+}
+
+.dx-meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    cursor: default;
+}
+
+.dx-meter .dx-lbl {
+    font-size: 0.75rem;
+}
+
+.dx-mbar {
+    display: block;
+    width: 60px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--dx-track);
+    overflow: hidden;
+}
+
+.dx-mbar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width .6s ease;
+}
+
+.dx-meter b {
+    min-width: 32px;
+    text-align: right;
+    font: 600 0.8125rem/1 var(--dx-font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-mbar i {
+        transition: none;
+    }
+}
+
+.dx-gh {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    vertical-align: -2px;
+}
+
+.dx-gh-lg {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+.dx-shell-body {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.dx-side {
+    width: var(--dx-sidebar-width);
+    max-width: 100%;
+    background: var(--dx-base-100);
+    border-right: 1px solid var(--dx-base-300);
+    display: flex;
+    flex-direction: column;
+}
+
+/* The icon rail, from lg up. root.html.heex sets data-sidebar on <html> */
+@media (min-width: 64rem) {
+    [data-sidebar=collapsed] .dx-side {
+        width: var(--dx-rail-width);
+    }
+
+    [data-sidebar=collapsed] .dx-nav span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    [data-sidebar=collapsed] .dx-nav {
+        justify-content: center;
+        padding: 0;
+    }
+}
+
+.dx-iact {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.dx-iact:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-iact svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+.dx-iact-icon {
+    justify-content: center;
+    width: 34px;
+    min-height: 34px;
+    padding: 0;
+}
+
+.dx-iact-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.dx-iact-er {
+    color: var(--dx-error-text);
+    border-color: color-mix(in oklch,var(--dx-error) 40%,var(--dx-base-100));
+}
+
+.dx-iact-er:hover {
+    color: var(--dx-error-text);
+}
+
+.dx-ask {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 12px 16px 14px 38px;
+    border-top: 1px dashed var(--dx-base-300);
+    background: color-mix(in oklch,var(--dx-error) 6%,var(--dx-base-100));
+    font-size: 0.875rem;
+}
+
+.dx-btn-danger, .dx-btn-danger:hover {
+    background: oklch(50% 0.2 25);
+    border-color: oklch(50% 0.2 25);
+    color: #fff;
+}
+
+.dx-imenu {
+    min-width: 240px;
+    background: var(--dx-base-100);
+    border: 1px solid var(--dx-base-300);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    padding: 6px;
+}
+
+.dx-imenu .dx-menu-item {
+    min-height: 40px;
+}
+
+.dx-imenu .dx-menu-item svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-switch, .dx-sw-knob {
+        transition: none;
+    }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-mbar i {
+        transition: none;
+    }
+}
+
+.dx-seg2 {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+}
+
+.dx-seg2 button {
+    min-height: 32px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-muted);
+    font: 600 0.8125rem/1 var(--dx-font-sans);
+    cursor: pointer;
+}
+
+.dx-seg2 button[aria-pressed="true"] {
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.dx-tog {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 11px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 999px;
+    background: var(--dx-base-100);
+    color: var(--dx-muted);
+    font: 500 0.8125rem/1 var(--dx-font-mono);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dx-tog:hover {
+    background: var(--dx-base-200);
+}
+
+/* On: a check and a tinted fill. Off: a dashed outline and faded marks */
+.dx-tog[aria-pressed="true"] {
+    color: var(--dx-base-content);
+    background: color-mix(in oklab,var(--dx-info) 14%,var(--dx-base-100));
+    border-color: color-mix(in oklab,var(--dx-info) 65%,var(--dx-base-100));
+}
+
+.dx-tog[aria-pressed="false"] {
+    border-style: dashed;
+    background: transparent;
+}
+
+.dx-tog[aria-pressed="false"] :is(.dx-dot, svg, img) {
+    opacity: 0.4;
+}
+
+/* The smaller toggle of the dock's head */
+.dx-tog-sm {
+    gap: 5px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 0.75rem;
+}
+
+.dx-tog-check {
+    color: var(--dx-info-text);
+}
+
+/* An app with some of its instances on */
+.dx-tog[aria-pressed="mixed"] {
+    color: var(--dx-base-content);
+    background: color-mix(in oklab,var(--dx-info) 7%,var(--dx-base-100));
+    border-color: color-mix(in oklab,var(--dx-info) 45%,var(--dx-base-100));
+}
+
+/* A selected log source, with its remove button */
+.dx-src {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 0 3px 0 11px;
+    border: 1px solid color-mix(in oklab,var(--dx-info) 65%,var(--dx-base-100));
+    border-radius: 999px;
+    background: color-mix(in oklab,var(--dx-info) 14%,var(--dx-base-100));
+    color: var(--dx-base-content);
+    font: 500 0.8125rem/1 var(--dx-font-mono);
+    white-space: nowrap;
+}
+
+.dx-src .dx-s-untag {
+    border-radius: 999px;
+}
+
+/* The source picker: a row for DeployEx, then one for each app */
+.dx-menu.dx-picker {
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: min(60vh, 32rem);
+    overflow: auto;
+    padding: 6px 0;
+}
+
+.dx-picker-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px;
+}
+
+.dx-picker-row + .dx-picker-row {
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-picker-foot {
+    position: sticky;
+    bottom: -6px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--dx-base-300);
+    background: var(--dx-base-100);
+}
+
+.dx-rng {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--dx-muted);
+    font: 600 0.8125rem/1 var(--dx-font-mono);
+    cursor: pointer;
+}
+
+.dx-rng:hover {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+}
+
+.dx-rng[aria-pressed="true"] {
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    border-color: var(--dx-base-300);
+}
+
+.dx-filter {
+    height: 34px;
+    width: 100%;
+    max-width: 320px;
+    padding: 0 12px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font: 0.8125rem var(--dx-font-sans);
+}
+
+/* The filter in the dock's head */
+.dx-filter-sm {
+    height: 28px;
+    width: 13rem;
+    padding: 0 10px;
+}
+
+.dx-filter::placeholder {
+    color: var(--dx-muted);
+}
+
+.dx-logpane {
+    font: 0.8125rem/1.65 var(--dx-font-mono);
+    height: 560px;
+    overflow: auto;
+}
+
+.dx-lrow {
+    display: grid;
+    grid-template-columns: 104px 168px 54px minmax(0,1fr);
+    gap: 14px;
+    padding: 2px 18px;
+}
+
+.dx-lrow:nth-child(even) {
+    background: color-mix(in oklch,var(--dx-base-200) 55%,var(--dx-base-100));
+}
+
+.dx-lmsg {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dx-btn-er:hover {
+    color: var(--dx-error-text);
+    background: color-mix(in oklch,var(--dx-error) 8%,var(--dx-base-100));
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-switch, .dx-sw-knob {
+        transition: none;
+    }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dx-mbar i {
+        transition: none;
+    }
+}
+
+.dx-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 8px 10px 0;
+    background: var(--dx-base-200);
+    border-bottom: 1px solid var(--dx-base-300);
+}
+
+.dx-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    color: var(--dx-muted);
+}
+
+.dx-tab-on {
+    background: #0d1117;
+    color: #e6edf3;
+    border-color: #0d1117;
+}
+
+.dx-tab-sel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 6px 0 12px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: 600 0.8125rem/1 var(--dx-font-mono);
+    cursor: pointer;
+}
+
+.dx-tab-kind {
+    font: 600 0.75rem/1 var(--dx-font-sans);
+}
+
+.dx-tab-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.dx-tab-x:hover {
+    opacity: 1;
+    background: rgb(127 127 127 / 0.2);
+}
+
+/* One shell, or two side by side, each with its own keyboard focus */
+.dx-panes {
+    display: flex;
+    gap: 2px;
+    min-width: 0;
+    background: var(--dx-base-300);
+}
+
+/* In the dock the panes take the dock's height, so a logs pane and xterm scroll inside it */
+.dx-dpanes {
+    flex: 1;
+    min-height: 0;
+}
+
+.dx-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.dx-pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 6px 0 12px;
+    background: var(--dx-base-200);
+    font-size: 0.8125rem;
+}
+
+/* The split picker: what can show beside the first pane */
+.dx-picks {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--dx-base-100);
+}
+
+.dx-pick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-200);
+    color: var(--dx-base-content);
+    font-size: 0.8125rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.dx-pick:hover {
+    background: var(--dx-base-300);
+}
+
+/* The pane that has the keyboard shows it */
+.dx-pane:focus-within .dx-pane-head {
+    box-shadow: inset 0 -2px 0 var(--dx-info);
+}
+
+.dx-term {
+    background: #0d1117;
+    color: #c9d1d9;
+    font: 0.8125rem/1.6 var(--dx-font-mono);
+    display: flex;
+    flex-direction: column;
+    height: 580px;
+    min-width: 0;
+}
+
+.dx-term-out {
+    flex: 1;
+    overflow: auto;
+    padding: 14px 16px 4px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.dx-term-in {
+    display: flex;
+    align-items: center;
+    padding: 2px 16px 12px;
+}
+
+.dx-term-in input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    color: #e6edf3;
+    font: inherit;
+    caret-color: #7ee787;
+    outline: none;
+}
+
+.dx-term-in:focus-within {
+    box-shadow: inset 2px 0 0 #388bfd;
+}
+
+.dx-tmux {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 10px;
+    background: #3fb950;
+    color: #0d1117;
+    font: 600 0.75rem/1.4 var(--dx-font-mono);
+}
+
+.dx-help {
+    flex: 0 0 280px;
+    max-width: 100%;
+    border-left: 1px solid var(--dx-base-300);
+    background: var(--dx-base-100);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: auto;
+    height: 580px;
+}
+
+/* In the dock, the panel fills the dock's height and scrolls */
+.dx-help.dx-help-dock {
+    flex: 0 0 260px;
+    height: auto;
+    color: var(--dx-base-content);
+    font-family: var(--dx-font-sans);
+}
+
+.dx-sc {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    gap: 1px;
+    padding: 6px 0;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-sc code {
+    font: 600 0.8125rem/1.4 var(--dx-font-mono);
+    color: var(--dx-base-content);
+}
+
+.dx-sc span {
+    font-size: 0.8125rem;
+    color: var(--dx-muted);
+}
+
+/* Language and host icons, with the dark variants */
+.dx-lang-elixir { background-image: url("/images/elixir.ico"); }
+.dx-lang-erlang { background-image: url("/images/erlang.ico"); }
+.dx-lang-gleam { background-image: url("/images/gleam.ico"); }
+.dx-lang-linux { background-image: url("/images/linux.png"); }
+.dx-lang-macos { background-image: url("/images/mac.png"); }
+.dx-lang-deployex { background-image: url("/images/logo.svg"); }
+[data-theme=dark] .dx-lang-elixir { background-image: url("/images/elixir-dark.ico"); }
+[data-theme=dark] .dx-lang-erlang { background-image: url("/images/erlang-dark.ico"); }
+
+/* The search results show while the field has focus */
+.dx-search .dx-drop {
+    display: none;
+}
+
+.dx-search:focus-within .dx-drop:has(> *) {
+    display: block;
+}
+
+.dx-hit[aria-selected="true"] {
+    background: var(--dx-base-200);
+}
+
+.dx-mark {
+    background: color-mix(in oklch, var(--dx-warning) 35%, transparent);
+    color: inherit;
+    border-radius: 2px;
+}
+
+/* The page keeps room at the bottom for the open dock. The Dock hook sets the size */
+#shell-main {
+    padding-bottom: var(--dx-dock-space, 0px);
+}
+
+.dx-xterm {
+    height: 100%;
+    min-height: 0;
+    padding: 6px 0 0 12px;
+    background: #0d1117;
+}
+
+/* Pages about one app: Versions and mode, Ghosted */
+.dx-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--dx-muted);
+}
+
+.dx-back:hover {
+    color: var(--dx-base-content);
+}
+
+.dx-btn-primary, .dx-btn-primary:hover {
+    background: var(--dx-nav-active);
+    border-color: var(--dx-nav-active);
+    color: var(--dx-primary-content);
+}
+
+.dx-s-info {
+    color: var(--dx-info-text);
+    background: color-mix(in oklch, var(--dx-info) 12%, var(--dx-base-100));
+    border-color: color-mix(in oklch, var(--dx-info) 40%, var(--dx-base-100));
+}
+
+.dx-s-ok {
+    color: var(--dx-success-text);
+    background: color-mix(in oklch, var(--dx-success) 12%, var(--dx-base-100));
+    border-color: color-mix(in oklch, var(--dx-success) 40%, var(--dx-base-100));
+}
+
+.dx-seg-group {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 8px;
+    background: var(--dx-base-200);
+    border: 1px solid var(--dx-base-300);
+}
+
+.dx-seg[aria-pressed="true"] {
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+
+.dx-ask-warn {
+    background: color-mix(in oklch, var(--dx-warning) 7%, var(--dx-base-100));
+    padding: 14px 18px;
+}
+
+.dx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dx-field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dx-muted);
+}
+
+.dx-field select {
+    height: 40px;
+    min-width: 200px;
+    padding: 0 10px;
+    border: 1px solid var(--dx-base-300);
+    border-radius: 6px;
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font: 0.875rem var(--dx-font-mono);
+}
+
+.dx-vrow {
+    display: grid;
+    grid-template-columns: 110px minmax(180px, 1fr) 150px 210px;
+    gap: 18px;
+    align-items: center;
+    padding: 0 20px;
+    min-height: 52px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-grow {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) minmax(200px, 1fr) 240px 96px;
+    gap: 18px;
+    align-items: center;
+    padding: 0 20px;
+    min-height: 56px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-done {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--dx-base-300);
+    background: color-mix(in oklch, var(--dx-success) 9%, var(--dx-base-100));
+    font-size: 0.875rem;
+}
+
+.dx-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 24px;
+    border-top: 1px solid var(--dx-base-300);
+    text-align: center;
+}
+
+/* Shown only while it has focus, as the first stop of the keyboard */
+.dx-skip {
+    position: absolute;
+    left: 8px;
+    top: -48px;
+    z-index: 100;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--dx-base-100);
+    color: var(--dx-base-content);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+}
+
+.dx-skip:focus {
+    top: 8px;
+}
+
+#shell-main:focus {
+    outline: none;
+}
+
+/* On a narrow screen, or at 400% zoom, the top bar wraps instead of scrolling the page sideways */
+@media (max-width: 47.99rem) {
+    .dx-tb-left, .dx-tb-right {
+        min-width: 0;
+    }
+
+    .dx-tb-right {
+        flex-wrap: wrap;
+    }
+
+    .dx-meters {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+}

@@ -1,0 +1,151 @@
+/* DeployEx design tokens, shared by the dashboard and Observer Web.
+   Plain CSS custom properties with no daisyUI or Tailwind syntax, so other apps can copy this file as it is.
+   The light values apply by default and with data-theme="light", the dark values with data-theme="dark",
+   or with the system dark setting when the page sets no data-theme. */
+
+:root,
+[data-theme="light"] {
+    color-scheme: light;
+
+    /* Warm paper tones. Cards sit lighter than the page, so the surfaces stay apart */
+    --dx-base-100: oklch(98.6% 0.006 85);
+    --dx-base-200: oklch(95% 0.011 80);
+    --dx-base-300: oklch(88.5% 0.016 75);
+    /* The empty part of a meter, lighter than a border so the fill stands out */
+    --dx-track: oklch(92.5% 0.013 78);
+    --dx-base-content: oklch(23% 0.014 60);
+    --dx-muted: color-mix(in oklch, var(--dx-base-content) 66%, var(--dx-base-100));
+
+    --dx-primary: oklch(70% 0.213 47.604);
+    --dx-primary-content: oklch(98% 0.016 73.684);
+    --dx-primary-text: oklch(50% 0.16 42);
+    --dx-nav-active: oklch(53% 0.17 42);
+    --dx-secondary: oklch(52% 0.02 60);
+    --dx-secondary-content: oklch(98.6% 0.006 85);
+    --dx-accent: oklch(0% 0 0);
+    --dx-accent-content: oklch(100% 0 0);
+    --dx-neutral: oklch(44% 0.017 60);
+    --dx-neutral-content: oklch(98.6% 0.006 85);
+
+    --dx-info: oklch(62% 0.214 259.815);
+    --dx-info-content: oklch(97% 0.014 254.604);
+    --dx-info-text: oklch(47% 0.17 260);
+    --dx-success: oklch(70% 0.14 182.503);
+    --dx-success-content: oklch(98% 0.014 180.72);
+    --dx-success-text: oklch(44% 0.09 182);
+    --dx-warning: oklch(66% 0.179 58.318);
+    --dx-warning-content: oklch(98% 0.022 95.277);
+    --dx-warning-text: oklch(47% 0.12 58);
+    --dx-error: oklch(58% 0.253 17.585);
+    --dx-error-content: oklch(96% 0.015 12.422);
+    --dx-error-text: oklch(48% 0.19 20);
+
+    /* Hot upgrade. Red stays for ghosted and failed */
+    --dx-hot: oklch(55% 0.22 305);
+    --dx-hot-text: oklch(45% 0.2 305);
+}
+
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    --dx-base-100: oklch(30.33% 0.016 252.42);
+    --dx-base-200: oklch(25.26% 0.014 253.1);
+    --dx-base-300: oklch(20.15% 0.012 254.09);
+    --dx-track: oklch(20.15% 0.012 254.09);
+    --dx-base-content: oklch(97.807% 0.029 256.847);
+
+    --dx-primary: oklch(58% 0.233 277.117);
+    --dx-primary-content: oklch(96% 0.018 272.314);
+    --dx-primary-text: oklch(80% 0.11 277);
+    --dx-nav-active: oklch(52% 0.21 277);
+    --dx-secondary: oklch(58% 0.233 277.117);
+    --dx-secondary-content: oklch(96% 0.018 272.314);
+    --dx-accent: oklch(60% 0.25 292.717);
+    --dx-accent-content: oklch(96% 0.016 293.756);
+    --dx-neutral: oklch(37% 0.044 257.287);
+    --dx-neutral-content: oklch(98% 0.003 247.858);
+
+    --dx-info: oklch(58% 0.158 241.966);
+    --dx-info-content: oklch(97% 0.013 236.62);
+    --dx-info-text: oklch(82% 0.09 240);
+    --dx-success: oklch(60% 0.118 184.704);
+    --dx-success-content: oklch(98% 0.014 180.72);
+    --dx-success-text: oklch(82% 0.09 182);
+    --dx-warning: oklch(66% 0.179 58.318);
+    --dx-warning-content: oklch(98% 0.022 95.277);
+    --dx-warning-text: oklch(84% 0.12 72);
+    --dx-error: oklch(58% 0.253 17.585);
+    --dx-error-content: oklch(96% 0.015 12.422);
+    --dx-error-text: oklch(80% 0.12 20);
+
+    --dx-hot: oklch(62% 0.2 305);
+    --dx-hot-text: oklch(83% 0.1 305);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        color-scheme: dark;
+
+        --dx-base-100: oklch(30.33% 0.016 252.42);
+        --dx-base-200: oklch(25.26% 0.014 253.1);
+        --dx-base-300: oklch(20.15% 0.012 254.09);
+        --dx-track: oklch(20.15% 0.012 254.09);
+        --dx-base-content: oklch(97.807% 0.029 256.847);
+
+        --dx-primary: oklch(58% 0.233 277.117);
+        --dx-primary-content: oklch(96% 0.018 272.314);
+        --dx-primary-text: oklch(80% 0.11 277);
+        --dx-nav-active: oklch(52% 0.21 277);
+        --dx-secondary: oklch(58% 0.233 277.117);
+        --dx-secondary-content: oklch(96% 0.018 272.314);
+        --dx-accent: oklch(60% 0.25 292.717);
+        --dx-accent-content: oklch(96% 0.016 293.756);
+        --dx-neutral: oklch(37% 0.044 257.287);
+        --dx-neutral-content: oklch(98% 0.003 247.858);
+
+        --dx-info: oklch(58% 0.158 241.966);
+        --dx-info-content: oklch(97% 0.013 236.62);
+        --dx-info-text: oklch(82% 0.09 240);
+        --dx-success: oklch(60% 0.118 184.704);
+        --dx-success-content: oklch(98% 0.014 180.72);
+        --dx-success-text: oklch(82% 0.09 182);
+        --dx-warning: oklch(66% 0.179 58.318);
+        --dx-warning-content: oklch(98% 0.022 95.277);
+        --dx-warning-text: oklch(84% 0.12 72);
+        --dx-error: oklch(58% 0.253 17.585);
+        --dx-error-content: oklch(96% 0.015 12.422);
+        --dx-error-text: oklch(80% 0.12 20);
+
+        --dx-hot: oklch(62% 0.2 305);
+        --dx-hot-text: oklch(83% 0.1 305);
+    }
+}
+
+/* Type, spacing, radius and the shell sizes. The same in both themes */
+:root {
+    --dx-font-sans: ui-sans-serif, system-ui, sans-serif;
+    --dx-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --dx-text-xs: 0.75rem;
+    --dx-text-sm: 0.8125rem;
+    --dx-text-base: 0.875rem;
+    --dx-text-title: 1.125rem;
+    --dx-text-h1: 1.625rem;
+    --dx-leading: 1.45;
+
+    --dx-space-1: 0.25rem;
+    --dx-space-2: 0.5rem;
+    --dx-space-3: 0.75rem;
+    --dx-space-4: 1rem;
+    --dx-space-6: 1.5rem;
+    --dx-space-8: 2rem;
+
+    --dx-radius-selector: 0.25rem;
+    --dx-radius-field: 0.25rem;
+    --dx-radius-box: 0.5rem;
+    --dx-radius-menu: 0.625rem;
+
+    --dx-target: 2.75rem;
+    --dx-topbar-height: 3.5rem;
+    --dx-sidebar-width: 15.5rem;
+    --dx-rail-width: 4rem;
+}

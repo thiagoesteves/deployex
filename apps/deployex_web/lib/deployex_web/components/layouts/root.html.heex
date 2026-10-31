@@ -12,43 +12,65 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
     <script>
+      // Applies the theme and the sidebar state before the first paint. Both live on <html>, which
+      // LiveView does not patch, so they survive live navigation.
       (() => {
-        const setTheme = (theme) => {
-          if (theme === "system") {
-            localStorage.removeItem("phx:theme");
-            document.documentElement.removeAttribute("data-theme");
-          } else if (theme) {
-            localStorage.setItem("phx:theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
+        const html = document.documentElement;
+        const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+        // data-theme holds the theme: the one the user picked, or the system's until they pick one
+        const applyTheme = () => {
+          html.dataset.theme = localStorage.getItem("phx:theme") || (systemDark.matches ? "dark" : "light");
+        };
+
+        const applySidebar = () => {
+          if (localStorage.getItem("dx:sidebar") === "collapsed") {
+            html.dataset.sidebar = "collapsed";
+          } else {
+            delete html.dataset.sidebar;
           }
         };
 
-        // Always restore theme on page load
-        const savedTheme = localStorage.getItem("phx:theme");
-        if (savedTheme) {
-          setTheme(savedTheme);
-        } else {
-          // No saved theme, use system default
-          setTheme("system");
-        }
+        // The ShellState hook in app.js mirrors these into the aria state of the shell controls
+        const changed = () => window.dispatchEvent(new Event("dx:shell-state"));
 
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+        const saveTheme = (theme) => {
+          localStorage.setItem("phx:theme", theme);
+          applyTheme();
+          changed();
+        };
 
-        window.addEventListener("phx:set-theme", (e) => {
-          setTheme(e.detail.theme);
+        applyTheme();
+        applySidebar();
+
+        window.addEventListener("dx:toggle-theme", () => {
+          saveTheme(html.dataset.theme === "dark" ? "light" : "dark");
         });
 
-        // Listen for system theme changes when using system theme
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          if (!localStorage.getItem('phx:theme')) {
-            // Using system theme, update accordingly
-            document.documentElement.removeAttribute("data-theme");
+        window.addEventListener("dx:toggle-sidebar", () => {
+          if (html.dataset.sidebar === "collapsed") {
+            localStorage.removeItem("dx:sidebar");
+          } else {
+            localStorage.setItem("dx:sidebar", "collapsed");
           }
+          applySidebar();
+          changed();
+        });
+
+        window.addEventListener("storage", (e) => {
+          if (e.key === "phx:theme") applyTheme();
+          if (e.key === "dx:sidebar") applySidebar();
+          changed();
+        });
+
+        systemDark.addEventListener("change", () => {
+          applyTheme();
+          changed();
         });
       })();
     </script>
   </head>
-  <body class="bg-white antialiased">
+  <body class="bg-base-200 antialiased">
     {@inner_content}
   </body>
 </html>

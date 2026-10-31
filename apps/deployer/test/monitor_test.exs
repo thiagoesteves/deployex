@@ -42,6 +42,19 @@ defmodule Deployer.MonitorTest do
     }
   end
 
+  test "serving? counts a running instance and one in a hot upgrade's pre_commands" do
+    assert Deployer.Monitor.serving?(%Deployer.Monitor{status: :running})
+
+    assert Deployer.Monitor.serving?(%Deployer.Monitor{
+             status: :pre_commands,
+             current_pid: self()
+           })
+
+    refute Deployer.Monitor.serving?(%Deployer.Monitor{status: :pre_commands})
+    refute Deployer.Monitor.serving?(%Deployer.Monitor{status: :starting, current_pid: self()})
+    refute Deployer.Monitor.serving?(nil)
+  end
+
   describe "Initialization tests" do
     @tag :capture_log
     test "init/1", %{elixir_name: name, elixir_sname: sname, ports: ports} do
@@ -696,6 +709,59 @@ defmodule Deployer.MonitorTest do
     end
 
     @tag :capture_log
+    test "pre_commands that pass after a failure clear the failed list for the next run", %{
+      elixir_name: name,
+      elixir_sname: sname,
+      ports: ports
+    } do
+      test_pid = self()
+      FixtureFiles.create_bin_files(sname)
+
+      Deployer.StatusMock
+      |> stub(:current_version_map, fn ^sname ->
+        %Catalog.Version{version: "1.0.0", pre_commands: ["eval Migrate.run"]}
+      end)
+
+      Host.CommanderMock
+      |> stub(:run_link, fn _command, _options -> {:ok, test_pid, 123_456} end)
+      |> stub(:run, fn command, _options ->
+        if command =~ "eval Migrate.run" do
+          attempt = Process.get(:attempt, 0) + 1
+          Process.put(:attempt, attempt)
+          # What the status reads while this attempt runs
+          send(test_pid, {:during, attempt, MonitorApp.state(sname)})
+          if attempt == 1, do: {:error, [exit_status: 256]}, else: {:ok, test_pid}
+        else
+          {:ok, test_pid}
+        end
+      end)
+      |> stub(:stop, fn _pid -> :ok end)
+
+      assert {:ok, _pid} =
+               MonitorApp.start_service(%Service{
+                 name: name,
+                 sname: sname,
+                 language: "elixir",
+                 ports: ports,
+                 timeout_app_ready: 10,
+                 retry_delay_pre_commands: 10
+               })
+
+      assert_receive {:during, 1, %{status: :pre_commands, reported_pre_commands: []}}, 1_000
+
+      assert_receive {:during, 2,
+                      %{status: :pre_commands, reported_pre_commands: ["eval Migrate.run"]}},
+                     1_000
+
+      # A restart runs them again, and that run has no failure yet
+      Process.sleep(100)
+      assert :ok = MonitorApp.restart(sname)
+      assert_receive {:during, 3, %{status: :pre_commands, reported_pre_commands: []}}, 3_000
+
+      assert :ok = MonitorApp.stop_service(name, sname)
+    end
+
+    @tag :capture_log
     test "Check the application doesn't change to running with invalid ref", %{
       elixir_name: name,
       elixir_sname: sname,
@@ -1126,7 +1192,9 @@ defmodule Deployer.MonitorTest do
 
     test "code_change adds the new fields to a state from an older version" do
       state = %Deployer.Monitor{sname: "myelixir-abc"}
-      old_state = Map.drop(state, [:pre_commands_run, :reported_pre_commands, :started_at])
+
+      old_state =
+        Map.drop(state, [:pre_commands_run, :reported_pre_commands, :started_at, :last_crash_at])
 
       assert {:ok, ^state} = MonitorApp.code_change("0.10.0", old_state, [])
 
@@ -1186,8 +1254,11 @@ defmodule Deployer.MonitorTest do
 
       assert_receive {:handle_restart_event, ^test_event_ref}, 1_000
 
-      # Check restart was increased
-      assert %{status: :running, crash_restart_count: 1} = MonitorApp.state(sname)
+      # Check restart was increased, with the time of the crash
+      assert %{status: :running, crash_restart_count: 1, last_crash_at: %DateTime{} = crashed_at} =
+               MonitorApp.state(sname)
+
+      assert DateTime.diff(DateTime.utc_now(), crashed_at) in 0..2
 
       assert :ok = MonitorApp.stop_service(name, sname)
     end

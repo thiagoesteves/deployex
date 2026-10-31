@@ -20,7 +20,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
   test "GET /embedded-observer host info", %{conn: conn} do
     host = "macOS"
     description = "15.1.1"
-    total_memory = "64.00"
+    total_memory = "64 GB"
 
     {:ok, liveview, _html} = live(conn, ~p"/embedded-observer")
 
@@ -29,6 +29,7 @@ defmodule DeployexWeb.Terminal.ObserverTest do
       "deployex::host_info_updated",
       {:update_system_info,
        %Host.Info{
+         source_node: Node.self(),
          host: host,
          description: description,
          memory_free: 17_201_512_448,

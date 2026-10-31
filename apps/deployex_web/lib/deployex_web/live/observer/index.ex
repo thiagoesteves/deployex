@@ -3,7 +3,6 @@ defmodule DeployexWeb.ObserverLive do
   """
   use DeployexWeb, :live_view
 
-  alias DeployexWeb.Cache.UiSettings
   alias DeployexWeb.Components.SystemBar
 
   @impl true
@@ -11,9 +10,11 @@ defmodule DeployexWeb.ObserverLive do
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
+      recent_events={@recent_events}
+      socket={@socket}
     >
       <div class="min-h-screen bg-base-300">
         <!-- Header -->
@@ -52,21 +53,8 @@ defmodule DeployexWeb.ObserverLive do
   end
 
   @impl true
-  def mount(_params, _session, socket) when is_connected?(socket) do
-    # Subscribe to receive System info
-    Host.Info.subscribe()
-
-    {:ok,
-     socket
-     |> assign(:host_info, nil)
-     |> assign(:current_path, "/embedded-observer")}
-  end
-
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:host_info, nil)
-     |> assign(:current_path, "/embedded-observer")}
+    {:ok, assign(socket, :current_path, "/embedded-observer")}
   end
 
   @impl true
@@ -77,16 +65,5 @@ defmodule DeployexWeb.ObserverLive do
   defp apply_action(socket, :index, _params) do
     socket
     |> assign(:page_title, "Observer Web")
-  end
-
-  @impl true
-  def handle_info({:update_system_info, host_info}, socket) do
-    # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = UiSettings.get()
-
-    {:noreply,
-     socket
-     |> assign(:host_info, host_info)
-     |> assign(:ui_settings, ui_settings)}
   end
 end

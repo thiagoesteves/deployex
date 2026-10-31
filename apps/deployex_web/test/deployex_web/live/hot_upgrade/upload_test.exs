@@ -566,6 +566,7 @@ defmodule DeployexWeb.HotUpgrade.UploadTest do
       assert_receive {:liveview_pid, liveview_pid}, 1_000
 
       host_info = %Host.Info{
+        source_node: Node.self(),
         host: "Linux",
         description: "Ubuntu 22.04",
         memory_free: 8_000_000_000,

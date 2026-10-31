@@ -22,5 +22,8 @@ defmodule Host.Commander.Local do
   def send(process_pid, message), do: :exec.send(process_pid, message)
 
   @impl true
+  def winsz(process_pid, rows, cols), do: :exec.winsz(process_pid, rows, cols)
+
+  @impl true
   def os_type, do: :os.type()
 end

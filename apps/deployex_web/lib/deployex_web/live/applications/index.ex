@@ -5,120 +5,67 @@ defmodule DeployexWeb.ApplicationsLive do
   alias Deployer.Engine
   alias Deployer.Monitor
   alias Deployer.Status
-  alias DeployexWeb.ApplicationsLive.Ghosted
-  alias DeployexWeb.ApplicationsLive.Logs
-  alias DeployexWeb.ApplicationsLive.Terminal
-  alias DeployexWeb.ApplicationsLive.Versions
-  alias DeployexWeb.Cache.UiSettings
-  alias DeployexWeb.Components.CertificateModal
+  alias DeployexWeb.ApplicationsLive.Board
+  alias DeployexWeb.ApplicationsLive.Filter
+  alias DeployexWeb.ApplicationsLive.View
   alias DeployexWeb.Components.ConfigChangesModal
-  alias DeployexWeb.Components.Confirm
-  alias DeployexWeb.Components.Dashboard
-  alias DeployexWeb.Components.SystemBar
-  alias Foundation.Common
-  alias Host.Terminal.Server
-  alias ObserverWeb.Telemetry
   alias Sentinel.Config.Watcher
 
   @deployex_terminate_delay 300
+  # How long a restart button says Restart sent
+  @sent_window :timer.seconds(4)
 
   @impl true
   def render(assigns) do
+    shown = Filter.select(assigns.apps, assigns.tags)
+
+    # The apps that need attention come worst first
+    shown =
+      if {"status", "attention"} in assigns.tags,
+        do: Enum.sort_by(shown, &{-&1.severity, &1.name}),
+        else: shown
+
+    assigns =
+      assign(assigns,
+        attention: View.attention(assigns.apps),
+        shown: shown,
+        hidden: length(assigns.apps) - length(shown)
+      )
+
     ~H"""
     <Layouts.app
       flash={@flash}
-      ui_settings={@ui_settings}
       current_path={@current_path}
       current_user={@current_user}
+      host_info={@host_info}
+      recent_events={@recent_events}
+      search_tags={@tags}
+      socket={@socket}
     >
-      <div class="min-h-screen bg-base-300">
-        <SystemBar.content info={@host_info} />
-        <!-- Main Content -->
-        <div class="p-3">
-          <!-- Breadcrumb -->
-          <div class="breadcrumbs text-sm mb-3">
-            <ul>
-              <li><a class="text-base-content/60">Home</a></li>
-              <li class="text-base-content font-medium">Applications</li>
-            </ul>
-          </div>
-          <Dashboard.content
-            applications={@monitoring_apps_data}
-            metrics={@metrics}
-            pending_config_changes={@yaml_config.pending_config_changes}
-            active_name_tab={@active_name_tab}
-            active_sname_tab={@active_sname_tab}
-          />
-        </div>
+      <div class="mx-auto flex max-w-[1140px] flex-col gap-5 px-8 pt-7 pb-14 max-md:px-4">
+        <Board.page_head
+          host_name={@host_name}
+          attention={@attention}
+          only_attention={{"status", "attention"} in @tags}
+        />
+        <Board.host_card
+          host={View.host(@deployex, @host_info)}
+          pending_changes={pending_count(@yaml_config)}
+          asking={@ask == :deployex}
+        />
+        <Board.app_table
+          apps={@shown}
+          loaded={connected?(@socket)}
+          total={length(@apps)}
+          filtered={@tags != []}
+          open={@open}
+          limits_open={@limits_open}
+          ask={@ask}
+          sent={@sent}
+          cleared={@cleared}
+        />
       </div>
     </Layouts.app>
-
-    <.modal
-      :if={@live_action in [:logs_stdout, :logs_stderr]}
-      id="app-log-modal"
-      max_size="max-w-4xl"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Logs}
-        id={@selected_sname}
-        title={@page_title}
-        action={@live_action}
-        terminal_process={@terminal_process}
-        terminal_message={@terminal_message}
-        patch={~p"/applications"}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action in [:versions]}
-      id="app-versions-modal"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Versions}
-        id={"version-#{@selected_name}-#{@selected_sname}"}
-        name={@selected_name}
-        sname={@selected_sname}
-        title={@page_title}
-        action={@live_action}
-        patch={~p"/applications"}
-      />
-    </.modal>
-
-    <.modal
-      :if={@live_action in [:ghosted]}
-      id="app-ghosted-modal"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Ghosted}
-        id={"ghosted-#{@selected_name}"}
-        name={@selected_name}
-        title={@page_title}
-        patch={~p"/applications"}
-      />
-    </.modal>
-
-    <.terminal_modal
-      :if={@live_action in [:terminal]}
-      id="app-terminal-modal"
-      show
-      on_cancel={JS.patch(~p"/applications")}
-    >
-      <.live_component
-        module={Terminal}
-        id={@selected_sname}
-        title={@page_title}
-        terminal_process={@terminal_process}
-        terminal_message={@terminal_message}
-        cookie={Common.cookie()}
-        patch={~p"/applications"}
-      />
-    </.terminal_modal>
 
     <%= if @yaml_config.show_modal do %>
       <ConfigChangesModal.modal
@@ -128,512 +75,95 @@ defmodule DeployexWeb.ApplicationsLive do
         on_apply="config-changes-apply"
       />
     <% end %>
-
-    <%= if @pk_cert_details.show_modal do %>
-      <CertificateModal.modal
-        id="certificate"
-        certificate={@pk_cert_details.certificate}
-        on_cancel="confirm-close-modal"
-      />
-    <% end %>
-
-    <%= if @live_action == :full_restart do %>
-      <Confirm.content id={"full-app-restart-modal-#{@selected_sname}"}>
-        <:header>Full Deployment Restart</:header>
-
-        <div class="space-y-4">
-          <p class="text-base-content/90">
-            You are about to perform a <span class="font-bold text-error">full restart</span>
-            of all deployment instances for:
-          </p>
-          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
-                <span class="text-base font-mono font-bold text-primary">
-                  {String.first(@selected_name)}
-                </span>
-              </div>
-              <% app =
-                Enum.find(@monitoring_apps_data, &(&1.name == @selected_name)) || %{replicas: 0} %>
-              <div :if={app.replicas > 0}>
-                <p class="font-semibold text-base-content">{@selected_name}</p>
-                <p class="text-sm text-base-content/60">
-                  {app.replicas} replica(s)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-error/10 border border-error/20 rounded-lg p-4">
-            <div class="flex gap-3">
-              <svg
-                class="w-5 h-5 text-error flex-shrink-0 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                >
-                </path>
-              </svg>
-              <div class="space-y-2">
-                <p class="font-semibold text-error">Warning: Destructive Operation</p>
-                <ul class="text-sm text-base-content/80 space-y-1 list-disc list-inside">
-                  <li>All running application instances will be terminated</li>
-                  <li>Deployments will restart sequentially</li>
-                  <li>This may cause temporary service interruption</li>
-                  <li>This action cannot be undone</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <:footer>
-          <Confirm.cancel_button id="full-restart-cancel">
-            Cancel
-          </Confirm.cancel_button>
-          <Confirm.danger_button
-            id="full-restart-execute"
-            event="full-restart-execute"
-            value={@selected_name}
-          >
-            Yes, Restart All
-          </Confirm.danger_button>
-        </:footer>
-      </Confirm.content>
-    <% end %>
-
-    <%= if @live_action in [:restart] do %>
-      <Confirm.content id={"app-restart-modal-#{@selected_sname}"}>
-        <:header :if={@selected_sname == "deployex"}>
-          Critical Action - All Apps Will Be Terminated
-        </:header>
-        <:header :if={@selected_sname != "deployex"}>
-          Restart Application
-        </:header>
-
-        <div :if={@selected_sname == "deployex"} class="space-y-6">
-          <div class="bg-red-50 border border-red-200 rounded-2xl p-6">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <svg
-                  class="w-5 h-5 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 9v2m0 4h.01"
-                  >
-                  </path>
-                </svg>
-              </div>
-              <h4 class="font-bold text-red-800">Critical Warning</h4>
-            </div>
-            <p class="text-red-700 text-sm leading-relaxed">
-              This will terminate all monitored applications and cannot be undone.
-            </p>
-          </div>
-          <p class="text-base-content/90 leading-relaxed">
-            Are you sure you want to restart <span class="font-semibold text-red-600">deployex</span>?
-            All running applications will be affected.
-          </p>
-        </div>
-
-        <div :if={@selected_sname != "deployex"} class="space-y-4">
-          <p class="text-base-content/90 leading-relaxed">
-            Are you sure you want to restart <span class="font-semibold text-primary">{"#{@selected_sname}"}</span>?
-          </p>
-          <div class="text-base-content/60 leading-relaxed">
-            The application will be stopped and restarted automatically.
-          </div>
-        </div>
-
-        <:footer>
-          <Confirm.cancel_button id={@selected_sname}>Cancel</Confirm.cancel_button>
-          <Confirm.danger_button
-            :if={@selected_sname == "deployex"}
-            event="restart"
-            id={@selected_sname}
-            value={@selected_sname}
-          >
-            Terminate All Apps
-          </Confirm.danger_button>
-          <Confirm.confirm_button
-            :if={@selected_sname != "deployex"}
-            event="restart"
-            id={@selected_sname}
-            value={@selected_sname}
-          >
-            Restart App
-          </Confirm.confirm_button>
-        </:footer>
-      </Confirm.content>
-    <% end %>
-
-    <%= if @ghosted_confirmation do %>
-      <Confirm.content id="app-ghosted-confirm-modal">
-        <:header :if={@ghosted_confirmation.version}>Remove Ghosted Version</:header>
-        <:header :if={is_nil(@ghosted_confirmation.version)}>Clear Ghosted Versions</:header>
-
-        <div class="space-y-6">
-          <div class="bg-base-200 border border-base-300 rounded-lg p-4">
-            <p class="text-sm text-base-content/60">Application</p>
-            <p class="font-semibold text-base-content">{@ghosted_confirmation.name}</p>
-          </div>
-
-          <p :if={@ghosted_confirmation.version} class="text-base-content/90 leading-relaxed">
-            Remove version
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-mono font-semibold bg-warning/20 text-warning-content">
-              {@ghosted_confirmation.version}
-            </span>
-            from the ghosted list?
-          </p>
-
-          <p :if={is_nil(@ghosted_confirmation.version)} class="text-base-content/90 leading-relaxed">
-            Remove all <span class="font-semibold">{@ghosted_confirmation.count}</span>
-            ghosted versions?
-          </p>
-
-          <div class="text-base-content/60 leading-relaxed">
-            A ghosted version is skipped by every deployment. The engine offers it again on its
-            next check, which deploys it if it is still the version to deploy.
-          </div>
-        </div>
-
-        <:footer>
-          <Confirm.cancel_button id="ghosted">Cancel</Confirm.cancel_button>
-          <Confirm.danger_button
-            :if={is_nil(@ghosted_confirmation.version)}
-            event="ghosted-confirm"
-            id="ghosted"
-            value={@ghosted_confirmation.name}
-          >
-            Yes, Clear All
-          </Confirm.danger_button>
-          <Confirm.confirm_button
-            :if={@ghosted_confirmation.version}
-            event="ghosted-confirm"
-            id="ghosted"
-            value={@ghosted_confirmation.version}
-          >
-            Remove Version
-          </Confirm.confirm_button>
-        </:footer>
-      </Confirm.content>
-    <% end %>
-
-    <%= if @mode_confirmation do %>
-      <Confirm.content id="app-set-mode-modal-deployex">
-        <:header>Change Application Mode</:header>
-
-        <div class="space-y-6">
-          <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg
-                  class="w-5 h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-              </div>
-              <div>
-                <h4 class="font-bold text-blue-800">Configuration Change</h4>
-                <p class="text-blue-700 text-sm">
-                  Application: <span class="font-semibold">{@mode_confirmation.name}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p class="text-base-content/90 leading-relaxed">
-            Change mode to <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary/10 text-primary">{"#{@mode_confirmation.mode_or_version}"}</span>?
-          </p>
-
-          <div class="text-base-content/60 leading-relaxed">
-            This will update the application's deployment configuration.
-          </div>
-        </div>
-
-        <:footer>
-          <Confirm.cancel_button id="mode">Cancel</Confirm.cancel_button>
-          <Confirm.confirm_button
-            event="set-mode"
-            id="mode"
-            value={@mode_confirmation.mode_or_version}
-          >
-            Change Mode
-          </Confirm.confirm_button>
-        </:footer>
-      </Confirm.content>
-    <% end %>
     """
   end
 
   @impl true
-  def mount(_params, _session, socket) when is_connected?(socket) do
-    # Subscribe to receive Application Status
-    Status.subscribe()
+  def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Status.subscribe()
+      Watcher.subscribe_new_config()
+    end
 
-    # Subscribe to receive System info
-    Host.Info.subscribe()
-
-    # Subscribe to receive new config changes event
-    Watcher.subscribe_new_config()
-
-    {:ok, monitoring_apps_data} = Deployer.Status.monitoring()
-
-    metrics = updated_metrics(monitoring_apps_data)
-
-    yaml_config =
-      case Watcher.get_pending_changes() do
-        {:ok, pending_config_changes} ->
-          Map.merge(default_yaml_config(), %{pending_config_changes: pending_config_changes})
-
-        _ ->
-          default_yaml_config()
+    statuses =
+      case connected?(socket) && Status.monitoring() do
+        {:ok, statuses} -> statuses
+        _ -> []
       end
 
-    socket =
-      socket
-      |> assign(:node, Node.self())
-      |> assign(:host_info, nil)
-      |> assign(:metrics, metrics)
-      |> assign(:monitoring_apps_data, monitoring_apps_data)
-      |> assign(:selected_name, nil)
-      |> assign(:selected_sname, nil)
-      |> assign(:active_name_tab, "deployex")
-      |> assign(:active_sname_tab, %{})
-      |> assign(:terminal_message, nil)
-      |> assign(:terminal_process, nil)
-      |> assign(:mode_confirmation, nil)
-      |> assign(:ghosted_confirmation, nil)
-      |> assign(:yaml_config, yaml_config)
-      |> assign(:pk_cert_details, default_pk_cert_details())
-      |> assign(:current_path, "/applications")
+    yaml_config =
+      case connected?(socket) && Watcher.get_pending_changes() do
+        {:ok, changes} -> %{default_yaml_config() | pending_config_changes: changes}
+        _ -> default_yaml_config()
+      end
 
-    {:ok, socket}
-  end
-
-  @impl true
-  def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(:node, Node.self())
-     |> assign(:host_info, nil)
-     |> assign(:metrics, %{})
-     |> assign(:monitoring_apps_data, [])
-     |> assign(:selected_name, nil)
-     |> assign(:selected_sname, nil)
-     |> assign(:active_name_tab, "deployex")
-     |> assign(:active_sname_tab, %{})
-     |> assign(:terminal_message, nil)
-     |> assign(:terminal_process, nil)
-     |> assign(:mode_confirmation, nil)
-     |> assign(:ghosted_confirmation, nil)
-     |> assign(:yaml_config, default_yaml_config())
-     |> assign(:pk_cert_details, default_pk_cert_details())
+     |> assign(:host_name, host_name())
+     |> assign_statuses(statuses)
+     |> assign(:open, MapSet.new())
+     |> assign(:limits_open, %{})
+     |> assign(:tags, [])
+     |> assign(:ask, nil)
+     |> assign(:sent, MapSet.new())
+     |> assign(:cleared, %{})
+     |> assign(:yaml_config, yaml_config)
      |> assign(:current_path, "/applications")}
   end
 
   @impl true
   def handle_params(params, _url, socket) do
-    {:noreply, apply_action(socket, socket.assigns.live_action, params)}
+    {:noreply,
+     socket
+     |> apply_action(socket.assigns.live_action, params)
+     |> tags(Filter.parse(params))
+     |> focus(params)}
   end
 
-  defp apply_action(%{assigns: %{terminal_process: nil}} = socket, :index, _params) do
-    socket
-    |> assign(:page_title, "Listing Applications")
-  end
+  # New tags start from collapsed apps, so Clear does not leave open what a tag opened
+  defp tags(%{assigns: %{tags: tags}} = socket, tags), do: socket
 
-  # NOTE: A terminal message was received without any configured terminal
-  defp apply_action(%{assigns: %{terminal_message: terminal_message}} = socket, :index, _params) do
-    Server.async_terminate(terminal_message.source_pid)
+  defp tags(socket, tags),
+    do: assign(socket, tags: tags, open: MapSet.new(), limits_open: %{})
 
-    socket
-    |> assign(:page_title, "Listing Applications")
-    |> assign(:terminal_message, nil)
-    |> assign(:terminal_process, nil)
-  end
+  defp apply_action(socket, :index, _params), do: assign(socket, :page_title, "Applications")
 
-  defp apply_action(socket, logs_type, %{"name" => name, "sname" => sname})
-       when logs_type in [:logs_stdout, :logs_stderr] do
-    socket
-    |> assign(:page_title, "Application Logs")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, sname)
-  end
+  defp focus(socket, %{"review" => "config"}), do: open_config_changes(socket)
 
-  defp apply_action(socket, :terminal, %{"name" => name, "sname" => sname}) do
-    socket
-    |> assign(:page_title, "Application Terminal")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, sname)
-  end
+  # An app tag opens its app, and an instance tag also its details
+  defp focus(%{assigns: %{tags: tags}} = socket, _params) do
+    Enum.reduce(tags, socket, fn
+      {"app", name}, socket ->
+        update(socket, :open, &MapSet.put(&1, name))
 
-  defp apply_action(socket, :versions, %{"sname" => sname, "name" => name}) do
-    socket
-    |> assign(:page_title, "#{sname} version history")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, sname)
-  end
+      {"instance", sname}, socket ->
+        socket
+        |> update(:open, &MapSet.put(&1, String.replace(sname, ~r/-[^-]+$/, "")))
+        |> update(:limits_open, &Map.put(&1, sname, true))
 
-  defp apply_action(socket, :versions, %{"name" => name}) do
-    socket
-    |> assign(:page_title, "#{name} version history")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, nil)
-  end
-
-  defp apply_action(socket, :ghosted, %{"name" => name}) do
-    socket
-    |> assign(:page_title, "#{name} ghosted versions")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, nil)
-  end
-
-  defp apply_action(socket, :restart, %{"name" => name, "sname" => sname}) do
-    socket
-    |> assign(:page_title, "Restart application")
-    |> assign(:selected_name, name)
-    |> assign(:selected_sname, sname)
-  end
-
-  defp apply_action(socket, :full_restart, %{"name" => name}) do
-    socket
-    |> assign(:page_title, "Restart all #{name} applications")
-    |> assign(:selected_name, name)
-  end
-
-  # The list the component is showing came from a read of its own. Nothing in the assigns it
-  # is given changed, so it has to be told to read again, otherwise it keeps the stale list
-  defp refresh_ghosted_list(name) do
-    send_update(Ghosted, id: "ghosted-#{name}", name: name)
+      _tag, socket ->
+        socket
+    end)
   end
 
   @impl true
   def handle_info(
-        {:metrics_new_data, source_node, metric_key,
-         %Telemetry.Data{measurements: %{total: count, limit: limit}}},
-        %{assigns: %{metrics: metrics}} = socket
-      )
-      when is_integer(limit) and limit > 0 do
-    if source_node in metrics.monitored_nodes do
-      current_percentage = trunc(count / limit * 100)
-
-      [_vm, metric, _total] = String.split(metric_key, ".")
-      metric = String.to_existing_atom(metric)
-
-      new_node_metrics =
-        metrics
-        |> Map.get(source_node, %{})
-        |> Map.put(metric, current_percentage)
-
-      {:noreply, assign(socket, :metrics, Map.put(metrics, source_node, new_node_metrics))}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  # NOTE: Ignore any other metric value, like nil when the node is down
-  def handle_info({:metrics_new_data, _source_node, _metric_key, _value}, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_info({:update_system_info, host_info}, %{assigns: %{metrics: metrics}} = socket)
-      when is_integer(host_info.memory_total) and host_info.memory_total > 0 do
-    # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = UiSettings.get()
-
-    memory_used =
-      trunc((host_info.memory_total - host_info.memory_free) / host_info.memory_total * 100)
-
-    node = Node.self()
-
-    new_node_metrics =
-      metrics
-      |> Map.get(node, %{})
-      |> Map.put(:memory, memory_used)
-
-    {:noreply,
-     socket
-     |> assign(:host_info, host_info)
-     |> assign(:metrics, Map.put(metrics, node, new_node_metrics))
-     |> assign(:ui_settings, ui_settings)}
-  end
-
-  # NOTE: Ignore system info when memory_total is nil or 0 to avoid division by zero
-  def handle_info({:update_system_info, host_info}, socket) do
-    ui_settings = UiSettings.get()
-    {:noreply, socket |> assign(:host_info, host_info) |> assign(:ui_settings, ui_settings)}
-  end
-
-  def handle_info(
-        {:monitoring_app_updated, source_node, monitoring_apps_data},
-        %{assigns: %{node: node, metrics: metrics}} = socket
-      )
-      when source_node == node do
-    # Sync ui_settings from cache to ensure NavMenu has latest state
-    ui_settings = UiSettings.get()
-
-    # Update monitored metrics and subscribe to receive metrics if needed
-    metrics = updated_metrics(monitoring_apps_data, metrics)
-
-    {:noreply,
-     socket
-     |> assign(:metrics, metrics)
-     |> assign(:monitoring_apps_data, monitoring_apps_data)
-     |> assign(:ui_settings, ui_settings)}
-  end
-
-  def handle_info({:monitoring_app_updated, _source_node, _monitoring_apps_data}, socket) do
-    # NOTE: In future implementations, this will pattern match against other nodes
-    #       to enable DeployEx to present its data.
-    # Still sync ui_settings to ensure consistency
-    ui_settings = UiSettings.get()
-    {:noreply, assign(socket, :ui_settings, ui_settings)}
-  end
-
-  def handle_info({:terminal_update, %{metadata: metadata, status: :closed}}, socket)
-      when metadata in [:iex_terminal, :logs_stdout, :logs_stderr] do
-    {:noreply, push_patch(socket, to: ~p"/applications")}
-  end
-
-  def handle_info({:terminal_update, %{metadata: metadata, process: process} = msg}, socket)
-      when metadata in [:iex_terminal, :logs_stdout, :logs_stderr] do
-    # ATTENTION: This is the stdout from erl_exec command
-    #            Be careful adding logs here, since it can create an infinity loop
-    #            when using deployex web logs.
-    {:noreply,
-     socket
-     |> assign(:terminal_message, msg)
-     |> assign(:terminal_process, process)}
-  end
-
-  def handle_info(
-        {:watcher_config_new, source_node, nil},
+        {:monitoring_app_updated, source_node, statuses},
         %{assigns: %{node: node}} = socket
       )
       when source_node == node do
-    {:noreply, assign(socket, :yaml_config, default_yaml_config())}
+    {:noreply, assign_statuses(socket, statuses)}
   end
+
+  def handle_info({:monitoring_app_updated, _source_node, _statuses}, socket),
+    do: {:noreply, socket}
+
+  def handle_info({:clear_sent, sname}, socket),
+    do: {:noreply, update(socket, :sent, &MapSet.delete(&1, sname))}
+
+  def handle_info({:clear_shown, name}, socket),
+    do: {:noreply, update(socket, :cleared, &Map.delete(&1, name))}
 
   def handle_info(
         {:watcher_config_new, source_node, pending_changes},
@@ -650,118 +180,73 @@ defmodule DeployexWeb.ApplicationsLive do
   end
 
   @impl true
-  def handle_event("app-log-click", %{"name" => name, "sname" => sname, "std" => std}, socket) do
-    std_path = fn
-      name, sname, "stderr" -> ~p"/applications/#{name}/#{sname}/logs/stderr"
-      name, sname, "stdout" -> ~p"/applications/#{name}/#{sname}/logs/stdout"
-    end
+  def handle_event("toggle-attention", _params, %{assigns: %{tags: tags}} = socket),
+    do:
+      {:noreply,
+       push_patch(socket, to: Filter.path(Filter.toggle(tags, {"status", "attention"})))}
 
-    {:noreply, push_patch(socket, to: std_path.(name, sname, std))}
-  end
-
-  def handle_event("app-terminal-click", %{"name" => name, "sname" => sname}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/#{sname}/terminal")}
-  end
-
-  def handle_event("app-versions-click", %{"name" => name, "sname" => sname}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/#{sname}/versions")}
-  end
-
-  def handle_event("app-versions-click", %{"name" => name}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/versions")}
-  end
-
-  def handle_event("app-ghosted-click", %{"name" => name}, socket) do
-    {:noreply, push_patch(socket, to: ~p"/applications/#{name}/ghosted")}
-  end
-
-  def handle_event(
-        "ghosted-remove-request",
-        %{"version" => version},
-        %{assigns: %{selected_name: name}} = socket
-      ) do
-    {:noreply, assign(socket, :ghosted_confirmation, %{name: name, version: version, count: 1})}
-  end
-
-  def handle_event("ghosted-clear-request", _params, %{assigns: %{selected_name: name}} = socket) do
-    count = name |> Status.ghosted_version_list() |> length()
-
-    {:noreply, assign(socket, :ghosted_confirmation, %{name: name, version: nil, count: count})}
-  end
-
-  def handle_event(
-        "ghosted-confirm",
-        _params,
-        %{assigns: %{ghosted_confirmation: %{name: name, version: nil}}} = socket
-      ) do
-    {:ok, _list} = Status.clear_ghosted_versions(name)
-
-    refresh_ghosted_list(name)
-
+  def handle_event("show-instance", %{"name" => name, "sname" => sname}, socket) do
     {:noreply,
      socket
-     |> assign(:ghosted_confirmation, nil)
-     |> put_flash(:info, "All ghosted versions removed for #{name}")}
+     |> update(:open, &MapSet.put(&1, name))
+     |> update(:limits_open, &Map.put(&1, sname, true))}
   end
 
-  def handle_event(
-        "ghosted-confirm",
-        _params,
-        %{assigns: %{ghosted_confirmation: %{name: name, version: version}}} = socket
-      ) do
-    {:ok, _list} = Status.remove_ghosted_version(name, version)
+  def handle_event("toggle-app", %{"name" => name, "open" => "true"}, socket),
+    do: {:noreply, update(socket, :open, &MapSet.put(&1, name))}
 
-    refresh_ghosted_list(name)
-
+  def handle_event("toggle-app", %{"name" => name}, socket) do
     {:noreply,
-     socket
-     |> assign(:ghosted_confirmation, nil)
-     |> put_flash(:info, "Version #{version} removed from the ghosted list")}
+     update(socket, :open, fn open ->
+       if MapSet.member?(open, name), do: MapSet.delete(open, name), else: MapSet.put(open, name)
+     end)}
   end
 
-  def handle_event("restart", %{"id" => "deployex"}, socket) do
-    # NOTE: Say goodbye to your monitored applications
-    Deployex.force_terminate(@deployex_terminate_delay)
-    {:noreply, push_patch(socket, to: ~p"/applications")}
+  def handle_event("toggle-limits", %{"sname" => sname, "open" => open}, socket) do
+    {:noreply, update(socket, :limits_open, &Map.put(&1, sname, open == "true"))}
   end
 
-  def handle_event("restart", %{"id" => sname}, socket) do
+  def handle_event("ask", %{"target" => "deployex"}, socket),
+    do: {:noreply, assign(socket, :ask, :deployex)}
+
+  def handle_event("ask", %{"target" => "app:" <> name}, socket),
+    do: {:noreply, assign(socket, :ask, {:app, name})}
+
+  def handle_event("ask", %{"target" => "ghosted:" <> name}, socket),
+    do: {:noreply, assign(socket, :ask, {:ghosted, name})}
+
+  def handle_event("ask", %{"target" => sname}, socket),
+    do: {:noreply, assign(socket, :ask, sname)}
+
+  def handle_event("cancel-ask", _params, socket), do: {:noreply, assign(socket, :ask, nil)}
+
+  def handle_event("restart-instance", %{"sname" => sname}, socket) do
     Monitor.restart(sname)
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Restart initiated for #{sname}")
-     |> push_patch(to: ~p"/applications")}
+    Process.send_after(self(), {:clear_sent, sname}, @sent_window)
+    {:noreply, socket |> assign(:ask, nil) |> update(:sent, &MapSet.put(&1, sname))}
   end
 
-  def handle_event("full-restart-execute", %{"id" => name}, socket) do
+  def handle_event("restart-app", %{"name" => name}, socket) do
     Engine.restart_deployments(name)
 
     {:noreply,
      socket
-     |> put_flash(:info, "Full restart initiated for #{name}")
-     |> push_patch(to: ~p"/applications")}
+     |> assign(:ask, nil)
+     |> put_flash(:info, "Restarting every instance of #{name}")}
   end
 
-  def handle_event("set-mode", %{"id" => _}, %{assigns: %{mode_confirmation: nil}} = socket) do
-    {:noreply, socket}
+  def handle_event("restart-deployex", _params, socket) do
+    # NOTE: Say goodbye to your monitored applications
+    Deployex.force_terminate(@deployex_terminate_delay)
+    {:noreply, assign(socket, :ask, nil)}
   end
 
-  def handle_event(
-        "set-mode",
-        %{"id" => mode_or_version},
-        %{assigns: %{mode_confirmation: %{name: name}}} = socket
-      ) do
-    if mode_or_version == "automatic" do
-      Status.set_mode(name, :automatic, "")
-    else
-      Status.set_mode(name, :manual, mode_or_version)
-    end
+  # The clear happens at once. The row says it was cleared until the next status shows it gone
+  def handle_event("clear-ghosted", %{"name" => name, "version" => version}, socket) do
+    {:ok, _list} = Status.remove_ghosted_version(name, version)
+    Process.send_after(self(), {:clear_shown, name}, @sent_window)
 
-    {:noreply,
-     socket
-     |> assign(:mode_confirmation, nil)
-     |> push_patch(to: ~p"/applications")}
+    {:noreply, socket |> assign(:ask, nil) |> update(:cleared, &Map.put(&1, name, version))}
   end
 
   def handle_event(
@@ -785,137 +270,51 @@ defmodule DeployexWeb.ApplicationsLive do
      |> push_patch(to: ~p"/applications")}
   end
 
-  # Cancelling this confirmation goes back to the list it was opened from, not out of it
-  def handle_event(
-        "confirm-close-modal",
-        _,
-        %{assigns: %{ghosted_confirmation: %{name: name}}} = socket
-      ) do
+  def handle_event("confirm-close-modal", _, %{assigns: %{yaml_config: yaml_config}} = socket) do
     {:noreply,
      socket
-     |> assign(:ghosted_confirmation, nil)
-     |> push_patch(to: ~p"/applications/#{name}/ghosted")}
-  end
-
-  def handle_event(
-        "confirm-close-modal",
-        _,
-        %{assigns: %{yaml_config: yaml_config, pk_cert_details: pk_cert_details}} = socket
-      ) do
-    {:noreply,
-     socket
-     |> assign(:mode_confirmation, nil)
      |> assign(:yaml_config, %{yaml_config | show_modal: false})
-     |> assign(:pk_cert_details, %{pk_cert_details | show_modal: false})
      |> push_patch(to: ~p"/applications")}
   end
 
-  def handle_event("app-mode-select", %{"select-mode" => mode_or_version, "name" => name}, socket) do
-    # NOTE: this check is needed due to phoenix reconnect (replay form events)
-    already_current? = fn name, mode_or_version ->
-      application = Enum.find(socket.assigns.monitoring_apps_data, &(&1.name == name))
+  # A version cleared a moment ago shows as cleared, not ghosted, until the status catches up
+  defp assign_statuses(%{assigns: assigns} = socket, statuses) do
+    cleared = Map.get(assigns, :cleared, %{})
 
-      current_mode_or_version =
-        case application.config do
-          %{mode: :automatic} -> "automatic"
-          %{manual_version: %{version: version}} -> version
-        end
-
-      current_mode_or_version == mode_or_version
-    end
-
-    if already_current?.(name, mode_or_version) do
-      {:noreply, socket}
-    else
-      {:noreply,
-       socket
-       |> assign(:mode_confirmation, %{name: name, mode_or_version: mode_or_version})
-       |> push_patch(to: ~p"/applications")}
-    end
-  end
-
-  def handle_event(
-        "swicth-app-tab",
-        %{"name" => name, "sname" => sname},
-        %{assigns: %{active_sname_tab: active_sname_tab}} = socket
-      ) do
-    {:noreply, assign(socket, :active_sname_tab, Map.put(active_sname_tab, name, sname))}
-  end
-
-  def handle_event(
-        "show-app-certificate",
-        %{"name" => name},
-        %{
-          assigns: %{
-            pk_cert_details: pk_cert_details,
-            monitoring_apps_data: monitoring_apps_data
-          }
-        } = socket
-      ) do
-    case Enum.find(monitoring_apps_data, &(&1.name == name)) do
-      nil ->
-        {:noreply,
-         socket
-         |> assign(:pk_cert_details, default_pk_cert_details())
-         |> push_patch(to: ~p"/applications")}
-
-      %{certificates: [cert | _]} ->
-        {:noreply,
-         socket
-         |> assign(:pk_cert_details, %{
-           pk_cert_details
-           | show_modal: true,
-             certificate: cert
-         })
-         |> push_patch(to: ~p"/applications")}
-    end
-  end
-
-  def handle_event("swicth-app-tab", %{"name" => name}, socket) do
-    {:noreply, assign(socket, :active_name_tab, name)}
-  end
-
-  defp updated_metrics(monitoring_apps_data, current \\ %{monitored_nodes: []}) do
-    self_node = Node.self()
-
-    # DeployEx memory is the host memory reported by Host.Info, not a Beam VM series,
-    # so it is the only configured resource without a metric to subscribe to
-    subscribe_if_new = fn node, monitoring ->
-      if node not in current.monitored_nodes do
-        monitoring
-        |> Keyword.keys()
-        |> Enum.reject(&(node == self_node and &1 == :memory))
-        |> Enum.each(&Telemetry.subscribe_for_new_data(node, "vm.#{&1}.total"))
-      end
-    end
-
-    new_monitored_nodes =
-      Enum.reduce(monitoring_apps_data, [self_node], fn
-        %{name: "deployex", monitoring: monitoring}, acc ->
-          subscribe_if_new.(self_node, monitoring)
-          acc
-
-        app, acc ->
-          Enum.reduce(app.children, acc, fn child, monitored_nodes ->
-            subscribe_if_new.(child.node, child.monitoring)
-            monitored_nodes ++ [child.node]
-          end)
+    apps =
+      statuses
+      |> View.apps()
+      |> Enum.map(fn app ->
+        if (Map.has_key?(cleared, app.name) and app.alert) && app.alert.kind == :ghosted,
+          do: %{app | alert: nil},
+          else: app
       end)
 
-    %{current | monitored_nodes: new_monitored_nodes}
+    socket
+    |> assign(:monitoring_apps_data, statuses)
+    |> assign(:deployex, Enum.find(statuses, &(&1.name == "deployex")))
+    |> assign(:apps, apps)
+  end
+
+  defp open_config_changes(%{assigns: %{yaml_config: yaml_config}} = socket),
+    do:
+      assign(socket, :yaml_config, %{
+        yaml_config
+        | show_modal: yaml_config.pending_config_changes != nil
+      })
+
+  defp pending_count(%{pending_config_changes: %{changes_count: count}}), do: count
+  defp pending_count(_yaml_config), do: 0
+
+  defp host_name do
+    {:ok, name} = :inet.gethostname()
+    to_string(name)
   end
 
   defp default_yaml_config do
     %{
       show_modal: false,
       pending_config_changes: nil
-    }
-  end
-
-  defp default_pk_cert_details do
-    %{
-      show_modal: false,
-      certificate: nil
     }
   end
 end

@@ -2,7 +2,6 @@ defmodule DeployexWeb.Router do
   use DeployexWeb, :router
 
   import DeployexWeb.UserAuth
-  import DeployexWeb.UiSettings
   import Observer.Web.Router
 
   pipeline :browser do
@@ -18,7 +17,6 @@ defmodule DeployexWeb.Router do
     }
 
     plug :fetch_current_user
-    plug :fetch_current_ui_settings
   end
 
   pipeline :api do
@@ -39,7 +37,6 @@ defmodule DeployexWeb.Router do
     live_session :redirect_if_user_is_authenticated,
       on_mount: [
         {DeployexWeb.UserAuth, :redirect_if_user_is_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings},
         DeployexWeb.ProcessLabel
       ] do
       live "/users/log_in", UserLoginLive, :new
@@ -69,27 +66,25 @@ defmodule DeployexWeb.Router do
     live_session :require_authenticated_user,
       on_mount: [
         {DeployexWeb.UserAuth, :ensure_authenticated},
-        {DeployexWeb.UiSettings, :mount_ui_settings},
+        DeployexWeb.HostInfo,
+        DeployexWeb.RecentEvents,
         DeployexWeb.ProcessLabel
       ] do
       live "/", ApplicationsLive, :index
       live "/terminal", TerminalLive, :index
-      live "/logs/live", LogsLive, :index
-      live "/logs/history", HistoryLive, :index
+      live "/logs/live", LogsLive, :live
+      live "/logs/history", LogsLive, :history
       live "/embedded-observer", ObserverLive, :index
       live "/applications", ApplicationsLive, :index
-      live "/applications/:name/versions", ApplicationsLive, :versions
-      live "/applications/:name/ghosted", ApplicationsLive, :ghosted
-      live "/applications/:name/restart", ApplicationsLive, :full_restart
-      live "/applications/:name/:sname/logs/stdout", ApplicationsLive, :logs_stdout
-      live "/applications/:name/:sname/logs/stderr", ApplicationsLive, :logs_stderr
-      live "/applications/:name/:sname/terminal", ApplicationsLive, :terminal
-      live "/applications/:name/:sname/versions", ApplicationsLive, :versions
-      live "/applications/:name/:sname/restart", ApplicationsLive, :restart
+      live "/applications/:name/versions", VersionsLive, :index
+      live "/applications/:name/ghosted", GhostedLive, :index
+      live "/applications/:name/:sname/versions", VersionsLive, :index
       live "/documentation", DocsLive, :index
       live "/hotupgrade", HotUpgradeLive, :index
       live "/hotupgrade/apply", HotUpgradeLive, :apply
     end
+
+    get "/logs/export", LogsExportController, :export
 
     observer_dashboard("/observer")
   end

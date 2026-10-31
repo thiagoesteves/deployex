@@ -1,130 +1,201 @@
 defmodule DeployexWeb.Terminal.IndexTest do
   use DeployexWeb.ConnCase, async: false
 
-  import Phoenix.LiveViewTest
   import Mox
-  import Mock
+  import Phoenix.LiveViewTest
 
-  alias DeployexWeb.Fixture.Status, as: FixtureStatus
-  alias Host.Fixture.Terminal, as: FixtureTerminal
+  alias DeployexWeb.Shell
 
-  setup [
-    :set_mox_global,
-    :verify_on_exit!,
-    :log_in_default_user
-  ]
+  setup [:set_mox_global, :verify_on_exit!, :log_in_default_user]
 
-  @tag :capture_log
-  test "GET /applications check button", %{conn: conn} do
-    Deployer.StatusMock
-    |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
-    |> expect(:subscribe, fn -> :ok end)
-    |> stub(:history_version_list, fn _name, _options -> FixtureStatus.versions() end)
+  @os_pid 5151
 
-    {:ok, index_live, _html} = live(conn, ~p"/applications")
-
-    assert index_live
-           |> element(~s{[href="/terminal"]})
-           |> render_click()
-  end
-
-  @tag :capture_log
-  test "GET /terminal", %{conn: conn} do
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
+  setup do
+    test_pid = self()
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
-    |> expect(:stop, fn ^os_pid ->
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-      :ok
+    |> stub(:run, fn
+      "tmux kill-session" <> _ = command, [:sync] ->
+        send(test_pid, {:cleanup, command})
+        {:ok, []}
+
+      _commands, _options ->
+        {:ok, self(), @os_pid}
     end)
+    |> stub(:stop, fn @os_pid -> :ok end)
 
-    {:ok, _index_live, _html} = live(conn, ~p"/terminal")
+    stub(Deployer.MonitorMock, :list, fn -> [] end)
 
-    FixtureTerminal.terminate_all()
+    # A DeployEx shell needs its release binary, which a fresh machine does not have
+    bin_path = Foundation.Catalog.bin_path("deployex", :current)
+    File.mkdir_p!(Path.dirname(bin_path))
+    File.touch!(bin_path)
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
+    :ok
   end
 
-  @tag :capture_log
-  test "Send Character to Terminal server", %{conn: conn} do
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
-    message = "Opening Host Terminal"
-
-    Host.CommanderMock
-    |> expect(:run, fn _command, _options -> {:ok, test_pid_process, os_pid} end)
-    |> expect(:send, fn ^os_pid, ^message ->
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-      :ok
-    end)
-    |> expect(:stop, fn ^os_pid -> :ok end)
-
-    with_mock Foundation.Common, random_number: fn _from, _to -> 1 end do
-      {:ok, index_live, _html} = live(conn, ~p"/terminal")
-
-      # NOTE: The key only reaches the terminal once the LiveView knows the process to write to,
-      #       and that is reported after the connection is open
-      FixtureTerminal.wait_for_connection()
-
-      # NOTE: Force handle_event in the live component
-      index_live
-      |> element("#host-shell-1")
-      |> render_hook("key", %{"key" => message})
-
-      FixtureTerminal.terminate_all()
-
-      assert_receive {:handle_ref_event, ^ref}, 1_000
+  # Ends the user's sessions and waits for them and their terminals, while the mocks still answer
+  defp close_all(user) do
+    for session <- Shell.list(user) do
+      [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user, session.target})
+      %{terminal: terminal} = :sys.get_state(pid)
+      refs = [Process.monitor(pid), Process.monitor(terminal)]
+      Shell.close(user, session.target)
+      for ref <- refs, do: assert_receive({:DOWN, ^ref, :process, _pid, _reason})
     end
   end
 
-  @tag :capture_log
-  test "Send Character to Terminal Index Liveview from erlexec", %{conn: conn} do
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
-    message = "Sending from Host Terminal"
+  # Waits until the shell runs, so keys reach it
+  defp wait_running(user, target) do
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user, target})
 
-    Host.CommanderMock
-    |> expect(:run, fn _command, _options ->
-      send(self(), {:stdout, os_pid, message})
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
-
-      {:ok, test_pid_process, os_pid}
+    Enum.reduce_while(1..50, nil, fn _, _ ->
+      if is_integer(:sys.get_state(pid).os_pid),
+        do: {:halt, :ok},
+        else: Process.sleep(10) && {:cont, nil}
     end)
-    |> expect(:stop, fn ^os_pid -> :ok end)
-
-    {:ok, _index_live, _html} = live(conn, ~p"/terminal")
-
-    FixtureTerminal.terminate_all()
-
-    assert_receive {:handle_ref_event, ^ref}, 1_000
   end
 
   @tag :capture_log
-  test "Terminal server timed out", %{conn: conn} do
-    ref = make_ref()
-    test_pid_process = self()
-    os_pid = 123_456
+  test "GET /terminal with no session offers the host shell and DeployEx", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/terminal")
+
+    assert html =~ "No open session"
+    assert html =~ "Open an IEx shell on an instance, or a shell on this host, with New session."
+    assert html =~ ~s(id="new-host")
+    assert html =~ "Host shell"
+    assert html =~ ~s(id="new-deployex")
+  end
+
+  @tag :capture_log
+  test "a new host shell gets a tab, the header and the shortcuts, and Disconnect ends it", %{
+    conn: conn,
+    user: user
+  } do
+    {:ok, view, _html} = live(conn, ~p"/terminal")
+
+    view |> element("#new-host") |> render_click()
+    assert_patch(view, ~p"/terminal?target=host")
+
+    html = render(view)
+    assert html =~ "tmux on host · user"
+    assert html =~ "Session closes in"
+    assert html =~ "tmux keys"
+    assert html =~ "This shell runs as the deployex user."
+    assert html =~ "Every session is open." or html =~ ~s(id="new-deployex")
+    refute html =~ ~s(id="new-host")
+    assert [%{target: "host"}] = Shell.list(user.username)
+
+    html = view |> element("#terminal-shortcuts") |> render_click()
+    refute html =~ "tmux keys"
+
+    view |> element("#terminal-disconnect") |> render_click()
+    assert_receive {:cleanup, "tmux kill-session" <> _}
+    assert_patch(view, ~p"/terminal")
+    assert render(view) =~ "No open session"
+  end
+
+  @tag :capture_log
+  test "the page shows the shell output, and sends keys and the size", %{conn: conn, user: user} do
+    test_pid = self()
 
     Host.CommanderMock
-    |> expect(:run, fn _command, _options ->
-      {:ok, test_pid_process, os_pid}
+    |> expect(:send, fn @os_pid, "ls\r" ->
+      send(test_pid, :keys)
+      :ok
     end)
-    |> expect(:stop, fn ^os_pid ->
-      Process.send_after(test_pid_process, {:handle_ref_event, ref}, 100)
+    |> expect(:winsz, fn @os_pid, 30, 100 ->
+      send(test_pid, :winsz)
       :ok
     end)
 
-    {:ok, _index_live, _html} = live(conn, ~p"/terminal")
+    {:ok, _session} = Shell.open(user.username, "host")
+    wait_running(user.username, "host")
 
-    assert [pid] = FixtureTerminal.list_children()
+    {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
+    assert_push_event(view, "shell-reset-page-host", %{data: ""})
 
-    send(pid, :session_timeout)
+    [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, "host"})
+    send(:sys.get_state(pid).terminal, {:stdout, @os_pid, "$ "})
+    assert_push_event(view, "shell-output-page-host", %{data: "$ "})
 
-    assert_receive {:handle_ref_event, ^ref}, 1_000
+    xterm = element(view, "[phx-hook=XTerm]")
+    render_hook(xterm, "shell-keys", %{"target" => "host", "keys" => "ls\r"})
+    render_hook(xterm, "shell-resize", %{"target" => "host", "rows" => 30, "cols" => 100})
+
+    assert_receive :keys
+    assert_receive :winsz
+    close_all(user.username)
+  end
+
+  @tag :capture_log
+  test "a session opened elsewhere shows as a tab, and another tab can be selected", %{
+    conn: conn,
+    user: user
+  } do
+    {:ok, _session} = Shell.open(user.username, "host")
+
+    {:ok, view, html} = live(conn, ~p"/terminal")
+    assert html =~ "tmux on host"
+
+    view |> element("button[phx-value-target=host].dx-tab-sel") |> render_click()
+    assert_patch(view, ~p"/terminal?target=host")
+    close_all(user.username)
+  end
+
+  @tag :capture_log
+  test "a shell that cannot start shows an error", %{conn: conn} do
+    stub(Deployer.MonitorMock, :list, fn -> ["myelixir-nobinary"] end)
+
+    {:ok, view, _html} = live(conn, ~p"/terminal")
+
+    html = view |> element("#new-myelixir-nobinary") |> render_click()
+    assert html =~ "Could not open a shell on myelixir-nobinary"
+  end
+
+  @tag :capture_log
+  test "two sessions show side by side, each with its output, and swap or close back to one", %{
+    conn: conn,
+    user: user
+  } do
+    {:ok, _session} = Shell.open(user.username, "host")
+    wait_running(user.username, "host")
+
+    {:ok, view, _html} = live(conn, ~p"/terminal?target=host")
+    assert_push_event(view, "shell-reset-page-host", %{data: ""})
+    refute has_element?(view, "#terminal-unsplit")
+
+    # Split opens a picker at once, and a pick opens its session there, with nothing open before
+    html = view |> element("#terminal-split") |> render_click()
+    assert html =~ "Show beside"
+    assert has_element?(view, "#pick-deployex", "DeployEx")
+    refute has_element?(view, "#pick-host")
+
+    view |> element("#pick-deployex") |> render_click()
+    assert_patch(view, "/terminal?split=deployex&target=host")
+    assert_push_event(view, "shell-reset-page-deployex", %{data: ""})
+    wait_running(user.username, "deployex")
+    assert has_element?(view, "#terminal-unsplit")
+    assert [_host, _deployex] = view |> render() |> then(&Regex.scan(~r/phx-hook="XTerm"/, &1))
+
+    # Each session's output goes to its own pane
+    for {target, data} <- [{"host", "$ "}, {"deployex", "iex> "}] do
+      [{pid, _}] = Registry.lookup(DeployexWeb.Shell.Registry, {user.username, target})
+      send(:sys.get_state(pid).terminal, {:stdout, @os_pid, data})
+    end
+
+    assert_push_event(view, "shell-output-page-host", %{data: "$ "})
+    assert_push_event(view, "shell-output-page-deployex", %{data: "iex> "})
+
+    # The second session's tab swaps the panes
+    view |> element("button[phx-value-target=deployex].dx-tab-sel") |> render_click()
+    assert_patch(view, "/terminal?split=host&target=deployex")
+
+    # Closing the second pane keeps its session running
+    view |> element("#terminal-unsplit") |> render_click()
+    assert_patch(view, "/terminal?target=deployex")
+    assert [_host, _deployex] = Shell.list(user.username)
+
+    close_all(user.username)
   end
 end

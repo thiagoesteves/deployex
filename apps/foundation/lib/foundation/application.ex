@@ -17,6 +17,7 @@ defmodule Foundation.Application do
       [
         {Phoenix.PubSub, name: Foundation.PubSub},
         {Finch, name: Foundation.Finch},
+        Foundation.Notifications.Recent.Server,
         Foundation.Catalog.Local,
         Foundation.Certificates.Manager.Supervisor,
         Foundation.Notifications.Supervisor

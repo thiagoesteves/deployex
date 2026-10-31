@@ -1,12 +1,10 @@
 defmodule DeployexWeb.Components.SystemBar do
   @moduledoc """
-  Memory Bar
+  The tech stack, the host system and its uptime. The top bar shows the host CPU and memory.
   """
   use Phoenix.Component
 
   attr :info, :map, required: true
-
-  @one_gigabyte 1_073_741_824
 
   def content(assigns) do
     info = assigns.info
@@ -16,28 +14,12 @@ defmodule DeployexWeb.Components.SystemBar do
         assigns
         |> assign(system: "--")
         |> assign(description: "--")
-        |> assign(memory_used: 0)
-        |> assign(memory_max: "--")
-        |> assign(cpus_used: 0)
-        |> assign(cores: "--")
         |> assign(uptime: "--")
       else
-        memory_used = trunc((info.memory_total - info.memory_free) / info.memory_total * 100)
-        memory_max = :erlang.float_to_binary(info.memory_total / @one_gigabyte, [{:decimals, 2}])
-
-        cpus_max = trunc(info.cpus * 100)
-        cpus_used = trunc(info.cpu / cpus_max * 100)
-
-        uptime = Map.get(info, :uptime, "--")
-
         assigns
         |> assign(system: info.host)
         |> assign(description: info.description)
-        |> assign(memory_used: memory_used)
-        |> assign(memory_max: memory_max)
-        |> assign(cpus_used: cpus_used)
-        |> assign(cores: div(cpus_max, 100))
-        |> assign(uptime: uptime)
+        |> assign(uptime: Map.get(info, :uptime) || "--")
       end
 
     ~H"""
@@ -92,30 +74,6 @@ defmodule DeployexWeb.Components.SystemBar do
               <div class="flex flex-col items-end">
                 <span class="text-sm font-semibold text-base-content">Uptime</span>
                 <span class="text-xs text-base-content/60">{@uptime}</span>
-              </div>
-            </div>
-            <!-- Memory Usage -->
-            <div class="flex items-center gap-3">
-              <div class="flex flex-col items-end">
-                <span class="text-sm font-semibold text-base-content">Memory</span>
-                <span class="text-xs text-base-content/60">{@memory_max}G Total</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <progress class="progress progress-info w-20 h-2" value={@memory_used} max="100"></progress>
-                <span class="text-sm font-bold text-info min-w-[3rem] text-right">
-                  {@memory_used}%
-                </span>
-              </div>
-            </div>
-            <!-- CPU Usage -->
-            <div class="flex items-center gap-3">
-              <div class="flex flex-col items-end">
-                <span class="text-sm font-semibold text-base-content">CPU</span>
-                <span class="text-xs text-base-content/60">{@cores} cores</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <progress class="progress progress-warning w-20 h-2" value={@cpus_used} max="100"></progress>
-                <span class="text-sm font-bold text-warning min-w-[3rem] text-right">{@cpus_used}%</span>
               </div>
             </div>
           </div>

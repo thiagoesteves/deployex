@@ -41,6 +41,14 @@ defmodule Host.Commander do
   def send(process_pid, message), do: default().send(process_pid, message)
 
   @doc """
+  Set the terminal size of a process that runs in a pty
+  """
+  @impl true
+  @spec winsz(process_pid :: integer(), rows :: pos_integer(), cols :: pos_integer()) ::
+          :ok | {:error, any()}
+  def winsz(process_pid, rows, cols), do: default().winsz(process_pid, rows, cols)
+
+  @doc """
   Check the current Operational System type
   """
   @impl true

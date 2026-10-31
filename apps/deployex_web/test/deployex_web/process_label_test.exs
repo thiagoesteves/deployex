@@ -4,7 +4,6 @@ defmodule DeployexWeb.ProcessLabelTest do
   import Phoenix.LiveViewTest
   import Mox
 
-  alias DeployexWeb.Cache
   alias DeployexWeb.Fixture.Status, as: FixtureStatus
   alias DeployexWeb.ProcessLabel
 
@@ -80,8 +79,6 @@ defmodule DeployexWeb.ProcessLabelTest do
 
   @tag :capture_log
   test "a real LiveView process carries the label", %{conn: conn, user: user} do
-    Cache.UiSettings.set(%Cache.UiSettings{})
-
     Deployer.StatusMock
     |> expect(:monitoring, fn -> {:ok, FixtureStatus.list()} end)
     |> expect(:subscribe, fn -> :ok end)

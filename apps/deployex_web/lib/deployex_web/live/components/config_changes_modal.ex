@@ -5,6 +5,7 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   use DeployexWeb, :html
 
   alias DeployexWeb.Helper
+  alias DeployexWeb.HostTime
 
   attr :id, :string, required: true
   attr :pending_changes, :map, required: true
@@ -753,7 +754,7 @@ defmodule DeployexWeb.Components.ConfigChangesModal do
   defp auth_allowlist(%{allowlist: allowlist}), do: allowlist.emails ++ allowlist.domains
 
   defp format_timestamp(timestamp) do
-    Calendar.strftime(timestamp, "%Y-%m-%d %H:%M:%S UTC")
+    "#{HostTime.format(timestamp, "%Y-%m-%d %H:%M:%S")} host time, #{HostTime.zone()}"
   end
 
   defp find_monitoring_by_type(monitoring_list, type) do

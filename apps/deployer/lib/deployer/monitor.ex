@@ -22,6 +22,7 @@ defmodule Deployer.Monitor do
           force_restart_count: integer(),
           start_time: nil | integer(),
           started_at: nil | DateTime.t(),
+          last_crash_at: nil | DateTime.t(),
           timeout_app_ready: integer(),
           retry_delay_pre_commands: integer(),
           pre_commands_run: map() | nil,
@@ -41,6 +42,7 @@ defmodule Deployer.Monitor do
             force_restart_count: 0,
             start_time: nil,
             started_at: nil,
+            last_crash_at: nil,
             timeout_app_ready: nil,
             retry_delay_pre_commands: nil,
             pre_commands_run: nil,
@@ -127,6 +129,15 @@ defmodule Deployer.Monitor do
   @impl true
   @spec list() :: list()
   def list, do: default().list()
+
+  @doc """
+  Whether the instance runs: running, or running a hot upgrade's pre_commands. Start up pre_commands have
+  no pid yet.
+  """
+  @spec serving?(map()) :: boolean()
+  def serving?(%{status: :running}), do: true
+  def serving?(%{status: :pre_commands, current_pid: pid}) when is_pid(pid), do: true
+  def serving?(_state), do: false
 
   @impl true
   @spec list(options :: Keyword.t()) :: list()
