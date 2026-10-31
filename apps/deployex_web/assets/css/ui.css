@@ -334,6 +334,34 @@
 
 /* What happened to an app, under its row: a bold title, what it means, and the actions */
 /* The icon, the title over the detail, and the actions on their own line under the text */
+/* Placeholder rows in the first render, before the page reads the apps, so no empty state flashes */
+.dx-skel-row {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    min-height: 64px;
+    padding: 0 20px 0 26px;
+    border-top: 1px solid var(--dx-base-300);
+}
+
+.dx-skel {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--dx-base-300);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .dx-skel {
+        animation: dx-pulse 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes dx-pulse {
+    50% {
+        opacity: 0.5;
+    }
+}
+
 .dx-callout {
     display: flex;
     flex-wrap: wrap;

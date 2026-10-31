@@ -111,7 +111,7 @@ defmodule DeployexWeb.GhostedLive do
             </div>
           </div>
           <p
-            :if={@shown == []}
+            :if={@shown == [] and connected?(@socket)}
             class="dx-muted border-t border-(--dx-base-300) px-5 py-[18px] text-[0.875rem]"
           >
             No ghosted versions. Any version can deploy on this host.

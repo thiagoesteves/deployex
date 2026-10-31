@@ -304,6 +304,22 @@ defmodule DeployexWeb.Applications.IndexTest do
   end
 
   @tag :capture_log
+  test "GET /applications shows placeholder rows until it reads the apps, not the empty state", %{
+    conn: conn
+  } do
+    stub_monitoring([])
+
+    # The first render, before the page connects, has not read the apps yet
+    html = conn |> get(~p"/applications") |> html_response(200)
+    assert html =~ ~s(id="apps-loading")
+    refute html =~ "No applications on this host"
+
+    {:ok, _view, html} = live(conn, ~p"/applications")
+    refute html =~ ~s(id="apps-loading")
+    assert html =~ "No applications on this host"
+  end
+
+  @tag :capture_log
   test "GET /applications restarts DeployEx after an inline confirmation", %{conn: conn} do
     stub_monitoring([])
 

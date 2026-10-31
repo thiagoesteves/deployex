@@ -55,6 +55,7 @@ defmodule DeployexWeb.ApplicationsLive do
         />
         <Board.app_table
           apps={@shown}
+          loaded={connected?(@socket)}
           total={length(@apps)}
           filtered={@tags != []}
           open={@open}

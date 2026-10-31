@@ -151,6 +151,11 @@ defmodule DeployexWeb.ApplicationsLive.Board do
   attr :ask, :any, required: true
   attr :sent, :any, required: true, doc: "the snames with a restart sent"
   attr :total, :integer, required: true, doc: "the apps on this host, shown or not"
+
+  attr :loaded, :boolean,
+    default: true,
+    doc: "false in the first render, before the page reads the apps"
+
   attr :filtered, :boolean, default: false, doc: "whether search tags filter the list"
 
   attr :cleared, :map,
@@ -176,7 +181,13 @@ defmodule DeployexWeb.ApplicationsLive.Board do
             <div class="dx-lbl">Last deploy</div>
             <div></div>
           </div>
-          <div :if={@total == 0} class="dx-empty" id="apps-empty">
+          <div :if={!@loaded} id="apps-loading" aria-busy="true" aria-label="Loading the applications">
+            <div :for={width <- ["w-36", "w-28", "w-44"]} class="dx-skel-row">
+              <span class={["dx-skel", width]}></span>
+              <span class="dx-skel w-24"></span>
+            </div>
+          </div>
+          <div :if={@loaded and @total == 0} class="dx-empty" id="apps-empty">
             <Icons.icon name="cube" class="dx-ico dx-muted size-7" />
             <b class="text-base">No applications on this host</b>
             <p class="dx-muted max-w-[460px] text-[0.875rem]">

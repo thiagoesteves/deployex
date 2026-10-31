@@ -164,7 +164,7 @@ defmodule DeployexWeb.VersionsLive do
                 </div>
               </div>
               <p
-                :if={@history == []}
+                :if={@history == [] and connected?(@socket)}
                 class="dx-muted border-t border-(--dx-base-300) px-5 py-4 text-[0.875rem]"
               >
                 No version has run on this host yet.
